@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
+import { buildAgentContextPreview } from './agentContext'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
@@ -173,6 +174,17 @@ ipcMain.handle('stop-agent', async () => {
   activeAgentAbort.abort()
   return true
 })
+
+ipcMain.handle(
+  'preview-agent-context',
+  async (
+    _e,
+    projectPath: string,
+    history: ChatMessage[],
+    userMessage: string,
+    model: string
+  ) => buildAgentContextPreview(projectPath, history, userMessage, model)
+)
 
 ipcMain.handle('load-settings', async () => loadSettings())
 

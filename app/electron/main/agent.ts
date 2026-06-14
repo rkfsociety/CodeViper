@@ -2,10 +2,9 @@ import type {
   AgentSettings,
   AgentStreamPayload,
   ChatMessage,
-  FileNode,
   MemoryCategory
 } from '../../src/types'
-import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../../shared/toolCalls'
+import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
   claimsActionCompleted,
   MUTATING_TOOLS,
@@ -13,8 +12,9 @@ import {
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
+import { prepareAgentRunContext, formatFileTree, type OllamaMessage } from './agentContext'
+import { AGENT_TOOLS } from './agentTools'
 import {
-  buildSelfEditContext,
   getCodeViperSourceRoot,
   readCodeViperFile,
   runCodeViperCommand,
@@ -24,13 +24,11 @@ import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './servic
 import { readNdjsonLines } from './ndjson'
 import {
   addMemory,
-  buildMemoryContext,
   deleteMemory,
   parseReflectionLearnings,
   searchMemories
 } from './memory'
 import {
-  buildSkillsContext,
   createSkill,
   deleteSkill,
   getSkill,
@@ -40,11 +38,6 @@ import {
   updateSkill,
   writeSkillData
 } from './skills'
-
-interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool'
-  content: string
-}
 
 interface ToolCall {
   function: {
@@ -71,422 +64,10 @@ export function parseToolArgs(args: Record<string, string> | string): Record<str
   return args
 }
 
-const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент для программирования.
-Пользователь уже открыл папку проекта — корень и структура указаны ниже. Не проси указать путь к проекту или папке.
-При запросах «изучи код», «посмотри проект» и подобных сразу используй list_directory, read_file и другие инструменты.
-Не выводи вызовы инструментов JSON-текстом в ответе — только через механизм tool calling.
-Не оборачивай обычный текст в блоки \`\`\`json — отвечай обычным текстом.
-Работай только внутри открытого проекта. Отвечай на русском, если пользователь пишет по-русски.
-Используй инструменты для чтения, записи файлов, просмотра структуры и запуска команд.
-Перед правками сначала прочитай файл. Делай минимальные точечные изменения.
-После выполнения задачи кратко объясни, что сделал.
-
-КРИТИЧНО — честность о действиях:
-- Запрещено утверждать, что файл/skill/правка/команда выполнены, если ты НЕ вызвал инструмент и не получил успешный ответ.
-- write_file / write_codeviper_file / create_skill / run_command / run_codeviper_command / remember — только через tool calling, не текстом.
-- Если инструмент ещё не вызывал — скажи, что действие не выполнено, и вызови инструмент.
-
-## Самообучение, навыки и саморедактирование
-
-### Навыки (skills) — инструкции без правки кода
-- **create_skill** / **update_skill** — поведение агента; для «улучши себя» часто достаточно skill с scope **global**
-- **read_skill** / **read_skill_data** / **write_skill_data** — работа по навыку
-- Встроенный навык **viper-memory** (read_skill) — долгосрочная память в **ViperMemory.md**, инструменты remember / search_memory / forget
-
-### Саморедактирование — правка исходников CodeViper
-Ты можешь менять **свой** код через read_codeviper_file / write_codeviper_file / run_codeviper_command (см. раздел «Исходники CodeViper» в промпте).
-- Перед правкой: read_codeviper_file, минимальный diff
-- После правки: run_codeviper_command → \`npm run typecheck\` и \`npm test\`
-- Изменения electron/main/* требуют **перезапуска** приложения
-
-Если пользователь просит «улучши себя», «сделай skill», «научись …»:
-1. list_skills — не дублируй
-2. Для поведения: **create_skill** (global). Для логики/инструментов: правка кода через write_codeviper_file
-3. Не утверждай об успехе без вызова инструментов
-
-Обновляй .codeviper/rules.md через write_file для правил **рабочего проекта** в чате.`
-
-const MAX_PROJECT_TREE_CHARS = 6000
-const MAX_HISTORY_CHARS = 28_000
-const MIN_RECENT_MESSAGES = 8
-const MAX_TOOL_MESSAGE_CHARS = 4_000
-
-function formatFileTree(nodes: FileNode[], prefix = ''): string {
-  const lines: string[] = []
-
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]
-    const last = i === nodes.length - 1
-    const branch = last ? '└── ' : '├── '
-    lines.push(`${prefix}${branch}${node.name}${node.isDirectory ? '/' : ''}`)
-
-    if (node.children?.length) {
-      lines.push(formatFileTree(node.children, `${prefix}${last ? '    ' : '│   '}`))
-    }
-  }
-
-  return lines.join('\n')
-}
-
-function buildProjectContext(projectPath: string, treeText: string): string {
-  return `# Открытый проект
-Корень: ${projectPath}
-run_command выполняется в корне проекта.
-read_file / write_file принимают абсолютные пути к файлам внутри проекта.
-
-Структура (до 3 уровней, без node_modules и .git):
-${treeText || '(пусто)'}`
-}
-
-function buildSystemPrompt(
-  projectPath: string,
-  memoryContext: string,
-  projectTreeText: string
-): string {
-  const parts = [BASE_SYSTEM_PROMPT, buildSelfEditContext()]
-
-  if (projectPath.trim()) {
-    parts.push(buildProjectContext(projectPath, projectTreeText))
-  }
-
-  if (memoryContext.trim()) {
-    parts.push(`# Память, правила и навыки\n${memoryContext}`)
-  }
-
-  return parts.join('\n\n')
-}
-
-async function buildAgentContext(projectPath: string, taskHint: string): Promise<string> {
-  const memoryContext = await buildMemoryContext(projectPath, taskHint)
-  const skillsContext = await buildSkillsContext(projectPath, taskHint)
-  return [memoryContext, skillsContext].filter(Boolean).join('\n\n')
-}
-
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
 [{"content": "краткий урок", "category": "pattern|mistake|preference|project|skill", "tags": ["тег"]}]
 Если уроков нет — верни [].
 Только JSON, без пояснений.`
-
-function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
-  switch (message.role) {
-    case 'user':
-      return { role: 'user', content: message.content }
-    case 'assistant': {
-      const cleaned = sanitizeAssistantContent(message.content)
-      if (!cleaned || looksLikeEmbeddedToolCall(message.content)) return null
-      return { role: 'assistant', content: cleaned }
-    }
-    case 'tool': {
-      // UI хранит ▶ (старт) и ✓ (результат); в Ollama нужны только итоги инструментов
-      if (message.content.startsWith('▶ ')) return null
-
-      const name = message.toolName ?? 'unknown'
-      let output = message.toolOutput
-      if (!output) {
-        output = message.content.startsWith('✓ ')
-          ? message.content.slice(message.content.indexOf('\n') + 1)
-          : message.content
-      }
-
-      if (output.length > MAX_TOOL_MESSAGE_CHARS) {
-        output = `${output.slice(0, MAX_TOOL_MESSAGE_CHARS)}\n… (обрезано)`
-      }
-
-      return { role: 'tool', content: `Инструмент ${name}:\n${output}` }
-    }
-    case 'system':
-      return { role: 'system', content: message.content }
-    default:
-      return null
-  }
-}
-
-function estimateMessageChars(message: OllamaMessage): number {
-  return message.content.length + 24
-}
-
-function trimHistoryForContext(history: ChatMessage[]): {
-  messages: OllamaMessage[]
-  truncated: boolean
-} {
-  let mapped = history
-    .map(mapHistoryMessageToOllama)
-    .filter((m): m is OllamaMessage => m !== null)
-
-  let truncated = false
-
-  while (mapped.length > MIN_RECENT_MESSAGES) {
-    const total = mapped.reduce((sum, message) => sum + estimateMessageChars(message), 0)
-    if (total <= MAX_HISTORY_CHARS) break
-
-    const dropCount = Math.min(2, mapped.length - MIN_RECENT_MESSAGES)
-    mapped = mapped.slice(dropCount)
-    truncated = true
-  }
-
-  return { messages: mapped, truncated }
-}
-
-const TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'list_directory',
-      description: 'Показать дерево файлов проекта (до 3 уровней)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'read_file',
-      description: 'Прочитать содержимое файла',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: { type: 'string', description: 'Абсолютный путь к файлу' }
-        },
-        required: ['path']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'write_file',
-      description: 'Записать или перезаписать файл',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: { type: 'string', description: 'Абсолютный путь к файлу' },
-          content: { type: 'string', description: 'Новое содержимое файла' }
-        },
-        required: ['path', 'content']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'run_command',
-      description: 'Выполнить shell-команду в корне проекта',
-      parameters: {
-        type: 'object',
-        properties: {
-          command: { type: 'string', description: 'Команда для терминала' }
-        },
-        required: ['command']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'remember',
-      description: 'Сохранить знание в ViperMemory.md (паттерн, ошибка, предпочтение, правило проекта)',
-      parameters: {
-        type: 'object',
-        properties: {
-          content: { type: 'string', description: 'Краткое знание для запоминания' },
-          category: {
-            type: 'string',
-            description: 'pattern | mistake | preference | project | skill'
-          },
-          tags: { type: 'string', description: 'Теги через запятую (необязательно)' },
-          scope: { type: 'string', description: 'global | project (по умолчанию auto)' }
-        },
-        required: ['content', 'category']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'search_memory',
-      description: 'Найти сохранённые знания по ключевым словам',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'Поисковый запрос' }
-        },
-        required: ['query']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'forget',
-      description: 'Удалить устаревшее знание по id',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'ID записи из remember/search_memory' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'list_skills',
-      description: 'Список навыков (skills), которые агент создал для себя',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'read_skill',
-      description: 'Прочитать полную инструкцию навыка по id',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'ID навыка из list_skills' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'create_skill',
-      description: 'Создать новый навык (по запросу пользователя): инструкции поведения, триггеры',
-      parameters: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', description: 'Название навыка' },
-          description: { type: 'string', description: 'Кратко, зачем нужен' },
-          instructions: {
-            type: 'string',
-            description: 'Markdown: когда применять, шаги, формат ответа, работа с skill-data'
-          },
-          triggers: {
-            type: 'string',
-            description: 'Слова-триггеры через запятую (todo, задачи, план...)'
-          },
-          scope: { type: 'string', description: 'global — для всего агента; project — для проекта в чате' },
-          id: { type: 'string', description: 'Необязательный id (slug)' }
-        },
-        required: ['name', 'description', 'instructions']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'update_skill',
-      description: 'Обновить существующий навык',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'ID навыка' },
-          name: { type: 'string' },
-          description: { type: 'string' },
-          instructions: { type: 'string' },
-          triggers: { type: 'string', description: 'Триггеры через запятую' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'delete_skill',
-      description: 'Удалить навык по id',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'ID навыка' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'read_skill_data',
-      description: 'Прочитать JSON-данные навыка (todo, состояние и т.д.)',
-      parameters: {
-        type: 'object',
-        properties: {
-          skill_id: { type: 'string', description: 'ID навыка' }
-        },
-        required: ['skill_id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'write_skill_data',
-      description: 'Записать JSON-данные навыка',
-      parameters: {
-        type: 'object',
-        properties: {
-          skill_id: { type: 'string', description: 'ID навыка' },
-          content: { type: 'string', description: 'JSON-строка' }
-        },
-        required: ['skill_id', 'content']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'list_codeviper_directory',
-      description: 'Дерево исходников CodeViper (своё приложение). Для саморедактирования.',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'read_codeviper_file',
-      description: 'Прочитать файл исходников CodeViper по абсолютному пути',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' }
-        },
-        required: ['path']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'write_codeviper_file',
-      description: 'Записать файл исходников CodeViper (саморедактирование кода агента)',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
-          content: { type: 'string', description: 'Новое содержимое файла' }
-        },
-        required: ['path', 'content']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'run_codeviper_command',
-      description: 'Shell-команда в корне исходников CodeViper (npm test, typecheck, build)',
-      parameters: {
-        type: 'object',
-        properties: {
-          command: { type: 'string', description: 'Команда для терминала' }
-        },
-        required: ['command']
-      }
-    }
-  }
-]
 
 export class AgentRunner {
   constructor(
@@ -510,31 +91,17 @@ export class AgentRunner {
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
     this.throwIfAborted()
 
-    const { projectPath } = this
-    const agentContext = await buildAgentContext(projectPath, userMessage)
+    const prepared = await prepareAgentRunContext(
+      this.projectPath,
+      history,
+      userMessage,
+      this.settings.model
+    )
     this.throwIfAborted()
 
-    let projectTreeText = ''
-    if (projectPath.trim()) {
-      const tree = await buildFileTree(projectPath)
-      projectTreeText = formatFileTree(tree)
-      if (projectTreeText.length > MAX_PROJECT_TREE_CHARS) {
-        projectTreeText = `${projectTreeText.slice(0, MAX_PROJECT_TREE_CHARS)}\n… (обрезано)`
-      }
-    }
+    this.emit({ type: 'context', contextPreview: prepared.preview })
 
-    const { messages: trimmedHistory, truncated } = trimHistoryForContext(history)
-    let systemContent = buildSystemPrompt(projectPath, agentContext, projectTreeText)
-    if (truncated) {
-      systemContent +=
-        '\n\n[Часть старой истории чата опущена из-за лимита контекста модели. Опирайся на последние сообщения.]'
-    }
-
-    const messages: OllamaMessage[] = [
-      { role: 'system', content: systemContent },
-      ...trimmedHistory,
-      { role: 'user', content: userMessage }
-    ]
+    const messages: OllamaMessage[] = prepared.messages
 
     let usedTools = false
     const mutatingToolsUsed = new Set<string>()
@@ -672,7 +239,7 @@ export class AgentRunner {
       body: JSON.stringify({
         model: this.settings.model,
         messages,
-        tools: TOOLS,
+        tools: AGENT_TOOLS,
         stream: true,
         ...(options?.requireTool ? { tool_choice: 'required' as const } : {})
       }),

@@ -57,6 +57,13 @@ const codeviper = {
 
   stopAgent: () => ipcRenderer.invoke('stop-agent'),
 
+  previewAgentContext: (
+    projectPath: string,
+    messages: ChatMessage[],
+    userMessage: string,
+    model: string
+  ) => ipcRenderer.invoke('preview-agent-context', projectPath, messages, userMessage, model),
+
   loadSettings: () => ipcRenderer.invoke('load-settings'),
 
   saveSettings: (settings: AgentSettings) => ipcRenderer.invoke('save-settings', settings),

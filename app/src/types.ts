@@ -126,6 +126,33 @@ export interface SkillsStore {
   skills: AgentSkill[]
 }
 
+export interface AgentContextSection {
+  id: string
+  title: string
+  subtitle?: string
+  content: string
+  charCount: number
+}
+
+export interface AgentContextMessagePreview {
+  role: AgentRole | 'tool'
+  label: string
+  content: string
+  charCount: number
+}
+
+export interface AgentContextPreview {
+  model: string
+  generatedAt: string
+  totalChars: number
+  estimatedTokens: number
+  historyTruncated: boolean
+  droppedMessageCount: number
+  toolCount: number
+  sections: AgentContextSection[]
+  messages: AgentContextMessagePreview[]
+}
+
 export interface AgentStreamPayload {
   type:
     | 'token'
@@ -137,12 +164,14 @@ export interface AgentStreamPayload {
     | 'error'
     | 'learning_saved'
     | 'skill_saved'
+    | 'context'
   content?: string
   toolName?: string
   toolInput?: string
   toolOutput?: string
   memoryId?: string
   skillId?: string
+  contextPreview?: AgentContextPreview
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {
@@ -177,6 +206,12 @@ export interface CodeViperAPI {
   ) => Promise<void>
   getAgentRunState: () => Promise<AgentRunState | null>
   stopAgent: () => Promise<boolean>
+  previewAgentContext: (
+    projectPath: string,
+    messages: ChatMessage[],
+    userMessage: string,
+    model: string
+  ) => Promise<AgentContextPreview>
   loadSettings: () => Promise<AgentSettings>
   saveSettings: (settings: AgentSettings) => Promise<AgentSettings>
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => () => void

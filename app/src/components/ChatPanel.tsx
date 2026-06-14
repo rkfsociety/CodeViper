@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
 import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentSettings, ChatMessage } from '../types'
+import type { AgentContextPreview, AgentSettings, ChatMessage } from '../types'
 import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
+import { AgentContextBar } from './AgentContextBar'
+import { AgentContextModal } from './AgentContextModal'
 import { MessageBody } from './MessageBody'
 import { MessageCopyButton } from './MessageCopyButton'
 
@@ -58,6 +60,9 @@ export function ChatPanel({
   const [draft, setDraft] = useState('')
   const [agentPhase, setAgentPhase] = useState<AgentPhase>('thinking')
   const [activeToolName, setActiveToolName] = useState<string | undefined>()
+  const [contextPreview, setContextPreview] = useState<AgentContextPreview | null>(null)
+  const [contextLoading, setContextLoading] = useState(false)
+  const [contextModalOpen, setContextModalOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef(messages)
   const chatIdRef = useRef(chatId)
@@ -105,7 +110,34 @@ export function ChatPanel({
     setActiveToolName(undefined)
     activeToolMessageIdRef.current = null
     lastAssistantContentRef.current = ''
+    setContextPreview(null)
   }, [chatId])
+
+  useEffect(() => {
+    if (!chatId || !settings.model) {
+      setContextPreview(null)
+      return
+    }
+
+    const timer = window.setTimeout(async () => {
+      setContextLoading(true)
+      try {
+        const preview = await window.codeviper.previewAgentContext(
+          projectPath,
+          messages,
+          input.trim(),
+          settings.model
+        )
+        setContextPreview(preview)
+      } catch {
+        setContextPreview(null)
+      } finally {
+        setContextLoading(false)
+      }
+    }, 350)
+
+    return () => window.clearTimeout(timer)
+  }, [chatId, projectPath, messages, input, settings.model])
 
   useEffect(() => {
     const unsubscribe = window.codeviper.onAgentStream((event) => {
@@ -190,6 +222,10 @@ export function ChatPanel({
           timestamp: Date.now()
         })
         onLearningSavedRef.current?.()
+      }
+
+      if (event.type === 'context' && event.contextPreview) {
+        setContextPreview(event.contextPreview)
       }
 
       if (event.type === 'done') {
@@ -297,6 +333,20 @@ export function ChatPanel({
           )}
         </div>
       )}
+
+      {chatId && (
+        <AgentContextBar
+          preview={contextPreview}
+          loading={contextLoading}
+          onOpen={() => setContextModalOpen(true)}
+        />
+      )}
+
+      <AgentContextModal
+        open={contextModalOpen}
+        preview={contextPreview}
+        onClose={() => setContextModalOpen(false)}
+      />
 
       <div className="chat-messages">
         {!chatId && (
