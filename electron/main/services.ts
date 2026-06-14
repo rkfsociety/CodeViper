@@ -1,7 +1,9 @@
 import { readdir, readFile, writeFile, stat } from 'fs/promises'
 import { join, resolve, sep } from 'path'
-import { spawn } from 'child_process'
+import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
+
+const COMMAND_TIMEOUT_MS = 120_000
 
 const IGNORED = new Set([
   'node_modules',
@@ -70,7 +72,31 @@ export async function safeWriteFile(
   await writeFile(filePath, content, 'utf-8')
 }
 
-export async function runCommand(cwd: string, command: string): Promise<TerminalResult> {
+function killProcessTree(child: ChildProcess): void {
+  if (!child.pid) {
+    child.kill()
+    return
+  }
+
+  if (process.platform === 'win32') {
+    spawn('taskkill', ['/pid', String(child.pid), '/f', '/t'], {
+      windowsHide: true,
+      stdio: 'ignore'
+    })
+    return
+  }
+
+  child.kill('SIGTERM')
+  setTimeout(() => {
+    if (!child.killed) child.kill('SIGKILL')
+  }, 1000)
+}
+
+export async function runCommand(
+  cwd: string,
+  command: string,
+  timeoutMs = COMMAND_TIMEOUT_MS
+): Promise<TerminalResult> {
   const blocked = /\b(rm\s+-rf|format\s+[a-z]:|del\s+\/[sf]|shutdown|restart)\b/i
   if (blocked.test(command)) {
     return {
@@ -81,14 +107,32 @@ export async function runCommand(cwd: string, command: string): Promise<Terminal
   }
 
   return new Promise((resolvePromise) => {
+    let settled = false
+    let stdout = ''
+    let stderr = ''
+
+    const finish = (result: TerminalResult) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolvePromise(result)
+    }
+
     const child = spawn(command, [], {
       cwd,
       shell: true,
       windowsHide: true
     })
 
-    let stdout = ''
-    let stderr = ''
+    const timer = setTimeout(() => {
+      killProcessTree(child)
+      const timeoutMsg = `[CodeViper] Команда прервана: превышен таймаут ${timeoutMs / 1000} с`
+      finish({
+        stdout: stdout.slice(0, 20_000),
+        stderr: `${stderr}\n${timeoutMsg}`.trim().slice(0, 20_000),
+        exitCode: 124
+      })
+    }, timeoutMs)
 
     child.stdout?.on('data', (chunk: Buffer) => {
       stdout += chunk.toString()
@@ -99,7 +143,7 @@ export async function runCommand(cwd: string, command: string): Promise<Terminal
     })
 
     child.on('close', (code) => {
-      resolvePromise({
+      finish({
         stdout: stdout.slice(0, 20_000),
         stderr: stderr.slice(0, 20_000),
         exitCode: code
@@ -107,7 +151,7 @@ export async function runCommand(cwd: string, command: string): Promise<Terminal
     })
 
     child.on('error', (error) => {
-      resolvePromise({
+      finish({
         stdout: '',
         stderr: error.message,
         exitCode: 1
