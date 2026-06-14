@@ -1,4 +1,3 @@
-import { AgentContextBar } from './AgentContextBar'
 import type { AgentContextPreview } from '../types'
 
 interface Props {
