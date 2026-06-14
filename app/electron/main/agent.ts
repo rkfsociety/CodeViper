@@ -232,6 +232,55 @@ export class AgentRunner {
         }
 
         if (!toolCalls.length) {
+          if (autonomousSelfImprove) {
+            if (assistantText) {
+              this.adoptPlanFromAssistantText(assistantText)
+            }
+
+            const plan = getSelfImprovementPlan()
+
+            if (isSelfImprovementPlanComplete()) {
+              if (assistantText) {
+                this.emit({ type: 'assistant', content: assistantText })
+              }
+              if (plan) this.emitSelfImprovementPlan(plan)
+              if (this.settings.selfLearning !== false) {
+                await this.reflectAndLearn(messages, userMessage, usedTools)
+              }
+              this.emit({ type: 'done' })
+              return
+            }
+
+            if (plan && hasPendingSelfImprovementItems()) {
+              if (assistantText) {
+                this.emit({ type: 'assistant', content: assistantText })
+              }
+              this.emitSelfImprovementPlan(plan)
+              messages.push({ role: 'user', content: buildSelfImprovementContinueNudge(plan) })
+              requireToolNext = true
+              continue
+            }
+
+            if (!plan && usedTools) {
+              if (assistantText) {
+                this.emit({ type: 'assistant', content: assistantText })
+              }
+              messages.push({ role: 'user', content: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE })
+              requireToolNext = true
+              continue
+            }
+
+            if (!plan && !usedTools) {
+              if (assistantText) {
+                messages.pop()
+              }
+              this.emit({ type: 'clear_draft' })
+              messages.push({ role: 'user', content: START_SELF_IMPROVEMENT_EXPLORATION_NUDGE })
+              requireToolNext = true
+              continue
+            }
+          }
+
           const mutationTask = taskLikelyNeedsMutation(userMessage)
           const noMutatingToolsYet = mutatingToolsUsed.size === 0
           const shouldRetryWithTools =
@@ -270,53 +319,6 @@ export class AgentRunner {
             this.emit({ type: 'error', content: TOOL_VERIFICATION_FAILED_MESSAGE })
             this.emit({ type: 'done' })
             return
-          }
-
-          if (autonomousSelfImprove) {
-            if (assistantText) {
-              this.adoptPlanFromAssistantText(assistantText)
-            }
-
-            const plan = getSelfImprovementPlan()
-
-            if (isSelfImprovementPlanComplete()) {
-              if (assistantText) {
-                this.emit({ type: 'assistant', content: assistantText })
-              }
-              if (plan) this.emitSelfImprovementPlan(plan)
-              if (this.settings.selfLearning !== false) {
-                await this.reflectAndLearn(messages, userMessage, usedTools)
-              }
-              this.emit({ type: 'done' })
-              return
-            }
-
-            if (plan && hasPendingSelfImprovementItems()) {
-              if (assistantText) {
-                this.emit({ type: 'assistant', content: assistantText })
-              }
-              this.emitSelfImprovementPlan(plan)
-              messages.push({ role: 'user', content: buildSelfImprovementContinueNudge(plan) })
-              continue
-            }
-
-            if (!plan && usedTools) {
-              if (assistantText) {
-                this.emit({ type: 'assistant', content: assistantText })
-              }
-              messages.push({ role: 'user', content: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE })
-              continue
-            }
-
-            if (!plan && !usedTools) {
-              if (assistantText) {
-                messages.pop()
-              }
-              this.emit({ type: 'clear_draft' })
-              messages.push({ role: 'user', content: START_SELF_IMPROVEMENT_EXPLORATION_NUDGE })
-              requireToolNext = true
-              continue
-            }
           }
 
           if (assistantText) {

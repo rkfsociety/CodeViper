@@ -64,4 +64,18 @@ describe('actionVerification', () => {
       )
     ).toBe(false)
   })
+
+  it('считает «изучи код и улучшай себя» задачей с изменениями (но режим самоулучшения обходит fail)', () => {
+    const message = 'Изучи код и начни улучшать себя'
+    expect(taskLikelyNeedsMutation(message)).toBe(true)
+    expect(taskLikelyNeedsTools(message)).toBe(true)
+    expect(
+      shouldRetryForMissingTools(
+        message,
+        'A'.repeat(120),
+        new Set(),
+        true
+      )
+    ).toBe(true)
+  })
 })
