@@ -299,7 +299,7 @@ export function ChatPanel({
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key !== 'Enter') return
 
-    if (e.ctrlKey) {
+    if (e.shiftKey || e.ctrlKey) {
       e.preventDefault()
       const ta = e.currentTarget
       const start = ta.selectionStart ?? input.length
@@ -412,7 +412,7 @@ export function ChatPanel({
                 ? 'Сначала выбери проект для этого чата'
               : busy
                 ? null
-                : 'Enter — отправить, Ctrl+Enter — новая строка'}
+                : 'Enter — отправить, Shift+Enter — новая строка'}
           </span>
           <div className="chat-input-buttons">
             {busy && (
