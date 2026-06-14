@@ -1,21 +1,15 @@
 @echo off
 setlocal
-set "ROOT=%~dp0"
-set "APP=%ROOT%app"
-cd /d "%APP%"
+set "APP=%~dp0app"
 
 if /i "%~1"=="console" goto console
-if /i "%~1"=="run" goto run
 
-rem Скрытый запуск (без окна консоли)
-mshta "javascript:var s=new ActiveXObject('WScript.Shell'); s.Run('cmd /c \"\"\"%~f0\"\"\" run', 0, false); close()"
-exit /b
-
-:run
-powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File "%APP%\scripts\start-dev.ps1"
-exit /b %ERRORLEVEL%
+rem Скрытый запуск без mshta/wscript (на части систем они блокируются)
+start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%APP%\scripts\start-dev.ps1"
+exit /b 0
 
 :console
+cd /d "%APP%"
 chcp 65001 >nul
 where node >nul 2>&1
 if errorlevel 1 (
