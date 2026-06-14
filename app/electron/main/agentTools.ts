@@ -265,6 +265,46 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'set_self_improvement_plan',
+      description:
+        'Задать план автономного самоулучшения CodeViper (3–8 пунктов). Используй после изучения кода. Все пункты должны быть выполнены через инструменты.',
+      parameters: {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'string',
+            description: 'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Добавить skill X"}]'
+          }
+        },
+        required: ['items']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'complete_self_improvement_item',
+      description: 'Отметить пункт плана самоулучшения выполненным после реальной правки/создания skill',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'id пункта из set_self_improvement_plan' }
+        },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_self_improvement_plan',
+      description: 'Текущий план самоулучшения и статус пунктов (done/pending)',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'list_codeviper_directory',
       description: 'Дерево исходников CodeViper (своё приложение). Для саморедактирования.',
       parameters: { type: 'object', properties: {} }

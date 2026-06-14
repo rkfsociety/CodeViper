@@ -141,6 +141,12 @@ export interface AgentContextMessagePreview {
   charCount: number
 }
 
+export interface SelfImprovementPlanItem {
+  id: string
+  title: string
+  done: boolean
+}
+
 export interface AgentContextPreview {
   model: string
   generatedAt: string
@@ -165,12 +171,14 @@ export interface AgentStreamPayload {
     | 'learning_saved'
     | 'skill_saved'
     | 'context'
+    | 'self_improve_plan'
   content?: string
   toolName?: string
   toolInput?: string
   toolOutput?: string
   memoryId?: string
   skillId?: string
+  planItems?: SelfImprovementPlanItem[]
   contextPreview?: AgentContextPreview
 }
 

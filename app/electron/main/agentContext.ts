@@ -11,6 +11,7 @@ import { buildMemoryContext } from './memory'
 import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
 import { AGENT_TOOLS, formatAgentToolsSummary } from './agentTools'
+import { SELF_IMPROVEMENT_MODE_PROMPT } from '../../shared/selfImprovement'
 
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -90,9 +91,14 @@ ${treeText || '(пусто)'}`
 function buildSystemPrompt(
   projectPath: string,
   memoryContext: string,
-  projectTreeText: string
+  projectTreeText: string,
+  selfImproveMode = false
 ): string {
   const parts = [BASE_SYSTEM_PROMPT, buildSelfEditContext()]
+
+  if (selfImproveMode) {
+    parts.push(SELF_IMPROVEMENT_MODE_PROMPT)
+  }
 
   if (projectPath.trim()) {
     parts.push(buildProjectContext(projectPath, projectTreeText))
@@ -216,7 +222,8 @@ export async function buildAgentContextPreview(
   projectPath: string,
   history: ChatMessage[],
   userMessage: string,
-  model: string
+  model: string,
+  selfImproveMode = false
 ): Promise<AgentContextPreview> {
   const memorySkillsContext = await buildAgentContext(projectPath, userMessage)
 
@@ -230,7 +237,7 @@ export async function buildAgentContextPreview(
   }
 
   const { messages: trimmedHistory, truncated, droppedMessageCount } = trimHistoryForContext(history)
-  let systemContent = buildSystemPrompt(projectPath, memorySkillsContext, projectTreeText)
+  let systemContent = buildSystemPrompt(projectPath, memorySkillsContext, projectTreeText, selfImproveMode)
   if (truncated) {
     systemContent +=
       '\n\n[Часть старой истории чата опущена из-за лимита контекста модели. Опирайся на последние сообщения.]'
@@ -261,6 +268,12 @@ export async function buildAgentContextPreview(
     )
   }
 
+  if (selfImproveMode) {
+    sections.push(
+      section('self-improve', 'Автономное самоулучшение', SELF_IMPROVEMENT_MODE_PROMPT, 'До выполнения всех пунктов')
+    )
+  }
+
   sections.push(
     section('tools', `Инструменты (${AGENT_TOOLS.length})`, toolsContent, 'Схема function calling для Ollama')
   )
@@ -287,9 +300,16 @@ export async function prepareAgentRunContext(
   projectPath: string,
   history: ChatMessage[],
   userMessage: string,
-  model: string
+  model: string,
+  selfImproveMode = false
 ): Promise<{ messages: OllamaMessage[]; preview: AgentContextPreview }> {
-  const preview = await buildAgentContextPreview(projectPath, history, userMessage, model)
+  const preview = await buildAgentContextPreview(
+    projectPath,
+    history,
+    userMessage,
+    model,
+    selfImproveMode
+  )
   const messages: OllamaMessage[] = preview.messages.map((item) => ({
     role: item.role,
     content: item.content

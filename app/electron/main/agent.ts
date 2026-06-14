@@ -15,6 +15,28 @@ import {
 import { prepareAgentRunContext, formatFileTree, type OllamaMessage } from './agentContext'
 import { AGENT_TOOLS } from './agentTools'
 import {
+  isSelfImprovementTask,
+  selfImprovementStepLimit,
+  parsePlanItemsJson,
+  parseChecklistAsPlan,
+  syncPlanFromChecklist,
+  formatPlanSummary,
+  CREATE_SELF_IMPROVEMENT_PLAN_NUDGE,
+  START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
+  buildSelfImprovementContinueNudge,
+  type SelfImprovementItem
+} from '../../shared/selfImprovement'
+import {
+  resetSelfImprovementPlan,
+  setSelfImprovementPlan,
+  adoptSelfImprovementPlan,
+  completeSelfImprovementItem,
+  getSelfImprovementPlan,
+  hasSelfImprovementPlan,
+  hasPendingSelfImprovementItems,
+  isSelfImprovementPlanComplete
+} from './selfImprovementStore'
+import {
   getCodeViperSourceRoot,
   readCodeViperFile,
   createCodeViperFile,
@@ -101,18 +123,57 @@ export class AgentRunner {
     this.emit({ type: 'done' })
   }
 
+  private emitSelfImprovementPlan(plan: SelfImprovementItem[]): void {
+    this.emit({
+      type: 'self_improve_plan',
+      content: formatPlanSummary(plan),
+      planItems: plan
+    })
+  }
+
+  private adoptPlanFromAssistantText(assistantText: string): void {
+    const checklist = parseChecklistAsPlan(assistantText)
+    if (checklist && !hasSelfImprovementPlan()) {
+      adoptSelfImprovementPlan(checklist)
+      return
+    }
+
+    const plan = getSelfImprovementPlan()
+    if (plan) {
+      syncPlanFromChecklist(assistantText, plan)
+    }
+  }
+
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
     this.throwIfAborted()
+
+    const autonomousSelfImprove = isSelfImprovementTask(userMessage)
+    const stepLimit = autonomousSelfImprove
+      ? selfImprovementStepLimit(this.settings.maxSteps)
+      : this.settings.maxSteps
+
+    if (autonomousSelfImprove) {
+      resetSelfImprovementPlan()
+    }
 
     const prepared = await prepareAgentRunContext(
       this.projectPath,
       history,
       userMessage,
-      this.settings.model
+      this.settings.model,
+      autonomousSelfImprove
     )
     this.throwIfAborted()
 
     this.emit({ type: 'context', contextPreview: prepared.preview })
+
+    if (autonomousSelfImprove) {
+      this.emit({
+        type: 'self_improve_plan',
+        content:
+          '🔄 Режим автономного самоулучшения: изучу код и буду работать, пока все пункты плана не выполнены.'
+      })
+    }
 
     const messages: OllamaMessage[] = prepared.messages
 
@@ -124,7 +185,7 @@ export class AgentRunner {
     const MAX_VERIFICATION_RETRIES = 1
 
     try {
-      for (let step = 0; step < this.settings.maxSteps; step++) {
+      for (let step = 0; step < stepLimit; step++) {
         this.throwIfAborted()
 
         let response
@@ -187,6 +248,53 @@ export class AgentRunner {
             return
           }
 
+          if (autonomousSelfImprove) {
+            if (assistantText) {
+              this.adoptPlanFromAssistantText(assistantText)
+            }
+
+            const plan = getSelfImprovementPlan()
+
+            if (isSelfImprovementPlanComplete()) {
+              if (assistantText) {
+                this.emit({ type: 'assistant', content: assistantText })
+              }
+              if (plan) this.emitSelfImprovementPlan(plan)
+              if (this.settings.selfLearning !== false) {
+                await this.reflectAndLearn(messages, userMessage, usedTools)
+              }
+              this.emit({ type: 'done' })
+              return
+            }
+
+            if (plan && hasPendingSelfImprovementItems()) {
+              if (assistantText) {
+                this.emit({ type: 'assistant', content: assistantText })
+              }
+              this.emitSelfImprovementPlan(plan)
+              messages.push({ role: 'user', content: buildSelfImprovementContinueNudge(plan) })
+              continue
+            }
+
+            if (!plan && usedTools) {
+              if (assistantText) {
+                this.emit({ type: 'assistant', content: assistantText })
+              }
+              messages.push({ role: 'user', content: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE })
+              continue
+            }
+
+            if (!plan && !usedTools) {
+              if (assistantText) {
+                messages.pop()
+              }
+              this.emit({ type: 'clear_draft' })
+              messages.push({ role: 'user', content: START_SELF_IMPROVEMENT_EXPLORATION_NUDGE })
+              requireToolNext = true
+              continue
+            }
+          }
+
           if (assistantText) {
             this.emit({ type: 'assistant', content: assistantText })
           }
@@ -234,9 +342,15 @@ export class AgentRunner {
         }
       }
 
+      const pendingPlan = getSelfImprovementPlan()
+      const pendingNote =
+        autonomousSelfImprove && pendingPlan && hasPendingSelfImprovementItems()
+          ? `\nНевыполнено пунктов: ${pendingPlan.filter((item) => !item.done).length}.`
+          : ''
+
       this.emit({
         type: 'error',
-        content: `Достигнут лимит шагов агента (${this.settings.maxSteps}). Уточните задачу или увеличьте лимит.`
+        content: `Достигнут лимит шагов агента (${stepLimit}).${pendingNote} Уточните задачу или увеличьте лимит в настройках.`
       })
       this.emit({ type: 'done' })
     } catch (error) {
@@ -430,6 +544,25 @@ export class AgentRunner {
       case 'write_skill_data': {
         const ok = await writeSkillData(projectPath, args.skill_id, args.content)
         return ok ? `Данные навыка записаны: ${args.skill_id}` : `Навык не найден: ${args.skill_id}`
+      }
+      case 'set_self_improvement_plan': {
+        const plan = setSelfImprovementPlan(parsePlanItemsJson(args.items))
+        this.emitSelfImprovementPlan(plan)
+        return `${formatPlanSummary(plan)}\n\nНачни выполнение пункта 1 через инструменты.`
+      }
+      case 'complete_self_improvement_item': {
+        const plan = completeSelfImprovementItem(args.id)
+        this.emitSelfImprovementPlan(plan)
+        const pending = plan.filter((item) => !item.done)
+        if (!pending.length) {
+          return `Пункт ${args.id} выполнен. Все пункты плана завершены.`
+        }
+        return `Пункт ${args.id} выполнен. Следующий: «${pending[0].title}» (id: ${pending[0].id})`
+      }
+      case 'get_self_improvement_plan': {
+        const plan = getSelfImprovementPlan()
+        if (!plan) return 'План не задан. Вызовите set_self_improvement_plan после изучения кода.'
+        return formatPlanSummary(plan)
       }
       case 'list_codeviper_directory': {
         const root = getCodeViperSourceRoot()

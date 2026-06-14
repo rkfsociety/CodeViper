@@ -241,6 +241,15 @@ export function ChatPanel({
         onLearningSavedRef.current?.()
       }
 
+      if (event.type === 'self_improve_plan') {
+        appendMessage({
+          id: makeId(),
+          role: 'system',
+          content: event.content ?? '',
+          timestamp: Date.now()
+        })
+      }
+
       if (event.type === 'context' && event.contextPreview) {
         setContextPreview(event.contextPreview)
       }
