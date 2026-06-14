@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/resources/icon.png" alt="CodeViper" width="128" />
+  <img src="app/resources/icon.png" alt="CodeViper" width="256" />
 </p>
 
 # CodeViper
