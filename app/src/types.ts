@@ -65,6 +65,8 @@ export interface AgentSettings {
   model: string
   maxSteps: number
   selfLearning?: boolean
+  /** Автовыбор модели под задачу и выгрузка других из RAM */
+  autoModel?: boolean
 }
 
 export type MemoryCategory = 'pattern' | 'mistake' | 'preference' | 'project' | 'skill'
@@ -150,6 +152,7 @@ export interface AgentStreamPayload {
     | 'skill_saved'
     | 'context'
     | 'self_improve_plan'
+    | 'model_selected'
   content?: string
   toolName?: string
   toolInput?: string
@@ -157,6 +160,8 @@ export interface AgentStreamPayload {
   memoryId?: string
   skillId?: string
   planItems?: SelfImprovementPlanItem[]
+  selectedModel?: string
+  modelReason?: string
   contextPreview?: AgentContextPreview
 }
 

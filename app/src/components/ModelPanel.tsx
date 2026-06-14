@@ -7,6 +7,7 @@ interface Props {
   ollamaOnline: boolean
   models: OllamaModel[]
   selectedModel: string
+  autoModel?: boolean
   onModelChange: (model: string) => void
   onRefresh: () => Promise<void>
 }
@@ -26,6 +27,7 @@ export function ModelPanel({
   ollamaOnline,
   models,
   selectedModel,
+  autoModel = true,
   onModelChange,
   onRefresh
 }: Props) {
@@ -68,7 +70,7 @@ export function ModelPanel({
   return (
     <div className="model-panel">
       <label>
-        Активная модель
+        {autoModel ? 'Модель по умолчанию (fallback)' : 'Активная модель'}
         <select
           value={selectedModel}
           onChange={(e) => onModelChange(e.target.value)}
@@ -82,6 +84,13 @@ export function ModelPanel({
           ))}
         </select>
       </label>
+
+      {autoModel && models.length > 1 && (
+        <div className="model-auto-hint">
+          Перед каждым запросом агент сам выберет модель по сложности задачи и выгрузит
+          лишние из памяти Ollama.
+        </div>
+      )}
 
       {pulling && (
         <div className="model-pull-status">

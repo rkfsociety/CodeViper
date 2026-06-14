@@ -67,11 +67,24 @@ export function SettingsModal({
             />
           </label>
 
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={settings.autoModel !== false}
+              onChange={(e) => onSettingsChange({ autoModel: e.target.checked })}
+            />
+            <span>
+              <strong>Автовыбор модели</strong> — подбирать модель под задачу, выгружать
+              другие из RAM (если установлено несколько)
+            </span>
+          </label>
+
           <ModelPanel
             ollamaUrl={settings.ollamaUrl}
             ollamaOnline={ollamaOnline}
             models={models}
             selectedModel={settings.model}
+            autoModel={settings.autoModel !== false}
             onModelChange={(model) => onSettingsChange({ model })}
             onRefresh={onRefreshOllama}
           />

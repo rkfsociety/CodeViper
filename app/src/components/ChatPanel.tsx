@@ -21,6 +21,7 @@ interface Props {
   onBusyChange?: (busy: boolean) => void
   onLearningSaved?: () => void
   onPickProject: () => void
+  onActiveModelChange?: (model: string) => void
 }
 
 function formatProjectLabel(path: string): string {
@@ -56,7 +57,8 @@ export function ChatPanel({
   onMessagesChange,
   onBusyChange,
   onLearningSaved,
-  onPickProject
+  onPickProject,
+  onActiveModelChange
 }: Props) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -74,6 +76,7 @@ export function ChatPanel({
   const settingsRef = useRef(settings)
   const onMessagesChangeRef = useRef(onMessagesChange)
   const onLearningSavedRef = useRef(onLearningSaved)
+  const onActiveModelChangeRef = useRef(onActiveModelChange)
   const runIdRef = useRef(0)
   const doneRunIdRef = useRef(-1)
   const lastAssistantContentRef = useRef('')
@@ -83,6 +86,7 @@ export function ChatPanel({
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const [queueSize, setQueueSize] = useState(0)
   const [agentRunning, setAgentRunning] = useState(false)
+  const [runModel, setRunModel] = useState('')
 
   messagesRef.current = messages
   chatIdRef.current = chatId
@@ -90,6 +94,7 @@ export function ChatPanel({
   settingsRef.current = settings
   onMessagesChangeRef.current = onMessagesChange
   onLearningSavedRef.current = onLearningSaved
+  onActiveModelChangeRef.current = onActiveModelChange
 
   function commitMessages(next: ChatMessage[]) {
     messagesRef.current = next
@@ -246,6 +251,20 @@ export function ChatPanel({
           id: makeId(),
           role: 'system',
           content: event.content ?? '',
+          timestamp: Date.now()
+        })
+      }
+
+      if (event.type === 'model_selected') {
+        const model = event.selectedModel ?? ''
+        if (model) {
+          setRunModel(model)
+          onActiveModelChangeRef.current?.(model)
+        }
+        appendMessage({
+          id: makeId(),
+          role: 'system',
+          content: event.content ?? `🤖 Модель: ${model}`,
           timestamp: Date.now()
         })
       }
@@ -485,7 +504,7 @@ export function ChatPanel({
           <AgentStatusBar
             phase={agentPhase}
             toolName={activeToolName}
-            model={settings.model}
+            model={runModel || settings.model}
             queueSize={queueSize}
           />
         )}

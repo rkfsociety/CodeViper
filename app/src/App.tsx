@@ -9,7 +9,8 @@ const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
   maxSteps: 12,
-  selfLearning: true
+  selfLearning: true,
+  autoModel: true
 }
 
 function makeChatTitle(messages: ChatMessage[]): string | undefined {
@@ -32,6 +33,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
+  const [activeRunModel, setActiveRunModel] = useState('')
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
 
@@ -212,8 +214,18 @@ export default function App() {
             {ollamaOnline ? 'Ollama' : 'Ollama offline'}
           </span>
           {settings.model && (
-            <span className="topbar-pill model" title={settings.model}>
-              {settings.model.includes(':') ? settings.model.split(':')[0] : settings.model}
+            <span
+              className="topbar-pill model"
+              title={
+                settings.autoModel !== false
+                  ? `Авто · сейчас: ${activeRunModel || settings.model}`
+                  : settings.model
+              }
+            >
+              {settings.autoModel !== false ? 'Auto · ' : ''}
+              {(activeRunModel || settings.model).includes(':')
+                ? (activeRunModel || settings.model).split(':')[0]
+                : activeRunModel || settings.model}
             </span>
           )}
         </div>
@@ -266,6 +278,7 @@ export default function App() {
             onMessagesChange={setMessages}
             onBusyChange={setChatBusy}
             onPickProject={pickProjectForActiveChat}
+            onActiveModelChange={setActiveRunModel}
             onLearningSaved={() => {
               setMemoryRefreshKey((key) => key + 1)
               setSkillsRefreshKey((key) => key + 1)

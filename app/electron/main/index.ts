@@ -3,6 +3,8 @@ import { existsSync } from 'fs'
 import { join } from 'path'
 import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { buildAgentContextPreview } from './agentContext'
+import { formatModelSwitchMessage, prepareOllamaModel } from './ollamaRuntime'
+import { selectModelForTask, shouldUseAutoModel } from '../../shared/modelRouter'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
@@ -206,14 +208,42 @@ ipcMain.handle(
 
     agentRunState = { chatId }
     activeAgentAbort = new AbortController()
-    const runner = new AgentRunner(
-      settings,
-      projectPath,
-      (event) => stream(chatId, event),
-      activeAgentAbort.signal
-    )
+
+    let effectiveSettings = settings
 
     try {
+      const installed = await fetchOllamaModels(settings.ollamaUrl)
+      const useAuto = shouldUseAutoModel(settings.autoModel, installed.length)
+
+      if (useAuto) {
+        const selection = selectModelForTask(userMessage, installed, settings.model)
+        if (selection) {
+          const { unloaded } = await prepareOllamaModel(settings.ollamaUrl, selection.model)
+          effectiveSettings = { ...settings, model: selection.model }
+          stream(chatId, {
+            type: 'model_selected',
+            selectedModel: selection.model,
+            modelReason: selection.reason,
+            content: formatModelSwitchMessage(selection.model, selection.reason, unloaded)
+          })
+        } else if (!settings.model.trim() && installed[0]) {
+          effectiveSettings = { ...settings, model: installed[0].name }
+        }
+      } else if (!effectiveSettings.model.trim() && installed[0]) {
+        effectiveSettings = { ...settings, model: installed[0].name }
+      }
+
+      if (!effectiveSettings.model.trim()) {
+        throw new Error('Модель не выбрана. Скачайте модель в настройках или включите Ollama.')
+      }
+
+      const runner = new AgentRunner(
+        effectiveSettings,
+        projectPath,
+        (event) => stream(chatId, event),
+        activeAgentAbort.signal
+      )
+
       await runner.run(history, userMessage)
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
