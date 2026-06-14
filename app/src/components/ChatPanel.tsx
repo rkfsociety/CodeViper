@@ -66,15 +66,24 @@ export function ChatPanel({
   const bottomRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef(messages)
   const chatIdRef = useRef(chatId)
+  const projectPathRef = useRef(projectPath)
+  const settingsRef = useRef(settings)
   const onMessagesChangeRef = useRef(onMessagesChange)
   const onLearningSavedRef = useRef(onLearningSaved)
   const runIdRef = useRef(0)
   const doneRunIdRef = useRef(-1)
   const lastAssistantContentRef = useRef('')
   const activeToolMessageIdRef = useRef<string | null>(null)
+  const agentRunningRef = useRef(false)
+  const queueRef = useRef<Array<{ id: string; text: string }>>([])
+  const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
+  const [queueSize, setQueueSize] = useState(0)
+  const [agentRunning, setAgentRunning] = useState(false)
 
   messagesRef.current = messages
   chatIdRef.current = chatId
+  projectPathRef.current = projectPath
+  settingsRef.current = settings
   onMessagesChangeRef.current = onMessagesChange
   onLearningSavedRef.current = onLearningSaved
 
@@ -111,6 +120,10 @@ export function ChatPanel({
     activeToolMessageIdRef.current = null
     lastAssistantContentRef.current = ''
     setContextPreview(null)
+    queueRef.current = []
+    setQueueSize(0)
+    agentRunningRef.current = false
+    setAgentRunning(false)
   }, [chatId])
 
   useEffect(() => {
@@ -233,10 +246,10 @@ export function ChatPanel({
         if (doneRunIdRef.current === runId) return
         doneRunIdRef.current = runId
         setDraft('')
-        setBusy(false)
         setAgentPhase('thinking')
         setActiveToolName(undefined)
         activeToolMessageIdRef.current = null
+        void processNextQueuedRunRef.current()
       }
     })
 
@@ -245,41 +258,45 @@ export function ChatPanel({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, draft])
+  }, [messages, draft, queueSize])
 
-  async function send() {
-    const text = input.trim()
-    if (!text || busy || !projectPath || !settings.model || !chatId) return
+  function syncBusyState(running: boolean, queued: number) {
+    setBusy(running || queued > 0)
+  }
+
+  async function executeRun(userMessageId: string, text: string) {
+    const project = projectPathRef.current
+    const chat = chatIdRef.current
+    const currentSettings = settingsRef.current
+    if (!project || !currentSettings.model || !chat) return
+
+    agentRunningRef.current = true
+    setAgentRunning(true)
+    syncBusyState(true, queueRef.current.length)
 
     runIdRef.current += 1
     doneRunIdRef.current = -1
     lastAssistantContentRef.current = ''
     activeToolMessageIdRef.current = null
-
-    const userMessage: ChatMessage = {
-      id: makeId(),
-      role: 'user',
-      content: text,
-      timestamp: Date.now()
-    }
-
-    appendMessage(userMessage)
-    setInput('')
-    setBusy(true)
     setAgentPhase('thinking')
     setActiveToolName(undefined)
     setDraft('')
 
+    const idx = messagesRef.current.findIndex((item) => item.id === userMessageId)
+    const history = idx >= 0 ? messagesRef.current.slice(0, idx) : messagesRef.current
+
     try {
       await window.codeviper.runAgent(
-        settings,
-        projectPath,
-        chatId,
-        messagesRef.current.slice(0, -1),
+        currentSettings,
+        project,
+        chat,
+        history,
         text
       )
     } catch (error) {
-      setBusy(false)
+      agentRunningRef.current = false
+      setAgentRunning(false)
+      syncBusyState(false, queueRef.current.length)
       setAgentPhase('thinking')
       setActiveToolName(undefined)
       appendMessage({
@@ -291,9 +308,59 @@ export function ChatPanel({
     }
   }
 
+  async function processNextQueuedRun() {
+    agentRunningRef.current = false
+    setAgentRunning(false)
+
+    const next = queueRef.current.shift()
+    setQueueSize(queueRef.current.length)
+
+    if (!next) {
+      syncBusyState(false, 0)
+      return
+    }
+
+    await executeRun(next.id, next.text)
+  }
+
+  processNextQueuedRunRef.current = processNextQueuedRun
+
+  async function send() {
+    const text = input.trim()
+    if (!text || !projectPath || !settings.model || !chatId) return
+
+    const userMessage: ChatMessage = {
+      id: makeId(),
+      role: 'user',
+      content: text,
+      timestamp: Date.now()
+    }
+
+    appendMessage(userMessage)
+    setInput('')
+
+    if (agentRunningRef.current) {
+      queueRef.current.push({ id: userMessage.id, text })
+      setQueueSize(queueRef.current.length)
+      syncBusyState(true, queueRef.current.length)
+      return
+    }
+
+    await executeRun(userMessage.id, text)
+  }
+
   async function stopAgent() {
-    if (!busy) return
-    await window.codeviper.stopAgent()
+    if (!agentRunningRef.current && queueRef.current.length === 0) return
+    queueRef.current = []
+    setQueueSize(0)
+    syncBusyState(agentRunningRef.current, 0)
+    if (agentRunningRef.current) {
+      await window.codeviper.stopAgent()
+    } else {
+      agentRunningRef.current = false
+      setAgentRunning(false)
+      syncBusyState(false, 0)
+    }
   }
 
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -395,14 +462,19 @@ export function ChatPanel({
 
       <div className="chat-input">
         {busy && (
-          <AgentStatusBar phase={agentPhase} toolName={activeToolName} model={settings.model} />
+          <AgentStatusBar
+            phase={agentPhase}
+            toolName={activeToolName}
+            model={settings.model}
+            queueSize={queueSize}
+          />
         )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleInputKeyDown}
           placeholder="Например: добавь валидацию email в форму регистрации"
-          disabled={busy || !chatId}
+          disabled={!chatId}
         />
         <div className="chat-input-actions">
           <span className="empty">
@@ -410,22 +482,24 @@ export function ChatPanel({
               ? 'Сначала создай чат слева'
               : !projectPath
                 ? 'Сначала выбери проект для этого чата'
-              : busy
-                ? null
-                : 'Enter — отправить, Shift+Enter — новая строка'}
+                : agentRunning
+                  ? queueSize > 0
+                    ? `Enter — в очередь (${queueSize} ожидают), Shift+Enter — новая строка`
+                    : 'Enter — в очередь, Shift+Enter — новая строка'
+                  : 'Enter — отправить, Shift+Enter — новая строка'}
           </span>
           <div className="chat-input-buttons">
-            {busy && (
+            {(agentRunning || queueSize > 0) && (
               <button type="button" className="btn danger" onClick={() => void stopAgent()}>
                 Стоп
               </button>
             )}
             <button
               className="btn primary"
-              onClick={send}
-              disabled={busy || !settings.model || !chatId || !projectPath}
+              onClick={() => void send()}
+              disabled={!settings.model || !chatId || !projectPath || !input.trim()}
             >
-              Отправить
+              {agentRunning ? 'В очередь' : 'Отправить'}
             </button>
           </div>
         </div>

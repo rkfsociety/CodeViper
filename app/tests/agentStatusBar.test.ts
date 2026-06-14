@@ -15,4 +15,10 @@ describe('agentStatusLabel', () => {
   it('переводит имя инструмента', () => {
     expect(agentStatusLabel('tool', 'list_directory')).toBe('Смотрю структуру проекта')
   })
+
+  it('показывает размер очереди', () => {
+    expect(agentStatusLabel('thinking', undefined, 'qwen2.5-coder:7b', 2)).toBe(
+      'qwen2.5-coder думает… · в очереди 2'
+    )
+  })
 })
