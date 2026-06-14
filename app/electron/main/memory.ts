@@ -5,12 +5,20 @@ import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import type { MemoryCategory, MemoryEntry, MemoryScope, MemoryStore } from '../../src/types'
 
+export const MEMORY_FILENAME = 'ViperMemory.md'
+const LEGACY_MEMORY_FILENAME = 'memory.json'
+const MEMORY_STORE_MARKER = '<!-- viper-memory-store'
+
 const MAX_GLOBAL = 100
 const MAX_PROJECT = 50
 const MAX_INJECT = 15
 
 function globalMemoryPath(): string {
-  return join(app.getPath('userData'), 'memory.json')
+  return join(app.getPath('userData'), MEMORY_FILENAME)
+}
+
+function legacyGlobalMemoryPath(): string {
+  return join(app.getPath('userData'), LEGACY_MEMORY_FILENAME)
 }
 
 function projectDir(projectPath: string): string {
@@ -18,7 +26,11 @@ function projectDir(projectPath: string): string {
 }
 
 function projectMemoryPath(projectPath: string): string {
-  return join(projectDir(projectPath), 'memory.json')
+  return join(projectDir(projectPath), MEMORY_FILENAME)
+}
+
+function legacyProjectMemoryPath(projectPath: string): string {
+  return join(projectDir(projectPath), LEGACY_MEMORY_FILENAME)
 }
 
 function projectRulesPath(projectPath: string): string {
@@ -29,12 +41,12 @@ function emptyStore(): MemoryStore {
   return { version: 1, entries: [] }
 }
 
-async function loadStore(filePath: string): Promise<MemoryStore> {
-  if (!existsSync(filePath)) return emptyStore()
+export function parseMemoryMarkdown(raw: string): MemoryStore {
+  const match = raw.match(/<!-- viper-memory-store\n([\s\S]*?)\n-->/)
+  if (!match) return emptyStore()
 
   try {
-    const raw = await readFile(filePath, 'utf-8')
-    const parsed = JSON.parse(raw) as MemoryStore
+    const parsed = JSON.parse(match[1]) as MemoryStore
     if (!Array.isArray(parsed.entries)) return emptyStore()
     return parsed
   } catch {
@@ -42,10 +54,77 @@ async function loadStore(filePath: string): Promise<MemoryStore> {
   }
 }
 
+export function renderMemoryMarkdown(store: MemoryStore): string {
+  const lines = [
+    '# ViperMemory',
+    '',
+    'Долгосрочная память агента CodeViper. Записи добавляются через инструмент `remember`.',
+    '',
+    MEMORY_STORE_MARKER,
+    JSON.stringify(store),
+    '-->',
+    '',
+    '## Записи',
+    ''
+  ]
+
+  if (!store.entries.length) {
+    lines.push('_Пока пусто._')
+  } else {
+    for (const entry of store.entries) {
+      const tags = entry.tags.length ? entry.tags.join(', ') : '—'
+      lines.push(`### ${entry.id} · ${entry.category} · ${entry.scope}`)
+      lines.push(
+        `**Теги:** ${tags} · **Использовано:** ${entry.useCount} · **Обновлено:** ${entry.lastUsedAt}`
+      )
+      if (entry.source) lines.push(`**Источник:** ${entry.source}`)
+      lines.push('')
+      lines.push(entry.content)
+      lines.push('')
+      lines.push('---')
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n')
+}
+
+async function loadLegacyJson(path: string): Promise<MemoryStore | null> {
+  if (!existsSync(path)) return null
+
+  try {
+    const raw = await readFile(path, 'utf-8')
+    const parsed = JSON.parse(raw) as MemoryStore
+    if (!Array.isArray(parsed.entries)) return emptyStore()
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+async function loadStore(mdPath: string, legacyPath: string): Promise<MemoryStore> {
+  if (existsSync(mdPath)) {
+    try {
+      const raw = await readFile(mdPath, 'utf-8')
+      return parseMemoryMarkdown(raw)
+    } catch {
+      return emptyStore()
+    }
+  }
+
+  const legacy = await loadLegacyJson(legacyPath)
+  if (legacy) {
+    await saveStore(mdPath, legacy)
+    return legacy
+  }
+
+  return emptyStore()
+}
+
 async function saveStore(filePath: string, store: MemoryStore): Promise<void> {
   const dir = join(filePath, '..')
   await mkdir(dir, { recursive: true })
-  await writeFile(filePath, JSON.stringify(store, null, 2), 'utf-8')
+  await writeFile(filePath, renderMemoryMarkdown(store), 'utf-8')
 }
 
 function trimStore(store: MemoryStore, max: number): MemoryStore {
@@ -80,8 +159,10 @@ export async function readProjectRules(projectPath: string): Promise<string> {
 }
 
 export async function listMemories(projectPath: string): Promise<MemoryEntry[]> {
-  const global = await loadStore(globalMemoryPath())
-  const project = projectPath ? await loadStore(projectMemoryPath(projectPath)) : emptyStore()
+  const global = await loadStore(globalMemoryPath(), legacyGlobalMemoryPath())
+  const project = projectPath
+    ? await loadStore(projectMemoryPath(projectPath), legacyProjectMemoryPath(projectPath))
+    : emptyStore()
 
   return [...global.entries, ...project.entries].sort((a, b) =>
     b.lastUsedAt.localeCompare(a.lastUsedAt)
@@ -103,9 +184,14 @@ export async function addMemory(
 
   const scope: MemoryScope =
     input.scope ?? (input.category === 'project' && projectPath ? 'project' : 'global')
-  const filePath = scope === 'project' && projectPath ? projectMemoryPath(projectPath) : globalMemoryPath()
+  const filePath =
+    scope === 'project' && projectPath ? projectMemoryPath(projectPath) : globalMemoryPath()
+  const legacyPath =
+    scope === 'project' && projectPath
+      ? legacyProjectMemoryPath(projectPath)
+      : legacyGlobalMemoryPath()
   const max = scope === 'project' ? MAX_PROJECT : MAX_GLOBAL
-  const store = await loadStore(filePath)
+  const store = await loadStore(filePath, legacyPath)
   const tags = normalizeTags(input.tags)
   const now = new Date().toISOString()
 
@@ -143,19 +229,24 @@ export async function deleteMemory(
   id: string,
   scope?: MemoryScope
 ): Promise<boolean> {
-  const paths =
+  const targets =
     scope === 'project' && projectPath
-      ? [projectMemoryPath(projectPath)]
+      ? [{ md: projectMemoryPath(projectPath), legacy: legacyProjectMemoryPath(projectPath) }]
       : scope === 'global'
-        ? [globalMemoryPath()]
-        : [globalMemoryPath(), ...(projectPath ? [projectMemoryPath(projectPath)] : [])]
+        ? [{ md: globalMemoryPath(), legacy: legacyGlobalMemoryPath() }]
+        : [
+            { md: globalMemoryPath(), legacy: legacyGlobalMemoryPath() },
+            ...(projectPath
+              ? [{ md: projectMemoryPath(projectPath), legacy: legacyProjectMemoryPath(projectPath) }]
+              : [])
+          ]
 
-  for (const filePath of paths) {
-    const store = await loadStore(filePath)
+  for (const { md, legacy } of targets) {
+    const store = await loadStore(md, legacy)
     const index = store.entries.findIndex((entry) => entry.id === id)
     if (index >= 0) {
       store.entries.splice(index, 1)
-      await saveStore(filePath, store)
+      await saveStore(md, store)
       return true
     }
   }
@@ -213,8 +304,10 @@ export async function buildMemoryContext(projectPath: string, taskHint = ''): Pr
   }
 
   if (ranked.length) {
-    const globalStore = await loadStore(globalMemoryPath())
-    const projectStore = projectPath ? await loadStore(projectMemoryPath(projectPath)) : emptyStore()
+    const globalStore = await loadStore(globalMemoryPath(), legacyGlobalMemoryPath())
+    const projectStore = projectPath
+      ? await loadStore(projectMemoryPath(projectPath), legacyProjectMemoryPath(projectPath))
+      : emptyStore()
 
     for (const entry of ranked) {
       const store = entry.scope === 'project' ? projectStore : globalStore
@@ -237,7 +330,7 @@ export async function buildMemoryContext(projectPath: string, taskHint = ''): Pr
 
   if (ranked.length) {
     blocks.push(
-      '## Накопленные знания\n' +
+      `## ViperMemory.md — накопленные знания\n` +
         ranked
           .map(
             (entry, index) =>

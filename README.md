@@ -130,10 +130,11 @@ Ollama должна быть установлена и запущена отде
 
 | Что | Где хранится |
 |---|---|
-| Глобальные знания (паттерны, навыки) | `%APPDATA%/CodeViper/memory.json` |
-| Знания проекта | `{проект}/.codeviper/memory.json` |
+| Глобальные знания (паттерны, навыки) | `%APPDATA%/CodeViper/ViperMemory.md` |
+| Знания проекта | `{проект}/.codeviper/ViperMemory.md` |
 | Правила проекта | `{проект}/.codeviper/rules.md` |
 | **Навыки (skills)** | `%APPDATA%/CodeViper/skills.json` и `{проект}/.codeviper/skills.json` |
+| **Viper Memory** (встроенный skill) | `viper-memory` — remember / search_memory / forget → **ViperMemory.md** |
 | **Данные навыков** (todo, состояние) | `%APPDATA%/CodeViper/skill-data/` и `{проект}/.codeviper/skill-data/` |
 
 **Как это работает:**

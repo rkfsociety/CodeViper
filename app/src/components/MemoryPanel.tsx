@@ -61,7 +61,7 @@ export function MemoryPanel({
 
       {!entries.length && (
         <div className="empty">
-          Пока пусто. Агент будет запоминать уроки через инструмент remember и после задач.
+          Пока пусто. Агент запоминает уроки в ViperMemory.md через remember и после задач.
         </div>
       )}
 

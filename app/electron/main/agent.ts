@@ -91,6 +91,7 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 ### Навыки (skills) — инструкции без правки кода
 - **create_skill** / **update_skill** — поведение агента; для «улучши себя» часто достаточно skill с scope **global**
 - **read_skill** / **read_skill_data** / **write_skill_data** — работа по навыку
+- Встроенный навык **viper-memory** (read_skill) — долгосрочная память в **ViperMemory.md**, инструменты remember / search_memory / forget
 
 ### Саморедактирование — правка исходников CodeViper
 Ты можешь менять **свой** код через read_codeviper_file / write_codeviper_file / run_codeviper_command (см. раздел «Исходники CodeViper» в промпте).
@@ -282,7 +283,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'remember',
-      description: 'Сохранить знание для самообучения (паттерн, ошибка, предпочтение, правило проекта)',
+      description: 'Сохранить знание в ViperMemory.md (паттерн, ошибка, предпочтение, правило проекта)',
       parameters: {
         type: 'object',
         properties: {

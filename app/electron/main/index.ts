@@ -5,6 +5,7 @@ import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './a
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
+import { ensureDefaultSkills } from './defaultSkills'
 import {
   createChat,
   createFolder,
@@ -77,6 +78,7 @@ function stream(chatId: string, event: AgentStreamPayload): void {
 }
 
 app.whenReady().then(async () => {
+  await ensureDefaultSkills()
   await createWindow()
 
   app.on('activate', () => {

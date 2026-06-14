@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
-import { rmSync } from 'fs'
+import { existsSync, readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 
-// Каталог-«userData» для теста (electron.app.getPath замокан ниже).
 const USER_DATA = join(process.cwd(), '.vitest-tmp', 'mem')
 
 vi.mock('electron', () => ({
@@ -14,7 +13,10 @@ import {
   listMemories,
   searchMemories,
   deleteMemory,
-  parseReflectionLearnings
+  parseReflectionLearnings,
+  parseMemoryMarkdown,
+  renderMemoryMarkdown,
+  MEMORY_FILENAME
 } from '../electron/main/memory'
 
 beforeEach(() => {
@@ -23,6 +25,69 @@ beforeEach(() => {
 
 afterAll(() => {
   rmSync(USER_DATA, { recursive: true, force: true })
+})
+
+describe('ViperMemory.md', () => {
+  it('сохраняет записи в ViperMemory.md', async () => {
+    await addMemory('', { content: 'Используем 2 пробела', category: 'preference' })
+    const path = join(USER_DATA, MEMORY_FILENAME)
+    expect(existsSync(path)).toBe(true)
+    const raw = readFileSync(path, 'utf-8')
+    expect(raw).toContain('# ViperMemory')
+    expect(raw).toContain('Используем 2 пробела')
+  })
+
+  it('roundtrip parse/render', () => {
+    const store = {
+      version: 1 as const,
+      entries: [
+        {
+          id: 'abc',
+          content: 'Тест',
+          category: 'pattern' as const,
+          tags: ['a'],
+          scope: 'global' as const,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          lastUsedAt: '2026-01-01T00:00:00.000Z',
+          useCount: 1
+        }
+      ]
+    }
+    const md = renderMemoryMarkdown(store)
+    expect(parseMemoryMarkdown(md).entries).toHaveLength(1)
+    expect(parseMemoryMarkdown(md).entries[0].content).toBe('Тест')
+  })
+
+  it('мигрирует legacy memory.json', async () => {
+    const legacyPath = join(USER_DATA, 'memory.json')
+    const mdPath = join(USER_DATA, MEMORY_FILENAME)
+    rmSync(USER_DATA, { recursive: true, force: true })
+    const { mkdirSync, writeFileSync } = await import('fs')
+    mkdirSync(USER_DATA, { recursive: true })
+    writeFileSync(
+      legacyPath,
+      JSON.stringify({
+        version: 1,
+        entries: [
+          {
+            id: 'old1',
+            content: 'Из json',
+            category: 'pattern',
+            tags: [],
+            scope: 'global',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            lastUsedAt: '2026-01-01T00:00:00.000Z',
+            useCount: 1
+          }
+        ]
+      })
+    )
+
+    const all = await listMemories('')
+    expect(all).toHaveLength(1)
+    expect(all[0].content).toBe('Из json')
+    expect(existsSync(mdPath)).toBe(true)
+  })
 })
 
 describe('addMemory / listMemories', () => {
