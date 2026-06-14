@@ -1,4 +1,4 @@
-import type { AgentSettings, AgentStreamEvent, ChatMessage, MemoryCategory } from '../../src/types'
+import type { AgentSettings, AgentStreamPayload, ChatMessage, MemoryCategory } from '../../src/types'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import {
   addMemory,
@@ -217,7 +217,7 @@ const TOOLS = [
 export class AgentRunner {
   constructor(
     private settings: AgentSettings,
-    private emit: (event: AgentStreamEvent) => void
+    private emit: (event: AgentStreamPayload) => void
   ) {}
 
   async run(history: ChatMessage[], userMessage: string): Promise<void> {

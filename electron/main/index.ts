@@ -15,9 +15,16 @@ import {
   setActiveChat,
   updateChat
 } from './chats'
-import type { AgentSettings, AgentStreamEvent, ChatMessage, SavedChat } from '../../src/types'
+import type {
+  AgentSettings,
+  AgentStreamEvent,
+  AgentStreamPayload,
+  ChatMessage,
+  SavedChat
+} from '../../src/types'
 
 let mainWindow: BrowserWindow | null = null
+let agentRunState: { chatId: string } | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -42,8 +49,9 @@ function createWindow(): void {
   }
 }
 
-function stream(event: AgentStreamEvent): void {
-  mainWindow?.webContents.send('agent-stream', event)
+function stream(chatId: string, event: AgentStreamPayload): void {
+  const payload: AgentStreamEvent = { chatId, ...event }
+  mainWindow?.webContents.send('agent-stream', payload)
 }
 
 app.whenReady().then(() => {
@@ -136,18 +144,34 @@ ipcMain.handle('move-chat-to-folder', async (_e, chatId: string, folderId: strin
   moveChatToFolder(chatId, folderId)
 )
 
+ipcMain.handle('get-agent-run-state', async () => agentRunState)
+
 ipcMain.handle(
   'run-agent',
-  async (_e, settings: AgentSettings, history: ChatMessage[], userMessage: string) => {
-    const runner = new AgentRunner(settings, stream)
+  async (
+    _e,
+    settings: AgentSettings,
+    chatId: string,
+    history: ChatMessage[],
+    userMessage: string
+  ) => {
+    if (agentRunState) {
+      throw new Error('Агент уже выполняет задачу. Дождитесь завершения текущего запроса.')
+    }
+
+    agentRunState = { chatId }
+    const runner = new AgentRunner(settings, (event) => stream(chatId, event))
+
     try {
       await runner.run(history, userMessage)
     } catch (error) {
-      stream({
+      stream(chatId, {
         type: 'error',
         content: error instanceof Error ? error.message : String(error)
       })
-      stream({ type: 'done' })
+      stream(chatId, { type: 'done' })
+    } finally {
+      agentRunState = null
     }
   }
 )

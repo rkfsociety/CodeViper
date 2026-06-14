@@ -29,10 +29,12 @@ export function ChatPanel({
   const [draft, setDraft] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef(messages)
+  const chatIdRef = useRef(chatId)
   const onMessagesChangeRef = useRef(onMessagesChange)
   const onLearningSavedRef = useRef(onLearningSaved)
 
   messagesRef.current = messages
+  chatIdRef.current = chatId
   onMessagesChangeRef.current = onMessagesChange
   onLearningSavedRef.current = onLearningSaved
 
@@ -49,10 +51,12 @@ export function ChatPanel({
   useEffect(() => {
     setDraft('')
     setInput('')
+    setBusy(false)
   }, [chatId])
 
   useEffect(() => {
     const unsubscribe = window.codeviper.onAgentStream((event) => {
+      if (event.chatId !== chatIdRef.current) return
       if (event.type === 'token') {
         setDraft((prev) => prev + (event.content ?? ''))
       }
@@ -135,7 +139,22 @@ export function ChatPanel({
     setBusy(true)
     setDraft('')
 
-    await window.codeviper.runAgent(settings, messagesRef.current.slice(0, -1), text)
+    try {
+      await window.codeviper.runAgent(
+        settings,
+        chatId,
+        messagesRef.current.slice(0, -1),
+        text
+      )
+    } catch (error) {
+      setBusy(false)
+      appendMessage({
+        id: makeId(),
+        role: 'system',
+        content: error instanceof Error ? error.message : String(error),
+        timestamp: Date.now()
+      })
+    }
   }
 
   return (

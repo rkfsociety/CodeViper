@@ -33,8 +33,14 @@ const codeviper = {
     return () => ipcRenderer.removeListener('ollama-pull-progress', handler)
   },
 
-  runAgent: (settings: AgentSettings, messages: ChatMessage[], userMessage: string) =>
-    ipcRenderer.invoke('run-agent', settings, messages, userMessage),
+  runAgent: (
+    settings: AgentSettings,
+    chatId: string,
+    messages: ChatMessage[],
+    userMessage: string
+  ) => ipcRenderer.invoke('run-agent', settings, chatId, messages, userMessage),
+
+  getAgentRunState: () => ipcRenderer.invoke('get-agent-run-state'),
 
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => {
     const handler = (_: unknown, event: AgentStreamEvent) => callback(event)

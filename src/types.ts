@@ -109,13 +109,21 @@ export interface MemoryStore {
   entries: MemoryEntry[]
 }
 
-export interface AgentStreamEvent {
+export interface AgentStreamPayload {
   type: 'token' | 'tool_start' | 'tool_end' | 'done' | 'error' | 'learning_saved'
   content?: string
   toolName?: string
   toolInput?: string
   toolOutput?: string
   memoryId?: string
+}
+
+export interface AgentStreamEvent extends AgentStreamPayload {
+  chatId: string
+}
+
+export interface AgentRunState {
+  chatId: string
 }
 
 export interface TerminalResult {
@@ -156,9 +164,11 @@ export interface CodeViperAPI {
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => () => void
   runAgent: (
     settings: AgentSettings,
+    chatId: string,
     messages: ChatMessage[],
     userMessage: string
   ) => Promise<void>
+  getAgentRunState: () => Promise<AgentRunState | null>
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => () => void
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>
