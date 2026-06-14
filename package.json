@@ -8,11 +8,8 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "preview": "electron-vite preview",
     "start": "electron-vite preview",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && node scripts/build-win.js",
-    "rebuild:exe": "npm run dist:win"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -24,41 +21,8 @@
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.5.0",
     "electron": "^36.3.2",
-    "electron-builder": "^26.0.12",
     "electron-vite": "^3.1.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
-  },
-  "build": {
-    "appId": "com.codeviper.app",
-    "productName": "CodeViper",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "out/**/*",
-      "package.json"
-    ],
-    "asar": true,
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": ["x64"]
-        },
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "shortcutName": "CodeViper"
-    },
-    "portable": {
-      "artifactName": "CodeViper-${version}-portable.exe"
-    }
   }
 }

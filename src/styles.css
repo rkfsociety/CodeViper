@@ -466,63 +466,6 @@ button {
   border-left: 3px solid #7ee787;
 }
 
-.rebuild-panel {
-  display: grid;
-  gap: 8px;
-  padding: 0 12px 12px;
-  border-top: 1px solid #30363d;
-}
-
-.rebuild-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.rebuild-actions {
-  display: flex;
-  flex-shrink: 0;
-  gap: 8px;
-  align-items: center;
-}
-
-.rebuild-root {
-  font-size: 11px;
-  color: #8b949e;
-  word-break: break-all;
-}
-
-.rebuild-hint {
-  font-size: 12px;
-  color: #8b949e;
-  margin-top: 4px;
-}
-
-.rebuild-log {
-  max-height: 140px;
-  overflow: auto;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #30363d;
-  background: #0d1117;
-  font-family: Consolas, 'Courier New', monospace;
-  font-size: 11px;
-  color: #8b949e;
-}
-
-.rebuild-result {
-  font-size: 13px;
-}
-
-.rebuild-result.ok {
-  color: #7ee787;
-}
-
-.rebuild-result.err {
-  color: #f85149;
-}
-
 .chat-history {
   display: flex;
   flex-direction: column;

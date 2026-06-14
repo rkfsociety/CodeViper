@@ -4,7 +4,6 @@ import type {
   AgentStreamEvent,
   ChatMessage,
   OllamaPullProgress,
-  RebuildProgressEvent,
   SavedChat
 } from '../../src/types'
 
@@ -55,18 +54,6 @@ const codeviper = {
 
   deleteMemory: (projectPath: string, id: string) =>
     ipcRenderer.invoke('delete-memory', projectPath, id),
-
-  getRebuildStatus: () => ipcRenderer.invoke('get-rebuild-status'),
-
-  selectRebuildSourceFolder: () => ipcRenderer.invoke('select-rebuild-source-folder'),
-
-  rebuildApp: () => ipcRenderer.invoke('rebuild-app'),
-
-  onRebuildProgress: (callback: (event: RebuildProgressEvent) => void) => {
-    const handler = (_: unknown, event: RebuildProgressEvent) => callback(event)
-    ipcRenderer.on('rebuild-progress', handler)
-    return () => ipcRenderer.removeListener('rebuild-progress', handler)
-  },
 
   getChatStore: () => ipcRenderer.invoke('get-chat-store'),
 

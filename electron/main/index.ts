@@ -3,7 +3,6 @@ import { join } from 'path'
 import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
-import { getRebuildStatus, rememberRebuildSourcePath, runRebuild, validateRebuildRoot } from './rebuild'
 import {
   createChat,
   createFolder,
@@ -105,39 +104,6 @@ ipcMain.handle('list-memories', async (_e, projectPath: string) => listMemories(
 
 ipcMain.handle('delete-memory', async (_e, projectPath: string, id: string) =>
   deleteMemory(projectPath, id)
-)
-
-ipcMain.handle('get-rebuild-status', async () => getRebuildStatus())
-
-ipcMain.handle('select-rebuild-source-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow!, {
-    properties: ['openDirectory'],
-    title: 'Папка с исходниками CodeViper'
-  })
-
-  if (result.canceled || !result.filePaths[0]) {
-    return getRebuildStatus()
-  }
-
-  const dir = result.filePaths[0]
-  if (!validateRebuildRoot(dir)) {
-    const current = await getRebuildStatus()
-    return {
-      ...current,
-      available: false,
-      root: null,
-      reason:
-        'В этой папке нет исходников для сборки. Нужны package.json, node_modules и scripts/build-win.js'
-    }
-  }
-
-  return rememberRebuildSourcePath(dir)
-})
-
-ipcMain.handle('rebuild-app', async () =>
-  runRebuild((event) => {
-    mainWindow?.webContents.send('rebuild-progress', event)
-  })
 )
 
 ipcMain.handle('get-chat-store', async () => getChatStore())

@@ -5,6 +5,7 @@ release
 dist-electron
 CodeViper.exe
 CodeViper-Setup.exe
+CodeViper-new.exe
 *.log
 .DS_Store
 Thumbs.db
