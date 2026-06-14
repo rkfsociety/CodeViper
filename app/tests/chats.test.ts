@@ -5,7 +5,7 @@ import { join } from 'path'
 const USER_DATA = join(process.cwd(), '.vitest-tmp', 'chats')
 
 vi.mock('electron', () => ({
-  app: { getPath: () => process.cwd() + '/.vitest-tmp/chats' }
+  app: { getPath: () => join(process.cwd(), '.vitest-tmp') }
 }))
 
 import {
@@ -19,7 +19,8 @@ import {
   moveChatToFolder,
   setActiveChat,
   makeChatTitle,
-  deriveChatTitle
+  deriveChatTitle,
+  trimChatMessages
 } from '../electron/main/chats'
 
 beforeEach(() => {
@@ -96,5 +97,24 @@ describe('заголовки', () => {
       ])
     ).toBe('Сделай X')
     expect(deriveChatTitle([])).toBeUndefined()
+  })
+})
+
+describe('trimChatMessages', () => {
+  it('обрезает по количеству сообщений', () => {
+    const messages = Array.from({ length: 450 }, (_, i) => ({
+      id: String(i),
+      role: 'user' as const,
+      content: `msg ${i}`,
+      timestamp: i
+    }))
+    const trimmed = trimChatMessages(messages)
+    expect(trimmed).toHaveLength(400)
+    expect(trimmed[0].content).toBe('msg 50')
+  })
+
+  it('сохраняет сообщения при нормальном размере', () => {
+    const messages = [{ id: '1', role: 'user' as const, content: 'hello', timestamp: 0 }]
+    expect(trimChatMessages(messages)).toEqual(messages)
   })
 })

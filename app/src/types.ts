@@ -26,7 +26,7 @@ export interface SavedChat {
 }
 
 export interface ChatStore {
-  version: 1
+  version: 2
   folders: ChatFolder[]
   chats: SavedChat[]
   activeChatId: string | null

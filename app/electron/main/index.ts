@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { existsSync } from 'fs'
 import { join } from 'path'
 import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
@@ -28,7 +29,16 @@ let mainWindow: BrowserWindow | null = null
 let agentRunState: { chatId: string } | null = null
 let activeAgentAbort: AbortController | null = null
 
+function appIconPath(): string | undefined {
+  const candidates = [
+    join(__dirname, '../../resources/icon.png'),
+    join(process.cwd(), 'resources/icon.png')
+  ]
+  return candidates.find((path) => existsSync(path))
+}
+
 function createWindow(): void {
+  const icon = appIconPath()
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -36,6 +46,7 @@ function createWindow(): void {
     minHeight: 640,
     title: 'CodeViper',
     backgroundColor: '#0d1117',
+    ...(icon ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

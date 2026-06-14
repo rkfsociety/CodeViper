@@ -1,8 +1,9 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
-import { mkdir, readFile, writeFile } from 'fs/promises'
-import { dirname, join } from 'path'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 import type { AgentSettings } from '../../src/types'
+import { writeJsonAtomic } from './fsUtil'
 
 export interface PersistedSettings {
   version: 1
@@ -52,8 +53,6 @@ export async function loadSettings(): Promise<PersistedSettings> {
 
 export async function saveSettings(settings: AgentSettings): Promise<PersistedSettings> {
   const normalized = normalize(settings)
-  const path = storePath()
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, JSON.stringify(normalized, null, 2), 'utf-8')
+  await writeJsonAtomic(storePath(), normalized)
   return normalized
 }

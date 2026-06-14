@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import { makeId } from '../../shared/makeId'
 import type { AgentSkill, MemoryScope, SkillsStore } from '../../src/types'
 
 const MAX_GLOBAL_SKILLS = 30
@@ -26,10 +27,6 @@ function projectSkillsPath(projectPath: string): string {
 
 function projectSkillDataDir(projectPath: string): string {
   return join(projectDir(projectPath), 'skill-data')
-}
-
-function makeId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 function slugify(name: string): string {

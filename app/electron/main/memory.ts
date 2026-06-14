@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import { makeId } from '../../shared/makeId'
 import type { MemoryCategory, MemoryEntry, MemoryScope, MemoryStore } from '../../src/types'
 
 const MAX_GLOBAL = 100
@@ -22,10 +23,6 @@ function projectMemoryPath(projectPath: string): string {
 
 function projectRulesPath(projectPath: string): string {
   return join(projectDir(projectPath), 'rules.md')
-}
-
-function makeId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 function emptyStore(): MemoryStore {

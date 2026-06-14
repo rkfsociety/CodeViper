@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { makeId } from '../../shared/makeId'
 import type { AgentSettings, ChatMessage } from '../types'
 
 interface Props {
@@ -16,10 +17,6 @@ function formatProjectLabel(path: string): string {
   if (!path.trim()) return 'Проект не выбран'
   const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
   return parts[parts.length - 1] ?? path
-}
-
-function makeId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 export function ChatPanel({
