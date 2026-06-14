@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AgentSettings, AgentStreamEvent, ChatMessage } from '../src/types'
+import type { AgentSettings, AgentStreamEvent, ChatMessage, OllamaPullProgress } from '../src/types'
 
 const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
@@ -16,6 +16,15 @@ const codeviper = {
   listOllamaModels: (url?: string) => ipcRenderer.invoke('list-ollama-models', url),
 
   checkOllama: (url?: string) => ipcRenderer.invoke('check-ollama', url),
+
+  pullOllamaModel: (url: string, model: string) =>
+    ipcRenderer.invoke('pull-ollama-model', url, model),
+
+  onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => {
+    const handler = (_: unknown, progress: OllamaPullProgress) => callback(progress)
+    ipcRenderer.on('ollama-pull-progress', handler)
+    return () => ipcRenderer.removeListener('ollama-pull-progress', handler)
+  },
 
   runAgent: (settings: AgentSettings, messages: ChatMessage[], userMessage: string) =>
     ipcRenderer.invoke('run-agent', settings, messages, userMessage),

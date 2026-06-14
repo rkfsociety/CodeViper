@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { AgentSettings, ChatMessage } from './types'
+import type { AgentSettings, ChatMessage, OllamaModel } from './types'
 import { FileTree } from './components/FileTree'
 import { ChatPanel } from './components/ChatPanel'
 import { TerminalPanel } from './components/TerminalPanel'
+import { ModelPanel } from './components/ModelPanel'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -14,7 +15,7 @@ const DEFAULT_SETTINGS: AgentSettings = {
 export default function App() {
   const [settings, setSettings] = useState<AgentSettings>(DEFAULT_SETTINGS)
   const [ollamaOnline, setOllamaOnline] = useState(false)
-  const [models, setModels] = useState<string[]>([])
+  const [models, setModels] = useState<OllamaModel[]>([])
   const [selectedFile, setSelectedFile] = useState<string>()
   const [filePreview, setFilePreview] = useState('')
   const [, setMessages] = useState<ChatMessage[]>([])
@@ -25,11 +26,11 @@ export default function App() {
 
     if (online) {
       const list = await window.codeviper.listOllamaModels(settings.ollamaUrl)
+      setModels(list)
       const names = list.map((m) => m.name)
-      setModels(names)
       setSettings((prev) => ({
         ...prev,
-        model: prev.model && names.includes(prev.model) ? prev.model : names[0] ?? ''
+        model: prev.model && names.includes(prev.model) ? prev.model : names[0]?.name ?? ''
       }))
     } else {
       setModels([])
@@ -122,25 +123,18 @@ export default function App() {
                 onChange={(e) =>
                   setSettings((prev) => ({ ...prev, ollamaUrl: e.target.value }))
                 }
+                onBlur={refreshOllama}
               />
             </label>
 
-            <label>
-              Модель
-              <select
-                value={settings.model}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, model: e.target.value }))
-                }
-              >
-                {!models.length && <option value="">Ollama не найдена</option>}
-                {models.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ModelPanel
+              ollamaUrl={settings.ollamaUrl}
+              ollamaOnline={ollamaOnline}
+              models={models}
+              selectedModel={settings.model}
+              onModelChange={(model) => setSettings((prev) => ({ ...prev, model }))}
+              onRefresh={refreshOllama}
+            />
 
             <label>
               Макс. шагов агента
@@ -161,8 +155,8 @@ export default function App() {
 
           {!ollamaOnline && (
             <div className="hint">
-              Установи Ollama с <strong>ollama.com</strong>, затем:
-              <pre>ollama pull qwen2.5-coder:7b</pre>
+              Ollama не отвечает. Установи с <strong>ollama.com</strong>, запусти приложение
+              Ollama и нажми «Обновить Ollama».
             </div>
           )}
 

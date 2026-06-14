@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
-import { AgentRunner, fetchOllamaModels, pingOllama } from './agent'
+import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import type { AgentSettings, AgentStreamEvent, ChatMessage } from '../../src/types'
 
@@ -69,6 +69,12 @@ ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') =>
 ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') =>
   fetchOllamaModels(url)
 )
+
+ipcMain.handle('pull-ollama-model', async (_e, url: string, model: string) => {
+  await pullOllamaModel(url, model, (progress) => {
+    mainWindow?.webContents.send('ollama-pull-progress', progress)
+  })
+})
 
 ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) =>
   runCommand(cwd, command)

@@ -21,6 +21,42 @@ export interface OllamaModel {
   modifiedAt: string
 }
 
+export interface OllamaPullProgress {
+  status: string
+  digest?: string
+  total?: number
+  completed?: number
+}
+
+export interface RecommendedModel {
+  name: string
+  description: string
+  ramHint: string
+}
+
+export const RECOMMENDED_MODELS: RecommendedModel[] = [
+  {
+    name: 'qwen2.5-coder:7b',
+    description: 'Быстрая модель для кода, tool calling',
+    ramHint: '8 GB RAM'
+  },
+  {
+    name: 'qwen2.5-coder:14b',
+    description: 'Лучше качество кода',
+    ramHint: '16 GB RAM'
+  },
+  {
+    name: 'llama3.1:8b',
+    description: 'Универсальная модель с tool calling',
+    ramHint: '8 GB RAM'
+  },
+  {
+    name: 'qwen3:8b',
+    description: 'Новая серия Qwen',
+    ramHint: '8 GB RAM'
+  }
+]
+
 export interface AgentSettings {
   ollamaUrl: string
   model: string
@@ -49,6 +85,8 @@ export interface CodeViperAPI {
   writeFile: (projectPath: string, filePath: string, content: string) => Promise<void>
   listOllamaModels: (url?: string) => Promise<OllamaModel[]>
   checkOllama: (url?: string) => Promise<boolean>
+  pullOllamaModel: (url: string, model: string) => Promise<void>
+  onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => () => void
   runAgent: (
     settings: AgentSettings,
     messages: ChatMessage[],

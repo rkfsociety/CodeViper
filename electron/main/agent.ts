@@ -22,7 +22,7 @@ interface OllamaChatChunk {
 
 async function* readNdjsonLines(
   body: ReadableStream<Uint8Array>
-): AsyncGenerator<OllamaChatChunk> {
+): AsyncGenerator<Record<string, unknown>> {
   const reader = body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
@@ -38,13 +38,13 @@ async function* readNdjsonLines(
       while (newlineIndex >= 0) {
         const line = buffer.slice(0, newlineIndex).trim()
         buffer = buffer.slice(newlineIndex + 1)
-        if (line) yield JSON.parse(line) as OllamaChatChunk
+        if (line) yield JSON.parse(line) as Record<string, unknown>
         newlineIndex = buffer.indexOf('\n')
       }
     }
 
     const tail = buffer.trim()
-    if (tail) yield JSON.parse(tail) as OllamaChatChunk
+    if (tail) yield JSON.parse(tail) as Record<string, unknown>
   } finally {
     reader.releaseLock()
   }
@@ -210,14 +210,15 @@ export class AgentRunner {
     const toolCalls: ToolCall[] = []
 
     for await (const chunk of readNdjsonLines(res.body)) {
-      const piece = chunk.message?.content
+      const message = chunk.message as OllamaChatChunk['message'] | undefined
+      const piece = message?.content
       if (piece) {
         content += piece
         this.emit({ type: 'token', content: piece })
       }
 
-      if (chunk.message?.tool_calls?.length) {
-        toolCalls.push(...chunk.message.tool_calls)
+      if (message?.tool_calls?.length) {
+        toolCalls.push(...message.tool_calls)
       }
     }
 
@@ -279,5 +280,42 @@ export async function pingOllama(baseUrl: string): Promise<boolean> {
     return res.ok
   } catch {
     return false
+  }
+}
+
+export interface OllamaPullProgress {
+  status: string
+  digest?: string
+  total?: number
+  completed?: number
+}
+
+export async function pullOllamaModel(
+  baseUrl: string,
+  model: string,
+  onProgress: (progress: OllamaPullProgress) => void
+): Promise<void> {
+  const res = await fetch(`${baseUrl}/api/pull`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, stream: true })
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Ollama pull: ${res.status} ${text}`)
+  }
+
+  if (!res.body) {
+    throw new Error('Ollama: пустой ответ при скачивании')
+  }
+
+  for await (const chunk of readNdjsonLines(res.body)) {
+    onProgress({
+      status: String(chunk.status ?? ''),
+      digest: chunk.digest as string | undefined,
+      total: chunk.total as number | undefined,
+      completed: chunk.completed as number | undefined
+    })
   }
 }
