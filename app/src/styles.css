@@ -906,6 +906,27 @@ button {
   color: #d29922;
 }
 
+.model-queue-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.model-queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: #c9d1d9;
+}
+
+.model-queue-remove {
+  padding: 2px 8px;
+  min-width: auto;
+  font-size: 11px;
+}
+
 .model-auto-hint {
   font-size: 12px;
   color: #8b949e;
@@ -1477,6 +1498,39 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+button.topbar-pill.topbar-download {
+  cursor: pointer;
+  border-color: #a371f755;
+  color: #d2a8ff;
+  background: #1c1225;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.topbar-pill.topbar-download:hover {
+  border-color: #bc8cff;
+  color: #e6ccff;
+}
+
+button.topbar-pill.topbar-download-error {
+  border-color: #f8514955;
+  color: #ffa198;
+  background: #2d1214;
+}
+
+.topbar-download-queue {
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+.topbar-download-error-text {
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.9;
 }
 
 .welcome-panel {

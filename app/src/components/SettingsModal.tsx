@@ -3,6 +3,9 @@ import type { AgentSettings, OllamaModel } from '../types'
 import { ModelPanel } from './ModelPanel'
 import { MemoryPanel } from './MemoryPanel'
 import { SkillsPanel } from './SkillsPanel'
+import type { useOllamaDownloadQueue } from '../hooks/useOllamaDownloadQueue'
+
+type DownloadQueue = ReturnType<typeof useOllamaDownloadQueue>
 
 interface Props {
   open: boolean
@@ -10,6 +13,7 @@ interface Props {
   chatProjectPath: string
   ollamaOnline: boolean
   models: OllamaModel[]
+  downloadQueue: DownloadQueue
   memoryRefreshKey: number
   skillsRefreshKey: number
   onClose: () => void
@@ -24,6 +28,7 @@ export function SettingsModal({
   chatProjectPath,
   ollamaOnline,
   models,
+  downloadQueue,
   memoryRefreshKey,
   skillsRefreshKey,
   onClose,
@@ -85,6 +90,16 @@ export function SettingsModal({
             models={models}
             selectedModel={settings.model}
             autoModel={settings.autoModel !== false}
+            downloadQueue={{
+              pulling: downloadQueue.pulling,
+              queued: downloadQueue.queued,
+              progress: downloadQueue.progress,
+              error: downloadQueue.error,
+              percent: downloadQueue.percent,
+              onEnqueue: downloadQueue.enqueue,
+              onRemoveFromQueue: downloadQueue.removeFromQueue,
+              onClearError: downloadQueue.clearError
+            }}
             onModelChange={(model) => onSettingsChange({ model })}
             onRefresh={onRefreshOllama}
           />

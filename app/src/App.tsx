@@ -5,6 +5,8 @@ import { ChatPanel } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
 import { TerminalPanel } from './components/TerminalPanel'
 import { SettingsModal } from './components/SettingsModal'
+import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
+import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -65,7 +67,7 @@ export default function App() {
     return store
   }, [])
 
-  async function refreshOllama() {
+  const refreshOllama = useCallback(async () => {
     const online = await window.codeviper.checkOllama(settings.ollamaUrl)
     setOllamaOnline(online)
 
@@ -84,7 +86,17 @@ export default function App() {
     } else {
       setModels([])
     }
-  }
+  }, [settings.ollamaUrl])
+
+  const downloadQueue = useOllamaDownloadQueue({
+    ollamaUrl: settings.ollamaUrl,
+    ollamaOnline,
+    installedModels: models,
+    onRefresh: refreshOllama,
+    onModelInstalled: (modelName) => {
+      setSettings((prev) => ({ ...prev, model: prev.model || modelName }))
+    }
+  })
 
   useEffect(() => {
     void window.codeviper.loadSettings().then((saved) => {
@@ -233,6 +245,13 @@ export default function App() {
                 : activeRunModel || settings.model}
             </span>
           )}
+          <OllamaDownloadStatus
+            pulling={downloadQueue.pulling}
+            queued={downloadQueue.queued}
+            progress={downloadQueue.progress}
+            error={downloadQueue.error}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
         </div>
         <div className="topbar-path">
           {activeChat?.title ?? 'Новый чат'}
@@ -318,6 +337,7 @@ export default function App() {
         chatProjectPath={activeProjectPath}
         ollamaOnline={ollamaOnline}
         models={models}
+        downloadQueue={downloadQueue}
         memoryRefreshKey={memoryRefreshKey}
         skillsRefreshKey={skillsRefreshKey}
         onClose={() => setSettingsOpen(false)}

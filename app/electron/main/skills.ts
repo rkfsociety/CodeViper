@@ -15,7 +15,6 @@ export const SKILLS_FILENAME = 'ViperSkills.md'
 const LEGACY_SKILLS_FILENAME = 'skills.json'
 
 const MAX_GLOBAL_SKILLS = 30
-const MAX_PROJECT_SKILLS = 20
 const MAX_INJECT_SKILLS = 12
 
 function globalSkillsPath(): string {
@@ -237,7 +236,7 @@ export async function createSkill(
   const scope: MemoryScope = 'global'
   const filePath = storePath(scope, projectPath)
   const legacyPath = legacyStorePath(scope, projectPath)
-  const max = scope === 'project' ? MAX_PROJECT_SKILLS : MAX_GLOBAL_SKILLS
+  const max = MAX_GLOBAL_SKILLS
   const store = await loadStore(filePath, legacyPath)
   const now = new Date().toISOString()
 

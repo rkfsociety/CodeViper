@@ -1,6 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { OllamaModel, OllamaPullProgress, RecommendedModel } from '../types'
 import { filterToolCallingModels, groupRecommendedModelsByTier, isRecommendedModelInstalled } from '../types'
+
+interface DownloadQueueProps {
+  pulling: string | null
+  queued: string[]
+  progress: OllamaPullProgress | null
+  error: string
+  percent: number | null
+  onEnqueue: (modelName: string) => void
+  onRemoveFromQueue: (modelName: string) => void
+  onClearError: () => void
+}
 
 interface Props {
   ollamaUrl: string
@@ -8,6 +19,7 @@ interface Props {
   models: OllamaModel[]
   selectedModel: string
   autoModel?: boolean
+  downloadQueue: DownloadQueueProps
   onModelChange: (model: string) => void
   onRefresh: () => Promise<void>
 }
@@ -17,32 +29,21 @@ function formatBytes(bytes: number): string {
   return `${Math.round(bytes / 1024 ** 2)} MB`
 }
 
-function pullPercent(progress: OllamaPullProgress | null): number | null {
-  if (!progress?.total || progress.completed == null) return null
-  return Math.min(100, Math.round((progress.completed / progress.total) * 100))
-}
-
 export function ModelPanel({
   ollamaUrl,
   ollamaOnline,
   models,
   selectedModel,
   autoModel = true,
+  downloadQueue,
   onModelChange,
   onRefresh
 }: Props) {
-  const [pulling, setPulling] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [pullProgress, setPullProgress] = useState<OllamaPullProgress | null>(null)
-  const [pullError, setPullError] = useState('')
   const [actionError, setActionError] = useState('')
 
-  useEffect(() => {
-    const unsubscribe = window.codeviper.onOllamaPullProgress((progress) => {
-      setPullProgress(progress)
-    })
-    return unsubscribe
-  }, [])
+  const { pulling, queued, progress, error, percent, onEnqueue, onRemoveFromQueue, onClearError } =
+    downloadQueue
 
   const toolModels = useMemo(() => filterToolCallingModels(models), [models])
   const unsupportedModels = useMemo(
@@ -50,24 +51,9 @@ export function ModelPanel({
     [models, toolModels]
   )
 
-  async function downloadModel(model: RecommendedModel) {
-    if (!ollamaOnline || pulling || deleting) return
-
-    setPulling(model.name)
-    setPullProgress(null)
-    setPullError('')
-    setActionError('')
-
-    try {
-      await window.codeviper.pullOllamaModel(ollamaUrl, model.name)
-      await onRefresh()
-      onModelChange(model.name)
-    } catch (error) {
-      setPullError(error instanceof Error ? error.message : String(error))
-    } finally {
-      setPulling(null)
-      setPullProgress(null)
-    }
+  function queueModel(model: RecommendedModel) {
+    onClearError()
+    onEnqueue(model.name)
   }
 
   async function removeModel(name: string) {
@@ -76,20 +62,19 @@ export function ModelPanel({
 
     setDeleting(name)
     setActionError('')
-    setPullError('')
 
     try {
       await window.codeviper.deleteOllamaModel(ollamaUrl, name)
       await onRefresh()
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : String(error))
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err))
     } finally {
       setDeleting(null)
     }
   }
 
-  const percent = pullPercent(pullProgress)
   const busy = !!pulling || !!deleting
+  const queuedSet = useMemo(() => new Set(queued), [queued])
 
   const downloadableTierGroups = useMemo(
     () =>
@@ -98,14 +83,25 @@ export function ModelPanel({
           tier,
           models: tierModels.filter(
             (model) =>
-              !isRecommendedModelInstalled(model.name, models) || pulling === model.name
+              !isRecommendedModelInstalled(model.name, models) ||
+              pulling === model.name ||
+              queuedSet.has(model.name)
           )
         }))
         .filter((group) => group.models.length > 0),
-    [models, pulling]
+    [models, pulling, queuedSet]
   )
 
-  const catalogEmpty = downloadableTierGroups.length === 0 && !pulling
+  const catalogEmpty = downloadableTierGroups.length === 0 && !pulling && queued.length === 0
+
+  function catalogButtonLabel(modelName: string): string {
+    if (pulling === modelName) return 'Скачивание…'
+    if (queuedSet.has(modelName)) {
+      const index = queued.indexOf(modelName)
+      return index === 0 && pulling ? 'Скачивание…' : `В очереди #${index + 1}`
+    }
+    return 'В очередь'
+  }
 
   return (
     <div className="model-panel">
@@ -132,6 +128,49 @@ export function ModelPanel({
         </div>
       )}
 
+      {(pulling || queued.length > 0) && (
+        <div className="model-pull-status">
+          <div className="model-pull-title">
+            {pulling ? `Скачивание ${pulling}…` : 'Очередь скачивания'}
+          </div>
+          {pulling && (
+            <div className="model-pull-text">{progress?.status ?? 'Подключение…'}</div>
+          )}
+          {percent != null && pulling && (
+            <>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${percent}%` }} />
+              </div>
+              <div className="model-pull-text">{percent}%</div>
+            </>
+          )}
+          {queued.length > 0 && (
+            <div className="model-queue-list">
+              {queued.map((name, index) => (
+                <div key={name} className="model-queue-item">
+                  <span>
+                    {index + 1}. {name}
+                    {pulling === name ? ' — сейчас' : ''}
+                  </span>
+                  {pulling !== name && (
+                    <button
+                      type="button"
+                      className="btn model-queue-remove"
+                      onClick={() => onRemoveFromQueue(name)}
+                    >
+                      убрать
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="model-auto-hint">
+            Можно закрыть настройки — скачивание продолжится в фоне. Статус — в верхней панели.
+          </div>
+        </div>
+      )}
+
       {toolModels.length > 0 && (
         <>
           <div className="model-section-title">Установленные модели (tool calling)</div>
@@ -144,7 +183,7 @@ export function ModelPanel({
                 </div>
                 <button
                   className="btn model-delete-btn"
-                  disabled={!ollamaOnline || busy}
+                  disabled={!ollamaOnline || !!pulling || !!deleting}
                   onClick={() => removeModel(model.name)}
                 >
                   {deleting === model.name ? 'Удаление…' : 'Удалить'}
@@ -172,7 +211,7 @@ export function ModelPanel({
                 </div>
                 <button
                   className="btn model-delete-btn"
-                  disabled={!ollamaOnline || busy}
+                  disabled={!ollamaOnline || !!pulling || !!deleting}
                   onClick={() => removeModel(model.name)}
                 >
                   {deleting === model.name ? 'Удаление…' : 'Удалить'}
@@ -183,30 +222,15 @@ export function ModelPanel({
         </>
       )}
 
-      {pulling && (
-        <div className="model-pull-status">
-          <div className="model-pull-title">Скачивание {pulling}…</div>
-          <div className="model-pull-text">{pullProgress?.status ?? 'Подключение…'}</div>
-          {percent != null && (
-            <>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${percent}%` }} />
-              </div>
-              <div className="model-pull-text">{percent}%</div>
-            </>
-          )}
-        </div>
-      )}
-
-      {pullError && <div className="model-error">{pullError}</div>}
+      {error && <div className="model-error">{error}</div>}
       {actionError && <div className="model-error">{actionError}</div>}
 
       <div className="model-section-title">
         Каталог моделей с tool calling — выберите по объёму RAM
       </div>
       <div className="model-auto-hint">
-        Скачать можно только модели из каталога — все они поддерживают вызов инструментов агента.
-        Уже установленные скрыты из списка.
+        Нажмите «В очередь» на нескольких моделях — скачаются по порядку. Окно настроек можно
+        закрыть.
       </div>
 
       {catalogEmpty && (
@@ -217,28 +241,32 @@ export function ModelPanel({
         <div key={tier.id} className="model-tier-group">
           <div className="model-tier-title">{tier.label}</div>
           <div className="model-cards">
-            {tierModels.map((model) => (
-              <div
-                key={model.name}
-                className={`model-card${model.featured ? ' model-card-featured' : ''}`}
-              >
-                <div className="model-card-head">
-                  <strong>
-                    {model.featured ? '★ ' : ''}
-                    {model.name}
-                  </strong>
-                  <span className="model-ram">{model.ramHint}</span>
-                </div>
-                <div className="model-card-desc">{model.description}</div>
-                <button
-                  className="btn"
-                  disabled={!ollamaOnline || busy}
-                  onClick={() => downloadModel(model)}
+            {tierModels.map((model) => {
+              const inQueue = queuedSet.has(model.name)
+              const isPulling = pulling === model.name
+              return (
+                <div
+                  key={model.name}
+                  className={`model-card${model.featured ? ' model-card-featured' : ''}`}
                 >
-                  {pulling === model.name ? 'Скачивание…' : 'Скачать'}
-                </button>
-              </div>
-            ))}
+                  <div className="model-card-head">
+                    <strong>
+                      {model.featured ? '★ ' : ''}
+                      {model.name}
+                    </strong>
+                    <span className="model-ram">{model.ramHint}</span>
+                  </div>
+                  <div className="model-card-desc">{model.description}</div>
+                  <button
+                    className="btn"
+                    disabled={!ollamaOnline || isPulling || inQueue}
+                    onClick={() => queueModel(model)}
+                  >
+                    {catalogButtonLabel(model.name)}
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </div>
       ))}
