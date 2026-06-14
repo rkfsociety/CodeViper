@@ -55,6 +55,11 @@ const codeviper = {
   deleteMemory: (projectPath: string, id: string) =>
     ipcRenderer.invoke('delete-memory', projectPath, id),
 
+  listSkills: (projectPath: string) => ipcRenderer.invoke('list-skills', projectPath),
+
+  deleteSkill: (projectPath: string, id: string) =>
+    ipcRenderer.invoke('delete-skill', projectPath, id),
+
   getChatStore: () => ipcRenderer.invoke('get-chat-store'),
 
   createChat: (projectPath: string, folderId?: string | null) =>

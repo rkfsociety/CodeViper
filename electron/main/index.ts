@@ -3,6 +3,7 @@ import { join } from 'path'
 import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
+import { deleteSkill, listSkills } from './skills'
 import {
   createChat,
   createFolder,
@@ -104,6 +105,12 @@ ipcMain.handle('list-memories', async (_e, projectPath: string) => listMemories(
 
 ipcMain.handle('delete-memory', async (_e, projectPath: string, id: string) =>
   deleteMemory(projectPath, id)
+)
+
+ipcMain.handle('list-skills', async (_e, projectPath: string) => listSkills(projectPath))
+
+ipcMain.handle('delete-skill', async (_e, projectPath: string, id: string) =>
+  deleteSkill(projectPath, id)
 )
 
 ipcMain.handle('get-chat-store', async () => getChatStore())

@@ -109,13 +109,31 @@ export interface MemoryStore {
   entries: MemoryEntry[]
 }
 
+export interface AgentSkill {
+  id: string
+  name: string
+  description: string
+  instructions: string
+  triggers: string[]
+  scope: MemoryScope
+  createdAt: string
+  updatedAt: string
+  useCount: number
+}
+
+export interface SkillsStore {
+  version: 1
+  skills: AgentSkill[]
+}
+
 export interface AgentStreamPayload {
-  type: 'token' | 'tool_start' | 'tool_end' | 'done' | 'error' | 'learning_saved'
+  type: 'token' | 'tool_start' | 'tool_end' | 'done' | 'error' | 'learning_saved' | 'skill_saved'
   content?: string
   toolName?: string
   toolInput?: string
   toolOutput?: string
   memoryId?: string
+  skillId?: string
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {
@@ -152,6 +170,8 @@ export interface CodeViperAPI {
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>
   deleteMemory: (projectPath: string, id: string) => Promise<boolean>
+  listSkills: (projectPath: string) => Promise<AgentSkill[]>
+  deleteSkill: (projectPath: string, id: string) => Promise<boolean>
   getChatStore: () => Promise<ChatStore>
   createChat: (projectPath: string, folderId?: string | null) => Promise<SavedChat>
   updateChat: (

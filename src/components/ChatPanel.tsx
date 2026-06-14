@@ -100,6 +100,16 @@ export function ChatPanel({
         onLearningSavedRef.current?.()
       }
 
+      if (event.type === 'skill_saved') {
+        appendMessage({
+          id: makeId(),
+          role: 'system',
+          content: `🛠️ Навык сохранён: ${event.content ?? ''}${event.skillId ? ` (${event.skillId})` : ''}`,
+          timestamp: Date.now()
+        })
+        onLearningSavedRef.current?.()
+      }
+
       if (event.type === 'done') {
         setDraft((current) => {
           if (current.trim()) {

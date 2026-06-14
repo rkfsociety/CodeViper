@@ -462,6 +462,23 @@ button {
   color: #8b949e;
 }
 
+.skills-panel {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #30363d;
+}
+
+.skills-hint {
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+.skill-badge {
+  background: #1f3d5c;
+  color: #79c0ff;
+}
+
 .message.system pre {
   border-left: 3px solid #7ee787;
 }

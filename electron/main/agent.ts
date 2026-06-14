@@ -13,6 +13,17 @@ import {
   parseReflectionLearnings,
   searchMemories
 } from './memory'
+import {
+  buildSkillsContext,
+  createSkill,
+  deleteSkill,
+  getSkill,
+  listSkills,
+  readSkillData,
+  touchSkill,
+  updateSkill,
+  writeSkillData
+} from './skills'
 
 interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -78,13 +89,21 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 Перед правками сначала прочитай файл. Делай минимальные точечные изменения.
 После выполнения задачи кратко объясни, что сделал.
 
-## Самообучение
-Ты можешь улучшать себя со временем:
-- Используй remember, чтобы сохранить полезный паттерн, ошибку, предпочтение пользователя или правило проекта.
-- Используй search_memory, если нужно вспомнить прошлый опыт.
-- Используй forget, если знание устарело.
-- Обновляй .codeviper/rules.md через write_file для постоянных правил проекта.
-- После успешной задачи сохраняй 1–2 важных урока, если они пригодятся в будущем.`
+## Самообучение и навыки (skills)
+Ты можешь улучшать себя **только по запросу пользователя** или когда это явно нужно для задачи:
+- **remember** / **search_memory** / **forget** — короткие знания и уроки
+- **create_skill** / **update_skill** / **delete_skill** — постоянные навыки с пошаговыми инструкциями (todo-лист, чеклисты, форматы ответов и т.д.)
+- **read_skill** — полная инструкция навыка перед применением
+- **read_skill_data** / **write_skill_data** — JSON-состояние навыка (списки задач, прогресс)
+- **list_skills** — что уже умеешь
+
+Если пользователь просит «улучши себя», «сделай skill для todo», «научись вести список задач»:
+1. list_skills — не дублируй существующие
+2. create_skill с понятными instructions (когда применять, шаги, формат данных)
+3. При работе по навыку — read_skill, затем read_skill_data / write_skill_data
+
+Обновляй .codeviper/rules.md через write_file для правил проекта.
+После успешной задачи можно сохранить 1–2 урока через remember (если самообучение уместно).`
 
 const MAX_PROJECT_TREE_CHARS = 6000
 
@@ -127,10 +146,16 @@ function buildSystemPrompt(
   }
 
   if (memoryContext.trim()) {
-    parts.push(`# Память и правила\n${memoryContext}`)
+    parts.push(`# Память, правила и навыки\n${memoryContext}`)
   }
 
   return parts.join('\n\n')
+}
+
+async function buildAgentContext(projectPath: string, taskHint: string): Promise<string> {
+  const memoryContext = await buildMemoryContext(projectPath, taskHint)
+  const skillsContext = await buildSkillsContext(projectPath, taskHint)
+  return [memoryContext, skillsContext].filter(Boolean).join('\n\n')
 }
 
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
@@ -261,6 +286,114 @@ const TOOLS = [
         required: ['id']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_skills',
+      description: 'Список навыков (skills), которые агент создал для себя',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'read_skill',
+      description: 'Прочитать полную инструкцию навыка по id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'ID навыка из list_skills' }
+        },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_skill',
+      description: 'Создать новый навык (по запросу пользователя): инструкции поведения, триггеры',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Название навыка' },
+          description: { type: 'string', description: 'Кратко, зачем нужен' },
+          instructions: {
+            type: 'string',
+            description: 'Markdown: когда применять, шаги, формат ответа, работа с skill-data'
+          },
+          triggers: {
+            type: 'string',
+            description: 'Слова-триггеры через запятую (todo, задачи, план...)'
+          },
+          scope: { type: 'string', description: 'global | project' },
+          id: { type: 'string', description: 'Необязательный id (slug)' }
+        },
+        required: ['name', 'description', 'instructions']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_skill',
+      description: 'Обновить существующий навык',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'ID навыка' },
+          name: { type: 'string' },
+          description: { type: 'string' },
+          instructions: { type: 'string' },
+          triggers: { type: 'string', description: 'Триггеры через запятую' }
+        },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_skill',
+      description: 'Удалить навык по id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'ID навыка' }
+        },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'read_skill_data',
+      description: 'Прочитать JSON-данные навыка (todo, состояние и т.д.)',
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_id: { type: 'string', description: 'ID навыка' }
+        },
+        required: ['skill_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'write_skill_data',
+      description: 'Записать JSON-данные навыка',
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_id: { type: 'string', description: 'ID навыка' },
+          content: { type: 'string', description: 'JSON-строка' }
+        },
+        required: ['skill_id', 'content']
+      }
+    }
   }
 ]
 
@@ -272,7 +405,7 @@ export class AgentRunner {
 
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
     const { projectPath } = this.settings
-    const memoryContext = await buildMemoryContext(projectPath, userMessage)
+    const agentContext = await buildAgentContext(projectPath, userMessage)
 
     let projectTreeText = ''
     if (projectPath.trim()) {
@@ -284,7 +417,7 @@ export class AgentRunner {
     }
 
     const messages: OllamaMessage[] = [
-      { role: 'system', content: buildSystemPrompt(projectPath, memoryContext, projectTreeText) },
+      { role: 'system', content: buildSystemPrompt(projectPath, agentContext, projectTreeText) },
       ...history
         .map(mapHistoryMessageToOllama)
         .filter((m): m is OllamaMessage => m !== null),
@@ -440,6 +573,60 @@ export class AgentRunner {
       case 'forget': {
         const removed = await deleteMemory(projectPath, args.id)
         return removed ? `Забыто: ${args.id}` : `Запись не найдена: ${args.id}`
+      }
+      case 'list_skills': {
+        const skills = await listSkills(projectPath)
+        return JSON.stringify(skills, null, 2)
+      }
+      case 'read_skill': {
+        const skill = await getSkill(projectPath, args.id)
+        if (!skill) return `Навык не найден: ${args.id}`
+        await touchSkill(projectPath, skill.id)
+        return JSON.stringify(skill, null, 2)
+      }
+      case 'create_skill': {
+        const skill = await createSkill(projectPath, {
+          name: args.name,
+          description: args.description,
+          instructions: args.instructions,
+          triggers: args.triggers,
+          scope: args.scope === 'project' || args.scope === 'global' ? args.scope : undefined,
+          id: args.id
+        })
+        this.emit({
+          type: 'skill_saved',
+          content: skill.name,
+          skillId: skill.id
+        })
+        return `Навык создан: ${skill.name} (id: ${skill.id}, scope: ${skill.scope})`
+      }
+      case 'update_skill': {
+        const skill = await updateSkill(projectPath, args.id, {
+          name: args.name,
+          description: args.description,
+          instructions: args.instructions,
+          triggers: args.triggers
+        })
+        if (!skill) return `Навык не найден: ${args.id}`
+        this.emit({
+          type: 'skill_saved',
+          content: skill.name,
+          skillId: skill.id
+        })
+        return `Навык обновлён: ${skill.name} (id: ${skill.id})`
+      }
+      case 'delete_skill': {
+        const removed = await deleteSkill(projectPath, args.id)
+        return removed ? `Навык удалён: ${args.id}` : `Навык не найден: ${args.id}`
+      }
+      case 'read_skill_data': {
+        const data = await readSkillData(projectPath, args.skill_id)
+        if (!data) return `Навык не найден: ${args.skill_id}`
+        return data.content
+      }
+      case 'write_skill_data': {
+        const ok = await writeSkillData(projectPath, args.skill_id, args.content)
+        return ok ? `Данные навыка записаны: ${args.skill_id}` : `Навык не найден: ${args.skill_id}`
       }
       default:
         return `Неизвестный инструмент: ${name}`

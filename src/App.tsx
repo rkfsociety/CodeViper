@@ -5,6 +5,7 @@ import { ChatHistoryPanel } from './components/ChatHistoryPanel'
 import { TerminalPanel } from './components/TerminalPanel'
 import { ModelPanel } from './components/ModelPanel'
 import { MemoryPanel } from './components/MemoryPanel'
+import { SkillsPanel } from './components/SkillsPanel'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -30,6 +31,7 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatBusy, setChatBusy] = useState(false)
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
+  const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
 
@@ -222,7 +224,10 @@ export default function App() {
             messages={messages}
             onMessagesChange={setMessages}
             onBusyChange={setChatBusy}
-            onLearningSaved={() => setMemoryRefreshKey((key) => key + 1)}
+            onLearningSaved={() => {
+              setMemoryRefreshKey((key) => key + 1)
+              setSkillsRefreshKey((key) => key + 1)
+            }}
           />
         </section>
 
@@ -273,6 +278,8 @@ export default function App() {
               }
               refreshKey={memoryRefreshKey}
             />
+
+            <SkillsPanel projectPath={settings.projectPath} refreshKey={skillsRefreshKey} />
 
           </div>
 
