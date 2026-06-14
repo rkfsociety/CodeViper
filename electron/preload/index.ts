@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AgentSettings, AgentStreamEvent, ChatMessage, OllamaPullProgress } from '../../src/types'
+import type { AgentSettings, AgentStreamEvent, ChatMessage, OllamaPullProgress, RebuildProgressEvent } from '../../src/types'
 
 const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
@@ -41,7 +41,17 @@ const codeviper = {
   listMemories: (projectPath: string) => ipcRenderer.invoke('list-memories', projectPath),
 
   deleteMemory: (projectPath: string, id: string) =>
-    ipcRenderer.invoke('delete-memory', projectPath, id)
+    ipcRenderer.invoke('delete-memory', projectPath, id),
+
+  getRebuildStatus: () => ipcRenderer.invoke('get-rebuild-status'),
+
+  rebuildApp: () => ipcRenderer.invoke('rebuild-app'),
+
+  onRebuildProgress: (callback: (event: RebuildProgressEvent) => void) => {
+    const handler = (_: unknown, event: RebuildProgressEvent) => callback(event)
+    ipcRenderer.on('rebuild-progress', handler)
+    return () => ipcRenderer.removeListener('rebuild-progress', handler)
+  }
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)

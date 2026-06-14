@@ -26,8 +26,19 @@ for (const file of readdirSync(outputDir)) {
   else if (file.includes('Setup')) destName = 'CodeViper-Setup.exe'
 
   const dest = join(projectRoot, destName)
-  cpSync(join(outputDir, file), dest, { force: true })
-  copied.push(dest)
+  try {
+    cpSync(join(outputDir, file), dest, { force: true })
+    copied.push(dest)
+  } catch {
+    if (destName === 'CodeViper.exe') {
+      const alt = join(projectRoot, 'CodeViper-new.exe')
+      cpSync(join(outputDir, file), alt, { force: true })
+      copied.push(alt)
+      console.warn('CodeViper.exe занят — сохранено как CodeViper-new.exe')
+    } else {
+      throw
+    }
+  }
 }
 
 if (!copied.length) {

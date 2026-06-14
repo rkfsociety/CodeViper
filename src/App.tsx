@@ -5,6 +5,7 @@ import { ChatPanel } from './components/ChatPanel'
 import { TerminalPanel } from './components/TerminalPanel'
 import { ModelPanel } from './components/ModelPanel'
 import { MemoryPanel } from './components/MemoryPanel'
+import { RebuildPanel } from './components/RebuildPanel'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -164,6 +165,8 @@ export default function App() {
               }
               refreshKey={memoryRefreshKey}
             />
+
+            <RebuildPanel />
           </div>
 
           {!ollamaOnline && (

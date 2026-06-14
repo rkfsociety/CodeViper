@@ -3,6 +3,7 @@ import { join } from 'path'
 import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
+import { getRebuildStatus, runRebuild } from './rebuild'
 import type { AgentSettings, AgentStreamEvent, ChatMessage } from '../../src/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -85,6 +86,14 @@ ipcMain.handle('list-memories', async (_e, projectPath: string) => listMemories(
 
 ipcMain.handle('delete-memory', async (_e, projectPath: string, id: string) =>
   deleteMemory(projectPath, id)
+)
+
+ipcMain.handle('get-rebuild-status', async () => getRebuildStatus())
+
+ipcMain.handle('rebuild-app', async () =>
+  runRebuild((event) => {
+    mainWindow?.webContents.send('rebuild-progress', event)
+  })
 )
 
 ipcMain.handle(

@@ -100,6 +100,27 @@ export interface TerminalResult {
   exitCode: number | null
 }
 
+export interface RebuildStatus {
+  available: boolean
+  root: string | null
+  reason?: string
+}
+
+export interface RebuildResult {
+  ok: boolean
+  message: string
+  files?: string[]
+}
+
+export interface RebuildProgressEvent {
+  type: 'start' | 'log' | 'done'
+  line?: string
+  root?: string
+  ok?: boolean
+  message?: string
+  files?: string[]
+}
+
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   listDirectory: (dirPath: string) => Promise<FileNode[]>
@@ -118,6 +139,9 @@ export interface CodeViperAPI {
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>
   deleteMemory: (projectPath: string, id: string) => Promise<boolean>
+  getRebuildStatus: () => Promise<RebuildStatus>
+  rebuildApp: () => Promise<RebuildResult>
+  onRebuildProgress: (callback: (event: RebuildProgressEvent) => void) => () => void
 }
 
 declare global {
