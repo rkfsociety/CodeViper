@@ -12,7 +12,9 @@ export const AGENT_TOOL_NAMES = [
   'update_skill',
   'delete_skill',
   'read_skill_data',
-  'write_skill_data'
+  'write_skill_data',
+  'write_codeviper_file',
+  'run_codeviper_command'
 ] as const
 
 const TOOL_NAME_SET = new Set<string>(AGENT_TOOL_NAMES)

@@ -6,7 +6,9 @@ export const MUTATING_TOOLS = new Set([
   'create_skill',
   'update_skill',
   'delete_skill',
-  'write_skill_data'
+  'write_skill_data',
+  'write_codeviper_file',
+  'run_codeviper_command'
 ])
 
 const MUTATION_TASK_PATTERNS: RegExp[] = [

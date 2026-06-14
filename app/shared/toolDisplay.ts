@@ -12,7 +12,11 @@ export const TOOL_LABELS: Record<string, string> = {
   update_skill: 'Обновляю навык',
   delete_skill: 'Удаляю навык',
   read_skill_data: 'Читаю данные навыка',
-  write_skill_data: 'Сохраняю данные навыка'
+  write_skill_data: 'Сохраняю данные навыка',
+  list_codeviper_directory: 'Смотрю исходники CodeViper',
+  read_codeviper_file: 'Читаю код CodeViper',
+  write_codeviper_file: 'Правлю код CodeViper',
+  run_codeviper_command: 'Команда в CodeViper'
 }
 
 export function toolLabel(name: string | undefined): string {
@@ -44,11 +48,13 @@ export function compactToolChatLine(
   const body = output ?? ''
 
   switch (name) {
-    case 'list_directory': {
+    case 'list_directory':
+    case 'list_codeviper_directory': {
       const count = countTreeLines(body)
       return count > 0 ? `✓ ${label} — ${count} элементов` : `✓ ${label} — пусто`
     }
-    case 'read_file': {
+    case 'read_file':
+    case 'read_codeviper_file': {
       const lines = body ? body.split('\n').length : 0
       return `✓ ${label} — ${lines} строк`
     }
@@ -58,6 +64,12 @@ export function compactToolChatLine(
       const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
       return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
     }
+    case 'run_codeviper_command': {
+      const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
+      return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
+    }
+    case 'write_codeviper_file':
+      return `✓ ${firstLine(body) || label}`
     case 'remember':
     case 'search_memory':
     case 'forget':

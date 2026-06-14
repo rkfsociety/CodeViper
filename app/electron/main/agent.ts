@@ -13,6 +13,13 @@ import {
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
+import {
+  buildSelfEditContext,
+  getCodeViperSourceRoot,
+  readCodeViperFile,
+  runCodeViperCommand,
+  writeCodeViperFile
+} from './codeviperSource'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import { readNdjsonLines } from './ndjson'
 import {
@@ -76,24 +83,27 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 
 КРИТИЧНО — честность о действиях:
 - Запрещено утверждать, что файл/skill/правка/команда выполнены, если ты НЕ вызвал инструмент и не получил успешный ответ.
-- write_file / create_skill / run_command / remember — только через tool calling, не текстом.
+- write_file / write_codeviper_file / create_skill / run_command / run_codeviper_command / remember — только через tool calling, не текстом.
 - Если инструмент ещё не вызывал — скажи, что действие не выполнено, и вызови инструмент.
 
-## Самообучение и навыки (skills)
-Ты можешь улучшать себя **только по запросу пользователя** или когда это явно нужно для задачи:
-- **remember** / **search_memory** / **forget** — короткие знания и уроки
-- **create_skill** / **update_skill** / **delete_skill** — постоянные навыки с пошаговыми инструкциями (todo-лист, чеклисты, форматы ответов и т.д.)
-- **read_skill** — полная инструкция навыка перед применением
-- **read_skill_data** / **write_skill_data** — JSON-состояние навыка (списки задач, прогресс)
-- **list_skills** — что уже умеешь
+## Самообучение, навыки и саморедактирование
 
-Если пользователь просит «улучши себя», «сделай skill для todo», «научись вести список задач»:
-1. list_skills — не дублируй существующие
-2. create_skill с понятными instructions (когда применять, шаги, формат данных)
-3. При работе по навыку — read_skill, затем read_skill_data / write_skill_data
+### Навыки (skills) — инструкции без правки кода
+- **create_skill** / **update_skill** — поведение агента; для «улучши себя» часто достаточно skill с scope **global**
+- **read_skill** / **read_skill_data** / **write_skill_data** — работа по навыку
 
-Обновляй .codeviper/rules.md через write_file для правил проекта.
-После успешной задачи можно сохранить 1–2 урока через remember (если самообучение уместно).`
+### Саморедактирование — правка исходников CodeViper
+Ты можешь менять **свой** код через read_codeviper_file / write_codeviper_file / run_codeviper_command (см. раздел «Исходники CodeViper» в промпте).
+- Перед правкой: read_codeviper_file, минимальный diff
+- После правки: run_codeviper_command → \`npm run typecheck\` и \`npm test\`
+- Изменения electron/main/* требуют **перезапуска** приложения
+
+Если пользователь просит «улучши себя», «сделай skill», «научись …»:
+1. list_skills — не дублируй
+2. Для поведения: **create_skill** (global). Для логики/инструментов: правка кода через write_codeviper_file
+3. Не утверждай об успехе без вызова инструментов
+
+Обновляй .codeviper/rules.md через write_file для правил **рабочего проекта** в чате.`
 
 const MAX_PROJECT_TREE_CHARS = 6000
 const MAX_HISTORY_CHARS = 28_000
@@ -132,7 +142,7 @@ function buildSystemPrompt(
   memoryContext: string,
   projectTreeText: string
 ): string {
-  const parts = [BASE_SYSTEM_PROMPT]
+  const parts = [BASE_SYSTEM_PROMPT, buildSelfEditContext()]
 
   if (projectPath.trim()) {
     parts.push(buildProjectContext(projectPath, projectTreeText))
@@ -356,7 +366,7 @@ const TOOLS = [
             type: 'string',
             description: 'Слова-триггеры через запятую (todo, задачи, план...)'
           },
-          scope: { type: 'string', description: 'global | project' },
+          scope: { type: 'string', description: 'global — для всего агента; project — для проекта в чате' },
           id: { type: 'string', description: 'Необязательный id (slug)' }
         },
         required: ['name', 'description', 'instructions']
@@ -421,6 +431,57 @@ const TOOLS = [
           content: { type: 'string', description: 'JSON-строка' }
         },
         required: ['skill_id', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_codeviper_directory',
+      description: 'Дерево исходников CodeViper (своё приложение). Для саморедактирования.',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'read_codeviper_file',
+      description: 'Прочитать файл исходников CodeViper по абсолютному пути',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' }
+        },
+        required: ['path']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'write_codeviper_file',
+      description: 'Записать файл исходников CodeViper (саморедактирование кода агента)',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          content: { type: 'string', description: 'Новое содержимое файла' }
+        },
+        required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'run_codeviper_command',
+      description: 'Shell-команда в корне исходников CodeViper (npm test, typecheck, build)',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'Команда для терминала' }
+        },
+        required: ['command']
       }
     }
   }
@@ -767,6 +828,28 @@ export class AgentRunner {
       case 'write_skill_data': {
         const ok = await writeSkillData(projectPath, args.skill_id, args.content)
         return ok ? `Данные навыка записаны: ${args.skill_id}` : `Навык не найден: ${args.skill_id}`
+      }
+      case 'list_codeviper_directory': {
+        const root = getCodeViperSourceRoot()
+        const tree = await buildFileTree(root)
+        return formatFileTree(tree) || '(пусто)'
+      }
+      case 'read_codeviper_file': {
+        return readCodeViperFile(args.path)
+      }
+      case 'write_codeviper_file': {
+        await writeCodeViperFile(args.path, args.content)
+        return `Файл CodeViper записан: ${args.path}`
+      }
+      case 'run_codeviper_command': {
+        const result = await runCodeViperCommand(args.command)
+        return [
+          `exit: ${result.exitCode}`,
+          result.stdout ? `stdout:\n${result.stdout}` : '',
+          result.stderr ? `stderr:\n${result.stderr}` : ''
+        ]
+          .filter(Boolean)
+          .join('\n')
       }
       default:
         return `Неизвестный инструмент: ${name}`
