@@ -1,4 +1,8 @@
-# 🐍 CodeViper
+<p align="center">
+  <img src="app/resources/icon.png" alt="CodeViper" width="128" />
+</p>
+
+# CodeViper
 
 **CodeViper** — локальный AI-агент с GUI для программирования. Работает полностью на вашем компьютере через [Ollama](https://ollama.com). Никаких подписок, API-ключей и облачных лимитов.
 
