@@ -88,6 +88,30 @@ function buildSystemPrompt(memoryContext: string): string {
   return `${BASE_SYSTEM_PROMPT}\n\n# Память и правила\n${memoryContext}`
 }
 
+function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
+  switch (message.role) {
+    case 'user':
+      return { role: 'user', content: message.content }
+    case 'assistant':
+      return { role: 'assistant', content: message.content }
+    case 'tool': {
+      // UI хранит ▶ (старт) и ✓ (результат); в Ollama нужны только итоги инструментов
+      if (message.content.startsWith('▶ ')) return null
+
+      const name = message.toolName ?? 'unknown'
+      const output = message.content.startsWith('✓ ')
+        ? message.content.slice(message.content.indexOf('\n') + 1)
+        : message.content
+
+      return { role: 'tool', content: `Инструмент ${name}:\n${output}` }
+    }
+    case 'system':
+      return { role: 'system', content: message.content }
+    default:
+      return null
+  }
+}
+
 const TOOLS = [
   {
     type: 'function',
@@ -201,11 +225,8 @@ export class AgentRunner {
     const messages: OllamaMessage[] = [
       { role: 'system', content: buildSystemPrompt(memoryContext) },
       ...history
-        .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content
-        })),
+        .map(mapHistoryMessageToOllama)
+        .filter((m): m is OllamaMessage => m !== null),
       { role: 'user', content: userMessage }
     ]
 
