@@ -9,8 +9,52 @@ interface OllamaMessage {
 interface ToolCall {
   function: {
     name: string
-    arguments: Record<string, string>
+    arguments: Record<string, string> | string
   }
+}
+
+interface OllamaChatChunk {
+  message?: {
+    content?: string
+    tool_calls?: ToolCall[]
+  }
+}
+
+async function* readNdjsonLines(
+  body: ReadableStream<Uint8Array>
+): AsyncGenerator<OllamaChatChunk> {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+
+      let newlineIndex = buffer.indexOf('\n')
+      while (newlineIndex >= 0) {
+        const line = buffer.slice(0, newlineIndex).trim()
+        buffer = buffer.slice(newlineIndex + 1)
+        if (line) yield JSON.parse(line) as OllamaChatChunk
+        newlineIndex = buffer.indexOf('\n')
+      }
+    }
+
+    const tail = buffer.trim()
+    if (tail) yield JSON.parse(tail) as OllamaChatChunk
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
+  if (typeof args === 'string') {
+    return JSON.parse(args) as Record<string, string>
+  }
+  return args
 }
 
 const SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент для программирования.
@@ -97,7 +141,6 @@ export class AgentRunner {
       const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
 
       if (assistantText) {
-        this.emit({ type: 'token', content: assistantText })
         messages.push({ role: 'assistant', content: assistantText })
       }
 
@@ -108,7 +151,7 @@ export class AgentRunner {
 
       for (const call of toolCalls) {
         const name = call.function.name
-        const args = call.function.arguments ?? {}
+        const args = parseToolArgs(call.function.arguments ?? {})
         this.emit({
           type: 'tool_start',
           toolName: name,
@@ -150,7 +193,7 @@ export class AgentRunner {
         model: this.settings.model,
         messages,
         tools: TOOLS,
-        stream: false
+        stream: true
       })
     })
 
@@ -159,12 +202,31 @@ export class AgentRunner {
       throw new Error(`Ollama: ${res.status} ${text}`)
     }
 
-    return res.json() as Promise<{
-      message?: {
-        content?: string
-        tool_calls?: ToolCall[]
+    if (!res.body) {
+      throw new Error('Ollama: пустой ответ (нет body)')
+    }
+
+    let content = ''
+    const toolCalls: ToolCall[] = []
+
+    for await (const chunk of readNdjsonLines(res.body)) {
+      const piece = chunk.message?.content
+      if (piece) {
+        content += piece
+        this.emit({ type: 'token', content: piece })
       }
-    }>
+
+      if (chunk.message?.tool_calls?.length) {
+        toolCalls.push(...chunk.message.tool_calls)
+      }
+    }
+
+    return {
+      message: {
+        content: content || undefined,
+        tool_calls: toolCalls.length ? toolCalls : undefined
+      }
+    }
   }
 
   private async executeTool(name: string, args: Record<string, string>): Promise<string> {
