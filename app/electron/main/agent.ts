@@ -6,6 +6,11 @@ import type {
   MemoryCategory
 } from '../../src/types'
 import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../../shared/toolCalls'
+import {
+  MUTATING_TOOLS,
+  needsToolVerification,
+  TOOL_VERIFICATION_NUDGE
+} from '../../shared/actionVerification'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import { readNdjsonLines } from './ndjson'
 import {
@@ -66,6 +71,11 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 Используй инструменты для чтения, записи файлов, просмотра структуры и запуска команд.
 Перед правками сначала прочитай файл. Делай минимальные точечные изменения.
 После выполнения задачи кратко объясни, что сделал.
+
+КРИТИЧНО — честность о действиях:
+- Запрещено утверждать, что файл/skill/правка/команда выполнены, если ты НЕ вызвал инструмент и не получил успешный ответ.
+- write_file / create_skill / run_command / remember — только через tool calling, не текстом.
+- Если инструмент ещё не вызывал — скажи, что действие не выполнено, и вызови инструмент.
 
 ## Самообучение и навыки (skills)
 Ты можешь улучшать себя **только по запросу пользователя** или когда это явно нужно для задачи:
@@ -463,6 +473,9 @@ export class AgentRunner {
     ]
 
     let usedTools = false
+    const mutatingToolsUsed = new Set<string>()
+    let verificationRetries = 0
+    const MAX_VERIFICATION_RETRIES = 2
 
     try {
       for (let step = 0; step < this.settings.maxSteps; step++) {
@@ -487,6 +500,21 @@ export class AgentRunner {
         }
 
         if (!toolCalls.length) {
+          if (
+            needsToolVerification(userMessage, assistantText, mutatingToolsUsed) &&
+            verificationRetries < MAX_VERIFICATION_RETRIES
+          ) {
+            verificationRetries += 1
+            this.emit({ type: 'clear_draft' })
+            this.emit({
+              type: 'error',
+              content:
+                '⚠️ Ответ без вызова инструментов — агент перепроверяет и выполняет задачу заново…'
+            })
+            messages.push({ role: 'user', content: TOOL_VERIFICATION_NUDGE })
+            continue
+          }
+
           if (assistantText) {
             this.emit({ type: 'assistant', content: assistantText })
           }
@@ -515,6 +543,10 @@ export class AgentRunner {
             output = await this.executeTool(name, args)
           } catch (error) {
             output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+          }
+
+          if (MUTATING_TOOLS.has(name)) {
+            mutatingToolsUsed.add(name)
           }
 
           this.emit({

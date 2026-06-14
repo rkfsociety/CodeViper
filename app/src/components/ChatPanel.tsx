@@ -105,6 +105,10 @@ export function ChatPanel({
         setDraft((prev) => prev + (event.content ?? ''))
       }
 
+      if (event.type === 'clear_draft') {
+        setDraft('')
+      }
+
       if (event.type === 'assistant') {
         setDraft('')
         const cleaned = visibleAssistantContent(event.content ?? '')

@@ -130,6 +130,7 @@ export interface AgentStreamPayload {
   type:
     | 'token'
     | 'assistant'
+    | 'clear_draft'
     | 'tool_start'
     | 'tool_end'
     | 'done'
