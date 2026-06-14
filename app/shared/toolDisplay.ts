@@ -1,5 +1,7 @@
 export const TOOL_LABELS: Record<string, string> = {
   list_directory: 'Смотрю структуру проекта',
+  grep_files: 'Ищу текст в файлах',
+  find_files: 'Ищу файлы по имени',
   read_file: 'Читаю файл',
   write_file: 'Записываю файл',
   create_file: 'Создаю файл',
@@ -17,6 +19,8 @@ export const TOOL_LABELS: Record<string, string> = {
   read_skill_data: 'Читаю данные навыка',
   write_skill_data: 'Сохраняю данные навыка',
   list_codeviper_directory: 'Смотрю исходники CodeViper',
+  grep_codeviper_files: 'Ищу в коде CodeViper',
+  find_codeviper_files: 'Ищу файлы CodeViper',
   read_codeviper_file: 'Читаю код CodeViper',
   write_codeviper_file: 'Правлю код CodeViper',
   create_codeviper_file: 'Создаю файл CodeViper',
@@ -60,7 +64,11 @@ export function compactToolChatLine(
 
   switch (name) {
     case 'list_directory':
-    case 'list_codeviper_directory': {
+    case 'list_codeviper_directory':
+    case 'grep_files':
+    case 'find_files':
+    case 'grep_codeviper_files':
+    case 'find_codeviper_files': {
       const count = countTreeLines(body)
       return count > 0 ? `✓ ${label} — ${count} элементов` : `✓ ${label} — пусто`
     }

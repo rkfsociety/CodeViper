@@ -20,6 +20,7 @@
 - [x] **Enter** — отправка, **Shift+Enter** — новая строка; очередь сообщений пока модель отвечает
 - [x] **Инструменты файлов:** `create_file`, `edit_file`, `append_file` (+ аналоги для CodeViper)
 - [x] **Автономное самоулучшение:** план `set_self_improvement_plan` + цикл до выполнения всех пунктов
+- [x] **Поиск в коде:** `grep_files`, `find_files` (+ CodeViper); **8 встроенных skills** (files, codebase, terminal, agent-core…)
 - [x] **История:** поиск, drag-and-drop чатов в папки, модалки вместо `prompt`/`confirm`
 - [x] Проект выбирается **внутри чата**, у каждого чата свой проект
 - [x] Стриминг ответов в реальном времени
@@ -140,6 +141,12 @@ Ollama должна быть установлена и запущена отде
 | **Навыки (skills)** | `%APPDATA%/CodeViper/ViperSkills.md` (global, по умолчанию) и `{проект}/.codeviper/ViperSkills.md` (scope: project) |
 | **Viper Memory** (встроенный skill) | `viper-memory` — remember / search_memory / forget → **ViperMemory.md** |
 | **Viper Model Training** (skill) | `viper-model-training` — адаптация Ollama через Modelfile + few-shot |
+| **Viper Agent Core** | `viper-agent-core` — полный workflow и список инструментов |
+| **Viper Files** | `viper-files` — read/create/edit/append/write файлов |
+| **Viper Codebase** | `viper-codebase` — list_directory, grep_files, find_files |
+| **Viper Terminal** | `viper-terminal` — run_command |
+| **Viper Self-Edit** | `viper-self-edit` — правка исходников CodeViper |
+| **Viper Self-Improvement** | `viper-self-improvement` — план автономного самоулучшения |
 | **Данные навыков** (todo, состояние) | `%APPDATA%/CodeViper/skill-data/` и `{проект}/.codeviper/skill-data/` |
 
 **Как это работает:**
@@ -172,6 +179,7 @@ Ollama должна быть установлена и запущена отде
 | Читать исходники | `read_codeviper_file` |
 | Тесты после правок | `run_codeviper_command` → `npm run typecheck`, `npm test` |
 | Структура приложения | `list_codeviper_directory` |
+| Поиск в коде | `grep_codeviper_files`, `find_codeviper_files` |
 
 Примеры:
 ```
@@ -235,7 +243,7 @@ CodeViper/
 
 Агент использует цикл **ReAct**:
 1. Отправляет запрос в Ollama с инструментами, памятью, **путём проекта**, **структурой файлов** и **полной историей чата**
-2. Модель вызывает `read_file`, `create_file`, `edit_file`, `write_file`, `append_file`, `list_directory`, `run_command`, `remember`, `search_memory`
+2. Модель вызывает `list_directory`, `grep_files`, `find_files`, `read_file`, `create_file`, `edit_file`, `write_file`, `run_command`, …
 
 ### Просмотр контекста (как в Cursor)
 

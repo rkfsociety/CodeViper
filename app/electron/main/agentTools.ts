@@ -3,8 +3,44 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'list_directory',
-      description: 'Показать дерево файлов проекта (до 3 уровней)',
-      parameters: { type: 'object', properties: {} }
+      description: 'Показать дерево файлов проекта или подпапки',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь к папке (необязательно — корень проекта)' },
+          max_depth: { type: 'string', description: 'Глубина дерева 1–5 (по умолчанию 3)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'grep_files',
+      description: 'Поиск текста в файлах проекта (как ripgrep). Строка или /regex/flags',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Текст или /regex/i для поиска' },
+          path: { type: 'string', description: 'Ограничить подпапкой (абсолютный путь, необязательно)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_files',
+      description: 'Найти файлы по имени или шаблону (*.tsx, *test*, agent.ts)',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'Имя или glob-шаблон' },
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' }
+        },
+        required: ['pattern']
+      }
     }
   },
   {
@@ -307,7 +343,43 @@ export const AGENT_TOOLS = [
     function: {
       name: 'list_codeviper_directory',
       description: 'Дерево исходников CodeViper (своё приложение). Для саморедактирования.',
-      parameters: { type: 'object', properties: {} }
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Подпапка в исходниках (необязательно)' },
+          max_depth: { type: 'string', description: 'Глубина 1–5 (по умолчанию 3)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'grep_codeviper_files',
+      description: 'Поиск текста в исходниках CodeViper',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Текст или /regex/i' },
+          path: { type: 'string', description: 'Подпапка в исходниках (необязательно)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_codeviper_files',
+      description: 'Найти файлы в исходниках CodeViper по шаблону имени',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'Имя или glob (*.ts, agent.ts)' },
+          path: { type: 'string', description: 'Подпапка (необязательно)' }
+        },
+        required: ['pattern']
+      }
     }
   },
   {

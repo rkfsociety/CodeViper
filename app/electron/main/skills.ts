@@ -3,6 +3,7 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
+import { BUILTIN_SKILL_IDS } from '../../shared/builtinSkills'
 import type { AgentSkill, MemoryScope, SkillsStore } from '../../src/types'
 
 export const SKILLS_FILENAME = 'ViperSkills.md'
@@ -10,7 +11,7 @@ const LEGACY_SKILLS_FILENAME = 'skills.json'
 
 const MAX_GLOBAL_SKILLS = 30
 const MAX_PROJECT_SKILLS = 20
-const MAX_INJECT_SKILLS = 6
+const MAX_INJECT_SKILLS = 12
 
 function globalSkillsPath(): string {
   return join(app.getPath('userData'), SKILLS_FILENAME)
@@ -383,11 +384,22 @@ export async function buildSkillsContext(projectPath: string, taskHint = ''): Pr
   const all = await listSkills(projectPath)
   if (!all.length) return ''
 
-  const ranked = [...all]
+  const builtinSet = new Set<string>(BUILTIN_SKILL_IDS)
+  const builtins = all.filter((skill) => builtinSet.has(skill.id))
+  const others = all.filter((skill) => !builtinSet.has(skill.id))
+
+  const rankedOthers = [...others]
     .map((skill) => ({ skill, score: scoreSkill(skill, taskHint) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_INJECT_SKILLS)
-    .map(({ skill }) => skill)
+
+  const seen = new Set<string>()
+  const ranked: AgentSkill[] = []
+  for (const skill of [...builtins, ...rankedOthers.map(({ skill }) => skill)]) {
+    if (seen.has(skill.id)) continue
+    seen.add(skill.id)
+    ranked.push(skill)
+    if (ranked.length >= MAX_INJECT_SKILLS) break
+  }
 
   for (const skill of ranked) {
     skill.useCount += 1

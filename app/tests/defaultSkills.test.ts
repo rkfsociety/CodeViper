@@ -8,8 +8,16 @@ vi.mock('electron', () => ({
   app: { getPath: () => process.cwd() + '/.vitest-tmp/default-skills' }
 }))
 
-import { ensureDefaultSkills, VIPER_MEMORY_SKILL_ID, VIPER_MODEL_TRAINING_SKILL_ID } from '../electron/main/defaultSkills'
-import { getSkill, listSkills, SKILLS_FILENAME } from '../electron/main/skills'
+import {
+  ensureDefaultSkills,
+  VIPER_MEMORY_SKILL_ID,
+  VIPER_MODEL_TRAINING_SKILL_ID,
+  VIPER_FILES_SKILL_ID,
+  VIPER_CODEBASE_SKILL_ID,
+  VIPER_AGENT_CORE_SKILL_ID
+} from '../electron/main/defaultSkills'
+import { getSkill, listSkills, SKILLS_FILENAME, updateSkill } from '../electron/main/skills'
+import { BUILTIN_SKILL_IDS } from '../shared/builtinSkills'
 
 beforeEach(() => {
   rmSync(USER_DATA, { recursive: true, force: true })
@@ -20,18 +28,46 @@ afterAll(() => {
 })
 
 describe('ensureDefaultSkills', () => {
-  it('создаёт навык viper-memory при первом запуске', async () => {
+  it('создаёт все встроенные навыки', async () => {
+    await ensureDefaultSkills()
+    const skills = await listSkills('')
+    const builtin = skills.filter((s) =>
+      BUILTIN_SKILL_IDS.includes(s.id as (typeof BUILTIN_SKILL_IDS)[number])
+    )
+    expect(builtin).toHaveLength(BUILTIN_SKILL_IDS.length)
+  })
+
+  it('создаёт viper-files с инструкциями по read_file', async () => {
+    await ensureDefaultSkills()
+    const skill = await getSkill('', VIPER_FILES_SKILL_ID, 'global')
+    expect(skill?.instructions).toContain('read_file')
+    expect(skill?.instructions).toContain('edit_file')
+  })
+
+  it('создаёт viper-codebase с grep и find', async () => {
+    await ensureDefaultSkills()
+    const skill = await getSkill('', VIPER_CODEBASE_SKILL_ID, 'global')
+    expect(skill?.instructions).toContain('grep_files')
+    expect(skill?.instructions).toContain('find_files')
+  })
+
+  it('создаёт viper-agent-core со списком инструментов', async () => {
+    await ensureDefaultSkills()
+    const skill = await getSkill('', VIPER_AGENT_CORE_SKILL_ID, 'global')
+    expect(skill?.instructions).toContain('list_directory')
+    expect(skill?.instructions).toContain('grep_codeviper_files')
+  })
+
+  it('создаёт viper-memory при первом запуске', async () => {
     await ensureDefaultSkills()
     const skill = await getSkill('', VIPER_MEMORY_SKILL_ID, 'global')
     expect(skill).not.toBeNull()
-    expect(skill?.name).toBe('Viper Memory')
     expect(skill?.instructions).toContain('ViperMemory.md')
   })
 
-  it('создаёт навык viper-model-training при первом запуске', async () => {
+  it('создаёт viper-model-training при первом запуске', async () => {
     await ensureDefaultSkills()
     const skill = await getSkill('', VIPER_MODEL_TRAINING_SKILL_ID, 'global')
-    expect(skill).not.toBeNull()
     expect(skill?.instructions).toContain('create_ollama_model')
   })
 
@@ -39,17 +75,24 @@ describe('ensureDefaultSkills', () => {
     await ensureDefaultSkills()
     await ensureDefaultSkills()
     const skills = await listSkills('')
-    const memorySkills = skills.filter(
-      (s) => s.id === VIPER_MEMORY_SKILL_ID || s.id === VIPER_MODEL_TRAINING_SKILL_ID
-    )
-    expect(memorySkills).toHaveLength(2)
+    expect(
+      skills.filter((s) => BUILTIN_SKILL_IDS.includes(s.id as (typeof BUILTIN_SKILL_IDS)[number]))
+    ).toHaveLength(BUILTIN_SKILL_IDS.length)
   })
 
-  it('сохраняет skills.json в userData', async () => {
+  it('обновляет инструкции встроенных навыков при повторном вызове', async () => {
     await ensureDefaultSkills()
-    const path = join(USER_DATA, 'ViperSkills.md')
+    await updateSkill('', VIPER_FILES_SKILL_ID, { instructions: 'устарело' })
+    await ensureDefaultSkills()
+    const skill = await getSkill('', VIPER_FILES_SKILL_ID, 'global')
+    expect(skill?.instructions).toContain('read_file')
+  })
+
+  it('сохраняет ViperSkills.md в userData', async () => {
+    await ensureDefaultSkills()
+    const path = join(USER_DATA, SKILLS_FILENAME)
     expect(existsSync(path)).toBe(true)
     const raw = readFileSync(path, 'utf-8')
-    expect(raw).toContain(VIPER_MEMORY_SKILL_ID)
+    expect(raw).toContain(VIPER_FILES_SKILL_ID)
   })
 })

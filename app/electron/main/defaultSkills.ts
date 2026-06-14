@@ -1,7 +1,248 @@
-import { getSkill, createSkill } from './skills'
+import { BUILTIN_SKILLS_VERSION } from '../../shared/builtinSkills'
+import { createSkill, getSkill, updateSkill } from './skills'
 
+export const VIPER_AGENT_CORE_SKILL_ID = 'viper-agent-core'
+export const VIPER_FILES_SKILL_ID = 'viper-files'
+export const VIPER_CODEBASE_SKILL_ID = 'viper-codebase'
+export const VIPER_TERMINAL_SKILL_ID = 'viper-terminal'
+export const VIPER_SELF_EDIT_SKILL_ID = 'viper-self-edit'
+export const VIPER_SELF_IMPROVEMENT_SKILL_ID = 'viper-self-improvement'
 export const VIPER_MEMORY_SKILL_ID = 'viper-memory'
 export const VIPER_MODEL_TRAINING_SKILL_ID = 'viper-model-training'
+
+const BUILTIN_VERSION_TAG = `<!-- viper-builtin-v${BUILTIN_SKILLS_VERSION} -->`
+
+const VIPER_AGENT_CORE_SKILL = {
+  id: VIPER_AGENT_CORE_SKILL_ID,
+  name: 'Viper Agent Core',
+  description: 'Полный набор инструментов и workflow агента (как Cursor Agent)',
+  triggers: [
+    'агент',
+    'задача',
+    'сделай',
+    'реализуй',
+    'исправь',
+    'помоги',
+    'codeviper',
+    'cursor'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Agent Core
+
+${BUILTIN_VERSION_TAG}
+
+## Роль
+Ты локальный агент-программист. **Действуй через tool calling**, не давай пользователю планы «сделайте сами».
+
+## Workflow (как Cursor)
+1. **Понять задачу** → \`search_memory\` (если релевантно)
+2. **Изучить** → \`list_directory\`, \`find_files\`, \`grep_files\`, \`read_file\`
+3. **Изменить** → \`edit_file\` (точечно) или \`create_file\` / \`write_file\`
+4. **Проверить** → \`run_command\` (test, typecheck, build)
+5. **Запомнить** → \`remember\` (урок, паттерн проекта)
+
+## Все инструменты проекта
+| Категория | Инструменты |
+|---|---|
+| Обзор | \`list_directory\`, \`find_files\`, \`grep_files\` |
+| Чтение/запись | \`read_file\`, \`create_file\`, \`edit_file\`, \`append_file\`, \`write_file\` |
+| Терминал | \`run_command\` |
+| Память | \`remember\`, \`search_memory\`, \`forget\` |
+| Навыки | \`list_skills\`, \`read_skill\`, \`create_skill\`, \`update_skill\`, \`read_skill_data\`, \`write_skill_data\` |
+| CodeViper (свой код) | \`list_codeviper_directory\`, \`grep_codeviper_files\`, \`find_codeviper_files\`, \`read_codeviper_file\`, \`create_codeviper_file\`, \`edit_codeviper_file\`, \`write_codeviper_file\`, \`run_codeviper_command\` |
+| Самоулучшение | \`set_self_improvement_plan\`, \`complete_self_improvement_item\`, \`get_self_improvement_plan\` |
+| Модели Ollama | \`preview_ollama_modelfile\`, \`create_ollama_model\` |
+
+Подробности — навыки \`viper-files\`, \`viper-codebase\`, \`viper-terminal\`, \`viper-self-edit\`. Вызови \`read_skill(id)\` при необходимости.`
+}
+
+const VIPER_FILES_SKILL = {
+  id: VIPER_FILES_SKILL_ID,
+  name: 'Viper Files',
+  description: 'Чтение, создание и редактирование файлов проекта',
+  triggers: [
+    'файл',
+    'прочитай',
+    'read_file',
+    'write_file',
+    'create_file',
+    'edit_file',
+    'запиши',
+    'создай файл',
+    'измени файл',
+    'append'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Files — работа с файлами
+
+${BUILTIN_VERSION_TAG}
+
+## Когда какой инструмент
+| Задача | Инструмент |
+|---|---|
+| Прочитать файл | \`read_file\` (абсолютный path) |
+| **Новый** файл | \`create_file\` (ошибка если уже есть) |
+| **Точечная правка** | \`edit_file\` — old_string → new_string (сначала read_file!) |
+| Дописать в конец | \`append_file\` |
+| Полная перезапись | \`write_file\` |
+
+## Правила edit_file
+1. Всегда \`read_file\` перед правкой
+2. \`old_string\` — **точная** копия из файла (пробелы, переносы)
+3. Если несколько вхождений — больше контекста или \`replace_all: true\`
+4. Минимальный diff — не переписывай весь файл без нужды
+
+## Лимиты
+- Файлы > 500 KB не читаются
+- Только внутри открытого проекта`
+}
+
+const VIPER_CODEBASE_SKILL = {
+  id: VIPER_CODEBASE_SKILL_ID,
+  name: 'Viper Codebase',
+  description: 'Изучение проекта: дерево, поиск файлов и текста (как grep/glob в Cursor)',
+  triggers: [
+    'изучи',
+    'код',
+    'проект',
+    'структура',
+    'найди',
+    'поиск',
+    'grep',
+    'glob',
+    'где находится',
+    'list_directory'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Codebase — изучение кода
+
+${BUILTIN_VERSION_TAG}
+
+## Workflow «изучи код»
+1. \`list_directory\` — обзор (опционально \`path\`, \`max_depth\`)
+2. \`find_files\` — найти файлы по имени (\`*.tsx\`, \`agent.ts\`, \`*test*\`)
+3. \`grep_files\` — найти текст/символ в коде (строка или \`/regex/i\`)
+4. \`read_file\` — прочитать найденные файлы
+
+## Инструменты
+| Инструмент | Назначение |
+|---|---|
+| \`list_directory\` | Дерево папок (path, max_depth 1–5) |
+| \`find_files\` | Поиск по имени/glob |
+| \`grep_files\` | Поиск текста в содержимом |
+| \`read_file\` | Чтение файла |
+
+## Для исходников CodeViper
+Те же операции: \`list_codeviper_directory\`, \`find_codeviper_files\`, \`grep_codeviper_files\`, \`read_codeviper_file\`
+
+## Правила
+- Не проси пользователя «откройте файл» — читай сам
+- После grep/find всегда \`read_file\` для контекста перед правками`
+}
+
+const VIPER_TERMINAL_SKILL = {
+  id: VIPER_TERMINAL_SKILL_ID,
+  name: 'Viper Terminal',
+  description: 'Запуск команд в терминале проекта (npm test, git, build)',
+  triggers: [
+    'терминал',
+    'run_command',
+    'npm',
+    'test',
+    'typecheck',
+    'build',
+    'git',
+    'запусти',
+    'выполни команду'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Terminal
+
+${BUILTIN_VERSION_TAG}
+
+## Инструмент
+\`run_command\` — shell в **корне открытого проекта**.
+
+Для CodeViper: \`run_codeviper_command\` в корне app/.
+
+## Типичные команды
+- \`npm test\`, \`npm run typecheck\`, \`npm run build\`
+- \`git status\`, \`git diff\`
+- \`npm install <pkg>\`
+
+## Правила
+- Опасные команды блокируются (rm -rf, format, shutdown…)
+- Таймаут 120 с
+- После правок кода — прогон test/typecheck
+- Не утверждай «тесты прошли» без вызова \`run_command\``
+}
+
+const VIPER_SELF_EDIT_SKILL = {
+  id: VIPER_SELF_EDIT_SKILL_ID,
+  name: 'Viper Self-Edit',
+  description: 'Правка исходников самого CodeViper (независимо от проекта в чате)',
+  triggers: [
+    'улучши себя',
+    'саморедакт',
+    'codeviper',
+    'write_codeviper',
+    'read_codeviper',
+    'agent.ts',
+    'свой код'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Self-Edit
+
+${BUILTIN_VERSION_TAG}
+
+## Инструменты (свой код)
+| Действие | Инструмент |
+|---|---|
+| Структура | \`list_codeviper_directory\` |
+| Поиск | \`grep_codeviper_files\`, \`find_codeviper_files\` |
+| Чтение | \`read_codeviper_file\` |
+| Новый файл | \`create_codeviper_file\` |
+| Правка | \`edit_codeviper_file\` |
+| Перезапись | \`write_codeviper_file\` |
+| Дописать | \`append_codeviper_file\` |
+| Команды | \`run_codeviper_command\` |
+
+## Workflow
+1. list + grep/find + read
+2. edit_codeviper_file / create_skill
+3. \`run_codeviper_command\`: npm run typecheck && npm test
+4. electron/main/* → нужен **перезапуск** приложения`
+}
+
+const VIPER_SELF_IMPROVEMENT_SKILL = {
+  id: VIPER_SELF_IMPROVEMENT_SKILL_ID,
+  name: 'Viper Self-Improvement',
+  description: 'Автономное самоулучшение до выполнения всех пунктов плана',
+  triggers: [
+    'самоулучш',
+    'изучи код и начни',
+    'улучшай себя',
+    'self-improve',
+    'self_improvement_plan'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Self-Improvement
+
+${BUILTIN_VERSION_TAG}
+
+## Инструменты плана
+| Инструмент | Назначение |
+|---|---|
+| \`set_self_improvement_plan\` | JSON [{id, title}, …] — 3–8 пунктов |
+| \`complete_self_improvement_item\` | Отметить пункт после реальной правки |
+| \`get_self_improvement_plan\` | Статус done/pending |
+
+## Workflow
+1. Изучить код (viper-codebase / viper-self-edit)
+2. \`set_self_improvement_plan\`
+3. Каждый пункт: инструменты → \`complete_self_improvement_item\`
+4. Не останавливаться, пока все пункты done`
+}
 
 const VIPER_MEMORY_SKILL = {
   id: VIPER_MEMORY_SKILL_ID,
@@ -19,23 +260,25 @@ const VIPER_MEMORY_SKILL = {
   scope: 'global' as const,
   instructions: `# Viper Memory
 
+${BUILTIN_VERSION_TAG}
+
 ## Назначение
 Управление долгосрочной памятью CodeViper. Память хранится в файле **ViperMemory.md**.
 
 ## Где лежит ViperMemory.md
-- **Глобально:** \`%APPDATA%/CodeViper/ViperMemory.md\` — предпочтения пользователя, общие паттерны
-- **Проект:** \`{проект}/.codeviper/ViperMemory.md\` — знания о конкретном репозитории
+- **Глобально:** \`%APPDATA%/CodeViper/ViperMemory.md\`
+- **Проект:** \`{проект}/.codeviper/ViperMemory.md\`
 
 ## Инструменты
 | Инструмент | Когда |
 |---|---|
 | \`remember\` | Сохранить знание (content, category, tags, scope) |
 | \`search_memory\` | Найти записи по ключевым словам перед задачей |
-| \`forget\` | Удалить устаревшую запись по id |
+| \`forget\` | Удалить устаревую запись по id |
 
 ## Правила
 1. Перед сложной задачей — \`search_memory\`
-2. После успешного решения — \`remember\` (кратко, одна мысль)
+2. После успешного решения — \`remember\`
 3. Не правь ViperMemory.md через \`write_file\` — только \`remember\``
 }
 
@@ -55,48 +298,50 @@ const VIPER_MODEL_TRAINING_SKILL = {
   scope: 'global' as const,
   instructions: `# Viper Model Training
 
+${BUILTIN_VERSION_TAG}
+
 ## Что это
-CodeViper работает с **Ollama**. «Обучение» здесь — создание **производной модели** через Ollama Modelfile:
-- базовая модель (\`FROM\`)
-- опциональный \`SYSTEM\`
-- few-shot пары \`MESSAGE user\` / \`MESSAGE assistant\` из ваших данных
-
-Это **не** полный GPU fine-tuning. Для классического fine-tuning используйте внешние инструменты и \`ollama import\`.
-
-## Формат данных (\`data_path\`)
-JSON-массив или JSONL (по строке):
-\`\`\`json
-{"user": "вопрос или задача", "assistant": "ожидаемый ответ"}
-\`\`\`
-Алиасы полей: \`prompt/response\`, \`input/output\`, \`question/answer\`.
-
-Рекомендуемый путь в проекте: \`.codeviper/training/examples.json\`
+Создание **производной модели** Ollama через Modelfile + few-shot. Не GPU fine-tuning.
 
 ## Workflow
-1. \`read_file\` — проверить/создать файл с примерами (\`write_file\`)
-2. \`preview_ollama_modelfile\` — проверить Modelfile до создания
-3. \`create_ollama_model\` — создать модель в Ollama (\`model_name\`, \`base_model\`, \`data_path\`)
-4. Сообщить пользователю имя модели; предложить выбрать её в настройках CodeViper
+1. \`read_file\` / \`write_file\` — файл примеров
+2. \`preview_ollama_modelfile\`
+3. \`create_ollama_model\`
 
-## Инструменты
-| Инструмент | Назначение |
-|---|---|
-| \`preview_ollama_modelfile\` | Сборка Modelfile без создания |
-| \`create_ollama_model\` | Создание модели через Ollama API |
+## Формат данных
+\`\`\`json
+{"user": "задача", "assistant": "ответ"}
+\`\`\`
 
 ## Правила
-- Не утверждай «модель обучена», пока \`create_ollama_model\` не вернул успех
-- Сначала \`preview_ollama_modelfile\`, если данные новые или большие
-- \`base_model\` должна быть уже скачана в Ollama (настройки → модели)
-- До 48 примеров попадут в Modelfile`
+- Не утверждай «модель обучена» без успеха \`create_ollama_model\`
+- До 48 примеров в Modelfile`
 }
 
-const DEFAULT_SKILLS = [VIPER_MEMORY_SKILL, VIPER_MODEL_TRAINING_SKILL]
+const DEFAULT_SKILLS = [
+  VIPER_AGENT_CORE_SKILL,
+  VIPER_FILES_SKILL,
+  VIPER_CODEBASE_SKILL,
+  VIPER_TERMINAL_SKILL,
+  VIPER_SELF_EDIT_SKILL,
+  VIPER_SELF_IMPROVEMENT_SKILL,
+  VIPER_MEMORY_SKILL,
+  VIPER_MODEL_TRAINING_SKILL
+]
 
 export async function ensureDefaultSkills(projectPath = ''): Promise<void> {
   for (const skill of DEFAULT_SKILLS) {
     const existing = await getSkill(projectPath, skill.id, 'global')
-    if (existing) continue
-    await createSkill(projectPath, skill)
+    if (!existing) {
+      await createSkill(projectPath, skill)
+      continue
+    }
+
+    await updateSkill(projectPath, skill.id, {
+      name: skill.name,
+      description: skill.description,
+      instructions: skill.instructions,
+      triggers: skill.triggers
+    })
   }
 }

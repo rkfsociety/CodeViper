@@ -1,5 +1,7 @@
 export const AGENT_TOOL_NAMES = [
   'list_directory',
+  'grep_files',
+  'find_files',
   'read_file',
   'write_file',
   'create_file',
@@ -19,6 +21,10 @@ export const AGENT_TOOL_NAMES = [
   'set_self_improvement_plan',
   'complete_self_improvement_item',
   'get_self_improvement_plan',
+  'grep_codeviper_files',
+  'find_codeviper_files',
+  'list_codeviper_directory',
+  'read_codeviper_file',
   'write_codeviper_file',
   'create_codeviper_file',
   'edit_codeviper_file',

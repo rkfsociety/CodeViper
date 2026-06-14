@@ -1,0 +1,14 @@
+export const BUILTIN_SKILL_IDS = [
+  'viper-agent-core',
+  'viper-files',
+  'viper-codebase',
+  'viper-terminal',
+  'viper-self-edit',
+  'viper-self-improvement',
+  'viper-memory',
+  'viper-model-training'
+] as const
+
+export type BuiltinSkillId = (typeof BUILTIN_SKILL_IDS)[number]
+
+export const BUILTIN_SKILLS_VERSION = 1

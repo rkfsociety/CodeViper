@@ -73,8 +73,8 @@ export function isInsideProject(projectPath: string, targetPath: string): boolea
   return target === root || target.startsWith(root + sep)
 }
 
-export async function buildFileTree(dirPath: string, depth = 0): Promise<FileNode[]> {
-  if (depth > 3) return []
+export async function buildFileTree(dirPath: string, depth = 0, maxDepth = 3): Promise<FileNode[]> {
+  if (depth > maxDepth) return []
 
   const entries = await readdir(dirPath, { withFileTypes: true })
   const nodes: FileNode[] = []
@@ -90,7 +90,7 @@ export async function buildFileTree(dirPath: string, depth = 0): Promise<FileNod
     }
 
     if (entry.isDirectory()) {
-      node.children = await buildFileTree(fullPath, depth + 1)
+      node.children = await buildFileTree(fullPath, depth + 1, maxDepth)
     }
 
     nodes.push(node)

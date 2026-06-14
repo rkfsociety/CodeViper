@@ -43,7 +43,8 @@ import {
   editCodeViperFile,
   appendCodeViperFile,
   runCodeViperCommand,
-  writeCodeViperFile
+  writeCodeViperFile,
+  isAllowedSelfPath
 } from './codeviperSource'
 import { parseToolBool } from '../../shared/fileEdit'
 import {
@@ -53,8 +54,15 @@ import {
   safeEditFile,
   safeAppendFile,
   runCommand,
-  buildFileTree
+  buildFileTree,
+  isInsideProject
 } from './services'
+import {
+  findFilesInTree,
+  formatFindResults,
+  formatGrepResults,
+  grepInTree
+} from './fileSearch'
 import { buildModelfile, parseTrainingData, prepareModelFromTrainingFile } from './ollamaModels'
 import { readNdjsonLines } from './ndjson'
 import {
@@ -97,6 +105,12 @@ export function parseToolArgs(args: Record<string, string> | string): Record<str
     return JSON.parse(args) as Record<string, string>
   }
   return args
+}
+
+function parseTreeDepth(value: string | undefined): number {
+  const depth = Number(value)
+  if (!Number.isFinite(depth)) return 3
+  return Math.min(5, Math.max(1, Math.round(depth)))
 }
 
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
@@ -430,8 +444,28 @@ export class AgentRunner {
 
     switch (name) {
       case 'list_directory': {
-        const tree = await buildFileTree(projectPath)
+        const target = args.path?.trim() || projectPath
+        if (!isInsideProject(projectPath, target)) {
+          throw new Error('Доступ запрещён: папка вне проекта')
+        }
+        const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
         return formatFileTree(tree) || '(пусто)'
+      }
+      case 'grep_files': {
+        const subpath = args.path?.trim()
+        if (subpath && !isInsideProject(projectPath, subpath)) {
+          throw new Error('Доступ запрещён: path вне проекта')
+        }
+        const result = await grepInTree(projectPath, args.query, { subpath })
+        return formatGrepResults(projectPath, args.query, result)
+      }
+      case 'find_files': {
+        const subpath = args.path?.trim()
+        if (subpath && !isInsideProject(projectPath, subpath)) {
+          throw new Error('Доступ запрещён: path вне проекта')
+        }
+        const result = await findFilesInTree(projectPath, args.pattern, { subpath })
+        return formatFindResults(projectPath, args.pattern, result)
       }
       case 'read_file': {
         return safeReadFile(projectPath, args.path)
@@ -566,8 +600,30 @@ export class AgentRunner {
       }
       case 'list_codeviper_directory': {
         const root = getCodeViperSourceRoot()
-        const tree = await buildFileTree(root)
+        const target = args.path?.trim() || root
+        if (!isAllowedSelfPath(root, target)) {
+          throw new Error('Доступ запрещён: путь вне исходников CodeViper')
+        }
+        const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
         return formatFileTree(tree) || '(пусто)'
+      }
+      case 'grep_codeviper_files': {
+        const root = getCodeViperSourceRoot()
+        const subpath = args.path?.trim()
+        if (subpath && !isAllowedSelfPath(root, subpath)) {
+          throw new Error('Доступ запрещён: path вне исходников CodeViper')
+        }
+        const result = await grepInTree(root, args.query, { subpath })
+        return formatGrepResults(root, args.query, result)
+      }
+      case 'find_codeviper_files': {
+        const root = getCodeViperSourceRoot()
+        const subpath = args.path?.trim()
+        if (subpath && !isAllowedSelfPath(root, subpath)) {
+          throw new Error('Доступ запрещён: path вне исходников CodeViper')
+        }
+        const result = await findFilesInTree(root, args.pattern, { subpath })
+        return formatFindResults(root, args.pattern, result)
       }
       case 'read_codeviper_file': {
         return readCodeViperFile(args.path)
