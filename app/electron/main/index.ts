@@ -15,6 +15,7 @@ import {
   setActiveChat,
   updateChat
 } from './chats'
+import { loadSettings, saveSettings } from './settings'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -25,6 +26,7 @@ import type {
 
 let mainWindow: BrowserWindow | null = null
 let agentRunState: { chatId: string } | null = null
+let activeAgentAbort: AbortController | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -144,6 +146,16 @@ ipcMain.handle('move-chat-to-folder', async (_e, chatId: string, folderId: strin
 
 ipcMain.handle('get-agent-run-state', async () => agentRunState)
 
+ipcMain.handle('stop-agent', async () => {
+  if (!activeAgentAbort) return false
+  activeAgentAbort.abort()
+  return true
+})
+
+ipcMain.handle('load-settings', async () => loadSettings())
+
+ipcMain.handle('save-settings', async (_e, settings: AgentSettings) => saveSettings(settings))
+
 ipcMain.handle(
   'run-agent',
   async (
@@ -158,17 +170,25 @@ ipcMain.handle(
     }
 
     agentRunState = { chatId }
-    const runner = new AgentRunner(settings, (event) => stream(chatId, event))
+    activeAgentAbort = new AbortController()
+    const runner = new AgentRunner(
+      settings,
+      (event) => stream(chatId, event),
+      activeAgentAbort.signal
+    )
 
     try {
       await runner.run(history, userMessage)
     } catch (error) {
-      stream(chatId, {
-        type: 'error',
-        content: error instanceof Error ? error.message : String(error)
-      })
-      stream(chatId, { type: 'done' })
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        stream(chatId, {
+          type: 'error',
+          content: error instanceof Error ? error.message : String(error)
+        })
+        stream(chatId, { type: 'done' })
+      }
     } finally {
+      activeAgentAbort = null
       agentRunState = null
     }
   }

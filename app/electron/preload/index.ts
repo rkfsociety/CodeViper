@@ -41,6 +41,12 @@ const codeviper = {
 
   getAgentRunState: () => ipcRenderer.invoke('get-agent-run-state'),
 
+  stopAgent: () => ipcRenderer.invoke('stop-agent'),
+
+  loadSettings: () => ipcRenderer.invoke('load-settings'),
+
+  saveSettings: (settings: AgentSettings) => ipcRenderer.invoke('save-settings', settings),
+
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => {
     const handler = (_: unknown, event: AgentStreamEvent) => callback(event)
     ipcRenderer.on('agent-stream', handler)

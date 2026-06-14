@@ -45,7 +45,8 @@ interface OllamaChatChunk {
 }
 
 async function* readNdjsonLines(
-  body: ReadableStream<Uint8Array>
+  body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal
 ): AsyncGenerator<Record<string, unknown>> {
   const reader = body.getReader()
   const decoder = new TextDecoder()
@@ -53,6 +54,10 @@ async function* readNdjsonLines(
 
   try {
     while (true) {
+      if (signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError')
+      }
+
       const { done, value } = await reader.read()
       if (done) break
 
@@ -72,6 +77,10 @@ async function* readNdjsonLines(
   } finally {
     reader.releaseLock()
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
 }
 
 function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
@@ -106,6 +115,9 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 После успешной задачи можно сохранить 1–2 урока через remember (если самообучение уместно).`
 
 const MAX_PROJECT_TREE_CHARS = 6000
+const MAX_HISTORY_CHARS = 28_000
+const MIN_RECENT_MESSAGES = 8
+const MAX_TOOL_MESSAGE_CHARS = 4_000
 
 function formatFileTree(nodes: FileNode[], prefix = ''): string {
   const lines: string[] = []
@@ -174,9 +186,13 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
       if (message.content.startsWith('▶ ')) return null
 
       const name = message.toolName ?? 'unknown'
-      const output = message.content.startsWith('✓ ')
+      let output = message.content.startsWith('✓ ')
         ? message.content.slice(message.content.indexOf('\n') + 1)
         : message.content
+
+      if (output.length > MAX_TOOL_MESSAGE_CHARS) {
+        output = `${output.slice(0, MAX_TOOL_MESSAGE_CHARS)}\n… (обрезано)`
+      }
 
       return { role: 'tool', content: `Инструмент ${name}:\n${output}` }
     }
@@ -185,6 +201,32 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
     default:
       return null
   }
+}
+
+function estimateMessageChars(message: OllamaMessage): number {
+  return message.content.length + 24
+}
+
+function trimHistoryForContext(history: ChatMessage[]): {
+  messages: OllamaMessage[]
+  truncated: boolean
+} {
+  let mapped = history
+    .map(mapHistoryMessageToOllama)
+    .filter((m): m is OllamaMessage => m !== null)
+
+  let truncated = false
+
+  while (mapped.length > MIN_RECENT_MESSAGES) {
+    const total = mapped.reduce((sum, message) => sum + estimateMessageChars(message), 0)
+    if (total <= MAX_HISTORY_CHARS) break
+
+    const dropCount = Math.min(2, mapped.length - MIN_RECENT_MESSAGES)
+    mapped = mapped.slice(dropCount)
+    truncated = true
+  }
+
+  return { messages: mapped, truncated }
 }
 
 const TOOLS = [
@@ -400,12 +442,27 @@ const TOOLS = [
 export class AgentRunner {
   constructor(
     private settings: AgentSettings,
-    private emit: (event: AgentStreamPayload) => void
+    private emit: (event: AgentStreamPayload) => void,
+    private signal?: AbortSignal
   ) {}
 
+  private throwIfAborted(): void {
+    if (this.signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError')
+    }
+  }
+
+  private handleAbort(): void {
+    this.emit({ type: 'error', content: 'Остановлено пользователем' })
+    this.emit({ type: 'done' })
+  }
+
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
+    this.throwIfAborted()
+
     const { projectPath } = this.settings
     const agentContext = await buildAgentContext(projectPath, userMessage)
+    this.throwIfAborted()
 
     let projectTreeText = ''
     if (projectPath.trim()) {
@@ -416,69 +473,96 @@ export class AgentRunner {
       }
     }
 
+    const { messages: trimmedHistory, truncated } = trimHistoryForContext(history)
+    let systemContent = buildSystemPrompt(projectPath, agentContext, projectTreeText)
+    if (truncated) {
+      systemContent +=
+        '\n\n[Часть старой истории чата опущена из-за лимита контекста модели. Опирайся на последние сообщения.]'
+    }
+
     const messages: OllamaMessage[] = [
-      { role: 'system', content: buildSystemPrompt(projectPath, agentContext, projectTreeText) },
-      ...history
-        .map(mapHistoryMessageToOllama)
-        .filter((m): m is OllamaMessage => m !== null),
+      { role: 'system', content: systemContent },
+      ...trimmedHistory,
       { role: 'user', content: userMessage }
     ]
 
     let usedTools = false
 
-    for (let step = 0; step < this.settings.maxSteps; step++) {
-      const response = await this.chat(messages)
-      const assistantText = response.message?.content ?? ''
-      const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
+    try {
+      for (let step = 0; step < this.settings.maxSteps; step++) {
+        this.throwIfAborted()
 
-      if (assistantText) {
-        messages.push({ role: 'assistant', content: assistantText })
+        let response
+        try {
+          response = await this.chat(messages)
+        } catch (error) {
+          if (isAbortError(error)) {
+            this.handleAbort()
+            return
+          }
+          throw error
+        }
+
+        const assistantText = response.message?.content ?? ''
+        const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
+
+        if (assistantText) {
+          messages.push({ role: 'assistant', content: assistantText })
+        }
+
+        if (!toolCalls.length) {
+          if (this.settings.selfLearning !== false) {
+            await this.reflectAndLearn(messages, userMessage, usedTools)
+          }
+          this.emit({ type: 'done' })
+          return
+        }
+
+        usedTools = true
+
+        for (const call of toolCalls) {
+          this.throwIfAborted()
+
+          const name = call.function.name
+          const args = parseToolArgs(call.function.arguments ?? {})
+          this.emit({
+            type: 'tool_start',
+            toolName: name,
+            toolInput: JSON.stringify(args, null, 2)
+          })
+
+          let output = ''
+          try {
+            output = await this.executeTool(name, args)
+          } catch (error) {
+            output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+          }
+
+          this.emit({
+            type: 'tool_end',
+            toolName: name,
+            toolOutput: output
+          })
+
+          messages.push({
+            role: 'tool',
+            content: `Инструмент ${name}:\n${output}`
+          })
+        }
       }
 
-      if (!toolCalls.length) {
-        if (this.settings.selfLearning !== false) {
-          await this.reflectAndLearn(messages, userMessage, usedTools)
-        }
-        this.emit({ type: 'done' })
+      this.emit({
+        type: 'error',
+        content: `Достигнут лимит шагов агента (${this.settings.maxSteps}). Уточните задачу или увеличьте лимит.`
+      })
+      this.emit({ type: 'done' })
+    } catch (error) {
+      if (isAbortError(error)) {
+        this.handleAbort()
         return
       }
-
-      usedTools = true
-
-      for (const call of toolCalls) {
-        const name = call.function.name
-        const args = parseToolArgs(call.function.arguments ?? {})
-        this.emit({
-          type: 'tool_start',
-          toolName: name,
-          toolInput: JSON.stringify(args, null, 2)
-        })
-
-        let output = ''
-        try {
-          output = await this.executeTool(name, args)
-        } catch (error) {
-          output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
-        }
-
-        this.emit({
-          type: 'tool_end',
-          toolName: name,
-          toolOutput: output
-        })
-
-        messages.push({
-          role: 'tool',
-          content: `Инструмент ${name}:\n${output}`
-        })
-      }
+      throw error
     }
-
-    this.emit({
-      type: 'error',
-      content: `Достигнут лимит шагов агента (${this.settings.maxSteps}). Уточните задачу или увеличьте лимит.`
-    })
-    this.emit({ type: 'done' })
   }
 
   private async chat(messages: OllamaMessage[]) {
@@ -490,7 +574,8 @@ export class AgentRunner {
         messages,
         tools: TOOLS,
         stream: true
-      })
+      }),
+      signal: this.signal
     })
 
     if (!res.ok) {
@@ -505,7 +590,7 @@ export class AgentRunner {
     let content = ''
     const toolCalls: ToolCall[] = []
 
-    for await (const chunk of readNdjsonLines(res.body)) {
+    for await (const chunk of readNdjsonLines(res.body, this.signal)) {
       const message = chunk.message as OllamaChatChunk['message'] | undefined
       const piece = message?.content
       if (piece) {
@@ -648,7 +733,8 @@ export class AgentRunner {
           model: this.settings.model,
           messages: [...messages, { role: 'user', content: REFLECTION_PROMPT }],
           stream: false
-        })
+        }),
+        signal: this.signal
       })
 
       if (!res.ok) return

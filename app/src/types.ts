@@ -166,6 +166,9 @@ export interface CodeViperAPI {
     userMessage: string
   ) => Promise<void>
   getAgentRunState: () => Promise<AgentRunState | null>
+  stopAgent: () => Promise<boolean>
+  loadSettings: () => Promise<AgentSettings>
+  saveSettings: (settings: AgentSettings) => Promise<AgentSettings>
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => () => void
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>

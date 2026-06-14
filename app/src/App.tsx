@@ -32,6 +32,7 @@ export default function App() {
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
+  const [settingsReady, setSettingsReady] = useState(false)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
 
@@ -74,7 +75,16 @@ export default function App() {
   }
 
   useEffect(() => {
-    refreshOllama()
+    void window.codeviper.loadSettings().then((saved) => {
+      setSettings(saved)
+      setSettingsReady(true)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!settingsReady) return
+
+    void refreshOllama()
     refreshChatStore().then((store) => {
       if (!store.activeChatId) return
       const chat = store.chats.find((item) => item.id === store.activeChatId)
@@ -82,7 +92,17 @@ export default function App() {
       setActiveChatId(chat.id)
       setMessages(chat.messages)
     })
-  }, [])
+  }, [settingsReady])
+
+  useEffect(() => {
+    if (!settingsReady) return
+
+    const timer = window.setTimeout(() => {
+      void window.codeviper.saveSettings(settings)
+    }, 400)
+
+    return () => window.clearTimeout(timer)
+  }, [settings, settingsReady])
 
   useEffect(() => {
     if (!activeChatId) return

@@ -337,6 +337,22 @@ button {
   gap: 8px;
 }
 
+.chat-input-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn.danger {
+  background: #3d1214;
+  border-color: #f85149;
+  color: #ffa198;
+}
+
+.btn.danger:hover {
+  background: #67060c;
+}
+
 .settings {
   display: grid;
   gap: 10px;

@@ -167,6 +167,11 @@ export function ChatPanel({
     }
   }
 
+  async function stopAgent() {
+    if (!busy) return
+    await window.codeviper.stopAgent()
+  }
+
   return (
     <div className="chat-main">
       <div className="chat-messages">
@@ -209,16 +214,23 @@ export function ChatPanel({
             {!chatId
               ? 'Сначала выбери чат слева'
               : busy
-                ? 'Агент работает...'
+                ? 'Агент работает…'
                 : 'Enter не отправляет — жми кнопку'}
           </span>
-          <button
-            className="btn primary"
-            onClick={send}
-            disabled={busy || !settings.model || !chatId}
-          >
-            Отправить
-          </button>
+          <div className="chat-input-buttons">
+            {busy && (
+              <button type="button" className="btn danger" onClick={() => void stopAgent()}>
+                Стоп
+              </button>
+            )}
+            <button
+              className="btn primary"
+              onClick={send}
+              disabled={busy || !settings.model || !chatId}
+            >
+              Отправить
+            </button>
+          </div>
         </div>
       </div>
     </div>

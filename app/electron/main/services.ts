@@ -4,6 +4,55 @@ import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 
 const COMMAND_TIMEOUT_MS = 120_000
+const MAX_COMMAND_LEN = 4096
+
+const BLOCKED_PATTERNS: RegExp[] = [
+  /\brm\s+-rf\b/i,
+  /\brmdir\s+\/s\b/i,
+  /\bdel\s+\/[sfq]/i,
+  /\bformat\s+[a-z]:/i,
+  /\bshutdown\b/i,
+  /\brestart\b/i,
+  /\bmkfs\b/i,
+  /\bdd\s+if=/i,
+  /\b:\(\)\s*\{\s*:\|:&\s*\};:/,
+  /\bwget\s+[^\n|]*\|\s*(sh|bash|powershell)/i,
+  /\bcurl\s+[^\n|]*\|\s*(sh|bash|powershell)/i,
+  /\bpowershell(?:\.exe)?\s+.*-(?:enc|encodedcommand)\b/i,
+  /\breg\s+(add|delete)\b/i,
+  /\bbcdedit\b/i,
+  /\bdiskpart\b/i,
+  /\btaskkill\s+\/(?:f|im)\s+.*(?:explorer|csrss|winlogon)/i,
+  /\bchmod\s+[0-7]*777\b/i,
+  /\bsudo\s+/i,
+  /\bnet\s+user\b/i,
+  /\bnet\s+localgroup\b/i
+]
+
+function validateCommand(command: string): string | null {
+  const trimmed = command.trim()
+  if (!trimmed) return 'Пустая команда'
+  if (trimmed.length > MAX_COMMAND_LEN) return 'Команда слишком длинная'
+  if (BLOCKED_PATTERNS.some((pattern) => pattern.test(trimmed))) {
+    return 'Команда заблокирована из соображений безопасности'
+  }
+  return null
+}
+
+function spawnShell(command: string, cwd: string): ChildProcess {
+  if (process.platform === 'win32') {
+    return spawn('cmd.exe', ['/d', '/s', '/c', command], {
+      cwd,
+      windowsHide: true,
+      shell: false
+    })
+  }
+
+  return spawn('/bin/sh', ['-c', command], {
+    cwd,
+    shell: false
+  })
+}
 
 const IGNORED = new Set([
   'node_modules',
@@ -103,11 +152,11 @@ export async function runCommand(
   command: string,
   timeoutMs = COMMAND_TIMEOUT_MS
 ): Promise<TerminalResult> {
-  const blocked = /\b(rm\s+-rf|format\s+[a-z]:|del\s+\/[sf]|shutdown|restart)\b/i
-  if (blocked.test(command)) {
+  const blocked = validateCommand(command)
+  if (blocked) {
     return {
       stdout: '',
-      stderr: 'Команда заблокирована из соображений безопасности',
+      stderr: blocked,
       exitCode: 1
     }
   }
@@ -124,11 +173,7 @@ export async function runCommand(
       resolvePromise(result)
     }
 
-    const child = spawn(command, [], {
-      cwd,
-      shell: true,
-      windowsHide: true
-    })
+    const child = spawnShell(command, cwd)
 
     const timer = setTimeout(() => {
       killProcessTree(child)
