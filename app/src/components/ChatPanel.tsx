@@ -5,6 +5,7 @@ import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage } from '../types'
 import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
 import { MessageBody } from './MessageBody'
+import { MessageCopyButton } from './MessageCopyButton'
 
 interface Props {
   settings: AgentSettings
@@ -30,6 +31,16 @@ function visibleAssistantContent(content: string): string {
 function shouldShowAssistantMessage(message: ChatMessage): boolean {
   if (message.role !== 'assistant') return true
   return visibleAssistantContent(message.content).length > 0
+}
+
+function messageCopyText(message: ChatMessage): string {
+  if (message.role === 'assistant') {
+    return visibleAssistantContent(message.content)
+  }
+  if (message.role === 'tool' && message.toolOutput?.trim()) {
+    return message.toolOutput
+  }
+  return message.content
 }
 
 export function ChatPanel({
@@ -304,7 +315,10 @@ export function ChatPanel({
 
         {messages.filter(shouldShowAssistantMessage).map((message) => (
           <div key={message.id} className={`message ${message.role}`}>
-            <div className="message-role">{message.role}</div>
+            <div className="message-header">
+              <div className="message-role">{message.role}</div>
+              <MessageCopyButton text={messageCopyText(message)} />
+            </div>
             <MessageBody
               role={message.role}
               content={
@@ -318,7 +332,10 @@ export function ChatPanel({
 
         {visibleDraft && (
           <div className="message assistant">
-            <div className="message-role">assistant</div>
+            <div className="message-header">
+              <div className="message-role">assistant</div>
+              <MessageCopyButton text={visibleDraft} />
+            </div>
             <MessageBody role="assistant" content={visibleDraft} />
           </div>
         )}

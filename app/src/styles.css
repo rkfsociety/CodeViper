@@ -373,6 +373,39 @@ button {
   border-color: #f85149;
 }
 
+.message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.message-header .message-role {
+  margin-bottom: 0;
+}
+
+.message-copy-btn {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #8b949e;
+  cursor: pointer;
+}
+
+.message-copy-btn:hover:not(:disabled) {
+  color: #e6edf3;
+  border-color: #484f58;
+}
+
+.message-copy-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .message-role {
   font-size: 11px;
   text-transform: uppercase;
