@@ -38,13 +38,17 @@
 
 ### 2. Запуск через .exe (рекомендуется)
 
+**Пересборка exe** — скрипт в корне проекта:
+
 ```powershell
-cd F:\github\CodeViper
-npm install
-npm run dist:win
+# Двойной клик или из терминала:
+.\rebuild-exe.bat
+
+# Альтернатива через npm:
+npm run rebuild:exe
 ```
 
-Готовые файлы появятся **в корне проекта**:
+Сборка создаёт в корне:
 - `CodeViper.exe` — portable, без установки (просто запусти)
 - `CodeViper-Setup.exe` — установщик NSIS
 
@@ -129,7 +133,8 @@ npm run build
 npm start
 
 # Windows .exe (portable + установщик)
-npm run dist:win
+.\rebuild-exe.bat
+# или: npm run rebuild:exe
 ```
 
 ## Сравнение с Cursor
