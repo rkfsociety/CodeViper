@@ -33,7 +33,7 @@ export default function App() {
       const names = list.map((m) => m.name)
       setSettings((prev) => ({
         ...prev,
-        model: prev.model && names.includes(prev.model) ? prev.model : names[0]?.name ?? ''
+        model: prev.model && names.includes(prev.model) ? prev.model : names[0] ?? ''
       }))
     } else {
       setModels([])
