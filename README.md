@@ -47,14 +47,36 @@
 
 ### 2. Запуск
 
-CodeViper — это приложение **из папки проекта**, без отдельного exe. Агент, GUI и инструменты работают из этой же копии репозитория.
+**Один раз** после клонирования:
 
 ```powershell
-git clone <ваш-репозиторий> CodeViper
 cd CodeViper
 npm install
-npm run dev
 ```
+
+Дальше — **двойной клик**, без терминала каждый раз:
+
+| Файл | Что это | Когда |
+|---|---|---|
+| **`CodeViper.exe`** | Готовое окно приложения (portable) | Повседневная работа |
+| **`CodeViper.cmd`** | Запуск из исходников (`npm run dev`) | Разработка, видна консоль |
+
+#### CodeViper.exe (рекомендуется)
+
+Первый раз собери exe (нужен Node.js):
+
+```powershell
+.\rebuild-exe.bat
+# или: npm run app:exe
+```
+
+Появится **`CodeViper.exe`** в корне — запускай двойным кликом. Ollama должна быть в трее.
+
+После изменений кода снова запусти `rebuild-exe.bat`.
+
+#### CodeViper.cmd (без сборки)
+
+Двойной клик по **`CodeViper.cmd`** — сразу `npm run dev`. Удобно при правках в репозитории.
 
 Ollama должна быть установлена и запущена отдельно — CodeViper подключается к ней по `http://127.0.0.1:11434`.
 
@@ -141,10 +163,11 @@ CodeViper/
 ## Разработка
 
 ```powershell
-npm run dev        # GUI + hot reload
+npm run dev        # GUI + hot reload (или двойной клик CodeViper.cmd)
 npm run build      # сборка в out/
 npm start          # запуск собранной версии
 npm run typecheck  # проверка TypeScript
+npm run app:exe    # собрать CodeViper.exe (portable)
 ```
 
 ## Сравнение с Cursor
