@@ -480,6 +480,13 @@ button {
   align-items: flex-start;
 }
 
+.rebuild-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+}
+
 .rebuild-root {
   font-size: 11px;
   color: #8b949e;

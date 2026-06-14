@@ -58,6 +58,8 @@ const codeviper = {
 
   getRebuildStatus: () => ipcRenderer.invoke('get-rebuild-status'),
 
+  selectRebuildSourceFolder: () => ipcRenderer.invoke('select-rebuild-source-folder'),
+
   rebuildApp: () => ipcRenderer.invoke('rebuild-app'),
 
   onRebuildProgress: (callback: (event: RebuildProgressEvent) => void) => {

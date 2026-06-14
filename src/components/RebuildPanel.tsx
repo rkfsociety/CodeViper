@@ -9,8 +9,12 @@ export function RebuildPanel() {
   const [resultOk, setResultOk] = useState<boolean | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
 
+  async function refreshStatus() {
+    setStatus(await window.codeviper.getRebuildStatus())
+  }
+
   useEffect(() => {
-    window.codeviper.getRebuildStatus().then(setStatus)
+    void refreshStatus()
   }, [])
 
   useEffect(() => {
@@ -38,6 +42,11 @@ export function RebuildPanel() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight })
   }, [log])
 
+  async function pickSourceFolder() {
+    const next = await window.codeviper.selectRebuildSourceFolder()
+    setStatus(next)
+  }
+
   async function rebuild() {
     if (busy || !status?.available) return
 
@@ -50,6 +59,7 @@ export function RebuildPanel() {
     setBusy(false)
     setResult(rebuildResult.message)
     setResultOk(rebuildResult.ok)
+    await refreshStatus()
   }
 
   return (
@@ -61,10 +71,22 @@ export function RebuildPanel() {
           {!status?.available && (
             <div className="rebuild-hint">{status?.reason ?? 'Проверка…'}</div>
           )}
+          {status?.packaged && !status.available && (
+            <div className="rebuild-hint">
+              Один раз укажите папку с git-клоном CodeViper (где вы делали npm install).
+            </div>
+          )}
         </div>
-        <button className="btn primary" onClick={rebuild} disabled={busy || !status?.available}>
-          {busy ? 'Сборка…' : 'Пересобрать exe'}
-        </button>
+        <div className="rebuild-actions">
+          {!status?.available && (
+            <button className="btn" onClick={pickSourceFolder} disabled={busy}>
+              Папка исходников
+            </button>
+          )}
+          <button className="btn primary" onClick={rebuild} disabled={busy || !status?.available}>
+            {busy ? 'Сборка…' : 'Пересобрать exe'}
+          </button>
+        </div>
       </div>
 
       {(busy || log.length > 0) && (

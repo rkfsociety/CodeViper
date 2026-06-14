@@ -136,6 +136,8 @@ export interface RebuildStatus {
   available: boolean
   root: string | null
   reason?: string
+  packaged?: boolean
+  savedSourcePath?: string | null
 }
 
 export interface RebuildResult {
@@ -174,6 +176,7 @@ export interface CodeViperAPI {
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>
   deleteMemory: (projectPath: string, id: string) => Promise<boolean>
   getRebuildStatus: () => Promise<RebuildStatus>
+  selectRebuildSourceFolder: () => Promise<RebuildStatus>
   rebuildApp: () => Promise<RebuildResult>
   onRebuildProgress: (callback: (event: RebuildProgressEvent) => void) => () => void
   getChatStore: () => Promise<ChatStore>

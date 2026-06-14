@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'child_process'
 import { app } from 'electron'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
+import { getRebuildSourcePath, setRebuildSourcePath } from './appSettings'
 import type { RebuildProgressEvent, RebuildResult, RebuildStatus } from '../../src/types'
 
 let rebuildRunning = false
@@ -15,37 +16,59 @@ function hasRebuildFiles(dir: string): boolean {
   )
 }
 
-export function findRebuildRoot(): string | null {
-  const candidates = new Set<string>()
+export function validateRebuildRoot(dir: string): boolean {
+  return hasRebuildFiles(dir)
+}
+
+export function findRebuildRoot(savedSourcePath: string | null = null): string | null {
+  const candidates: string[] = []
+
+  if (savedSourcePath) candidates.push(savedSourcePath)
 
   if (!app.isPackaged) {
-    candidates.add(app.getAppPath())
-    candidates.add(join(__dirname, '../..'))
+    candidates.push(app.getAppPath())
+    candidates.push(join(__dirname, '../..'))
   }
 
-  candidates.add(process.cwd())
-  candidates.add(dirname(process.execPath))
+  candidates.push(process.cwd())
+  candidates.push(dirname(process.execPath))
 
+  const seen = new Set<string>()
   for (const dir of candidates) {
-    if (hasRebuildFiles(dir)) return dir
+    const normalized = dir.trim()
+    if (!normalized || seen.has(normalized.toLowerCase())) continue
+    seen.add(normalized.toLowerCase())
+    if (hasRebuildFiles(normalized)) return normalized
   }
 
   return null
 }
 
-export function getRebuildStatus(): RebuildStatus {
-  const root = findRebuildRoot()
+export async function getRebuildStatus(): Promise<RebuildStatus> {
+  const savedSourcePath = await getRebuildSourcePath()
+  const root = findRebuildRoot(savedSourcePath)
+  const packaged = app.isPackaged
+
   if (root) {
-    return { available: true, root }
+    return { available: true, root, packaged, savedSourcePath }
   }
 
   return {
     available: false,
     root: null,
-    reason: app.isPackaged
-      ? 'Portable/installer не содержит исходники — запусти npm run dev'
+    packaged,
+    savedSourcePath,
+    reason: packaged
+      ? savedSourcePath
+        ? 'В сохранённой папке нет node_modules — выполни npm install в исходниках CodeViper'
+        : 'Portable exe не содержит исходники. Укажите папку с package.json и node_modules'
       : 'Не найдены package.json, node_modules и scripts/build-win.js'
   }
+}
+
+export async function rememberRebuildSourcePath(dir: string): Promise<RebuildStatus> {
+  await setRebuildSourcePath(dir)
+  return getRebuildStatus()
 }
 
 function emitLine(emit: (event: RebuildProgressEvent) => void, line: string): void {
@@ -60,7 +83,7 @@ export async function runRebuild(
     return { ok: false, message: 'Пересборка уже выполняется' }
   }
 
-  const status = getRebuildStatus()
+  const status = await getRebuildStatus()
   if (!status.available || !status.root) {
     return { ok: false, message: status.reason ?? 'Пересборка недоступна' }
   }
@@ -99,8 +122,8 @@ export async function runRebuild(
       if (code === 0) {
         finish({
           ok: true,
-          message: 'Готово: CodeViper.exe и CodeViper-Setup.exe в корне проекта',
-          files: ['CodeViper.exe', 'CodeViper-Setup.exe']
+          message: `Готово: CodeViper.exe в ${root}`,
+          files: ['CodeViper.exe']
         })
         return
       }
