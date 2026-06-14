@@ -158,9 +158,12 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
       if (message.content.startsWith('▶ ')) return null
 
       const name = message.toolName ?? 'unknown'
-      let output = message.content.startsWith('✓ ')
-        ? message.content.slice(message.content.indexOf('\n') + 1)
-        : message.content
+      let output = message.toolOutput
+      if (!output) {
+        output = message.content.startsWith('✓ ')
+          ? message.content.slice(message.content.indexOf('\n') + 1)
+          : message.content
+      }
 
       if (output.length > MAX_TOOL_MESSAGE_CHARS) {
         output = `${output.slice(0, MAX_TOOL_MESSAGE_CHARS)}\n… (обрезано)`
@@ -484,6 +487,9 @@ export class AgentRunner {
         }
 
         if (!toolCalls.length) {
+          if (assistantText) {
+            this.emit({ type: 'assistant', content: assistantText })
+          }
           if (this.settings.selfLearning !== false) {
             await this.reflectAndLearn(messages, userMessage, usedTools)
           }

@@ -7,6 +7,19 @@ import type {
   SavedChat
 } from '../../src/types'
 
+const agentStreamListeners = new Set<(event: AgentStreamEvent) => void>()
+let agentStreamBridgeReady = false
+
+function ensureAgentStreamBridge(): void {
+  if (agentStreamBridgeReady) return
+  ipcRenderer.on('agent-stream', (_event, payload: AgentStreamEvent) => {
+    for (const listener of agentStreamListeners) {
+      listener(payload)
+    }
+  })
+  agentStreamBridgeReady = true
+}
+
 const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
     ipcRenderer.invoke('select-project-folder'),
@@ -49,9 +62,11 @@ const codeviper = {
   saveSettings: (settings: AgentSettings) => ipcRenderer.invoke('save-settings', settings),
 
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => {
-    const handler = (_: unknown, event: AgentStreamEvent) => callback(event)
-    ipcRenderer.on('agent-stream', handler)
-    return () => ipcRenderer.removeListener('agent-stream', handler)
+    ensureAgentStreamBridge()
+    agentStreamListeners.add(callback)
+    return () => {
+      agentStreamListeners.delete(callback)
+    }
   },
 
   runTerminalCommand: (cwd: string, command: string) =>

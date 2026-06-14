@@ -1,21 +1,6 @@
-export type AgentPhase = 'thinking' | 'writing' | 'tool'
+import { TOOL_LABELS } from '../../shared/toolDisplay'
 
-const TOOL_LABELS: Record<string, string> = {
-  list_directory: 'Смотрю структуру проекта',
-  read_file: 'Читаю файл',
-  write_file: 'Записываю файл',
-  run_command: 'Выполняю команду',
-  remember: 'Запоминаю',
-  search_memory: 'Ищу в памяти',
-  forget: 'Удаляю из памяти',
-  list_skills: 'Смотрю навыки',
-  read_skill: 'Читаю навык',
-  create_skill: 'Создаю навык',
-  update_skill: 'Обновляю навык',
-  delete_skill: 'Удаляю навык',
-  read_skill_data: 'Читаю данные навыка',
-  write_skill_data: 'Сохраняю данные навыка'
-}
+export type AgentPhase = 'thinking' | 'writing' | 'tool'
 
 function formatModelLabel(model: string): string {
   const name = model.trim()

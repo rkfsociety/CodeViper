@@ -5,6 +5,7 @@ export interface ChatMessage {
   role: AgentRole
   content: string
   toolName?: string
+  toolOutput?: string
   timestamp: number
 }
 
@@ -126,7 +127,15 @@ export interface SkillsStore {
 }
 
 export interface AgentStreamPayload {
-  type: 'token' | 'tool_start' | 'tool_end' | 'done' | 'error' | 'learning_saved' | 'skill_saved'
+  type:
+    | 'token'
+    | 'assistant'
+    | 'tool_start'
+    | 'tool_end'
+    | 'done'
+    | 'error'
+    | 'learning_saved'
+    | 'skill_saved'
   content?: string
   toolName?: string
   toolInput?: string

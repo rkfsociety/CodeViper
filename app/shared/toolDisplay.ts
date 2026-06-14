@@ -1,0 +1,73 @@
+export const TOOL_LABELS: Record<string, string> = {
+  list_directory: 'Смотрю структуру проекта',
+  read_file: 'Читаю файл',
+  write_file: 'Записываю файл',
+  run_command: 'Выполняю команду',
+  remember: 'Запоминаю',
+  search_memory: 'Ищу в памяти',
+  forget: 'Удаляю из памяти',
+  list_skills: 'Смотрю навыки',
+  read_skill: 'Читаю навык',
+  create_skill: 'Создаю навык',
+  update_skill: 'Обновляю навык',
+  delete_skill: 'Удаляю навык',
+  read_skill_data: 'Читаю данные навыка',
+  write_skill_data: 'Сохраняю данные навыка'
+}
+
+export function toolLabel(name: string | undefined): string {
+  if (!name) return 'инструмент'
+  return TOOL_LABELS[name] ?? name
+}
+
+function countTreeLines(output: string): number {
+  return output.split('\n').filter((line) => line.trim()).length
+}
+
+function firstLine(output: string, max = 72): string {
+  const line = output.trim().split('\n').find(Boolean) ?? ''
+  if (line.length <= max) return line
+  return `${line.slice(0, max)}…`
+}
+
+export function compactToolChatLine(
+  name: string | undefined,
+  output: string | undefined,
+  phase: 'start' | 'end'
+): string {
+  const label = toolLabel(name)
+
+  if (phase === 'start') {
+    return `▶ ${label}…`
+  }
+
+  const body = output ?? ''
+
+  switch (name) {
+    case 'list_directory': {
+      const count = countTreeLines(body)
+      return count > 0 ? `✓ ${label} — ${count} элементов` : `✓ ${label} — пусто`
+    }
+    case 'read_file': {
+      const lines = body ? body.split('\n').length : 0
+      return `✓ ${label} — ${lines} строк`
+    }
+    case 'write_file':
+      return `✓ ${firstLine(body) || label}`
+    case 'run_command': {
+      const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
+      return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
+    }
+    case 'remember':
+    case 'search_memory':
+    case 'forget':
+    case 'create_skill':
+    case 'update_skill':
+    case 'delete_skill':
+      return `✓ ${firstLine(body) || label}`
+    default:
+      return body.trim()
+        ? `✓ ${label} — ${firstLine(body)}`
+        : `✓ ${label}`
+  }
+}

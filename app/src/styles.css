@@ -356,7 +356,17 @@ button {
 
 .message.tool {
   border-color: #d29922;
-  font-size: 13px;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.message.tool .message-plain {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: #b6c2cf;
+  font-size: 12px;
 }
 
 .message.error {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
+import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage } from '../types'
 import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
@@ -16,28 +17,10 @@ interface Props {
   onPickProject: () => void
 }
 
-const MAX_TOOL_OUTPUT_LINES = 50
-
 function formatProjectLabel(path: string): string {
   if (!path.trim()) return 'Проект не выбран'
   const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
   return parts[parts.length - 1] ?? path
-}
-
-function formatToolInput(input: string | undefined): string {
-  if (!input || input.trim() === '{}') return ''
-  return input
-}
-
-function formatToolOutput(output: string): string {
-  const lines = output.split('\n')
-  if (lines.length <= MAX_TOOL_OUTPUT_LINES) return output
-  return `${lines.slice(0, MAX_TOOL_OUTPUT_LINES).join('\n')}\n… ещё ${lines.length - MAX_TOOL_OUTPUT_LINES} строк`
-}
-
-function formatToolMessage(prefix: string, name: string | undefined, body: string): string {
-  const line = `${prefix} ${name ?? 'tool'}`
-  return body ? `${line}\n${body}` : line
 }
 
 function visibleAssistantContent(content: string): string {
@@ -71,16 +54,32 @@ export function ChatPanel({
   const onLearningSavedRef = useRef(onLearningSaved)
   const runIdRef = useRef(0)
   const doneRunIdRef = useRef(-1)
+  const lastAssistantContentRef = useRef('')
+  const activeToolMessageIdRef = useRef<string | null>(null)
 
   messagesRef.current = messages
   chatIdRef.current = chatId
   onMessagesChangeRef.current = onMessagesChange
   onLearningSavedRef.current = onLearningSaved
 
-  function appendMessage(message: ChatMessage) {
-    const next = [...messagesRef.current, message]
+  function commitMessages(next: ChatMessage[]) {
     messagesRef.current = next
     onMessagesChangeRef.current(next)
+  }
+
+  function appendMessage(message: ChatMessage) {
+    commitMessages([...messagesRef.current, message])
+  }
+
+  function upsertMessage(message: ChatMessage) {
+    const index = messagesRef.current.findIndex((item) => item.id === message.id)
+    if (index < 0) {
+      appendMessage(message)
+      return
+    }
+    const next = [...messagesRef.current]
+    next[index] = message
+    commitMessages(next)
   }
 
   useEffect(() => {
@@ -93,24 +92,42 @@ export function ChatPanel({
     setBusy(false)
     setAgentPhase('thinking')
     setActiveToolName(undefined)
+    activeToolMessageIdRef.current = null
+    lastAssistantContentRef.current = ''
   }, [chatId])
 
   useEffect(() => {
     const unsubscribe = window.codeviper.onAgentStream((event) => {
       if (event.chatId !== chatIdRef.current) return
+
       if (event.type === 'token') {
         setAgentPhase('writing')
         setDraft((prev) => prev + (event.content ?? ''))
+      }
+
+      if (event.type === 'assistant') {
+        setDraft('')
+        const cleaned = visibleAssistantContent(event.content ?? '')
+        if (!cleaned || lastAssistantContentRef.current === cleaned) return
+        lastAssistantContentRef.current = cleaned
+        appendMessage({
+          id: makeId(),
+          role: 'assistant',
+          content: cleaned,
+          timestamp: Date.now()
+        })
       }
 
       if (event.type === 'tool_start') {
         setDraft('')
         setAgentPhase('tool')
         setActiveToolName(event.toolName)
-        appendMessage({
-          id: makeId(),
+        const id = makeId()
+        activeToolMessageIdRef.current = id
+        upsertMessage({
+          id,
           role: 'tool',
-          content: formatToolMessage('▶', event.toolName, formatToolInput(event.toolInput)),
+          content: compactToolChatLine(event.toolName, undefined, 'start'),
           toolName: event.toolName,
           timestamp: Date.now()
         })
@@ -119,15 +136,14 @@ export function ChatPanel({
       if (event.type === 'tool_end') {
         setAgentPhase('thinking')
         setActiveToolName(undefined)
-        appendMessage({
-          id: makeId(),
+        const id = activeToolMessageIdRef.current ?? makeId()
+        activeToolMessageIdRef.current = null
+        upsertMessage({
+          id,
           role: 'tool',
-          content: formatToolMessage(
-            '✓',
-            event.toolName,
-            formatToolOutput(event.toolOutput ?? '')
-          ),
+          content: compactToolChatLine(event.toolName, event.toolOutput, 'end'),
           toolName: event.toolName,
+          toolOutput: event.toolOutput,
           timestamp: Date.now()
         })
       }
@@ -165,22 +181,11 @@ export function ChatPanel({
         const runId = runIdRef.current
         if (doneRunIdRef.current === runId) return
         doneRunIdRef.current = runId
-
-        setDraft((current) => {
-          const cleaned = visibleAssistantContent(current)
-          if (cleaned) {
-            appendMessage({
-              id: makeId(),
-              role: 'assistant',
-              content: cleaned,
-              timestamp: Date.now()
-            })
-          }
-          return ''
-        })
+        setDraft('')
         setBusy(false)
         setAgentPhase('thinking')
         setActiveToolName(undefined)
+        activeToolMessageIdRef.current = null
       }
     })
 
@@ -197,6 +202,8 @@ export function ChatPanel({
 
     runIdRef.current += 1
     doneRunIdRef.current = -1
+    lastAssistantContentRef.current = ''
+    activeToolMessageIdRef.current = null
 
     const userMessage: ChatMessage = {
       id: makeId(),
