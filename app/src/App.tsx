@@ -3,9 +3,7 @@ import type { AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types
 import { ChatPanel } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
 import { TerminalPanel } from './components/TerminalPanel'
-import { ModelPanel } from './components/ModelPanel'
-import { MemoryPanel } from './components/MemoryPanel'
-import { SkillsPanel } from './components/SkillsPanel'
+import { SettingsModal } from './components/SettingsModal'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -32,6 +30,8 @@ export default function App() {
   const [chatBusy, setChatBusy] = useState(false)
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [terminalOpen, setTerminalOpen] = useState(false)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
 
@@ -190,6 +190,17 @@ export default function App() {
           <button className="btn" onClick={refreshOllama}>
             Обновить Ollama
           </button>
+          <button
+            className={`btn ${terminalOpen ? 'active' : ''}`}
+            onClick={() => setTerminalOpen((open) => !open)}
+            disabled={!settings.projectPath}
+            title={settings.projectPath ? undefined : 'Сначала выберите проект'}
+          >
+            Терминал
+          </button>
+          <button className="btn" onClick={() => setSettingsOpen(true)}>
+            Настройки
+          </button>
           <button className="btn primary" onClick={openProject}>
             Открыть проект
           </button>
@@ -215,7 +226,7 @@ export default function App() {
           />
         </section>
 
-        <section className="panel">
+        <section className="panel panel-main">
           <div className="panel-header">Агент</div>
           <ChatPanel
             settings={settings}
@@ -229,74 +240,43 @@ export default function App() {
               setSkillsRefreshKey((key) => key + 1)
             }}
           />
-        </section>
 
-        <section className="panel">
-          <div className="panel-header">Настройки</div>
-          <div className="settings">
-            <label>
-              Ollama URL
-              <input
-                value={settings.ollamaUrl}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, ollamaUrl: e.target.value }))
-                }
-                onBlur={refreshOllama}
-              />
-            </label>
-
-            <ModelPanel
-              ollamaUrl={settings.ollamaUrl}
-              ollamaOnline={ollamaOnline}
-              models={models}
-              selectedModel={settings.model}
-              onModelChange={(model) => setSettings((prev) => ({ ...prev, model }))}
-              onRefresh={refreshOllama}
-            />
-
-            <label>
-              Макс. шагов агента
-              <input
-                type="number"
-                min={3}
-                max={30}
-                value={settings.maxSteps}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    maxSteps: Number(e.target.value) || 12
-                  }))
-                }
-              />
-            </label>
-
-            <MemoryPanel
-              projectPath={settings.projectPath}
-              selfLearning={settings.selfLearning !== false}
-              onSelfLearningChange={(selfLearning) =>
-                setSettings((prev) => ({ ...prev, selfLearning }))
-              }
-              refreshKey={memoryRefreshKey}
-            />
-
-            <SkillsPanel projectPath={settings.projectPath} refreshKey={skillsRefreshKey} />
-
-          </div>
-
-          {!ollamaOnline && (
-            <div className="hint">
-              Ollama не отвечает. Установи с <strong>ollama.com</strong>, запусти приложение
-              Ollama и нажми «Обновить Ollama».
+          {terminalOpen && (
+            <div className="terminal-dock">
+              <div className="terminal-dock-header">
+                <span>Терминал</span>
+                <button
+                  type="button"
+                  className="btn terminal-dock-close"
+                  onClick={() => setTerminalOpen(false)}
+                >
+                  Скрыть
+                </button>
+              </div>
+              {settings.projectPath ? (
+                <TerminalPanel projectPath={settings.projectPath} embedded />
+              ) : (
+                <div className="hint">Терминал доступен после выбора проекта</div>
+              )}
             </div>
-          )}
-
-          {settings.projectPath ? (
-            <TerminalPanel projectPath={settings.projectPath} />
-          ) : (
-            <div className="hint">Терминал доступен после выбора проекта</div>
           )}
         </section>
       </div>
+
+      <SettingsModal
+        open={settingsOpen}
+        settings={settings}
+        ollamaOnline={ollamaOnline}
+        models={models}
+        memoryRefreshKey={memoryRefreshKey}
+        skillsRefreshKey={skillsRefreshKey}
+        onClose={() => setSettingsOpen(false)}
+        onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+        onRefreshOllama={refreshOllama}
+        onSelfLearningChange={(selfLearning) =>
+          setSettings((prev) => ({ ...prev, selfLearning }))
+        }
+      />
     </div>
   )
 }

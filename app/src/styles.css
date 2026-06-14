@@ -105,8 +105,17 @@ button {
 
 .layout {
   display: grid;
-  grid-template-columns: 300px 1fr 360px;
+  grid-template-columns: 300px 1fr;
   min-height: 0;
+}
+
+.panel-main {
+  min-width: 0;
+}
+
+.panel-main .chat-main {
+  min-height: 0;
+  flex: 1;
 }
 
 .panel-history {
@@ -122,8 +131,100 @@ button {
 
 .panel:last-child {
   border-right: none;
-  border-left: 1px solid #30363d;
 }
+
+.btn.active {
+  background: #30363d;
+  border-color: #484f58;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  background: rgba(1, 4, 9, 0.72);
+  overflow: auto;
+}
+
+.modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  background: #161b22;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #30363d;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-close {
+  min-width: 36px;
+  padding: 4px 10px;
+}
+
+.modal-body {
+  overflow: auto;
+  min-height: 0;
+}
+
+.settings-modal .settings {
+  padding-bottom: 0;
+}
+
+.terminal-dock {
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+  max-height: 40vh;
+  border-top: 1px solid #30363d;
+  background: #0d1117;
+}
+
+.terminal-dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b949e;
+  border-bottom: 1px solid #30363d;
+  background: #161b22;
+}
+
+.terminal-dock-close {
+  padding: 4px 10px;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.terminal-dock .terminal-output {
+  flex: 1;
+  min-height: 120px;
+}
+
 
 .panel-header {
   padding: 10px 12px;

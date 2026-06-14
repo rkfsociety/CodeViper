@@ -2,9 +2,10 @@ import { useState } from 'react'
 
 interface Props {
   projectPath: string
+  embedded?: boolean
 }
 
-export function TerminalPanel({ projectPath }: Props) {
+export function TerminalPanel({ projectPath, embedded = false }: Props) {
   const [command, setCommand] = useState('')
   const [output, setOutput] = useState<string>('CodeViper Terminal — команды выполняются в корне проекта.\n')
 
@@ -27,7 +28,7 @@ export function TerminalPanel({ projectPath }: Props) {
 
   return (
     <>
-      <div className="panel-header">Терминал</div>
+      {!embedded && <div className="panel-header">Терминал</div>}
       <div className="terminal-output">{output}</div>
       <div className="terminal-input">
         <input
