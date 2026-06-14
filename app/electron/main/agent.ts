@@ -5,6 +5,7 @@ import type {
   FileNode,
   MemoryCategory
 } from '../../src/types'
+import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall } from '../../shared/toolCalls'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import { readNdjsonLines } from './ndjson'
 import {
@@ -59,6 +60,7 @@ export function parseToolArgs(args: Record<string, string> | string): Record<str
 const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент для программирования.
 Пользователь уже открыл папку проекта — корень и структура указаны ниже. Не проси указать путь к проекту или папке.
 При запросах «изучи код», «посмотри проект» и подобных сразу используй list_directory, read_file и другие инструменты.
+Не выводи вызовы инструментов JSON-текстом в ответе — только через механизм tool calling.
 Работай только внутри открытого проекта. Отвечай на русском, если пользователь пишет по-русски.
 Используй инструменты для чтения, записи файлов, просмотра структуры и запуска команд.
 Перед правками сначала прочитай файл. Делай минимальные точечные изменения.
@@ -146,6 +148,7 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
     case 'user':
       return { role: 'user', content: message.content }
     case 'assistant':
+      if (looksLikeEmbeddedToolCall(message.content)) return null
       return { role: 'assistant', content: message.content }
     case 'tool': {
       // UI хранит ▶ (старт) и ✓ (результат); в Ollama нужны только итоги инструментов
@@ -473,7 +476,7 @@ export class AgentRunner {
         const assistantText = response.message?.content ?? ''
         const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
 
-        if (assistantText) {
+        if (assistantText.trim()) {
           messages.push({ role: 'assistant', content: assistantText })
         }
 
@@ -562,7 +565,9 @@ export class AgentRunner {
       const piece = message?.content
       if (piece) {
         content += piece
-        this.emit({ type: 'token', content: piece })
+        if (!looksLikeEmbeddedToolCall(content)) {
+          this.emit({ type: 'token', content: piece })
+        }
       }
 
       if (message?.tool_calls?.length) {
@@ -570,9 +575,20 @@ export class AgentRunner {
       }
     }
 
+    const embedded = extractEmbeddedToolCalls(content)
+    content = embedded.content
+    for (const call of embedded.toolCalls) {
+      toolCalls.push({
+        function: {
+          name: call.name,
+          arguments: call.arguments as Record<string, string>
+        }
+      })
+    }
+
     return {
       message: {
-        content: content || undefined,
+        content: content.trim() || undefined,
         tool_calls: toolCalls.length ? toolCalls : undefined
       }
     }

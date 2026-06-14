@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
+import { looksLikeEmbeddedToolCall } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage } from '../types'
 
 interface Props {
@@ -117,7 +118,7 @@ export function ChatPanel({
 
       if (event.type === 'done') {
         setDraft((current) => {
-          if (current.trim()) {
+          if (current.trim() && !looksLikeEmbeddedToolCall(current)) {
             appendMessage({
               id: makeId(),
               role: 'assistant',
@@ -230,7 +231,12 @@ export function ChatPanel({
           </div>
         )}
 
-        {messages.map((message) => (
+        {messages
+          .filter(
+            (message) =>
+              message.role !== 'assistant' || !looksLikeEmbeddedToolCall(message.content)
+          )
+          .map((message) => (
           <div key={message.id} className={`message ${message.role}`}>
             <div className="message-role">{message.role}</div>
             <pre>{message.content}</pre>
