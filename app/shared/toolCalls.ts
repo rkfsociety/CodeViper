@@ -80,6 +80,42 @@ export function extractEmbeddedToolCalls(content: string): {
   return { content, toolCalls: [] }
 }
 
+export function sanitizeAssistantContent(content: string): string {
+  let text = content.trim()
+  if (!text) return ''
+
+  const embedded = extractEmbeddedToolCalls(text)
+  text = embedded.content.trim()
+
+  text = text
+    .replace(/```(?:json)?\s*([\s\S]*?)```/gi, (_, inner: string) => {
+      const innerTrim = inner.trim()
+      if (tryParseToolCallJson(innerTrim)) return ''
+      return stripMalformedToolCallPrefix(innerTrim)
+    })
+    .trim()
+
+  return stripMalformedToolCallPrefix(text).trim()
+}
+
+function stripMalformedToolCallPrefix(text: string): string {
+  const trimmed = text.trim()
+  if (!trimmed.startsWith('{')) return trimmed
+
+  if (tryParseToolCallJson(trimmed)) return ''
+
+  if (/^\{\s*"name(?!\s*"\s*:)/.test(trimmed)) {
+    return trimmed.replace(/^\{\s*"name/, '').trim()
+  }
+
+  const afterToolJson = trimmed.match(
+    /^\{\s*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[\s\S]*?\}\s*([\s\S]+)/
+  )
+  if (afterToolJson) return afterToolJson[1].trim()
+
+  return trimmed
+}
+
 export function looksLikeEmbeddedToolCall(text: string): boolean {
   const trimmed = text.trim()
   if (!trimmed) return false
@@ -87,5 +123,5 @@ export function looksLikeEmbeddedToolCall(text: string): boolean {
   const { toolCalls, content } = extractEmbeddedToolCalls(trimmed)
   if (toolCalls.length > 0 && !content.trim()) return true
 
-  return /^\{\s*"name"\s*:\s*"/.test(trimmed) || /^```(?:json)?\s*\{\s*"name"\s*:/.test(trimmed)
+  return sanitizeAssistantContent(trimmed).length === 0 && trimmed.length > 0
 }

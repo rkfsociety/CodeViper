@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall } from '../shared/toolCalls'
+import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../shared/toolCalls'
 
 describe('extractEmbeddedToolCalls', () => {
   it('парсит JSON tool call без markdown', () => {
@@ -42,5 +42,23 @@ describe('looksLikeEmbeddedToolCall', () => {
 
   it('не помечает обычный ответ', () => {
     expect(looksLikeEmbeddedToolCall('Сейчас посмотрю структуру проекта.')).toBe(false)
+  })
+})
+
+describe('sanitizeAssistantContent', () => {
+  it('убирает битый префикс {"name', () => {
+    expect(sanitizeAssistantContent('{"nameКонечно! Я изучил проект.')).toBe(
+      'Конечно! Я изучил проект.'
+    )
+  })
+
+  it('разворачивает prose из ```json блока', () => {
+    expect(
+      sanitizeAssistantContent('```json\nКонечно! Вот обзор проекта.\n```')
+    ).toBe('Конечно! Вот обзор проекта.')
+  })
+
+  it('убирает валидный tool call JSON', () => {
+    expect(sanitizeAssistantContent('{"name": "list_directory", "arguments": {}}')).toBe('')
   })
 })

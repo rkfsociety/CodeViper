@@ -5,7 +5,7 @@ import type {
   FileNode,
   MemoryCategory
 } from '../../src/types'
-import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall } from '../../shared/toolCalls'
+import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../../shared/toolCalls'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import { readNdjsonLines } from './ndjson'
 import {
@@ -61,6 +61,7 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 Пользователь уже открыл папку проекта — корень и структура указаны ниже. Не проси указать путь к проекту или папке.
 При запросах «изучи код», «посмотри проект» и подобных сразу используй list_directory, read_file и другие инструменты.
 Не выводи вызовы инструментов JSON-текстом в ответе — только через механизм tool calling.
+Не оборачивай обычный текст в блоки \`\`\`json — отвечай обычным текстом.
 Работай только внутри открытого проекта. Отвечай на русском, если пользователь пишет по-русски.
 Используй инструменты для чтения, записи файлов, просмотра структуры и запуска команд.
 Перед правками сначала прочитай файл. Делай минимальные точечные изменения.
@@ -147,9 +148,11 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
   switch (message.role) {
     case 'user':
       return { role: 'user', content: message.content }
-    case 'assistant':
-      if (looksLikeEmbeddedToolCall(message.content)) return null
-      return { role: 'assistant', content: message.content }
+    case 'assistant': {
+      const cleaned = sanitizeAssistantContent(message.content)
+      if (!cleaned || looksLikeEmbeddedToolCall(message.content)) return null
+      return { role: 'assistant', content: cleaned }
+    }
     case 'tool': {
       // UI хранит ▶ (старт) и ✓ (результат); в Ollama нужны только итоги инструментов
       if (message.content.startsWith('▶ ')) return null
@@ -473,10 +476,10 @@ export class AgentRunner {
           throw error
         }
 
-        const assistantText = response.message?.content ?? ''
+        const assistantText = sanitizeAssistantContent(response.message?.content ?? '')
         const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
 
-        if (assistantText.trim()) {
+        if (assistantText) {
           messages.push({ role: 'assistant', content: assistantText })
         }
 
@@ -565,7 +568,10 @@ export class AgentRunner {
       const piece = message?.content
       if (piece) {
         content += piece
-        if (!looksLikeEmbeddedToolCall(content)) {
+        const visible = sanitizeAssistantContent(content)
+        const embedded = extractEmbeddedToolCalls(content)
+        const isPureToolCall = embedded.toolCalls.length > 0 && !embedded.content.trim()
+        if (!isPureToolCall && visible) {
           this.emit({ type: 'token', content: piece })
         }
       }
@@ -576,7 +582,7 @@ export class AgentRunner {
     }
 
     const embedded = extractEmbeddedToolCalls(content)
-    content = embedded.content
+    content = sanitizeAssistantContent(embedded.content)
     for (const call of embedded.toolCalls) {
       toolCalls.push({
         function: {
@@ -600,7 +606,7 @@ export class AgentRunner {
     switch (name) {
       case 'list_directory': {
         const tree = await buildFileTree(projectPath)
-        return JSON.stringify(tree, null, 2)
+        return formatFileTree(tree) || '(пусто)'
       }
       case 'read_file': {
         return safeReadFile(projectPath, args.path)
