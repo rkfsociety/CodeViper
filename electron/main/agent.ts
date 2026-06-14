@@ -1,4 +1,10 @@
-import type { AgentSettings, AgentStreamPayload, ChatMessage, MemoryCategory } from '../../src/types'
+import type {
+  AgentSettings,
+  AgentStreamPayload,
+  ChatMessage,
+  FileNode,
+  MemoryCategory
+} from '../../src/types'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import {
   addMemory,
@@ -65,6 +71,8 @@ function parseToolArgs(args: Record<string, string> | string): Record<string, st
 }
 
 const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент для программирования.
+Пользователь уже открыл папку проекта — корень и структура указаны ниже. Не проси указать путь к проекту или папке.
+При запросах «изучи код», «посмотри проект» и подобных сразу используй list_directory, read_file и другие инструменты.
 Работай только внутри открытого проекта. Отвечай на русском, если пользователь пишет по-русски.
 Используй инструменты для чтения, записи файлов, просмотра структуры и запуска команд.
 Перед правками сначала прочитай файл. Делай минимальные точечные изменения.
@@ -78,15 +86,57 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 - Обновляй .codeviper/rules.md через write_file для постоянных правил проекта.
 - После успешной задачи сохраняй 1–2 важных урока, если они пригодятся в будущем.`
 
+const MAX_PROJECT_TREE_CHARS = 6000
+
+function formatFileTree(nodes: FileNode[], prefix = ''): string {
+  const lines: string[] = []
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]
+    const last = i === nodes.length - 1
+    const branch = last ? '└── ' : '├── '
+    lines.push(`${prefix}${branch}${node.name}${node.isDirectory ? '/' : ''}`)
+
+    if (node.children?.length) {
+      lines.push(formatFileTree(node.children, `${prefix}${last ? '    ' : '│   '}`))
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function buildProjectContext(projectPath: string, treeText: string): string {
+  return `# Открытый проект
+Корень: ${projectPath}
+run_command выполняется в корне проекта.
+read_file / write_file принимают абсолютные пути к файлам внутри проекта.
+
+Структура (до 3 уровней, без node_modules и .git):
+${treeText || '(пусто)'}`
+}
+
+function buildSystemPrompt(
+  projectPath: string,
+  memoryContext: string,
+  projectTreeText: string
+): string {
+  const parts = [BASE_SYSTEM_PROMPT]
+
+  if (projectPath.trim()) {
+    parts.push(buildProjectContext(projectPath, projectTreeText))
+  }
+
+  if (memoryContext.trim()) {
+    parts.push(`# Память и правила\n${memoryContext}`)
+  }
+
+  return parts.join('\n\n')
+}
+
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
 [{"content": "краткий урок", "category": "pattern|mistake|preference|project|skill", "tags": ["тег"]}]
 Если уроков нет — верни [].
 Только JSON, без пояснений.`
-
-function buildSystemPrompt(memoryContext: string): string {
-  if (!memoryContext.trim()) return BASE_SYSTEM_PROMPT
-  return `${BASE_SYSTEM_PROMPT}\n\n# Память и правила\n${memoryContext}`
-}
 
 function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
   switch (message.role) {
@@ -221,9 +271,20 @@ export class AgentRunner {
   ) {}
 
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
-    const memoryContext = await buildMemoryContext(this.settings.projectPath, userMessage)
+    const { projectPath } = this.settings
+    const memoryContext = await buildMemoryContext(projectPath, userMessage)
+
+    let projectTreeText = ''
+    if (projectPath.trim()) {
+      const tree = await buildFileTree(projectPath)
+      projectTreeText = formatFileTree(tree)
+      if (projectTreeText.length > MAX_PROJECT_TREE_CHARS) {
+        projectTreeText = `${projectTreeText.slice(0, MAX_PROJECT_TREE_CHARS)}\n… (обрезано)`
+      }
+    }
+
     const messages: OllamaMessage[] = [
-      { role: 'system', content: buildSystemPrompt(memoryContext) },
+      { role: 'system', content: buildSystemPrompt(projectPath, memoryContext, projectTreeText) },
       ...history
         .map(mapHistoryMessageToOllama)
         .filter((m): m is OllamaMessage => m !== null),
