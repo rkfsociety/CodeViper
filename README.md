@@ -54,32 +54,10 @@ cd CodeViper
 npm install
 ```
 
-Дальше — **двойной клик**, без терминала каждый раз:
+**Повседневный запуск** — двойной клик по **`CodeViper.cmd`** в корне репозитория (единственный launcher-файл). Консоль не показывается.
 
-| Файл | Что это | Когда |
-|---|---|---|
-| **`CodeViper.exe`** | Готовое окно приложения (portable) | Повседневная работа |
-| **`CodeViper.cmd`** | Запуск из исходников **без консоли** (скрытый) | Повседневная работа из папки репо |
-
-#### CodeViper.exe (рекомендуется)
-
-Первый раз собери exe (нужен Node.js):
-
-```powershell
-.\rebuild-exe.bat
-# или: npm run app:exe
-```
-
-Появится **`CodeViper.exe`** в корне — запускай двойным кликом. Ollama должна быть в трее.
-
-После изменений кода снова запусти `rebuild-exe.bat`.
-
-#### CodeViper.cmd (без сборки, без консоли)
-
-Двойной клик по **`CodeViper.cmd`** — скрытый запуск `npm run dev` (окно терминала не показывается).
-
-Для отладки с консолью: `CodeViper.cmd console`  
-Лог: `%LOCALAPPDATA%\CodeViper\launch.log`
+- Отладка с консолью: `CodeViper.cmd console`
+- Лог скрытого запуска: `%LOCALAPPDATA%\CodeViper\launch.log`
 
 Ollama должна быть установлена и запущена отдельно — CodeViper подключается к ней по `http://127.0.0.1:11434`.
 
@@ -180,7 +158,6 @@ npm run dev        # GUI + hot reload (или двойной клик CodeViper.
 npm run build      # сборка в out/
 npm start          # запуск собранной версии
 npm run typecheck  # проверка TypeScript
-npm run app:exe    # собрать CodeViper.exe (portable)
 ```
 
 ## Сравнение с Cursor
