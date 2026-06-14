@@ -1,23 +1,9 @@
 @echo off
-chcp 65001 >nul
-cd /d "%~dp0"
-
-where node >nul 2>&1
-if errorlevel 1 (
-  msg %username% "Node.js не найден. Установите с https://nodejs.org и перезапустите."
-  exit /b 1
+rem Скрытый запуск без консоли. Для отладки: CodeViper.cmd console
+if /i "%~1"=="console" (
+  cd /d "%~dp0"
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-dev.ps1"
+  exit /b %ERRORLEVEL%
 )
 
-if not exist node_modules (
-  echo [CodeViper] Первый запуск — npm install...
-  call npm install
-  if errorlevel 1 (
-    msg %username% "npm install не удался. Откройте папку в терминале и проверьте ошибку."
-    exit /b 1
-  )
-)
-
-title CodeViper
-echo [CodeViper] Запуск...
-call npm run dev
-if errorlevel 1 pause
+wscript.exe //nologo "%~dp0CodeViper.launch.vbs"
