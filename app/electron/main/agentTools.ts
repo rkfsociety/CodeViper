@@ -124,7 +124,8 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'create_skill',
-      description: 'Создать новый навык (по запросу пользователя): инструкции поведения, триггеры',
+      description:
+        'Создать навык агента (сохраняется в ViperSkills.md). По умолчанию scope: global — переживает перезапуск.',
       parameters: {
         type: 'object',
         properties: {
@@ -138,7 +139,10 @@ export const AGENT_TOOLS = [
             type: 'string',
             description: 'Слова-триггеры через запятую (todo, задачи, план...)'
           },
-          scope: { type: 'string', description: 'global — для всего агента; project — для проекта в чате' },
+          scope: {
+            type: 'string',
+            description: 'global (по умолчанию) — навык агента; project — только для текущего репозитория'
+          },
           id: { type: 'string', description: 'Необязательный id (slug)' }
         },
         required: ['name', 'description', 'instructions']

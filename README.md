@@ -133,14 +133,14 @@ Ollama должна быть установлена и запущена отде
 | Глобальные знания (паттерны, навыки) | `%APPDATA%/CodeViper/ViperMemory.md` |
 | Знания проекта | `{проект}/.codeviper/ViperMemory.md` |
 | Правила проекта | `{проект}/.codeviper/rules.md` |
-| **Навыки (skills)** | `%APPDATA%/CodeViper/skills.json` и `{проект}/.codeviper/skills.json` |
+| **Навыки (skills)** | `%APPDATA%/CodeViper/ViperSkills.md` (global, по умолчанию) и `{проект}/.codeviper/ViperSkills.md` (scope: project) |
 | **Viper Memory** (встроенный skill) | `viper-memory` — remember / search_memory / forget → **ViperMemory.md** |
 | **Данные навыков** (todo, состояние) | `%APPDATA%/CodeViper/skill-data/` и `{проект}/.codeviper/skill-data/` |
 
 **Как это работает:**
 1. Перед задачей агент подгружает релевантные знания и **активные skills** в системный промпт
 2. Во время работы: `remember`, `search_memory`, `forget`
-3. **По запросу** («сделай skill для todo», «улучши себя»): `create_skill`, `update_skill`, `read_skill`, `read_skill_data`, `write_skill_data`
+3. **По запросу** («сделай skill для todo», «улучши себя»): `create_skill` (по умолчанию **global** → ViperSkills.md), `update_skill`, `read_skill`
 4. После задачи с инструментами — автоматическая рефлексия (если включено «Самообучение»)
 
 **Примеры запросов:**

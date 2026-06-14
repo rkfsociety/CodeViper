@@ -9,7 +9,7 @@ vi.mock('electron', () => ({
 }))
 
 import { ensureDefaultSkills, VIPER_MEMORY_SKILL_ID } from '../electron/main/defaultSkills'
-import { getSkill, listSkills } from '../electron/main/skills'
+import { getSkill, listSkills, SKILLS_FILENAME } from '../electron/main/skills'
 
 beforeEach(() => {
   rmSync(USER_DATA, { recursive: true, force: true })
@@ -38,7 +38,7 @@ describe('ensureDefaultSkills', () => {
 
   it('сохраняет skills.json в userData', async () => {
     await ensureDefaultSkills()
-    const path = join(USER_DATA, 'skills.json')
+    const path = join(USER_DATA, 'ViperSkills.md')
     expect(existsSync(path)).toBe(true)
     const raw = readFileSync(path, 'utf-8')
     expect(raw).toContain(VIPER_MEMORY_SKILL_ID)

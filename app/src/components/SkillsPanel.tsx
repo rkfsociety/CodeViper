@@ -35,8 +35,8 @@ export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
       </div>
 
       <div className="empty skills-hint">
-        По запросу агент создаёт skills: todo-лист, чеклисты, форматы работы. Скажи в чате:
-        «сделай skill для todo» или «улучши себя».
+        Навыки сохраняются в %APPDATA%/CodeViper/ViperSkills.md (global) и переживают перезапуск.
+        Скажи: «сделай skill для todo» или «улучши себя».
       </div>
 
       {!skills.length && !loading && (
