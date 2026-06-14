@@ -64,6 +64,7 @@ import {
   grepInTree
 } from './fileSearch'
 import { buildModelfile, parseTrainingData, prepareModelFromTrainingFile } from './ollamaModels'
+import { compressContextMessages } from './contextSummarizer'
 import { readNdjsonLines } from './ndjson'
 import {
   addMemory,
@@ -175,11 +176,18 @@ export class AgentRunner {
       history,
       userMessage,
       this.settings.model,
-      autonomousSelfImprove
+      autonomousSelfImprove,
+      { ollamaUrl: this.settings.ollamaUrl, signal: this.signal }
     )
     this.throwIfAborted()
 
     this.emit({ type: 'context', contextPreview: prepared.preview })
+    if (prepared.preview.historySummarized) {
+      this.emit({
+        type: 'context',
+        content: `📋 Контекст ~${prepared.preview.contextUsagePercent}% — предыдущая история суммаризирована`
+      })
+    }
 
     if (autonomousSelfImprove) {
       this.emit({
@@ -377,6 +385,26 @@ export class AgentRunner {
   }
 
   private async chat(messages: OllamaMessage[], options?: { requireTool?: boolean }) {
+    this.throwIfAborted()
+
+    const compression = await compressContextMessages({
+      messages,
+      model: this.settings.model,
+      toolsJsonChars: JSON.stringify(AGENT_TOOLS).length,
+      ollamaUrl: this.settings.ollamaUrl,
+      signal: this.signal
+    })
+
+    if (compression.summarized || compression.droppedMessageCount > 0) {
+      messages.splice(0, messages.length, ...compression.messages)
+      if (compression.summarized) {
+        this.emit({
+          type: 'context',
+          content: `📋 Контекст ~${compression.usagePercent}% — суммаризация в ходе задачи`
+        })
+      }
+    }
+
     const res = await fetch(`${this.settings.ollamaUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

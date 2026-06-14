@@ -12,6 +12,13 @@ import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
 import { AGENT_TOOLS, formatAgentToolsSummary } from './agentTools'
 import { SELF_IMPROVEMENT_MODE_PROMPT } from '../../shared/selfImprovement'
+import {
+  computeContextUsage,
+  estimateMessageChars,
+  estimateTokensFromChars,
+  MAX_TOOL_MESSAGE_CHARS
+} from '../../shared/contextLimits'
+import { compressContextMessages } from './contextSummarizer'
 
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -58,9 +65,7 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 Обновляй .codeviper/rules.md через write_file для правил **рабочего проекта** в чате.`
 
 export const MAX_PROJECT_TREE_CHARS = 6000
-const MAX_HISTORY_CHARS = 28_000
 const MIN_RECENT_MESSAGES = 8
-const MAX_TOOL_MESSAGE_CHARS = 4_000
 
 export function formatFileTree(nodes: FileNode[], prefix = ''): string {
   const lines: string[] = []
@@ -151,8 +156,8 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
   }
 }
 
-function estimateMessageChars(message: OllamaMessage): number {
-  return message.content.length + 24
+function estimateMessageCharsLocal(message: OllamaMessage): number {
+  return estimateMessageChars(message.content)
 }
 
 export function trimHistoryForContext(history: ChatMessage[]): {
@@ -168,8 +173,9 @@ export function trimHistoryForContext(history: ChatMessage[]): {
   let truncated = false
 
   while (mapped.length > MIN_RECENT_MESSAGES) {
-    const total = mapped.reduce((sum, message) => sum + estimateMessageChars(message), 0)
-    if (total <= MAX_HISTORY_CHARS) break
+    const total = mapped.reduce((sum, message) => sum + estimateMessageCharsLocal(message), 0)
+    const usage = computeContextUsage(total, 'qwen2.5-coder:7b')
+    if (!usage.shouldSummarize) break
 
     const dropCount = Math.min(2, mapped.length - MIN_RECENT_MESSAGES)
     mapped = mapped.slice(dropCount)
@@ -184,7 +190,12 @@ export function trimHistoryForContext(history: ChatMessage[]): {
 }
 
 export function estimateTokens(charCount: number): number {
-  return Math.ceil(charCount / 3.5)
+  return estimateTokensFromChars(charCount)
+}
+
+export interface PrepareAgentContextOptions {
+  ollamaUrl?: string
+  signal?: AbortSignal
 }
 
 function section(id: string, title: string, content: string, subtitle?: string): AgentContextSection {
@@ -224,7 +235,8 @@ export async function buildAgentContextPreview(
   history: ChatMessage[],
   userMessage: string,
   model: string,
-  selfImproveMode = false
+  selfImproveMode = false,
+  options: PrepareAgentContextOptions = {}
 ): Promise<AgentContextPreview> {
   const memorySkillsContext = await buildAgentContext(projectPath, userMessage)
 
@@ -237,18 +249,47 @@ export async function buildAgentContextPreview(
     }
   }
 
-  const { messages: trimmedHistory, truncated, droppedMessageCount } = trimHistoryForContext(history)
   let systemContent = buildSystemPrompt(projectPath, memorySkillsContext, projectTreeText, selfImproveMode)
-  if (truncated) {
-    systemContent +=
-      '\n\n[Часть старой истории чата опущена из-за лимита контекста модели. Опирайся на последние сообщения.]'
-  }
 
-  const ollamaMessages: OllamaMessage[] = [
+  const mappedHistory = history
+    .map(mapHistoryMessageToOllama)
+    .filter((m): m is OllamaMessage => m !== null)
+
+  const toolsJsonChars = JSON.stringify(AGENT_TOOLS).length
+  const initialMessages: OllamaMessage[] = [
     { role: 'system', content: systemContent },
-    ...trimmedHistory,
+    ...mappedHistory,
     { role: 'user', content: userMessage }
   ]
+
+  const compressed = await compressContextMessages({
+    messages: initialMessages,
+    model,
+    toolsJsonChars,
+    ollamaUrl: options.ollamaUrl,
+    signal: options.signal
+  })
+
+  const ollamaMessages = compressed.messages
+  if (compressed.truncated && !compressed.summarized) {
+    const systemIndex = ollamaMessages.findIndex((message) => message.role === 'system')
+    if (systemIndex >= 0) {
+      ollamaMessages[systemIndex] = {
+        role: 'system',
+        content: `${ollamaMessages[systemIndex].content}\n\n[Часть старой истории чата опущена из-за лимита контекста. Опирайся на последние сообщения и сводку.]`
+      }
+    }
+  }
+
+  if (compressed.summarized) {
+    const systemIndex = ollamaMessages.findIndex((message) => message.role === 'system')
+    if (systemIndex >= 0) {
+      ollamaMessages[systemIndex] = {
+        role: 'system',
+        content: `${ollamaMessages[systemIndex].content}\n\n[Старая история чата суммаризирована автоматически — опирайся на сводку и последние сообщения.]`
+      }
+    }
+  }
 
   const selfEditContent = buildSelfEditContext()
   const projectContent = projectPath.trim() ? buildProjectContext(projectPath, projectTreeText) : ''
@@ -280,17 +321,21 @@ export async function buildAgentContextPreview(
   )
 
   const messages = ollamaMessages.map(messagePreview)
-  const toolsJsonChars = JSON.stringify(AGENT_TOOLS).length
   const totalChars =
-    ollamaMessages.reduce((sum, message) => sum + estimateMessageChars(message), 0) + toolsJsonChars
+    ollamaMessages.reduce((sum, message) => sum + estimateMessageCharsLocal(message), 0) +
+    toolsJsonChars
+  const usage = computeContextUsage(totalChars, model)
 
   return {
     model,
     generatedAt: new Date().toISOString(),
     totalChars,
-    estimatedTokens: estimateTokens(totalChars),
-    historyTruncated: truncated,
-    droppedMessageCount,
+    estimatedTokens: usage.estimatedTokens,
+    contextUsagePercent: usage.usagePercent,
+    contextLimitTokens: usage.limitTokens,
+    historyTruncated: compressed.truncated,
+    historySummarized: compressed.summarized,
+    droppedMessageCount: compressed.droppedMessageCount,
     toolCount: AGENT_TOOLS.length,
     sections,
     messages
@@ -302,14 +347,16 @@ export async function prepareAgentRunContext(
   history: ChatMessage[],
   userMessage: string,
   model: string,
-  selfImproveMode = false
+  selfImproveMode = false,
+  options: PrepareAgentContextOptions = {}
 ): Promise<{ messages: OllamaMessage[]; preview: AgentContextPreview }> {
   const preview = await buildAgentContextPreview(
     projectPath,
     history,
     userMessage,
     model,
-    selfImproveMode
+    selfImproveMode,
+    options
   )
   const messages: OllamaMessage[] = preview.messages.map((item) => ({
     role: item.role,

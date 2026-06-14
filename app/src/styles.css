@@ -1275,6 +1275,14 @@ button {
   color: #8b949e;
 }
 
+.context-bar-stat.warning {
+  color: #d29922;
+}
+
+.context-bar-stat.danger {
+  color: #f85149;
+}
+
 .context-chips {
   display: flex;
   align-items: center;

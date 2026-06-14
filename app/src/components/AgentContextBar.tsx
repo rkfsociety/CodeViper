@@ -1,3 +1,4 @@
+import { AgentContextBar } from './AgentContextBar'
 import type { AgentContextPreview } from '../types'
 
 interface Props {
@@ -11,6 +12,12 @@ function formatChars(value: number): string {
   return String(value)
 }
 
+function usageClass(percent: number): string {
+  if (percent >= 95) return 'context-bar-stat danger'
+  if (percent >= 85) return 'context-bar-stat warning'
+  return 'context-bar-stat'
+}
+
 export function AgentContextBar({ preview, loading, onOpen }: Props) {
   if (!preview && !loading) return null
 
@@ -22,8 +29,9 @@ export function AgentContextBar({ preview, loading, onOpen }: Props) {
         {loading ? (
           <span className="context-bar-stat">обновление…</span>
         ) : preview ? (
-          <span className="context-bar-stat">
-            ~{preview.estimatedTokens.toLocaleString('ru-RU')} tok · {formatChars(preview.totalChars)}
+          <span className={usageClass(preview.contextUsagePercent)}>
+            {preview.contextUsagePercent}% · ~{preview.estimatedTokens.toLocaleString('ru-RU')} tok ·{' '}
+            {formatChars(preview.totalChars)}
           </span>
         ) : null}
       </button>
@@ -48,9 +56,19 @@ export function AgentContextBar({ preview, loading, onOpen }: Props) {
               <span>{preview.messages.length - 2}</span>
             </button>
           )}
-          {preview.historyTruncated && (
+          {preview.historySummarized && (
+            <span className="context-chip warning" title="Старая история суммаризирована">
+              Σ сводка
+            </span>
+          )}
+          {preview.historyTruncated && !preview.historySummarized && (
             <span className="context-chip warning" title="Часть истории не попала в контекст">
               −{preview.droppedMessageCount}
+            </span>
+          )}
+          {preview.contextUsagePercent >= 85 && (
+            <span className="context-chip warning" title="Близко к лимиту контекста модели">
+              {preview.contextUsagePercent}%
             </span>
           )}
         </div>

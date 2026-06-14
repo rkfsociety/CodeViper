@@ -68,9 +68,14 @@ export function AgentContextModal({ open, preview, onClose }: Props) {
           <div>
             <h2 id="context-modal-title">Контекст модели</h2>
             <div className="context-modal-meta">
-              {preview.model || 'модель не выбрана'} · ~{preview.estimatedTokens.toLocaleString('ru-RU')}{' '}
-              tok · {formatChars(preview.totalChars)} симв. · {preview.toolCount} инструментов
-              {preview.historyTruncated && (
+              {preview.model || 'модель не выбрана'} · {preview.contextUsagePercent}% /{' '}
+              {preview.contextLimitTokens.toLocaleString('ru-RU')} tok · ~
+              {preview.estimatedTokens.toLocaleString('ru-RU')} tok · {formatChars(preview.totalChars)}{' '}
+              симв. · {preview.toolCount} инструментов
+              {preview.historySummarized && (
+                <span className="context-warning"> · история суммаризирована</span>
+              )}
+              {preview.historyTruncated && !preview.historySummarized && (
                 <span className="context-warning">
                   {' '}
                   · история обрезана (−{preview.droppedMessageCount})

@@ -54,5 +54,7 @@ describe('buildAgentContextPreview', () => {
     expect(preview.messages.at(-1)?.content).toBe('Новая задача')
     expect(preview.totalChars).toBeGreaterThan(0)
     expect(preview.toolCount).toBeGreaterThan(0)
+    expect(preview.contextUsagePercent).toBeGreaterThanOrEqual(0)
+    expect(preview.contextLimitTokens).toBeGreaterThan(0)
   })
 })

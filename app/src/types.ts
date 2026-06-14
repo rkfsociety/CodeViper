@@ -134,7 +134,10 @@ export interface AgentContextPreview {
   generatedAt: string
   totalChars: number
   estimatedTokens: number
+  contextUsagePercent: number
+  contextLimitTokens: number
   historyTruncated: boolean
+  historySummarized: boolean
   droppedMessageCount: number
   toolCount: number
   sections: AgentContextSection[]
