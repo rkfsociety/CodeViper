@@ -36,7 +36,12 @@ const codeviper = {
   },
 
   runTerminalCommand: (cwd: string, command: string) =>
-    ipcRenderer.invoke('run-terminal-command', cwd, command)
+    ipcRenderer.invoke('run-terminal-command', cwd, command),
+
+  listMemories: (projectPath: string) => ipcRenderer.invoke('list-memories', projectPath),
+
+  deleteMemory: (projectPath: string, id: string) =>
+    ipcRenderer.invoke('delete-memory', projectPath, id)
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)

@@ -381,3 +381,83 @@ button {
   font-size: 13px;
   color: #f85149;
 }
+
+.memory-panel {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px;
+  border-top: 1px solid #30363d;
+}
+
+.memory-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #e6edf3;
+}
+
+.memory-section-title {
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.memory-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.memory-item {
+  padding: 8px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  background: #0d1117;
+}
+
+.memory-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.memory-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #21262d;
+  color: #7ee787;
+}
+
+.memory-scope {
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.memory-delete {
+  margin-left: auto;
+  padding: 2px 8px;
+  min-width: auto;
+}
+
+.memory-content {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.memory-tags {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.memory-more {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.message.system pre {
+  border-left: 3px solid #7ee787;
+}

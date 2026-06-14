@@ -5,13 +5,14 @@ interface Props {
   settings: AgentSettings
   projectPath: string
   onMessagesChange: (messages: ChatMessage[]) => void
+  onLearningSaved?: () => void
 }
 
 function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function ChatPanel({ settings, projectPath, onMessagesChange }: Props) {
+export function ChatPanel({ settings, projectPath, onMessagesChange, onLearningSaved }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -66,6 +67,19 @@ export function ChatPanel({ settings, projectPath, onMessagesChange }: Props) {
         ])
       }
 
+      if (event.type === 'learning_saved' && event.content) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: makeId(),
+            role: 'system',
+            content: `🧠 Запомнено: ${event.content}`,
+            timestamp: Date.now()
+          }
+        ])
+        onLearningSaved?.()
+      }
+
       if (event.type === 'done') {
         setDraft((current) => {
           if (current.trim()) {
@@ -86,7 +100,7 @@ export function ChatPanel({ settings, projectPath, onMessagesChange }: Props) {
     })
 
     return unsubscribe
-  }, [])
+  }, [onLearningSaved])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

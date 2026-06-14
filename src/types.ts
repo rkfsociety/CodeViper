@@ -62,14 +62,36 @@ export interface AgentSettings {
   model: string
   projectPath: string
   maxSteps: number
+  selfLearning?: boolean
+}
+
+export type MemoryCategory = 'pattern' | 'mistake' | 'preference' | 'project' | 'skill'
+export type MemoryScope = 'global' | 'project'
+
+export interface MemoryEntry {
+  id: string
+  content: string
+  category: MemoryCategory
+  tags: string[]
+  scope: MemoryScope
+  source?: string
+  createdAt: string
+  lastUsedAt: string
+  useCount: number
+}
+
+export interface MemoryStore {
+  version: 1
+  entries: MemoryEntry[]
 }
 
 export interface AgentStreamEvent {
-  type: 'token' | 'tool_start' | 'tool_end' | 'done' | 'error'
+  type: 'token' | 'tool_start' | 'tool_end' | 'done' | 'error' | 'learning_saved'
   content?: string
   toolName?: string
   toolInput?: string
   toolOutput?: string
+  memoryId?: string
 }
 
 export interface TerminalResult {
@@ -94,6 +116,8 @@ export interface CodeViperAPI {
   ) => Promise<void>
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => () => void
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
+  listMemories: (projectPath: string) => Promise<MemoryEntry[]>
+  deleteMemory: (projectPath: string, id: string) => Promise<boolean>
 }
 
 declare global {

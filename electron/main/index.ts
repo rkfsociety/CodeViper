@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
+import { deleteMemory, listMemories } from './memory'
 import type { AgentSettings, AgentStreamEvent, ChatMessage } from '../../src/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -78,6 +79,12 @@ ipcMain.handle('pull-ollama-model', async (_e, url: string, model: string) => {
 
 ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) =>
   runCommand(cwd, command)
+)
+
+ipcMain.handle('list-memories', async (_e, projectPath: string) => listMemories(projectPath))
+
+ipcMain.handle('delete-memory', async (_e, projectPath: string, id: string) =>
+  deleteMemory(projectPath, id)
 )
 
 ipcMain.handle(

@@ -1,5 +1,12 @@
-import type { AgentSettings, AgentStreamEvent, ChatMessage } from '../../src/types'
+import type { AgentSettings, AgentStreamEvent, ChatMessage, MemoryCategory } from '../../src/types'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
+import {
+  addMemory,
+  buildMemoryContext,
+  deleteMemory,
+  parseReflectionLearnings,
+  searchMemories
+} from './memory'
 
 interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -57,11 +64,29 @@ function parseToolArgs(args: Record<string, string> | string): Record<string, st
   return args
 }
 
-const SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент для программирования.
+const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент для программирования.
 Работай только внутри открытого проекта. Отвечай на русском, если пользователь пишет по-русски.
 Используй инструменты для чтения, записи файлов, просмотра структуры и запуска команд.
 Перед правками сначала прочитай файл. Делай минимальные точечные изменения.
-После выполнения задачи кратко объясни, что сделал.`
+После выполнения задачи кратко объясни, что сделал.
+
+## Самообучение
+Ты можешь улучшать себя со временем:
+- Используй remember, чтобы сохранить полезный паттерн, ошибку, предпочтение пользователя или правило проекта.
+- Используй search_memory, если нужно вспомнить прошлый опыт.
+- Используй forget, если знание устарело.
+- Обновляй .codeviper/rules.md через write_file для постоянных правил проекта.
+- После успешной задачи сохраняй 1–2 важных урока, если они пригодятся в будущем.`
+
+const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
+[{"content": "краткий урок", "category": "pattern|mistake|preference|project|skill", "tags": ["тег"]}]
+Если уроков нет — верни [].
+Только JSON, без пояснений.`
+
+function buildSystemPrompt(memoryContext: string): string {
+  if (!memoryContext.trim()) return BASE_SYSTEM_PROMPT
+  return `${BASE_SYSTEM_PROMPT}\n\n# Память и правила\n${memoryContext}`
+}
 
 const TOOLS = [
   {
@@ -114,6 +139,54 @@ const TOOLS = [
         required: ['command']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'remember',
+      description: 'Сохранить знание для самообучения (паттерн, ошибка, предпочтение, правило проекта)',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: { type: 'string', description: 'Краткое знание для запоминания' },
+          category: {
+            type: 'string',
+            description: 'pattern | mistake | preference | project | skill'
+          },
+          tags: { type: 'string', description: 'Теги через запятую (необязательно)' },
+          scope: { type: 'string', description: 'global | project (по умолчанию auto)' }
+        },
+        required: ['content', 'category']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_memory',
+      description: 'Найти сохранённые знания по ключевым словам',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Поисковый запрос' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'forget',
+      description: 'Удалить устаревшее знание по id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'ID записи из remember/search_memory' }
+        },
+        required: ['id']
+      }
+    }
   }
 ]
 
@@ -124,8 +197,9 @@ export class AgentRunner {
   ) {}
 
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
+    const memoryContext = await buildMemoryContext(this.settings.projectPath, userMessage)
     const messages: OllamaMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: buildSystemPrompt(memoryContext) },
       ...history
         .filter((m) => m.role === 'user' || m.role === 'assistant')
         .map((m) => ({
@@ -134,6 +208,8 @@ export class AgentRunner {
         })),
       { role: 'user', content: userMessage }
     ]
+
+    let usedTools = false
 
     for (let step = 0; step < this.settings.maxSteps; step++) {
       const response = await this.chat(messages)
@@ -145,9 +221,14 @@ export class AgentRunner {
       }
 
       if (!toolCalls.length) {
+        if (this.settings.selfLearning !== false) {
+          await this.reflectAndLearn(messages, userMessage, usedTools)
+        }
         this.emit({ type: 'done' })
         return
       }
+
+      usedTools = true
 
       for (const call of toolCalls) {
         const name = call.function.name
@@ -255,8 +336,70 @@ export class AgentRunner {
           .filter(Boolean)
           .join('\n')
       }
+      case 'remember': {
+        const entry = await addMemory(projectPath, {
+          content: args.content,
+          category: args.category as MemoryCategory,
+          tags: args.tags,
+          source: args.source,
+          scope: args.scope === 'project' || args.scope === 'global' ? args.scope : undefined
+        })
+        this.emit({
+          type: 'learning_saved',
+          content: entry.content,
+          memoryId: entry.id
+        })
+        return `Запомнено [${entry.category}/${entry.scope}]: ${entry.content} (id: ${entry.id})`
+      }
+      case 'search_memory': {
+        const results = await searchMemories(projectPath, args.query, 10)
+        return JSON.stringify(results, null, 2)
+      }
+      case 'forget': {
+        const removed = await deleteMemory(projectPath, args.id)
+        return removed ? `Забыто: ${args.id}` : `Запись не найдена: ${args.id}`
+      }
       default:
         return `Неизвестный инструмент: ${name}`
+    }
+  }
+
+  private async reflectAndLearn(
+    messages: OllamaMessage[],
+    userMessage: string,
+    usedTools: boolean
+  ): Promise<void> {
+    if (!usedTools) return
+
+    try {
+      const res = await fetch(`${this.settings.ollamaUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.settings.model,
+          messages: [...messages, { role: 'user', content: REFLECTION_PROMPT }],
+          stream: false
+        })
+      })
+
+      if (!res.ok) return
+
+      const data = (await res.json()) as { message?: { content?: string } }
+      const learnings = parseReflectionLearnings(data.message?.content ?? '')
+
+      for (const learning of learnings) {
+        const entry = await addMemory(this.settings.projectPath, {
+          ...learning,
+          source: userMessage.slice(0, 120)
+        })
+        this.emit({
+          type: 'learning_saved',
+          content: entry.content,
+          memoryId: entry.id
+        })
+      }
+    } catch {
+      // рефлексия необязательна
     }
   }
 }

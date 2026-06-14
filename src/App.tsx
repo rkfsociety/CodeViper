@@ -4,12 +4,14 @@ import { FileTree } from './components/FileTree'
 import { ChatPanel } from './components/ChatPanel'
 import { TerminalPanel } from './components/TerminalPanel'
 import { ModelPanel } from './components/ModelPanel'
+import { MemoryPanel } from './components/MemoryPanel'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
   projectPath: '',
-  maxSteps: 12
+  maxSteps: 12,
+  selfLearning: true
 }
 
 export default function App() {
@@ -19,6 +21,7 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState<string>()
   const [filePreview, setFilePreview] = useState('')
   const [, setMessages] = useState<ChatMessage[]>([])
+  const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
 
   async function refreshOllama() {
     const online = await window.codeviper.checkOllama(settings.ollamaUrl)
@@ -110,6 +113,7 @@ export default function App() {
             settings={settings}
             projectPath={settings.projectPath}
             onMessagesChange={setMessages}
+            onLearningSaved={() => setMemoryRefreshKey((key) => key + 1)}
           />
         </section>
 
@@ -151,6 +155,15 @@ export default function App() {
                 }
               />
             </label>
+
+            <MemoryPanel
+              projectPath={settings.projectPath}
+              selfLearning={settings.selfLearning !== false}
+              onSelfLearningChange={(selfLearning) =>
+                setSettings((prev) => ({ ...prev, selfLearning }))
+              }
+              refreshKey={memoryRefreshKey}
+            />
           </div>
 
           {!ollamaOnline && (
