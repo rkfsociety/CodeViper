@@ -8,8 +8,6 @@ import type {
   SavedChat
 } from '../../src/types'
 
-type AutocompleteSettings = Pick<AgentSettings, 'ollamaUrl' | 'model'>
-
 const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
     ipcRenderer.invoke('select-project-folder'),
@@ -84,10 +82,7 @@ const codeviper = {
   setActiveChat: (id: string | null) => ipcRenderer.invoke('set-active-chat', id),
 
   moveChatToFolder: (chatId: string, folderId: string | null) =>
-    ipcRenderer.invoke('move-chat-to-folder', chatId, folderId),
-
-  autocomplete: (settings: AutocompleteSettings, prefix: string, suffix: string) =>
-    ipcRenderer.invoke('autocomplete', settings, prefix, suffix)
+    ipcRenderer.invoke('move-chat-to-folder', chatId, folderId)
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)

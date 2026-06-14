@@ -178,11 +178,6 @@ export interface CodeViperAPI {
   deleteChatFolder: (id: string) => Promise<void>
   setActiveChat: (id: string | null) => Promise<void>
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
-  autocomplete: (
-    settings: Pick<AgentSettings, 'ollamaUrl' | 'model'>,
-    prefix: string,
-    suffix: string
-  ) => Promise<string>
 }
 
 declare global {

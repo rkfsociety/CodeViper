@@ -15,7 +15,6 @@ import {
   setActiveChat,
   updateChat
 } from './chats'
-import { autocomplete, type AutocompleteSettings } from './autocomplete'
 import type { AgentSettings, AgentStreamEvent, ChatMessage, SavedChat } from '../../src/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -135,12 +134,6 @@ ipcMain.handle('set-active-chat', async (_e, id: string | null) => setActiveChat
 
 ipcMain.handle('move-chat-to-folder', async (_e, chatId: string, folderId: string | null) =>
   moveChatToFolder(chatId, folderId)
-)
-
-ipcMain.handle(
-  'autocomplete',
-  async (_e, settings: AutocompleteSettings, prefix: string, suffix: string) =>
-    autocomplete(settings, prefix, suffix)
 )
 
 ipcMain.handle(
