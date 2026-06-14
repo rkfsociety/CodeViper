@@ -29,7 +29,7 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /\bnet\s+localgroup\b/i
 ]
 
-function validateCommand(command: string): string | null {
+export function validateCommand(command: string): string | null {
   const trimmed = command.trim()
   if (!trimmed) return 'Пустая команда'
   if (trimmed.length > MAX_COMMAND_LEN) return 'Команда слишком длинная'

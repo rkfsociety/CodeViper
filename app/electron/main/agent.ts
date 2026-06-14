@@ -83,7 +83,7 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
+export function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
   if (typeof args === 'string') {
     return JSON.parse(args) as Record<string, string>
   }
@@ -442,6 +442,7 @@ const TOOLS = [
 export class AgentRunner {
   constructor(
     private settings: AgentSettings,
+    private projectPath: string,
     private emit: (event: AgentStreamPayload) => void,
     private signal?: AbortSignal
   ) {}
@@ -460,7 +461,7 @@ export class AgentRunner {
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
     this.throwIfAborted()
 
-    const { projectPath } = this.settings
+    const { projectPath } = this
     const agentContext = await buildAgentContext(projectPath, userMessage)
     this.throwIfAborted()
 
@@ -612,7 +613,7 @@ export class AgentRunner {
   }
 
   private async executeTool(name: string, args: Record<string, string>): Promise<string> {
-    const { projectPath } = this.settings
+    const { projectPath } = this
 
     switch (name) {
       case 'list_directory': {
@@ -743,7 +744,7 @@ export class AgentRunner {
       const learnings = parseReflectionLearnings(data.message?.content ?? '')
 
       for (const learning of learnings) {
-        const entry = await addMemory(this.settings.projectPath, {
+        const entry = await addMemory(this.projectPath, {
           ...learning,
           source: userMessage.slice(0, 120)
         })

@@ -117,8 +117,8 @@ ipcMain.handle('delete-skill', async (_e, projectPath: string, id: string) =>
 
 ipcMain.handle('get-chat-store', async () => getChatStore())
 
-ipcMain.handle('create-chat', async (_e, projectPath: string, folderId?: string | null) =>
-  createChat(projectPath, folderId ?? null)
+ipcMain.handle('create-chat', async (_e, folderId?: string | null) =>
+  createChat(folderId ?? null)
 )
 
 ipcMain.handle(
@@ -161,6 +161,7 @@ ipcMain.handle(
   async (
     _e,
     settings: AgentSettings,
+    projectPath: string,
     chatId: string,
     history: ChatMessage[],
     userMessage: string
@@ -173,6 +174,7 @@ ipcMain.handle(
     activeAgentAbort = new AbortController()
     const runner = new AgentRunner(
       settings,
+      projectPath,
       (event) => stream(chatId, event),
       activeAgentAbort.signal
     )

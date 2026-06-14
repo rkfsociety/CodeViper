@@ -3,7 +3,6 @@ import type { ChatStore, SavedChat } from '../types'
 
 interface Props {
   store: ChatStore | null
-  projectPath: string
   activeChatId: string | null
   chatBusy: boolean
   onSelectChat: (id: string) => void
@@ -17,6 +16,7 @@ interface Props {
 }
 
 function formatProject(path: string): string {
+  if (!path.trim()) return 'без проекта'
   const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
   return parts[parts.length - 1] ?? path
 }
@@ -34,7 +34,6 @@ function promptText(label: string, value: string): string | null {
 
 export function ChatHistoryPanel({
   store,
-  projectPath,
   activeChatId,
   chatBusy,
   onSelectChat,
@@ -46,27 +45,21 @@ export function ChatHistoryPanel({
   onRenameFolder,
   onMoveChat
 }: Props) {
-  const [showAll, setShowAll] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-
-  const visibleChats = useMemo(() => {
-    if (!store) return []
-    if (showAll || !projectPath) return store.chats
-    return store.chats.filter((chat) => chat.projectPath === projectPath)
-  }, [store, showAll, projectPath])
 
   const chatsByFolder = useMemo(() => {
     const map = new Map<string | null, SavedChat[]>()
-    for (const chat of visibleChats) {
+    for (const chat of store?.chats ?? []) {
       const key = chat.folderId
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(chat)
     }
     return map
-  }, [visibleChats])
+  }, [store])
 
   const folders = store?.folders ?? []
   const rootChats = chatsByFolder.get(null) ?? []
+  const allChats = store?.chats ?? []
 
   function toggleFolder(folderId: string) {
     setCollapsed((prev) => ({ ...prev, [folderId]: !prev[folderId] }))
@@ -129,22 +122,13 @@ export function ChatHistoryPanel({
   return (
     <div className="chat-history">
       <div className="chat-history-toolbar">
-        <button className="btn primary" onClick={() => onCreateChat(null)} disabled={!projectPath || chatBusy}>
+        <button className="btn primary" onClick={() => onCreateChat(null)} disabled={chatBusy}>
           + Чат
         </button>
         <button className="btn" onClick={onCreateFolder}>
           + Папка
         </button>
       </div>
-
-      <label className="chat-history-filter">
-        <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
-        Все чаты
-      </label>
-
-      {!projectPath && (
-        <div className="chat-history-hint">Открой проект, чтобы создавать новые чаты</div>
-      )}
 
       <div className="chat-history-list">
         {folders.map((folder) => {
@@ -170,7 +154,7 @@ export function ChatHistoryPanel({
                 <button
                   className="btn chat-history-btn"
                   title="Новый чат в папке"
-                  disabled={!projectPath || chatBusy}
+                  disabled={chatBusy}
                   onClick={() => onCreateChat(folder.id)}
                 >
                   +
@@ -199,7 +183,7 @@ export function ChatHistoryPanel({
           </div>
         )}
 
-        {!visibleChats.length && (
+        {!allChats.length && (
           <div className="empty">Нет чатов. Создай первый — кнопка «+ Чат».</div>
         )}
       </div>

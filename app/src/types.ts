@@ -84,7 +84,6 @@ export const RECOMMENDED_MODELS: RecommendedModel[] = [
 export interface AgentSettings {
   ollamaUrl: string
   model: string
-  projectPath: string
   maxSteps: number
   selfLearning?: boolean
 }
@@ -161,6 +160,7 @@ export interface CodeViperAPI {
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => () => void
   runAgent: (
     settings: AgentSettings,
+    projectPath: string,
     chatId: string,
     messages: ChatMessage[],
     userMessage: string
@@ -176,7 +176,7 @@ export interface CodeViperAPI {
   listSkills: (projectPath: string) => Promise<AgentSkill[]>
   deleteSkill: (projectPath: string, id: string) => Promise<boolean>
   getChatStore: () => Promise<ChatStore>
-  createChat: (projectPath: string, folderId?: string | null) => Promise<SavedChat>
+  createChat: (folderId?: string | null) => Promise<SavedChat>
   updateChat: (
     id: string,
     patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath'>>

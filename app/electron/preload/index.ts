@@ -34,10 +34,11 @@ const codeviper = {
 
   runAgent: (
     settings: AgentSettings,
+    projectPath: string,
     chatId: string,
     messages: ChatMessage[],
     userMessage: string
-  ) => ipcRenderer.invoke('run-agent', settings, chatId, messages, userMessage),
+  ) => ipcRenderer.invoke('run-agent', settings, projectPath, chatId, messages, userMessage),
 
   getAgentRunState: () => ipcRenderer.invoke('get-agent-run-state'),
 
@@ -68,8 +69,8 @@ const codeviper = {
 
   getChatStore: () => ipcRenderer.invoke('get-chat-store'),
 
-  createChat: (projectPath: string, folderId?: string | null) =>
-    ipcRenderer.invoke('create-chat', projectPath, folderId ?? null),
+  createChat: (folderId?: string | null) =>
+    ipcRenderer.invoke('create-chat', folderId ?? null),
 
   updateChat: (
     id: string,

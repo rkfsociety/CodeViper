@@ -8,7 +8,6 @@ export interface PersistedSettings {
   version: 1
   ollamaUrl: string
   model: string
-  projectPath: string
   maxSteps: number
   selfLearning: boolean
 }
@@ -21,7 +20,6 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   version: 1,
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
-  projectPath: '',
   maxSteps: 12,
   selfLearning: true
 }
@@ -31,7 +29,6 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     version: 1,
     ollamaUrl: settings.ollamaUrl?.trim() || DEFAULT_SETTINGS.ollamaUrl,
     model: settings.model?.trim() ?? '',
-    projectPath: settings.projectPath?.trim() ?? '',
     maxSteps:
       typeof settings.maxSteps === 'number' && settings.maxSteps >= 3 && settings.maxSteps <= 30
         ? settings.maxSteps

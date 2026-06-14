@@ -7,6 +7,7 @@ import { SkillsPanel } from './SkillsPanel'
 interface Props {
   open: boolean
   settings: AgentSettings
+  chatProjectPath: string
   ollamaOnline: boolean
   models: OllamaModel[]
   memoryRefreshKey: number
@@ -20,6 +21,7 @@ interface Props {
 export function SettingsModal({
   open,
   settings,
+  chatProjectPath,
   ollamaOnline,
   models,
   memoryRefreshKey,
@@ -88,13 +90,13 @@ export function SettingsModal({
           </label>
 
           <MemoryPanel
-            projectPath={settings.projectPath}
+            projectPath={chatProjectPath}
             selfLearning={settings.selfLearning !== false}
             onSelfLearningChange={onSelfLearningChange}
             refreshKey={memoryRefreshKey}
           />
 
-          <SkillsPanel projectPath={settings.projectPath} refreshKey={skillsRefreshKey} />
+          <SkillsPanel projectPath={chatProjectPath} refreshKey={skillsRefreshKey} />
         </div>
 
         {!ollamaOnline && (

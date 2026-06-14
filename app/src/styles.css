@@ -264,9 +264,38 @@ button {
   color: #79c0ff;
 }
 
+.chat-project-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #30363d;
+  background: #161b22;
+}
+
+.chat-project-info {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.chat-project-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chat-project-path {
+  font-size: 11px;
+  color: #8b949e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chat-main {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr auto;
   min-height: 0;
 }
 

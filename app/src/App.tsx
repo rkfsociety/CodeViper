@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
@@ -8,7 +8,6 @@ import { SettingsModal } from './components/SettingsModal'
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
-  projectPath: '',
   maxSteps: 12,
   selfLearning: true
 }
@@ -38,6 +37,12 @@ export default function App() {
 
   activeChatIdRef.current = activeChatId
   messagesRef.current = messages
+
+  const activeChat = useMemo(
+    () => chatStore?.chats.find((chat) => chat.id === activeChatId) ?? null,
+    [chatStore, activeChatId]
+  )
+  const activeProjectPath = activeChat?.projectPath ?? ''
 
   const flushCurrentChat = useCallback(async () => {
     const chatId = activeChatIdRef.current
@@ -121,10 +126,12 @@ export default function App() {
     }
   }, [flushCurrentChat])
 
-  async function openProject() {
+  async function pickProjectForActiveChat() {
+    if (!activeChatId || chatBusy) return
     const folder = await window.codeviper.selectProjectFolder()
     if (!folder) return
-    setSettings((prev) => ({ ...prev, projectPath: folder }))
+    await window.codeviper.updateChat(activeChatId, { projectPath: folder })
+    await refreshChatStore()
   }
 
   async function selectChat(id: string) {
@@ -144,11 +151,9 @@ export default function App() {
   }
 
   async function createChat(folderId: string | null = null) {
-    if (!settings.projectPath) return
-
     await flushCurrentChat()
 
-    const chat = await window.codeviper.createChat(settings.projectPath, folderId)
+    const chat = await window.codeviper.createChat(folderId)
     await refreshChatStore()
     setActiveChatId(chat.id)
     setMessages([])
@@ -204,7 +209,7 @@ export default function App() {
           title={ollamaOnline ? 'Ollama online' : 'Ollama offline'}
         />
         <div className="topbar-path">
-          {settings.projectPath || 'Проект не выбран — нажми «Открыть проект»'}
+          {activeChat?.title ?? 'Новый чат'}
         </div>
         <div className="topbar-actions">
           <button className="btn" onClick={refreshOllama}>
@@ -213,16 +218,13 @@ export default function App() {
           <button
             className={`btn ${terminalOpen ? 'active' : ''}`}
             onClick={() => setTerminalOpen((open) => !open)}
-            disabled={!settings.projectPath}
-            title={settings.projectPath ? undefined : 'Сначала выберите проект'}
+            disabled={!activeProjectPath}
+            title={activeProjectPath ? undefined : 'Сначала выберите проект в чате'}
           >
             Терминал
           </button>
           <button className="btn" onClick={() => setSettingsOpen(true)}>
             Настройки
-          </button>
-          <button className="btn primary" onClick={openProject}>
-            Открыть проект
           </button>
         </div>
       </header>
@@ -232,7 +234,6 @@ export default function App() {
           <div className="panel-header">История чатов</div>
           <ChatHistoryPanel
             store={chatStore}
-            projectPath={settings.projectPath}
             activeChatId={activeChatId}
             chatBusy={chatBusy}
             onSelectChat={selectChat}
@@ -250,11 +251,12 @@ export default function App() {
           <div className="panel-header">Агент</div>
           <ChatPanel
             settings={settings}
-            projectPath={settings.projectPath}
+            projectPath={activeProjectPath}
             chatId={activeChatId}
             messages={messages}
             onMessagesChange={setMessages}
             onBusyChange={setChatBusy}
+            onPickProject={pickProjectForActiveChat}
             onLearningSaved={() => {
               setMemoryRefreshKey((key) => key + 1)
               setSkillsRefreshKey((key) => key + 1)
@@ -273,10 +275,10 @@ export default function App() {
                   Скрыть
                 </button>
               </div>
-              {settings.projectPath ? (
-                <TerminalPanel projectPath={settings.projectPath} embedded />
+              {activeProjectPath ? (
+                <TerminalPanel projectPath={activeProjectPath} embedded />
               ) : (
-                <div className="hint">Терминал доступен после выбора проекта</div>
+                <div className="hint">Выберите проект в чате, чтобы пользоваться терминалом</div>
               )}
             </div>
           )}
@@ -286,6 +288,7 @@ export default function App() {
       <SettingsModal
         open={settingsOpen}
         settings={settings}
+        chatProjectPath={activeProjectPath}
         ollamaOnline={ollamaOnline}
         models={models}
         memoryRefreshKey={memoryRefreshKey}

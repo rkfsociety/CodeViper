@@ -9,6 +9,13 @@ interface Props {
   onMessagesChange: (messages: ChatMessage[]) => void
   onBusyChange?: (busy: boolean) => void
   onLearningSaved?: () => void
+  onPickProject: () => void
+}
+
+function formatProjectLabel(path: string): string {
+  if (!path.trim()) return 'Проект не выбран'
+  const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
+  return parts[parts.length - 1] ?? path
 }
 
 function makeId() {
@@ -22,7 +29,8 @@ export function ChatPanel({
   messages,
   onMessagesChange,
   onBusyChange,
-  onLearningSaved
+  onLearningSaved,
+  onPickProject
 }: Props) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -152,6 +160,7 @@ export function ChatPanel({
     try {
       await window.codeviper.runAgent(
         settings,
+        projectPath,
         chatId,
         messagesRef.current.slice(0, -1),
         text
@@ -174,12 +183,28 @@ export function ChatPanel({
 
   return (
     <div className="chat-main">
+      {chatId && (
+        <div className="chat-project-bar">
+          <div className="chat-project-info" title={projectPath || undefined}>
+            <span className="chat-project-label">📁 {formatProjectLabel(projectPath)}</span>
+            {projectPath && <span className="chat-project-path">{projectPath}</span>}
+          </div>
+          <button type="button" className="btn" onClick={onPickProject} disabled={busy}>
+            {projectPath ? 'Сменить проект' : 'Выбрать проект'}
+          </button>
+        </div>
+      )}
+
       <div className="chat-messages">
         {!chatId && (
-          <div className="empty">Выбери или создай чат слева, затем опиши задачу.</div>
+          <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>
         )}
 
-        {chatId && !messages.length && !draft && (
+        {chatId && !projectPath && !messages.length && !draft && (
+          <div className="empty">Выбери папку с кодом — кнопка «Выбрать проект» выше.</div>
+        )}
+
+        {chatId && projectPath && !messages.length && !draft && (
           <div className="empty">
             🐍 CodeViper готов. Опиши задачу — агент прочитает файлы, внесёт правки и запустит команды.
           </div>
@@ -212,7 +237,9 @@ export function ChatPanel({
         <div className="chat-input-actions">
           <span className="empty">
             {!chatId
-              ? 'Сначала выбери чат слева'
+              ? 'Сначала создай чат слева'
+              : !projectPath
+                ? 'Сначала выбери проект для этого чата'
               : busy
                 ? 'Агент работает…'
                 : 'Enter не отправляет — жми кнопку'}
@@ -226,7 +253,7 @@ export function ChatPanel({
             <button
               className="btn primary"
               onClick={send}
-              disabled={busy || !settings.model || !chatId}
+              disabled={busy || !settings.model || !chatId || !projectPath}
             >
               Отправить
             </button>

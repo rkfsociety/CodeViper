@@ -46,10 +46,7 @@ export async function getChatStore(): Promise<ChatStore> {
   return loadStore()
 }
 
-export async function createChat(
-  projectPath: string,
-  folderId: string | null = null
-): Promise<SavedChat> {
+export async function createChat(folderId: string | null = null): Promise<SavedChat> {
   const store = await loadStore()
   const now = new Date().toISOString()
 
@@ -57,7 +54,7 @@ export async function createChat(
     id: makeId(),
     title: 'Новый чат',
     folderId,
-    projectPath,
+    projectPath: '',
     messages: [],
     createdAt: now,
     updatedAt: now
