@@ -1,5 +1,5 @@
-import { readdir, readFile, writeFile, stat } from 'fs/promises'
-import { join, resolve, sep } from 'path'
+import { mkdir, readdir, readFile, writeFile, stat } from 'fs/promises'
+import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 
@@ -69,6 +69,12 @@ export async function safeWriteFile(
     throw new Error('Доступ запрещён: файл вне проекта')
   }
 
+  const dir = dirname(filePath)
+  if (!isInsideProject(projectPath, dir)) {
+    throw new Error('Доступ запрещён: путь вне проекта')
+  }
+
+  await mkdir(dir, { recursive: true })
   await writeFile(filePath, content, 'utf-8')
 }
 
