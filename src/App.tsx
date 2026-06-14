@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import type { AgentSettings, ChatMessage, OllamaModel } from './types'
-import { FileTree } from './components/FileTree'
+import { useCallback, useEffect, useState } from 'react'
+import type { AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
 import { ChatPanel } from './components/ChatPanel'
+import { ChatHistoryPanel } from './components/ChatHistoryPanel'
 import { TerminalPanel } from './components/TerminalPanel'
 import { ModelPanel } from './components/ModelPanel'
 import { MemoryPanel } from './components/MemoryPanel'
@@ -15,14 +15,28 @@ const DEFAULT_SETTINGS: AgentSettings = {
   selfLearning: true
 }
 
+function makeChatTitle(messages: ChatMessage[]): string | undefined {
+  const firstUser = messages.find((message) => message.role === 'user')
+  if (!firstUser?.content.trim()) return undefined
+  const line = firstUser.content.trim().replace(/\s+/g, ' ')
+  return line.length > 48 ? `${line.slice(0, 48)}…` : line
+}
+
 export default function App() {
   const [settings, setSettings] = useState<AgentSettings>(DEFAULT_SETTINGS)
   const [ollamaOnline, setOllamaOnline] = useState(false)
   const [models, setModels] = useState<OllamaModel[]>([])
-  const [selectedFile, setSelectedFile] = useState<string>()
-  const [filePreview, setFilePreview] = useState('')
-  const [, setMessages] = useState<ChatMessage[]>([])
+  const [chatStore, setChatStore] = useState<ChatStore | null>(null)
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [chatBusy, setChatBusy] = useState(false)
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
+
+  const refreshChatStore = useCallback(async () => {
+    const store = await window.codeviper.getChatStore()
+    setChatStore(store)
+    return store
+  }, [])
 
   async function refreshOllama() {
     const online = await window.codeviper.checkOllama(settings.ollamaUrl)
@@ -43,26 +57,92 @@ export default function App() {
 
   useEffect(() => {
     refreshOllama()
+    refreshChatStore().then((store) => {
+      if (!store.activeChatId) return
+      const chat = store.chats.find((item) => item.id === store.activeChatId)
+      if (!chat) return
+      setActiveChatId(chat.id)
+      setMessages(chat.messages)
+    })
   }, [])
+
+  useEffect(() => {
+    if (!activeChatId) return
+
+    const timer = window.setTimeout(async () => {
+      const title = makeChatTitle(messages)
+      await window.codeviper.updateChat(activeChatId, {
+        messages,
+        ...(title ? { title } : {})
+      })
+      setChatStore(await window.codeviper.getChatStore())
+    }, 500)
+
+    return () => window.clearTimeout(timer)
+  }, [messages, activeChatId])
 
   async function openProject() {
     const folder = await window.codeviper.selectProjectFolder()
     if (!folder) return
     setSettings((prev) => ({ ...prev, projectPath: folder }))
-    setSelectedFile(undefined)
-    setFilePreview('')
   }
 
-  async function handleFileSelect(path: string) {
-    setSelectedFile(path)
-    if (!settings.projectPath) return
+  async function selectChat(id: string) {
+    if (chatBusy) return
+    const store = chatStore ?? (await refreshChatStore())
+    const chat = store.chats.find((item) => item.id === id)
+    if (!chat) return
 
-    try {
-      const content = await window.codeviper.readFile(settings.projectPath, path)
-      setFilePreview(content.slice(0, 4000))
-    } catch (error) {
-      setFilePreview(error instanceof Error ? error.message : 'Не удалось прочитать файл')
+    setActiveChatId(id)
+    setMessages(chat.messages)
+    await window.codeviper.setActiveChat(id)
+  }
+
+  async function createChat(folderId: string | null = null) {
+    if (!settings.projectPath) return
+    const chat = await window.codeviper.createChat(settings.projectPath, folderId)
+    await refreshChatStore()
+    setActiveChatId(chat.id)
+    setMessages([])
+  }
+
+  async function createFolder() {
+    const name = window.prompt('Название папки', 'Новая папка')
+    if (!name?.trim()) return
+    await window.codeviper.createChatFolder(name.trim())
+    await refreshChatStore()
+  }
+
+  async function deleteChat(id: string) {
+    if (chatBusy) return
+    await window.codeviper.deleteChat(id)
+    const store = await refreshChatStore()
+    if (activeChatId === id) {
+      const next = store.chats[0]
+      setActiveChatId(next?.id ?? null)
+      setMessages(next?.messages ?? [])
+      await window.codeviper.setActiveChat(next?.id ?? null)
     }
+  }
+
+  async function renameChat(id: string, title: string) {
+    await window.codeviper.updateChat(id, { title })
+    await refreshChatStore()
+  }
+
+  async function renameFolder(id: string, name: string) {
+    await window.codeviper.renameChatFolder(id, name)
+    await refreshChatStore()
+  }
+
+  async function deleteFolder(id: string) {
+    await window.codeviper.deleteChatFolder(id)
+    await refreshChatStore()
+  }
+
+  async function moveChat(chatId: string, folderId: string | null) {
+    await window.codeviper.moveChatToFolder(chatId, folderId)
+    await refreshChatStore()
   }
 
   return (
@@ -89,23 +169,22 @@ export default function App() {
       </header>
 
       <div className="layout">
-        <section className="panel">
-          <div className="panel-header">Файлы</div>
-          {settings.projectPath ? (
-            <FileTree
-              root={settings.projectPath}
-              onSelect={handleFileSelect}
-              selected={selectedFile}
-            />
-          ) : (
-            <div className="file-tree empty">Сначала открой папку проекта</div>
-          )}
-          {filePreview && (
-            <div className="hint">
-              <strong>Превью:</strong>
-              <pre>{filePreview}</pre>
-            </div>
-          )}
+        <section className="panel panel-history">
+          <div className="panel-header">История чатов</div>
+          <ChatHistoryPanel
+            store={chatStore}
+            projectPath={settings.projectPath}
+            activeChatId={activeChatId}
+            chatBusy={chatBusy}
+            onSelectChat={selectChat}
+            onCreateChat={createChat}
+            onCreateFolder={createFolder}
+            onDeleteChat={deleteChat}
+            onRenameChat={renameChat}
+            onRenameFolder={renameFolder}
+            onDeleteFolder={deleteFolder}
+            onMoveChat={moveChat}
+          />
         </section>
 
         <section className="panel">
@@ -113,7 +192,10 @@ export default function App() {
           <ChatPanel
             settings={settings}
             projectPath={settings.projectPath}
+            chatId={activeChatId}
+            messages={messages}
             onMessagesChange={setMessages}
+            onBusyChange={setChatBusy}
             onLearningSaved={() => setMemoryRefreshKey((key) => key + 1)}
           />
         </section>

@@ -4,7 +4,19 @@ import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './a
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
 import { getRebuildStatus, runRebuild } from './rebuild'
-import type { AgentSettings, AgentStreamEvent, ChatMessage } from '../../src/types'
+import {
+  createChat,
+  createFolder,
+  deleteChat,
+  deleteFolder,
+  getChatStore,
+  moveChatToFolder,
+  renameFolder,
+  setActiveChat,
+  updateChat
+} from './chats'
+import { autocomplete, type AutocompleteSettings } from './autocomplete'
+import type { AgentSettings, AgentStreamEvent, ChatMessage, SavedChat } from '../../src/types'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -94,6 +106,41 @@ ipcMain.handle('rebuild-app', async () =>
   runRebuild((event) => {
     mainWindow?.webContents.send('rebuild-progress', event)
   })
+)
+
+ipcMain.handle('get-chat-store', async () => getChatStore())
+
+ipcMain.handle('create-chat', async (_e, projectPath: string, folderId?: string | null) =>
+  createChat(projectPath, folderId ?? null)
+)
+
+ipcMain.handle(
+  'update-chat',
+  async (
+    _e,
+    id: string,
+    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath'>>
+  ) => updateChat(id, patch)
+)
+
+ipcMain.handle('delete-chat', async (_e, id: string) => deleteChat(id))
+
+ipcMain.handle('create-chat-folder', async (_e, name: string) => createFolder(name))
+
+ipcMain.handle('rename-chat-folder', async (_e, id: string, name: string) => renameFolder(id, name))
+
+ipcMain.handle('delete-chat-folder', async (_e, id: string) => deleteFolder(id))
+
+ipcMain.handle('set-active-chat', async (_e, id: string | null) => setActiveChat(id))
+
+ipcMain.handle('move-chat-to-folder', async (_e, chatId: string, folderId: string | null) =>
+  moveChatToFolder(chatId, folderId)
+)
+
+ipcMain.handle(
+  'autocomplete',
+  async (_e, settings: AutocompleteSettings, prefix: string, suffix: string) =>
+    autocomplete(settings, prefix, suffix)
 )
 
 ipcMain.handle(

@@ -8,6 +8,30 @@ export interface ChatMessage {
   timestamp: number
 }
 
+export interface ChatFolder {
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SavedChat {
+  id: string
+  title: string
+  folderId: string | null
+  projectPath: string
+  messages: ChatMessage[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ChatStore {
+  version: 1
+  folders: ChatFolder[]
+  chats: SavedChat[]
+  activeChatId: string | null
+}
+
 export interface FileNode {
   name: string
   path: string
@@ -142,6 +166,23 @@ export interface CodeViperAPI {
   getRebuildStatus: () => Promise<RebuildStatus>
   rebuildApp: () => Promise<RebuildResult>
   onRebuildProgress: (callback: (event: RebuildProgressEvent) => void) => () => void
+  getChatStore: () => Promise<ChatStore>
+  createChat: (projectPath: string, folderId?: string | null) => Promise<SavedChat>
+  updateChat: (
+    id: string,
+    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath'>>
+  ) => Promise<SavedChat | null>
+  deleteChat: (id: string) => Promise<void>
+  createChatFolder: (name: string) => Promise<ChatFolder>
+  renameChatFolder: (id: string, name: string) => Promise<void>
+  deleteChatFolder: (id: string) => Promise<void>
+  setActiveChat: (id: string | null) => Promise<void>
+  moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
+  autocomplete: (
+    settings: Pick<AgentSettings, 'ollamaUrl' | 'model'>,
+    prefix: string,
+    suffix: string
+  ) => Promise<string>
 }
 
 declare global {
