@@ -6,8 +6,8 @@ import type {
 } from '../../src/types'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
-  claimsActionCompleted,
   MUTATING_TOOLS,
+  shouldRetryForMissingTools,
   taskLikelyNeedsMutation,
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
@@ -138,10 +138,13 @@ export class AgentRunner {
           const mutationTask = taskLikelyNeedsMutation(userMessage)
           const noMutatingToolsYet = mutatingToolsUsed.size === 0
           const shouldRetryWithTools =
-            mutationTask &&
-            noMutatingToolsYet &&
-            verificationRetries < MAX_VERIFICATION_RETRIES &&
-            (claimsActionCompleted(assistantText) || assistantText.length > 0)
+            shouldRetryForMissingTools(
+              userMessage,
+              assistantText,
+              mutatingToolsUsed,
+              usedTools
+            ) &&
+            verificationRetries < MAX_VERIFICATION_RETRIES
 
           if (shouldRetryWithTools) {
             verificationRetries += 1
