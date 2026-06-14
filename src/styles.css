@@ -1,0 +1,289 @@
+:root {
+  color-scheme: dark;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid #30363d;
+  background: #161b22;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #7ee787;
+}
+
+.logo span {
+  font-size: 18px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.online {
+  background: #3fb950;
+}
+
+.status-dot.offline {
+  background: #f85149;
+}
+
+.topbar-path {
+  flex: 1;
+  color: #8b949e;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #e6edf3;
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.btn:hover {
+  background: #30363d;
+}
+
+.btn.primary {
+  background: #238636;
+  border-color: #238636;
+}
+
+.btn.primary:hover {
+  background: #2ea043;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 360px;
+  min-height: 0;
+}
+
+.panel {
+  border-right: 1px solid #30363d;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel:last-child {
+  border-right: none;
+  border-left: 1px solid #30363d;
+}
+
+.panel-header {
+  padding: 10px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b949e;
+  border-bottom: 1px solid #30363d;
+}
+
+.file-tree,
+.chat-messages,
+.terminal-output {
+  overflow: auto;
+  padding: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+.file-node {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #c9d1d9;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.file-node:hover,
+.file-node.active {
+  background: #21262d;
+}
+
+.file-node.dir {
+  color: #79c0ff;
+}
+
+.chat-main {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #161b22;
+  border: 1px solid #30363d;
+}
+
+.message.user {
+  border-color: #388bfd;
+}
+
+.message.assistant {
+  border-color: #238636;
+}
+
+.message.tool {
+  border-color: #d29922;
+  font-size: 13px;
+}
+
+.message.error {
+  border-color: #f85149;
+}
+
+.message-role {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #8b949e;
+  margin-bottom: 6px;
+}
+
+.message pre {
+  margin: 8px 0 0;
+  padding: 8px;
+  background: #0d1117;
+  border-radius: 6px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-input {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #30363d;
+}
+
+.chat-input textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+  padding: 10px 12px;
+}
+
+.chat-input-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.settings label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.settings input,
+.settings select {
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+  padding: 8px 10px;
+}
+
+.terminal-input {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #30363d;
+}
+
+.terminal-input input {
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+  padding: 8px 10px;
+}
+
+.terminal-output {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.empty {
+  color: #8b949e;
+  font-size: 14px;
+}
+
+.hint {
+  padding: 12px;
+  font-size: 13px;
+  color: #8b949e;
+  border-top: 1px solid #30363d;
+}

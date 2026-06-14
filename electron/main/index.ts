@@ -1,0 +1,91 @@
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { join } from 'path'
+import { AgentRunner, fetchOllamaModels, pingOllama } from './agent'
+import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
+import type { AgentSettings, AgentStreamEvent, ChatMessage } from '../../src/types'
+
+let mainWindow: BrowserWindow | null = null
+
+function createWindow(): void {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    minWidth: 960,
+    minHeight: 640,
+    title: 'CodeViper',
+    backgroundColor: '#0d1117',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
+  })
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+function stream(event: AgentStreamEvent): void {
+  mainWindow?.webContents.send('agent-stream', event)
+}
+
+app.whenReady().then(() => {
+  createWindow()
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})
+
+ipcMain.handle('select-project-folder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    properties: ['openDirectory']
+  })
+  return result.canceled ? null : result.filePaths[0] ?? null
+})
+
+ipcMain.handle('list-directory', async (_e, dirPath: string) => buildFileTree(dirPath))
+
+ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>
+  safeReadFile(projectPath, filePath)
+)
+
+ipcMain.handle('write-file', async (_e, projectPath: string, filePath: string, content: string) =>
+  safeWriteFile(projectPath, filePath, content)
+)
+
+ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') =>
+  pingOllama(url)
+)
+
+ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') =>
+  fetchOllamaModels(url)
+)
+
+ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) =>
+  runCommand(cwd, command)
+)
+
+ipcMain.handle(
+  'run-agent',
+  async (_e, settings: AgentSettings, history: ChatMessage[], userMessage: string) => {
+    const runner = new AgentRunner(settings, stream)
+    try {
+      await runner.run(history, userMessage)
+    } catch (error) {
+      stream({
+        type: 'error',
+        content: error instanceof Error ? error.message : String(error)
+      })
+      stream({ type: 'done' })
+    }
+  }
+)
