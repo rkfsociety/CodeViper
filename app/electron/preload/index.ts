@@ -39,6 +39,9 @@ const codeviper = {
   pullOllamaModel: (url: string, model: string) =>
     ipcRenderer.invoke('pull-ollama-model', url, model),
 
+  deleteOllamaModel: (url: string, model: string) =>
+    ipcRenderer.invoke('delete-ollama-model', url, model),
+
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => {
     const handler = (_: unknown, progress: OllamaPullProgress) => callback(progress)
     ipcRenderer.on('ollama-pull-progress', handler)

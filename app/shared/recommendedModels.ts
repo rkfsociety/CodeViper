@@ -67,18 +67,6 @@ export const RECOMMENDED_MODELS: RecommendedModel[] = [
     ramTier: '8'
   },
   {
-    name: 'deepseek-r1:7b',
-    description: 'Reasoning-модель, подходит для сложных задач',
-    ramHint: '8 GB',
-    ramTier: '8'
-  },
-  {
-    name: 'gemma2:9b',
-    description: 'Google Gemma2 — код и рассуждения',
-    ramHint: '8–10 GB',
-    ramTier: '8'
-  },
-  {
     name: 'mistral-nemo:12b',
     description: 'Mistral Nemo 12B — баланс качества и RAM',
     ramHint: '12 GB',
@@ -104,18 +92,6 @@ export const RECOMMENDED_MODELS: RecommendedModel[] = [
     ramTier: '16'
   },
   {
-    name: 'deepseek-r1:14b',
-    description: 'Reasoning 14B для сложного анализа кода',
-    ramHint: '16 GB',
-    ramTier: '16'
-  },
-  {
-    name: 'phi4:14b',
-    description: 'Microsoft Phi-4 — компактная и умная',
-    ramHint: '16 GB',
-    ramTier: '16'
-  },
-  {
     name: 'codestral:22b',
     description: 'Mistral Codestral — специализация на коде',
     ramHint: '16–24 GB',
@@ -131,12 +107,6 @@ export const RECOMMENDED_MODELS: RecommendedModel[] = [
   {
     name: 'qwen3:30b',
     description: 'Qwen3 30B — сильная универсальная модель',
-    ramHint: '24–32 GB',
-    ramTier: '32'
-  },
-  {
-    name: 'deepseek-r1:32b',
-    description: 'Reasoning 32B — глубокий анализ и планирование',
     ramHint: '24–32 GB',
     ramTier: '32'
   },
@@ -168,4 +138,53 @@ export function groupRecommendedModelsByTier(
     tier,
     models: models.filter((model) => model.ramTier === tier.id)
   })).filter((group) => group.models.length > 0)
+}
+
+export function normalizeModelTag(name: string): string {
+  return name.trim().toLowerCase().replace(/:latest$/, '')
+}
+
+export function modelsMatchTag(a: string, b: string): boolean {
+  const na = normalizeModelTag(a)
+  const nb = normalizeModelTag(b)
+  if (!na || !nb) return false
+  return na === nb || na.startsWith(`${nb}:`) || nb.startsWith(`${na}:`)
+}
+
+/** Модели без надёжного tool calling — не показываем и не даём скачать. */
+const NON_TOOL_MODEL_PATTERNS = [
+  /\bllama2\b/i,
+  /\bgemma2\b/i,
+  /\bdeepseek-r1\b/i,
+  /\bphi-?3\b/i,
+  /\bphi4\b/i,
+  /^mistral:7b$/i,
+  /^mistral:latest$/i,
+  /^mistral$/i
+]
+
+export function isToolCallingModel(name: string): boolean {
+  const normalized = normalizeModelTag(name)
+  if (!normalized) return false
+
+  if (NON_TOOL_MODEL_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return false
+  }
+
+  return RECOMMENDED_MODELS.some((model) => modelsMatchTag(model.name, normalized))
+}
+
+export function assertPullableToolModel(name: string): void {
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error('Укажите имя модели')
+
+  if (!isToolCallingModel(trimmed)) {
+    throw new Error(
+      `Модель «${trimmed}» не поддерживает tool calling или отсутствует в каталоге CodeViper. Выберите модель из списка ниже.`
+    )
+  }
+}
+
+export function filterToolCallingModels<T extends { name: string }>(models: T[]): T[] {
+  return models.filter((model) => isToolCallingModel(model.name))
 }

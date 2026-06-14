@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { OllamaModel, OllamaPullProgress, RecommendedModel } from '../types'
-import { groupRecommendedModelsByTier } from '../types'
+import { filterToolCallingModels, groupRecommendedModelsByTier } from '../types'
 
 interface Props {
   ollamaUrl: string
@@ -32,9 +32,10 @@ export function ModelPanel({
   onRefresh
 }: Props) {
   const [pulling, setPulling] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [pullProgress, setPullProgress] = useState<OllamaPullProgress | null>(null)
   const [pullError, setPullError] = useState('')
-  const [customModel, setCustomModel] = useState('')
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     const unsubscribe = window.codeviper.onOllamaPullProgress((progress) => {
@@ -43,18 +44,24 @@ export function ModelPanel({
     return unsubscribe
   }, [])
 
-  async function downloadModel(model: RecommendedModel | string) {
-    const name = typeof model === 'string' ? model : model.name
-    if (!ollamaOnline || pulling) return
+  const toolModels = useMemo(() => filterToolCallingModels(models), [models])
+  const unsupportedModels = useMemo(
+    () => models.filter((model) => !toolModels.some((item) => item.name === model.name)),
+    [models, toolModels]
+  )
 
-    setPulling(name)
+  async function downloadModel(model: RecommendedModel) {
+    if (!ollamaOnline || pulling || deleting) return
+
+    setPulling(model.name)
     setPullProgress(null)
     setPullError('')
+    setActionError('')
 
     try {
-      await window.codeviper.pullOllamaModel(ollamaUrl, name)
+      await window.codeviper.pullOllamaModel(ollamaUrl, model.name)
       await onRefresh()
-      onModelChange(name)
+      onModelChange(model.name)
     } catch (error) {
       setPullError(error instanceof Error ? error.message : String(error))
     } finally {
@@ -63,9 +70,28 @@ export function ModelPanel({
     }
   }
 
+  async function removeModel(name: string) {
+    if (!ollamaOnline || pulling || deleting) return
+    if (!window.confirm(`Удалить модель ${name} с диска?`)) return
+
+    setDeleting(name)
+    setActionError('')
+    setPullError('')
+
+    try {
+      await window.codeviper.deleteOllamaModel(ollamaUrl, name)
+      await onRefresh()
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setDeleting(null)
+    }
+  }
+
   const percent = pullPercent(pullProgress)
   const installedNames = new Set(models.map((m) => m.name))
   const tierGroups = groupRecommendedModelsByTier()
+  const busy = !!pulling || !!deleting
 
   return (
     <div className="model-panel">
@@ -74,10 +100,10 @@ export function ModelPanel({
         <select
           value={selectedModel}
           onChange={(e) => onModelChange(e.target.value)}
-          disabled={!models.length || !!pulling}
+          disabled={!toolModels.length || busy}
         >
-          {!models.length && <option value="">Нет установленных моделей</option>}
-          {models.map((model) => (
+          {!toolModels.length && <option value="">Нет моделей с tool calling</option>}
+          {toolModels.map((model) => (
             <option key={model.name} value={model.name}>
               {model.name} ({formatBytes(model.size)})
             </option>
@@ -85,11 +111,62 @@ export function ModelPanel({
         </select>
       </label>
 
-      {autoModel && models.length > 1 && (
+      {autoModel && toolModels.length > 1 && (
         <div className="model-auto-hint">
-          Перед каждым запросом агент сам выберет модель по сложности задачи и выгрузит
-          лишние из памяти Ollama.
+          Перед каждым запросом агент сам выберет модель с tool calling по сложности задачи и
+          выгрузит лишние из памяти Ollama.
         </div>
+      )}
+
+      {toolModels.length > 0 && (
+        <>
+          <div className="model-section-title">Установленные модели (tool calling)</div>
+          <div className="model-installed-list">
+            {toolModels.map((model) => (
+              <div key={model.name} className="model-installed-row">
+                <div className="model-installed-info">
+                  <strong>{model.name}</strong>
+                  <span className="model-installed-size">{formatBytes(model.size)}</span>
+                </div>
+                <button
+                  className="btn model-delete-btn"
+                  disabled={!ollamaOnline || busy}
+                  onClick={() => removeModel(model.name)}
+                >
+                  {deleting === model.name ? 'Удаление…' : 'Удалить'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {unsupportedModels.length > 0 && (
+        <>
+          <div className="model-section-title model-section-warn">
+            Без tool calling — агент не использует ({unsupportedModels.length})
+          </div>
+          <div className="model-auto-hint">
+            Эти модели установлены в Ollama, но не подходят для агента. Удалите или не используйте.
+          </div>
+          <div className="model-installed-list">
+            {unsupportedModels.map((model) => (
+              <div key={model.name} className="model-installed-row model-installed-unsupported">
+                <div className="model-installed-info">
+                  <strong>{model.name}</strong>
+                  <span className="model-installed-size">{formatBytes(model.size)}</span>
+                </div>
+                <button
+                  className="btn model-delete-btn"
+                  disabled={!ollamaOnline || busy}
+                  onClick={() => removeModel(model.name)}
+                >
+                  {deleting === model.name ? 'Удаление…' : 'Удалить'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {pulling && (
@@ -108,9 +185,13 @@ export function ModelPanel({
       )}
 
       {pullError && <div className="model-error">{pullError}</div>}
+      {actionError && <div className="model-error">{actionError}</div>}
 
       <div className="model-section-title">
-        Рекомендуемые модели (tool calling) — выберите по объёму RAM
+        Каталог моделей с tool calling — выберите по объёму RAM
+      </div>
+      <div className="model-auto-hint">
+        Скачать можно только модели из каталога — все они поддерживают вызов инструментов агента.
       </div>
 
       {tierGroups.map(({ tier, models: tierModels }) => (
@@ -134,7 +215,7 @@ export function ModelPanel({
                   <div className="model-card-desc">{model.description}</div>
                   <button
                     className="btn"
-                    disabled={!ollamaOnline || !!pulling || installed}
+                    disabled={!ollamaOnline || busy || installed}
                     onClick={() => downloadModel(model)}
                   >
                     {installed ? 'Установлена' : pulling === model.name ? 'Скачивание…' : 'Скачать'}
@@ -145,22 +226,6 @@ export function ModelPanel({
           </div>
         </div>
       ))}
-
-      <div className="model-custom">
-        <input
-          value={customModel}
-          onChange={(e) => setCustomModel(e.target.value)}
-          placeholder="Другая модель Ollama, напр. mistral-nemo:12b"
-          disabled={!ollamaOnline || !!pulling}
-        />
-        <button
-          className="btn primary"
-          disabled={!ollamaOnline || !customModel.trim() || !!pulling}
-          onClick={() => downloadModel(customModel.trim())}
-        >
-          Скачать
-        </button>
-      </div>
     </div>
   )
 }

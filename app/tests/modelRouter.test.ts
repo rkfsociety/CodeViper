@@ -5,7 +5,7 @@ const INSTALLED = [
   { name: 'qwen2.5-coder:3b', size: 2e9 },
   { name: 'qwen2.5-coder:7b', size: 4.7e9 },
   { name: 'qwen2.5-coder:14b', size: 9e9 },
-  { name: 'deepseek-r1:14b', size: 9e9 }
+  { name: 'llama3.1:8b', size: 4.7e9 }
 ]
 
 describe('modelRouter', () => {
@@ -35,6 +35,14 @@ describe('modelRouter', () => {
 
   it('возвращает единственную модель без сравнения', () => {
     const pick = selectModelForTask('сделай todo', [{ name: 'qwen2.5-coder:7b', size: 4e9 }])
+    expect(pick?.model).toBe('qwen2.5-coder:7b')
+  })
+
+  it('игнорирует модели без tool calling', () => {
+    const pick = selectModelForTask('рефакторинг agent.ts', [
+      { name: 'gemma2:9b', size: 5e9 },
+      { name: 'qwen2.5-coder:7b', size: 4.7e9 }
+    ])
     expect(pick?.model).toBe('qwen2.5-coder:7b')
   })
 })

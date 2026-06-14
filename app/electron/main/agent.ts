@@ -4,7 +4,7 @@ import type {
   ChatMessage,
   MemoryCategory
 } from '../../src/types'
-import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
+import { assertPullableToolModel } from '../../shared/recommendedModels'
 import {
   MUTATING_TOOLS,
   shouldRetryForMissingTools,
@@ -774,6 +774,8 @@ export async function pullOllamaModel(
   model: string,
   onProgress: (progress: OllamaPullProgress) => void
 ): Promise<void> {
+  assertPullableToolModel(model)
+
   const res = await fetch(`${baseUrl}/api/pull`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -796,5 +798,22 @@ export async function pullOllamaModel(
       total: chunk.total as number | undefined,
       completed: chunk.completed as number | undefined
     })
+  }
+}
+
+export async function deleteOllamaModel(baseUrl: string, model: string): Promise<void> {
+  const trimmed = model.trim()
+  if (!trimmed) throw new Error('Укажите имя модели для удаления')
+
+  const url = baseUrl.replace(/\/$/, '')
+  const res = await fetch(`${url}/api/delete`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: trimmed })
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Ollama delete: ${res.status} ${text}`)
   }
 }

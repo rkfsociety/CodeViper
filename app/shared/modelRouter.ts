@@ -1,4 +1,4 @@
-import { RECOMMENDED_MODELS, type RamTier } from './recommendedModels'
+import { RECOMMENDED_MODELS, isToolCallingModel, type RamTier } from './recommendedModels'
 import { isSelfImprovementTask } from './selfImprovement'
 import { taskLikelyNeedsMutation, taskLikelyNeedsTools } from './actionVerification'
 
@@ -161,7 +161,9 @@ export function selectModelForTask(
   installed: InstalledModelInfo[],
   fallbackModel = ''
 ): ModelSelectionResult | null {
-  const usable = installed.filter((item) => item.name.trim() && !isAvoidedModel(item.name))
+  const usable = installed.filter(
+    (item) => item.name.trim() && !isAvoidedModel(item.name) && isToolCallingModel(item.name)
+  )
   if (!usable.length) return null
 
   if (usable.length === 1) {

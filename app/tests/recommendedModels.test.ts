@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   RECOMMENDED_MODELS,
-  groupRecommendedModelsByTier
+  assertPullableToolModel,
+  groupRecommendedModelsByTier,
+  isToolCallingModel
 } from '../shared/recommendedModels'
 
 describe('recommendedModels', () => {
@@ -11,7 +13,25 @@ describe('recommendedModels', () => {
     expect(tiers.has('8')).toBe(true)
     expect(tiers.has('16')).toBe(true)
     expect(tiers.has('48+')).toBe(true)
-    expect(RECOMMENDED_MODELS.length).toBeGreaterThanOrEqual(20)
+    expect(RECOMMENDED_MODELS.length).toBeGreaterThanOrEqual(16)
+  })
+
+  it('все модели каталога считаются tool calling', () => {
+    for (const model of RECOMMENDED_MODELS) {
+      expect(isToolCallingModel(model.name)).toBe(true)
+    }
+  })
+
+  it('отклоняет модели без tool calling', () => {
+    expect(isToolCallingModel('gemma2:9b')).toBe(false)
+    expect(isToolCallingModel('deepseek-r1:14b')).toBe(false)
+    expect(isToolCallingModel('mistral:7b')).toBe(false)
+    expect(() => assertPullableToolModel('gemma2:9b')).toThrow(/tool calling/)
+  })
+
+  it('разрешает скачивание только из каталога', () => {
+    expect(() => assertPullableToolModel('qwen2.5-coder:7b')).not.toThrow()
+    expect(() => assertPullableToolModel('random-model:7b')).toThrow()
   })
 
   it('группирует по tier без пустых секций', () => {

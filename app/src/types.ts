@@ -57,7 +57,9 @@ export type { RecommendedModel, RamTier } from '../shared/recommendedModels'
 export {
   RECOMMENDED_MODELS,
   RECOMMENDED_MODEL_TIERS,
-  groupRecommendedModelsByTier
+  filterToolCallingModels,
+  groupRecommendedModelsByTier,
+  isToolCallingModel
 } from '../shared/recommendedModels'
 
 export interface AgentSettings {
@@ -187,6 +189,7 @@ export interface CodeViperAPI {
   listOllamaModels: (url?: string) => Promise<OllamaModel[]>
   checkOllama: (url?: string) => Promise<boolean>
   pullOllamaModel: (url: string, model: string) => Promise<void>
+  deleteOllamaModel: (url: string, model: string) => Promise<void>
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => () => void
   runAgent: (
     settings: AgentSettings,

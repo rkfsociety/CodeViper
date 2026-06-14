@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
+import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
 import { TerminalPanel } from './components/TerminalPanel'
@@ -71,10 +72,14 @@ export default function App() {
     if (online) {
       const list = await window.codeviper.listOllamaModels(settings.ollamaUrl)
       setModels(list)
-      const names = list.map((m) => m.name)
+      const toolModels = filterToolCallingModels(list)
+      const names = toolModels.map((m) => m.name)
       setSettings((prev) => ({
         ...prev,
-        model: prev.model && names.includes(prev.model) ? prev.model : names[0] ?? ''
+        model:
+          prev.model && names.includes(prev.model) && isToolCallingModel(prev.model)
+            ? prev.model
+            : names[0] ?? ''
       }))
     } else {
       setModels([])

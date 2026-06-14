@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
-import { AgentRunner, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
+import { AgentRunner, deleteOllamaModel, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
+import { filterToolCallingModels } from '../../shared/recommendedModels'
 import { buildAgentContextPreview } from './agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel } from './ollamaRuntime'
 import { selectModelForTask, shouldUseAutoModel } from '../../shared/modelRouter'
@@ -124,6 +125,10 @@ ipcMain.handle('pull-ollama-model', async (_e, url: string, model: string) => {
   })
 })
 
+ipcMain.handle('delete-ollama-model', async (_e, url: string, model: string) => {
+  await deleteOllamaModel(url, model)
+})
+
 ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) =>
   runCommand(cwd, command)
 )
@@ -213,10 +218,11 @@ ipcMain.handle(
 
     try {
       const installed = await fetchOllamaModels(settings.ollamaUrl)
-      const useAuto = shouldUseAutoModel(settings.autoModel, installed.length)
+      const toolInstalled = filterToolCallingModels(installed)
+      const useAuto = shouldUseAutoModel(settings.autoModel, toolInstalled.length)
 
       if (useAuto) {
-        const selection = selectModelForTask(userMessage, installed, settings.model)
+        const selection = selectModelForTask(userMessage, toolInstalled, settings.model)
         if (selection) {
           const { unloaded } = await prepareOllamaModel(settings.ollamaUrl, selection.model)
           effectiveSettings = { ...settings, model: selection.model }
@@ -226,11 +232,11 @@ ipcMain.handle(
             modelReason: selection.reason,
             content: formatModelSwitchMessage(selection.model, selection.reason, unloaded)
           })
-        } else if (!settings.model.trim() && installed[0]) {
-          effectiveSettings = { ...settings, model: installed[0].name }
+        } else if (!settings.model.trim() && toolInstalled[0]) {
+          effectiveSettings = { ...settings, model: toolInstalled[0].name }
         }
-      } else if (!effectiveSettings.model.trim() && installed[0]) {
-        effectiveSettings = { ...settings, model: installed[0].name }
+      } else if (!effectiveSettings.model.trim() && toolInstalled[0]) {
+        effectiveSettings = { ...settings, model: toolInstalled[0].name }
       }
 
       if (!effectiveSettings.model.trim()) {
