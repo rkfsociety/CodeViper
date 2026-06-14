@@ -3,6 +3,8 @@ dist
 out
 release
 dist-electron
+CodeViper.exe
+CodeViper-Setup.exe
 *.log
 .DS_Store
 Thumbs.db

@@ -44,9 +44,9 @@ npm install
 npm run dist:win
 ```
 
-Готовые файлы появятся в папке `dist-electron/`:
-- `CodeViper-0.1.0-portable.exe` — portable, без установки (просто запусти)
-- `CodeViper Setup 0.1.0.exe` — установщик NSIS
+Готовые файлы появятся **в корне проекта**:
+- `CodeViper.exe` — portable, без установки (просто запусти)
+- `CodeViper-Setup.exe` — установщик NSIS
 
 **Важно:** Ollama должна быть установлена и запущена отдельно — CodeViper подключается к ней по `http://127.0.0.1:11434`.
 
