@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
@@ -31,6 +31,23 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatBusy, setChatBusy] = useState(false)
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
+  const activeChatIdRef = useRef(activeChatId)
+  const messagesRef = useRef(messages)
+
+  activeChatIdRef.current = activeChatId
+  messagesRef.current = messages
+
+  const flushCurrentChat = useCallback(async () => {
+    const chatId = activeChatIdRef.current
+    const chatMessages = messagesRef.current
+    if (!chatId) return
+
+    const title = makeChatTitle(chatMessages)
+    await window.codeviper.updateChat(chatId, {
+      messages: chatMessages,
+      ...(title ? { title } : {})
+    })
+  }, [])
 
   const refreshChatStore = useCallback(async () => {
     const store = await window.codeviper.getChatStore()
@@ -70,16 +87,18 @@ export default function App() {
     if (!activeChatId) return
 
     const timer = window.setTimeout(async () => {
-      const title = makeChatTitle(messages)
-      await window.codeviper.updateChat(activeChatId, {
-        messages,
-        ...(title ? { title } : {})
-      })
+      await flushCurrentChat()
       setChatStore(await window.codeviper.getChatStore())
     }, 500)
 
     return () => window.clearTimeout(timer)
-  }, [messages, activeChatId])
+  }, [messages, activeChatId, flushCurrentChat])
+
+  useEffect(() => {
+    return () => {
+      void flushCurrentChat()
+    }
+  }, [flushCurrentChat])
 
   async function openProject() {
     const folder = await window.codeviper.selectProjectFolder()
@@ -89,6 +108,10 @@ export default function App() {
 
   async function selectChat(id: string) {
     if (chatBusy) return
+    if (id === activeChatId) return
+
+    await flushCurrentChat()
+
     const store = chatStore ?? (await refreshChatStore())
     const chat = store.chats.find((item) => item.id === id)
     if (!chat) return
@@ -96,10 +119,14 @@ export default function App() {
     setActiveChatId(id)
     setMessages(chat.messages)
     await window.codeviper.setActiveChat(id)
+    setChatStore(await window.codeviper.getChatStore())
   }
 
   async function createChat(folderId: string | null = null) {
     if (!settings.projectPath) return
+
+    await flushCurrentChat()
+
     const chat = await window.codeviper.createChat(settings.projectPath, folderId)
     await refreshChatStore()
     setActiveChatId(chat.id)
