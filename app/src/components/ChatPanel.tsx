@@ -3,6 +3,7 @@ import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage } from '../types'
 import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
+import { MessageBody } from './MessageBody'
 
 interface Props {
   settings: AgentSettings
@@ -293,18 +294,21 @@ export function ChatPanel({
         {messages.filter(shouldShowAssistantMessage).map((message) => (
           <div key={message.id} className={`message ${message.role}`}>
             <div className="message-role">{message.role}</div>
-            <pre>
-              {message.role === 'assistant'
-                ? visibleAssistantContent(message.content)
-                : message.content}
-            </pre>
+            <MessageBody
+              role={message.role}
+              content={
+                message.role === 'assistant'
+                  ? visibleAssistantContent(message.content)
+                  : message.content
+              }
+            />
           </div>
         ))}
 
         {visibleDraft && (
           <div className="message assistant">
             <div className="message-role">assistant</div>
-            <pre>{visibleDraft}</pre>
+            <MessageBody role="assistant" content={visibleDraft} />
           </div>
         )}
 
