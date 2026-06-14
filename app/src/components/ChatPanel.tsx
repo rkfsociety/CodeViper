@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage } from '../types'
+import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
 
 interface Props {
   settings: AgentSettings
@@ -60,6 +61,8 @@ export function ChatPanel({
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState('')
+  const [agentPhase, setAgentPhase] = useState<AgentPhase>('thinking')
+  const [activeToolName, setActiveToolName] = useState<string | undefined>()
   const bottomRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef(messages)
   const chatIdRef = useRef(chatId)
@@ -87,17 +90,22 @@ export function ChatPanel({
     setDraft('')
     setInput('')
     setBusy(false)
+    setAgentPhase('thinking')
+    setActiveToolName(undefined)
   }, [chatId])
 
   useEffect(() => {
     const unsubscribe = window.codeviper.onAgentStream((event) => {
       if (event.chatId !== chatIdRef.current) return
       if (event.type === 'token') {
+        setAgentPhase('writing')
         setDraft((prev) => prev + (event.content ?? ''))
       }
 
       if (event.type === 'tool_start') {
         setDraft('')
+        setAgentPhase('tool')
+        setActiveToolName(event.toolName)
         appendMessage({
           id: makeId(),
           role: 'tool',
@@ -108,6 +116,8 @@ export function ChatPanel({
       }
 
       if (event.type === 'tool_end') {
+        setAgentPhase('thinking')
+        setActiveToolName(undefined)
         appendMessage({
           id: makeId(),
           role: 'tool',
@@ -168,6 +178,8 @@ export function ChatPanel({
           return ''
         })
         setBusy(false)
+        setAgentPhase('thinking')
+        setActiveToolName(undefined)
       }
     })
 
@@ -195,6 +207,8 @@ export function ChatPanel({
     appendMessage(userMessage)
     setInput('')
     setBusy(true)
+    setAgentPhase('thinking')
+    setActiveToolName(undefined)
     setDraft('')
 
     try {
@@ -207,6 +221,8 @@ export function ChatPanel({
       )
     } catch (error) {
       setBusy(false)
+      setAgentPhase('thinking')
+      setActiveToolName(undefined)
       appendMessage({
         id: makeId(),
         role: 'system',
@@ -296,6 +312,9 @@ export function ChatPanel({
       </div>
 
       <div className="chat-input">
+        {busy && (
+          <AgentStatusBar phase={agentPhase} toolName={activeToolName} model={settings.model} />
+        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -310,7 +329,7 @@ export function ChatPanel({
               : !projectPath
                 ? 'Сначала выбери проект для этого чата'
               : busy
-                ? 'Агент работает…'
+                ? null
                 : 'Enter — отправить, Ctrl+Enter — новая строка'}
           </span>
           <div className="chat-input-buttons">
