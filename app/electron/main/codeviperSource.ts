@@ -4,6 +4,9 @@ import { join, resolve, sep } from 'path'
 import {
   isInsideProject,
   runCommand,
+  safeAppendFile,
+  safeCreateFile,
+  safeEditFile,
   safeReadFile,
   safeWriteFile
 } from './services'
@@ -67,6 +70,34 @@ export async function writeCodeViperFile(filePath: string, content: string): Pro
   await safeWriteFile(root, filePath, content)
 }
 
+function assertCodeViperPath(filePath: string): string {
+  const root = getCodeViperSourceRoot()
+  if (!isAllowedSelfPath(root, filePath)) {
+    throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
+  }
+  return root
+}
+
+export async function createCodeViperFile(filePath: string, content: string): Promise<void> {
+  const root = assertCodeViperPath(filePath)
+  await safeCreateFile(root, filePath, content)
+}
+
+export async function editCodeViperFile(
+  filePath: string,
+  oldString: string,
+  newString: string,
+  replaceAll = false
+): Promise<number> {
+  const root = assertCodeViperPath(filePath)
+  return safeEditFile(root, filePath, oldString, newString, replaceAll)
+}
+
+export async function appendCodeViperFile(filePath: string, content: string): Promise<void> {
+  const root = assertCodeViperPath(filePath)
+  await safeAppendFile(root, filePath, content)
+}
+
 export async function runCodeViperCommand(command: string) {
   const root = getCodeViperSourceRoot()
   return runCommand(root, command)
@@ -79,7 +110,10 @@ export function buildSelfEditContext(): string {
 
 Инструменты для правки **своего** кода (работают независимо от проекта в чате):
 - list_codeviper_directory — структура исходников
-- read_codeviper_file / write_codeviper_file — чтение и запись файлов приложения
+- read_codeviper_file / write_codeviper_file — чтение и полная перезапись
+- create_codeviper_file — новый файл (ошибка, если уже есть)
+- edit_codeviper_file — точечная замена old_string → new_string
+- append_codeviper_file — дописать в конец существующего файла
 - run_codeviper_command — команды в корне app/ (npm test, npm run typecheck, npm run build)
 
 Навыки (instructions без пересборки): create_skill / update_skill (scope global — для всего агента).

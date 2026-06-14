@@ -2,6 +2,9 @@ export const TOOL_LABELS: Record<string, string> = {
   list_directory: 'Смотрю структуру проекта',
   read_file: 'Читаю файл',
   write_file: 'Записываю файл',
+  create_file: 'Создаю файл',
+  edit_file: 'Редактирую файл',
+  append_file: 'Дописываю в файл',
   run_command: 'Выполняю команду',
   remember: 'Запоминаю',
   search_memory: 'Ищу в памяти',
@@ -16,6 +19,9 @@ export const TOOL_LABELS: Record<string, string> = {
   list_codeviper_directory: 'Смотрю исходники CodeViper',
   read_codeviper_file: 'Читаю код CodeViper',
   write_codeviper_file: 'Правлю код CodeViper',
+  create_codeviper_file: 'Создаю файл CodeViper',
+  edit_codeviper_file: 'Редактирую код CodeViper',
+  append_codeviper_file: 'Дописываю в CodeViper',
   run_codeviper_command: 'Команда в CodeViper',
   preview_ollama_modelfile: 'Собираю Modelfile',
   create_ollama_model: 'Создаю модель Ollama'
@@ -61,6 +67,9 @@ export function compactToolChatLine(
       return `✓ ${label} — ${lines} строк`
     }
     case 'write_file':
+    case 'create_file':
+    case 'edit_file':
+    case 'append_file':
       return `✓ ${firstLine(body) || label}`
     case 'run_command': {
       const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
@@ -71,6 +80,9 @@ export function compactToolChatLine(
       return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
     }
     case 'write_codeviper_file':
+    case 'create_codeviper_file':
+    case 'edit_codeviper_file':
+    case 'append_codeviper_file':
       return `✓ ${firstLine(body) || label}`
     case 'remember':
     case 'search_memory':

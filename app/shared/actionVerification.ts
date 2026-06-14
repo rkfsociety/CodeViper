@@ -1,5 +1,8 @@
 export const MUTATING_TOOLS = new Set([
   'write_file',
+  'create_file',
+  'edit_file',
+  'append_file',
   'run_command',
   'remember',
   'forget',
@@ -8,6 +11,9 @@ export const MUTATING_TOOLS = new Set([
   'delete_skill',
   'write_skill_data',
   'write_codeviper_file',
+  'create_codeviper_file',
+  'edit_codeviper_file',
+  'append_codeviper_file',
   'run_codeviper_command',
   'create_ollama_model'
 ])
@@ -105,7 +111,7 @@ export function shouldRetryForMissingTools(
 }
 
 export const TOOL_VERIFICATION_NUDGE = `STOP. Не давай пользователю пошаговый план и не советуй Figma/Material-UI — это делаешь ТЫ через инструменты.
-Сейчас вызови tool calling: list_directory / read_file или list_codeviper_directory / read_codeviper_file для изучения, затем write_file / write_codeviper_file для правок.
+Сейчас вызови tool calling: list_directory / read_file или list_codeviper_directory / read_codeviper_file для изучения, затем create_file / edit_file / write_file (или codeviper_* аналоги) для правок.
 Не пиши JSON вызова инструмента текстом — только официальный tool calling.
 После успешных инструментов — одно короткое сообщение, что изменено.`
 

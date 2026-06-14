@@ -25,12 +25,64 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'write_file',
-      description: 'Записать или перезаписать файл',
+      description: 'Полностью перезаписать существующий файл (для новых — create_file, для правок — edit_file)',
       parameters: {
         type: 'object',
         properties: {
           path: { type: 'string', description: 'Абсолютный путь к файлу' },
           content: { type: 'string', description: 'Новое содержимое файла' }
+        },
+        required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_file',
+      description:
+        'Создать новый файл с содержимым. Папки создаются автоматически. Ошибка, если файл уже существует.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь к новому файлу' },
+          content: { type: 'string', description: 'Содержимое нового файла' }
+        },
+        required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'edit_file',
+      description:
+        'Точечная правка: заменить old_string на new_string в существующем файле. Сначала read_file. old_string должен быть уникален (или replace_all: true).',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь к файлу' },
+          old_string: { type: 'string', description: 'Точный фрагмент из файла (с пробелами и переносами)' },
+          new_string: { type: 'string', description: 'Новый фрагмент вместо old_string' },
+          replace_all: {
+            type: 'string',
+            description: 'true — заменить все вхождения; по умолчанию false (одно вхождение)'
+          }
+        },
+        required: ['path', 'old_string', 'new_string']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'append_file',
+      description: 'Дописать текст в конец существующего файла (логи, строки в конец и т.п.)',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь к существующему файлу' },
+          content: { type: 'string', description: 'Текст для добавления в конец' }
         },
         required: ['path', 'content']
       }
@@ -242,6 +294,54 @@ export const AGENT_TOOLS = [
         properties: {
           path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
           content: { type: 'string', description: 'Новое содержимое файла' }
+        },
+        required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_codeviper_file',
+      description: 'Создать новый файл в исходниках CodeViper (ошибка, если уже существует)',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          content: { type: 'string', description: 'Содержимое нового файла' }
+        },
+        required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'edit_codeviper_file',
+      description:
+        'Точечная правка файла CodeViper: old_string → new_string. Сначала read_codeviper_file.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          old_string: { type: 'string', description: 'Точный фрагмент из файла' },
+          new_string: { type: 'string', description: 'Новый фрагмент' },
+          replace_all: { type: 'string', description: 'true — заменить все вхождения' }
+        },
+        required: ['path', 'old_string', 'new_string']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'append_codeviper_file',
+      description: 'Дописать текст в конец файла исходников CodeViper',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          content: { type: 'string', description: 'Текст для добавления' }
         },
         required: ['path', 'content']
       }

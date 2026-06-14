@@ -1,7 +1,9 @@
-import { mkdir, readdir, readFile, writeFile, stat } from 'fs/promises'
+import { access, appendFile, mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
+import { constants } from 'fs'
 import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
+import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
 
 const COMMAND_TIMEOUT_MS = 120_000
 const MAX_COMMAND_LEN = 4096
@@ -125,6 +127,78 @@ export async function safeWriteFile(
 
   await mkdir(dir, { recursive: true })
   await writeFile(filePath, content, 'utf-8')
+}
+
+function assertPathInsideProject(projectPath: string, filePath: string, label = 'файл'): void {
+  if (!isInsideProject(projectPath, filePath)) {
+    throw new Error(`Доступ запрещён: ${label} вне проекта`)
+  }
+}
+
+export async function safeCreateFile(
+  projectPath: string,
+  filePath: string,
+  content: string
+): Promise<void> {
+  assertPathInsideProject(projectPath, filePath)
+
+  const dir = dirname(filePath)
+  assertPathInsideProject(projectPath, dir, 'папка')
+
+  try {
+    await access(filePath, constants.F_OK)
+    throw new Error('Файл уже существует — используйте edit_file или write_file')
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('уже существует')) throw error
+    const code = (error as NodeJS.ErrnoException).code
+    if (code !== 'ENOENT') throw error
+  }
+
+  await mkdir(dir, { recursive: true })
+  await writeFile(filePath, content, 'utf-8')
+}
+
+export async function safeEditFile(
+  projectPath: string,
+  filePath: string,
+  oldString: string,
+  newString: string,
+  replaceAll = false
+): Promise<number> {
+  const content = await safeReadFile(projectPath, filePath)
+
+  let result
+  try {
+    result = applySearchReplace(content, oldString, newString, replaceAll)
+  } catch (error) {
+    if (error instanceof FileEditError) throw error
+    throw error
+  }
+
+  await safeWriteFile(projectPath, filePath, result.content)
+  return result.replacements
+}
+
+export async function safeAppendFile(
+  projectPath: string,
+  filePath: string,
+  content: string
+): Promise<void> {
+  assertPathInsideProject(projectPath, filePath)
+
+  try {
+    await access(filePath, constants.F_OK)
+  } catch {
+    throw new Error('Файл не найден — используйте create_file для нового файла')
+  }
+
+  const info = await stat(filePath)
+  if (!info.isFile()) throw new Error('Это не файл')
+  if (info.size + Buffer.byteLength(content, 'utf-8') > 512_000) {
+    throw new Error('После добавления файл превысит лимит 500 KB')
+  }
+
+  await appendFile(filePath, content, 'utf-8')
 }
 
 function killProcessTree(child: ChildProcess): void {

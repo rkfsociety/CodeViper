@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdtempSync, rmSync, readFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { isInsideProject, validateCommand, runCommand } from '../electron/main/services'
+import {
+  isInsideProject,
+  validateCommand,
+  runCommand,
+  safeCreateFile,
+  safeEditFile,
+  safeAppendFile,
+  safeWriteFile
+} from '../electron/main/services'
 
 describe('isInsideProject', () => {
   it('разрешает сам корень и вложенные пути', () => {
@@ -72,4 +80,53 @@ describe('runCommand', () => {
     expect(result.exitCode).toBe(124)
     expect(result.stderr).toMatch(/таймаут/)
   }, 10_000)
+})
+
+describe('file operations', () => {
+  it('create_file создаёт новый файл', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cv-file-'))
+    const path = join(dir, 'src', 'new.ts')
+    try {
+      await safeCreateFile(dir, path, 'export const x = 1\n')
+      expect(readFileSync(path, 'utf-8')).toBe('export const x = 1\n')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('create_file не перезаписывает существующий', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cv-file-'))
+    const path = join(dir, 'a.txt')
+    try {
+      await safeWriteFile(dir, path, 'old')
+      await expect(safeCreateFile(dir, path, 'new')).rejects.toThrow(/уже существует/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('edit_file заменяет фрагмент', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cv-file-'))
+    const path = join(dir, 'a.txt')
+    try {
+      await safeWriteFile(dir, path, 'one two three')
+      const count = await safeEditFile(dir, path, 'two', 'TOO')
+      expect(count).toBe(1)
+      expect(readFileSync(path, 'utf-8')).toBe('one TOO three')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('append_file дописывает в конец', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cv-file-'))
+    const path = join(dir, 'log.txt')
+    try {
+      await safeWriteFile(dir, path, 'line1\n')
+      await safeAppendFile(dir, path, 'line2\n')
+      expect(readFileSync(path, 'utf-8')).toBe('line1\nline2\n')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })

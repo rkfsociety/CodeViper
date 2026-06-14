@@ -17,10 +17,22 @@ import { AGENT_TOOLS } from './agentTools'
 import {
   getCodeViperSourceRoot,
   readCodeViperFile,
+  createCodeViperFile,
+  editCodeViperFile,
+  appendCodeViperFile,
   runCodeViperCommand,
   writeCodeViperFile
 } from './codeviperSource'
-import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
+import { parseToolBool } from '../../shared/fileEdit'
+import {
+  safeReadFile,
+  safeWriteFile,
+  safeCreateFile,
+  safeEditFile,
+  safeAppendFile,
+  runCommand,
+  buildFileTree
+} from './services'
 import { buildModelfile, parseTrainingData, prepareModelFromTrainingFile } from './ollamaModels'
 import { readNdjsonLines } from './ndjson'
 import {
@@ -314,6 +326,24 @@ export class AgentRunner {
         await safeWriteFile(projectPath, args.path, args.content)
         return `Файл записан: ${args.path}`
       }
+      case 'create_file': {
+        await safeCreateFile(projectPath, args.path, args.content)
+        return `Файл создан: ${args.path}`
+      }
+      case 'edit_file': {
+        const count = await safeEditFile(
+          projectPath,
+          args.path,
+          args.old_string,
+          args.new_string,
+          parseToolBool(args.replace_all)
+        )
+        return `Файл изменён: ${args.path} (замен: ${count})`
+      }
+      case 'append_file': {
+        await safeAppendFile(projectPath, args.path, args.content)
+        return `Добавлено в конец: ${args.path}`
+      }
       case 'run_command': {
         const result = await runCommand(projectPath, args.command)
         return [
@@ -412,6 +442,23 @@ export class AgentRunner {
       case 'write_codeviper_file': {
         await writeCodeViperFile(args.path, args.content)
         return `Файл CodeViper записан: ${args.path}`
+      }
+      case 'create_codeviper_file': {
+        await createCodeViperFile(args.path, args.content)
+        return `Файл CodeViper создан: ${args.path}`
+      }
+      case 'edit_codeviper_file': {
+        const count = await editCodeViperFile(
+          args.path,
+          args.old_string,
+          args.new_string,
+          parseToolBool(args.replace_all)
+        )
+        return `Файл CodeViper изменён: ${args.path} (замен: ${count})`
+      }
+      case 'append_codeviper_file': {
+        await appendCodeViperFile(args.path, args.content)
+        return `Добавлено в конец CodeViper: ${args.path}`
       }
       case 'run_codeviper_command': {
         const result = await runCodeViperCommand(args.command)
