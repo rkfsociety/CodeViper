@@ -207,6 +207,16 @@ export default function App() {
           className={`status-dot ${ollamaOnline ? 'online' : 'offline'}`}
           title={ollamaOnline ? 'Ollama online' : 'Ollama offline'}
         />
+        <div className="topbar-status">
+          <span className={`topbar-pill ${ollamaOnline ? 'online' : 'offline'}`}>
+            {ollamaOnline ? 'Ollama' : 'Ollama offline'}
+          </span>
+          {settings.model && (
+            <span className="topbar-pill model" title={settings.model}>
+              {settings.model.includes(':') ? settings.model.split(':')[0] : settings.model}
+            </span>
+          )}
+        </div>
         <div className="topbar-path">
           {activeChat?.title ?? 'Новый чат'}
         </div>

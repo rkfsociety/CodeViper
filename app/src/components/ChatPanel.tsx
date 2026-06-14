@@ -8,6 +8,9 @@ import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
 import { MessageBody } from './MessageBody'
 import { MessageCopyButton } from './MessageCopyButton'
+import { MessageRoleBadge } from './MessageRoleBadge'
+import { QuickPromptBar } from './QuickPromptBar'
+import { WelcomePanel } from './WelcomePanel'
 
 interface Props {
   settings: AgentSettings
@@ -64,6 +67,7 @@ export function ChatPanel({
   const [contextLoading, setContextLoading] = useState(false)
   const [contextModalOpen, setContextModalOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesRef = useRef(messages)
   const chatIdRef = useRef(chatId)
   const projectPathRef = useRef(projectPath)
@@ -325,6 +329,15 @@ export function ChatPanel({
 
   processNextQueuedRunRef.current = processNextQueuedRun
 
+  function insertPrompt(text: string) {
+    setInput((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      const len = inputRef.current?.value.length ?? 0
+      inputRef.current?.setSelectionRange(len, len)
+    })
+  }
+
   async function send() {
     const text = input.trim()
     if (!text || !projectPath || !settings.model || !chatId) return
@@ -425,15 +438,13 @@ export function ChatPanel({
         )}
 
         {chatId && projectPath && !messages.length && !draft && (
-          <div className="empty">
-            🐍 CodeViper готов. Опиши задачу — агент прочитает файлы, внесёт правки и запустит команды.
-          </div>
+          <WelcomePanel onSelect={insertPrompt} />
         )}
 
         {messages.filter(shouldShowAssistantMessage).map((message) => (
           <div key={message.id} className={`message ${message.role}`}>
             <div className="message-header">
-              <div className="message-role">{message.role}</div>
+              <MessageRoleBadge role={message.role} toolName={message.toolName} />
               <MessageCopyButton text={messageCopyText(message)} />
             </div>
             <MessageBody
@@ -448,9 +459,9 @@ export function ChatPanel({
         ))}
 
         {visibleDraft && (
-          <div className="message assistant">
+          <div className="message assistant draft">
             <div className="message-header">
-              <div className="message-role">assistant</div>
+              <MessageRoleBadge role="assistant" />
               <MessageCopyButton text={visibleDraft} />
             </div>
             <MessageBody role="assistant" content={visibleDraft} />
@@ -469,7 +480,11 @@ export function ChatPanel({
             queueSize={queueSize}
           />
         )}
+        {chatId && projectPath && (
+          <QuickPromptBar onInsert={insertPrompt} disabled={!chatId || !projectPath} />
+        )}
         <textarea
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleInputKeyDown}
