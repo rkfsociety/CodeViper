@@ -186,6 +186,45 @@ button {
   min-height: 0;
 }
 
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #30363d;
+}
+
+.prompt-dialog,
+.confirm-dialog {
+  width: min(420px, 100%);
+}
+
+.prompt-dialog-body,
+.confirm-dialog-body {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.prompt-dialog-label {
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.prompt-dialog-body input {
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+  padding: 8px 10px;
+}
+
+.confirm-dialog-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #c9d1d9;
+}
+
 .settings-modal .settings {
   padding-bottom: 0;
 }
@@ -643,19 +682,19 @@ button {
   border-bottom: 1px solid #30363d;
 }
 
-.chat-history-filter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.chat-history-search {
   padding: 8px 12px;
-  font-size: 13px;
-  color: #8b949e;
+  border-bottom: 1px solid #30363d;
 }
 
-.chat-history-hint {
-  padding: 0 12px 8px;
-  font-size: 12px;
-  color: #8b949e;
+.chat-history-search input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+  padding: 8px 10px;
+  font-size: 13px;
 }
 
 .chat-history-list {
@@ -716,7 +755,20 @@ button {
   border: 1px solid #30363d;
   border-radius: 8px;
   background: #0d1117;
-  cursor: pointer;
+  cursor: grab;
+}
+
+.chat-history-item.dragging {
+  opacity: 0.45;
+}
+
+.chat-history-folder-head.drop-target,
+.chat-history-folder-chats.drop-target,
+.chat-history-section.drop-target {
+  outline: 1px dashed #388bfd;
+  outline-offset: 2px;
+  border-radius: 8px;
+  background: rgba(56, 139, 253, 0.08);
 }
 
 .chat-history-item:hover {

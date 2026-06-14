@@ -181,6 +181,25 @@ export function ChatPanel({
     await window.codeviper.stopAgent()
   }
 
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== 'Enter') return
+
+    if (e.ctrlKey) {
+      e.preventDefault()
+      const ta = e.currentTarget
+      const start = ta.selectionStart ?? input.length
+      const end = ta.selectionEnd ?? input.length
+      const next = `${input.slice(0, start)}\n${input.slice(end)}`
+      setInput(next)
+      const cursor = start + 1
+      requestAnimationFrame(() => ta.setSelectionRange(cursor, cursor))
+      return
+    }
+
+    e.preventDefault()
+    void send()
+  }
+
   return (
     <div className="chat-main">
       {chatId && (
@@ -231,6 +250,7 @@ export function ChatPanel({
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleInputKeyDown}
           placeholder="Например: добавь валидацию email в форму регистрации"
           disabled={busy || !chatId}
         />
@@ -242,7 +262,7 @@ export function ChatPanel({
                 ? 'Сначала выбери проект для этого чата'
               : busy
                 ? 'Агент работает…'
-                : 'Enter не отправляет — жми кнопку'}
+                : 'Enter — отправить, Ctrl+Enter — новая строка'}
           </span>
           <div className="chat-input-buttons">
             {busy && (

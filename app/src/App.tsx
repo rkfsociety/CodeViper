@@ -159,9 +159,8 @@ export default function App() {
     setMessages([])
   }
 
-  async function createFolder() {
-    const name = window.prompt('Название папки', 'Новая папка')
-    if (!name?.trim()) return
+  async function createFolder(name: string) {
+    if (!name.trim()) return
     await window.codeviper.createChatFolder(name.trim())
     await refreshChatStore()
   }
