@@ -1,6 +1,8 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+set "ROOT=%~dp0"
+set "APP=%ROOT%app"
+cd /d "%APP%"
 
 if /i "%~1"=="console" goto console
 if /i "%~1"=="run" goto run
@@ -10,7 +12,7 @@ mshta "javascript:var s=new ActiveXObject('WScript.Shell'); s.Run('cmd /c \"\"\"
 exit /b
 
 :run
-powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-dev.ps1"
+powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File "%APP%\scripts\start-dev.ps1"
 exit /b %ERRORLEVEL%
 
 :console
