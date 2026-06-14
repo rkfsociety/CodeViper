@@ -29,14 +29,14 @@ for (const file of readdirSync(outputDir)) {
   try {
     cpSync(join(outputDir, file), dest, { force: true })
     copied.push(dest)
-  } catch {
+  } catch (error) {
     if (destName === 'CodeViper.exe') {
       const alt = join(projectRoot, 'CodeViper-new.exe')
       cpSync(join(outputDir, file), alt, { force: true })
       copied.push(alt)
       console.warn('CodeViper.exe занят — сохранено как CodeViper-new.exe')
     } else {
-      throw
+      throw error
     }
   }
 }
