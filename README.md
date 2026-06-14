@@ -39,13 +39,6 @@
 - [ ] DevOps: CI (`tsc` + build), иконка приложения
 - [ ] Тесты: unit для `chats.ts`, `memory.ts`, `services.ts`, `parseToolArgs`
 
-### ⛔ Не планируется
-
-- Встроенный редактор кода — всё через агента (чат + инструменты)
-- Tab-autocomplete
-- LM Studio / OpenAI-compatible API — только **Ollama**
-- Сборка portable `.exe` из корня (запуск через `CodeViper.cmd` + `npm run dev`)
-
 ## Возможности
 
 - 💬 **Чат-агент** — ставит задачи, планирует, отвечает на русском; ответы приходят **потоком** в реальном времени
