@@ -3,6 +3,7 @@ import {
   isSelfImprovementTask,
   selfImprovementStepLimit,
   parsePlanItemsJson,
+  parsePlanFromAssistantText,
   parseChecklistAsPlan,
   syncPlanFromChecklist,
   isPlanComplete,
@@ -28,6 +29,15 @@ describe('selfImprovement', () => {
     expect(items).toHaveLength(2)
     expect(items[0].done).toBe(false)
     expect(items[1].id).toBe('2')
+  })
+
+  it('парсит JSON план из текста ответа', () => {
+    const text = `План:
+[{"id":"1","title":"Изучить agent.ts"},{"id":"2","title":"Добавить skill"}]
+tool_response {"name": "read_codeviper_file", "arguments": {"path": "agent.ts"}}`
+    const plan = parsePlanFromAssistantText(text)
+    expect(plan).toHaveLength(2)
+    expect(plan?.[0].title).toContain('agent.ts')
   })
 
   it('парсит markdown checklist', () => {

@@ -63,6 +63,46 @@ export function parseChecklistAsPlan(text: string): SelfImprovementItem[] | null
   return items.length >= 2 ? items : null
 }
 
+function extractJsonArrays(text: string): string[] {
+  const arrays: string[] = []
+  let depth = 0
+  let start = -1
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    if (char === '[') {
+      if (depth === 0) start = i
+      depth++
+    } else if (char === ']') {
+      depth--
+      if (depth === 0 && start >= 0) {
+        arrays.push(text.slice(start, i + 1))
+        start = -1
+      }
+    }
+  }
+
+  return arrays
+}
+
+/** План из markdown checklist или JSON-массива [{id, title}, …] в тексте ответа модели. */
+export function parsePlanFromAssistantText(text: string): SelfImprovementItem[] | null {
+  const checklist = parseChecklistAsPlan(text)
+  if (checklist) return checklist
+
+  for (const candidate of extractJsonArrays(text)) {
+    if (!/(?:id|title)/i.test(candidate)) continue
+    try {
+      const items = parsePlanItemsJson(candidate)
+      if (items.length >= 2) return items
+    } catch {
+      // пробуем следующий массив
+    }
+  }
+
+  return null
+}
+
 export function syncPlanFromChecklist(
   text: string,
   plan: SelfImprovementItem[]
@@ -128,7 +168,11 @@ export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `STOP. Нужен план с�
 Пример items:
 [{"id":"1","title":"Изучить agent.ts и agentTools.ts"},{"id":"2","title":"Добавить skill для code review"},{"id":"3","title":"Улучшить UI чата"}]
 
+Не пиши JSON план и tool_response текстом — только официальный tool calling set_self_improvement_plan.
 После set_self_improvement_plan сразу начни пункт 1 — вызывай read_codeviper_file / edit_codeviper_file / create_skill.`
+
+export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
+  'Самоулучшение застряло: модель повторяет план текстом вместо set_self_improvement_plan. Попробуй qwen2.5-coder:7b или llama3.1:8b, либо переформулируй задачу.'
 
 export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Начни автономное самоулучшение: вызови list_codeviper_directory и read_codeviper_file (agent.ts, agentTools.ts), затем set_self_improvement_plan.`
 

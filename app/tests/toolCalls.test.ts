@@ -33,6 +33,20 @@ describe('extractEmbeddedToolCalls', () => {
       toolCalls: []
     })
   })
+
+  it('парсит tool_response с вложенными arguments', () => {
+    const raw =
+      'Начну с пункта 1.\ntool_response {"name": "read_codeviper_file", "arguments": {"path": "app/electron/main/agent.ts"}}'
+    expect(extractEmbeddedToolCalls(raw)).toEqual({
+      content: 'Начну с пункта 1.',
+      toolCalls: [
+        {
+          name: 'read_codeviper_file',
+          arguments: { path: 'app/electron/main/agent.ts' }
+        }
+      ]
+    })
+  })
 })
 
 describe('looksLikeEmbeddedToolCall', () => {

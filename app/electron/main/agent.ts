@@ -20,10 +20,11 @@ import {
   isSelfImprovementTask,
   selfImprovementStepLimit,
   parsePlanItemsJson,
-  parseChecklistAsPlan,
+  parsePlanFromAssistantText,
   syncPlanFromChecklist,
   formatPlanSummary,
   CREATE_SELF_IMPROVEMENT_PLAN_NUDGE,
+  SELF_IMPROVE_PLAN_STUCK_MESSAGE,
   START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
   buildSelfImprovementContinueNudge,
   type SelfImprovementItem
@@ -148,17 +149,22 @@ export class AgentRunner {
     })
   }
 
-  private adoptPlanFromAssistantText(assistantText: string): void {
-    const checklist = parseChecklistAsPlan(assistantText)
-    if (checklist && !hasSelfImprovementPlan()) {
-      adoptSelfImprovementPlan(checklist)
-      return
+  private adoptPlanFromAssistantText(assistantText: string): boolean {
+    if (!hasSelfImprovementPlan()) {
+      const parsed = parsePlanFromAssistantText(assistantText)
+      if (parsed) {
+        adoptSelfImprovementPlan(parsed)
+        this.emitSelfImprovementPlan(parsed)
+        return true
+      }
+      return false
     }
 
     const plan = getSelfImprovementPlan()
     if (plan) {
       syncPlanFromChecklist(assistantText, plan)
     }
+    return false
   }
 
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
@@ -207,6 +213,8 @@ export class AgentRunner {
     let verificationNoticeSent = false
     let requireToolNext = false
     const MAX_VERIFICATION_RETRIES = 1
+    let selfImprovePlanNudges = 0
+    const MAX_SELF_IMPROVE_PLAN_NUDGES = 6
 
     try {
       for (let step = 0; step < stepLimit; step++) {
@@ -233,14 +241,14 @@ export class AgentRunner {
 
         if (!toolCalls.length) {
           if (autonomousSelfImprove) {
-            if (assistantText) {
-              this.adoptPlanFromAssistantText(assistantText)
-            }
+            const adoptedPlan = assistantText
+              ? this.adoptPlanFromAssistantText(assistantText)
+              : false
 
             const plan = getSelfImprovementPlan()
 
             if (isSelfImprovementPlanComplete()) {
-              if (assistantText) {
+              if (assistantText && !adoptedPlan) {
                 this.emit({ type: 'assistant', content: assistantText })
               }
               if (plan) this.emitSelfImprovementPlan(plan)
@@ -252,7 +260,8 @@ export class AgentRunner {
             }
 
             if (plan && hasPendingSelfImprovementItems()) {
-              if (assistantText) {
+              selfImprovePlanNudges = 0
+              if (assistantText && !adoptedPlan) {
                 this.emit({ type: 'assistant', content: assistantText })
               }
               this.emitSelfImprovementPlan(plan)
@@ -262,7 +271,17 @@ export class AgentRunner {
             }
 
             if (!plan && usedTools) {
-              if (assistantText) {
+              selfImprovePlanNudges += 1
+              if (selfImprovePlanNudges >= MAX_SELF_IMPROVE_PLAN_NUDGES) {
+                if (assistantText) {
+                  messages.pop()
+                }
+                this.emit({ type: 'clear_draft' })
+                this.emit({ type: 'error', content: SELF_IMPROVE_PLAN_STUCK_MESSAGE })
+                this.emit({ type: 'done' })
+                return
+              }
+              if (assistantText && !adoptedPlan && !parsePlanFromAssistantText(assistantText)) {
                 this.emit({ type: 'assistant', content: assistantText })
               }
               messages.push({ role: 'user', content: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE })

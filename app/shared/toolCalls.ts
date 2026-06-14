@@ -70,6 +70,60 @@ function tryParseToolCallJson(text: string): ParsedToolCall[] | null {
   }
 }
 
+function extractBalancedJsonObject(text: string): string | null {
+  const trimmed = text.trimStart()
+  if (!trimmed.startsWith('{')) return null
+
+  let depth = 0
+  let inString = false
+  let escape = false
+
+  for (let i = 0; i < trimmed.length; i++) {
+    const char = trimmed[i]
+    if (inString) {
+      if (escape) escape = false
+      else if (char === '\\') escape = true
+      else if (char === '"') inString = false
+      continue
+    }
+
+    if (char === '"') inString = true
+    else if (char === '{') depth++
+    else if (char === '}') {
+      depth--
+      if (depth === 0) return trimmed.slice(0, i + 1)
+    }
+  }
+
+  return null
+}
+
+function extractToolResponseCalls(content: string): {
+  content: string
+  toolCalls: ParsedToolCall[]
+} {
+  const toolCalls: ParsedToolCall[] = []
+  let remaining = content
+  const prefixRegex = /tool_response\s+/gi
+  let match: RegExpExecArray | null
+
+  while ((match = prefixRegex.exec(content)) !== null) {
+    const jsonStart = match.index + match[0].length
+    const afterPrefix = content.slice(jsonStart)
+    const json = extractBalancedJsonObject(afterPrefix)
+    if (!json) continue
+
+    const parsed = tryParseToolCallJson(json)
+    if (!parsed) continue
+
+    toolCalls.push(...parsed)
+    const consumed = content.slice(match.index, jsonStart + json.length)
+    remaining = remaining.replace(consumed, '')
+  }
+
+  return { content: remaining.trim(), toolCalls }
+}
+
 export function extractEmbeddedToolCalls(content: string): {
   content: string
   toolCalls: ParsedToolCall[]
@@ -77,28 +131,34 @@ export function extractEmbeddedToolCalls(content: string): {
   const toolCalls: ParsedToolCall[] = []
   let remaining = content
 
+  const toolResponse = extractToolResponseCalls(content)
+  if (toolResponse.toolCalls.length) {
+    toolCalls.push(...toolResponse.toolCalls)
+    remaining = toolResponse.content
+  }
+
   const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/gi
   let match: RegExpExecArray | null
-  while ((match = codeBlockRegex.exec(content)) !== null) {
+  while ((match = codeBlockRegex.exec(remaining)) !== null) {
     const parsed = tryParseToolCallJson(match[1].trim())
     if (parsed) toolCalls.push(...parsed)
   }
 
   if (toolCalls.length) {
-    remaining = content.replace(codeBlockRegex, '').trim()
+    remaining = remaining.replace(codeBlockRegex, '').trim()
     return { content: remaining, toolCalls }
   }
 
-  const parsed = tryParseToolCallJson(content.trim())
+  const parsed = tryParseToolCallJson(remaining.trim())
   if (parsed) {
     return { content: '', toolCalls: parsed }
   }
 
-  return { content, toolCalls: [] }
+  return { content: remaining, toolCalls: [] }
 }
 
 export function sanitizeAssistantContent(content: string): string {
-  let text = content.trim()
+  let text = extractToolResponseCalls(content.trim()).content.trim()
   if (!text) return ''
 
   const embedded = extractEmbeddedToolCalls(text)
