@@ -58,8 +58,10 @@ export { isBuiltinSkill } from '../shared/builtinSkills'
 export {
   RECOMMENDED_MODELS,
   RECOMMENDED_MODEL_TIERS,
+  filterDownloadableRecommendedModels,
   filterToolCallingModels,
   groupRecommendedModelsByTier,
+  isRecommendedModelInstalled,
   isToolCallingModel
 } from '../shared/recommendedModels'
 

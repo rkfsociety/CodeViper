@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   RECOMMENDED_MODELS,
   assertPullableToolModel,
+  filterDownloadableRecommendedModels,
   groupRecommendedModelsByTier,
   isToolCallingModel
 } from '../shared/recommendedModels'
@@ -32,6 +33,16 @@ describe('recommendedModels', () => {
   it('разрешает скачивание только из каталога', () => {
     expect(() => assertPullableToolModel('qwen2.5-coder:7b')).not.toThrow()
     expect(() => assertPullableToolModel('random-model:7b')).toThrow()
+  })
+
+  it('скрывает установленные модели из каталога скачивания', () => {
+    const available = filterDownloadableRecommendedModels([
+      { name: 'qwen2.5-coder:7b' },
+      { name: 'llama3.1:8b' }
+    ])
+    expect(available.some((m) => m.name === 'qwen2.5-coder:7b')).toBe(false)
+    expect(available.some((m) => m.name === 'llama3.1:8b')).toBe(false)
+    expect(available.some((m) => m.name === 'qwen2.5-coder:14b')).toBe(true)
   })
 
   it('группирует по tier без пустых секций', () => {

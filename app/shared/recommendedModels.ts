@@ -188,3 +188,17 @@ export function assertPullableToolModel(name: string): void {
 export function filterToolCallingModels<T extends { name: string }>(models: T[]): T[] {
   return models.filter((model) => isToolCallingModel(model.name))
 }
+
+export function isRecommendedModelInstalled(
+  catalogName: string,
+  installed: Array<{ name: string }>
+): boolean {
+  return installed.some((item) => modelsMatchTag(item.name, catalogName))
+}
+
+export function filterDownloadableRecommendedModels(
+  installed: Array<{ name: string }>,
+  models: RecommendedModel[] = RECOMMENDED_MODELS
+): RecommendedModel[] {
+  return models.filter((model) => !isRecommendedModelInstalled(model.name, installed))
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { OllamaModel, OllamaPullProgress, RecommendedModel } from '../types'
-import { filterToolCallingModels, groupRecommendedModelsByTier } from '../types'
+import { filterToolCallingModels, groupRecommendedModelsByTier, isRecommendedModelInstalled } from '../types'
 
 interface Props {
   ollamaUrl: string
@@ -89,9 +89,23 @@ export function ModelPanel({
   }
 
   const percent = pullPercent(pullProgress)
-  const installedNames = new Set(models.map((m) => m.name))
-  const tierGroups = groupRecommendedModelsByTier()
   const busy = !!pulling || !!deleting
+
+  const downloadableTierGroups = useMemo(
+    () =>
+      groupRecommendedModelsByTier()
+        .map(({ tier, models: tierModels }) => ({
+          tier,
+          models: tierModels.filter(
+            (model) =>
+              !isRecommendedModelInstalled(model.name, models) || pulling === model.name
+          )
+        }))
+        .filter((group) => group.models.length > 0),
+    [models, pulling]
+  )
+
+  const catalogEmpty = downloadableTierGroups.length === 0 && !pulling
 
   return (
     <div className="model-panel">
@@ -192,37 +206,39 @@ export function ModelPanel({
       </div>
       <div className="model-auto-hint">
         Скачать можно только модели из каталога — все они поддерживают вызов инструментов агента.
+        Уже установленные скрыты из списка.
       </div>
 
-      {tierGroups.map(({ tier, models: tierModels }) => (
+      {catalogEmpty && (
+        <div className="empty model-catalog-empty">Все модели каталога уже установлены.</div>
+      )}
+
+      {downloadableTierGroups.map(({ tier, models: tierModels }) => (
         <div key={tier.id} className="model-tier-group">
           <div className="model-tier-title">{tier.label}</div>
           <div className="model-cards">
-            {tierModels.map((model) => {
-              const installed = installedNames.has(model.name)
-              return (
-                <div
-                  key={model.name}
-                  className={`model-card${model.featured ? ' model-card-featured' : ''}`}
-                >
-                  <div className="model-card-head">
-                    <strong>
-                      {model.featured ? '★ ' : ''}
-                      {model.name}
-                    </strong>
-                    <span className="model-ram">{model.ramHint}</span>
-                  </div>
-                  <div className="model-card-desc">{model.description}</div>
-                  <button
-                    className="btn"
-                    disabled={!ollamaOnline || busy || installed}
-                    onClick={() => downloadModel(model)}
-                  >
-                    {installed ? 'Установлена' : pulling === model.name ? 'Скачивание…' : 'Скачать'}
-                  </button>
+            {tierModels.map((model) => (
+              <div
+                key={model.name}
+                className={`model-card${model.featured ? ' model-card-featured' : ''}`}
+              >
+                <div className="model-card-head">
+                  <strong>
+                    {model.featured ? '★ ' : ''}
+                    {model.name}
+                  </strong>
+                  <span className="model-ram">{model.ramHint}</span>
                 </div>
-              )
-            })}
+                <div className="model-card-desc">{model.description}</div>
+                <button
+                  className="btn"
+                  disabled={!ollamaOnline || busy}
+                  onClick={() => downloadModel(model)}
+                >
+                  {pulling === model.name ? 'Скачивание…' : 'Скачать'}
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       ))}
