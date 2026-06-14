@@ -98,6 +98,19 @@ describe('ViperSkills.md', () => {
     expect(existsSync(join(USER_DATA, SKILLS_FILENAME))).toBe(true)
   })
 
+  it('игнорирует scope project — навык всегда global', async () => {
+    await createSkill('/proj', {
+      name: 'Project Attempt',
+      description: 'd',
+      instructions: 'i',
+      scope: 'project'
+    })
+
+    const skills = await listSkills('/proj')
+    expect(skills).toHaveLength(1)
+    expect(skills[0].scope).toBe('global')
+  })
+
   it('обновление навыка сохраняется на диск', async () => {
     const created = await createSkill('', {
       name: 'Mutable',

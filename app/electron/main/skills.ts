@@ -4,6 +4,11 @@ import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import { BUILTIN_SKILL_IDS } from '../../shared/builtinSkills'
+import {
+  formatAppliedSkillsBlock,
+  scoreSkill,
+  shouldApplySkill
+} from '../../shared/skillMatching'
 import type { AgentSkill, MemoryScope, SkillsStore } from '../../src/types'
 
 export const SKILLS_FILENAME = 'ViperSkills.md'
@@ -71,7 +76,7 @@ export function renderSkillsMarkdown(store: SkillsStore): string {
   const lines = [
     '# ViperSkills',
     '',
-    'Навыки агента CodeViper. Создаются через инструмент `create_skill` и сохраняются между перезапусками.',
+    'Глобальные навыки агента CodeViper. Создаются через `create_skill`, сохраняются здесь и применяются автоматически по триггерам.',
     '',
     '<!-- viper-skills-store',
     JSON.stringify(store),
@@ -228,8 +233,8 @@ export async function createSkill(
   if (!name) throw new Error('У навыка должно быть имя')
   if (!instructions) throw new Error('У навыка должны быть instructions')
 
-  // Навыки агента по умолчанию глобальные — переживают перезапуск и смену проекта
-  const scope: MemoryScope = input.scope ?? 'global'
+  // Навыки всегда глобальные — это поведение агента, не привязка к репозиторию
+  const scope: MemoryScope = 'global'
   const filePath = storePath(scope, projectPath)
   const legacyPath = legacyStorePath(scope, projectPath)
   const max = scope === 'project' ? MAX_PROJECT_SKILLS : MAX_GLOBAL_SKILLS
@@ -363,23 +368,6 @@ export async function writeSkillData(
   return true
 }
 
-function scoreSkill(skill: AgentSkill, query: string): number {
-  const q = query.toLowerCase()
-  let score = skill.useCount
-
-  if (skill.name.toLowerCase().includes(q)) score += 6
-  if (skill.description.toLowerCase().includes(q)) score += 4
-  if (skill.instructions.toLowerCase().includes(q)) score += 2
-
-  for (const trigger of skill.triggers) {
-    if (q.includes(trigger.toLowerCase()) || trigger.toLowerCase().includes(q)) {
-      score += 8
-    }
-  }
-
-  return score
-}
-
 export async function buildSkillsContext(projectPath: string, taskHint = ''): Promise<string> {
   const all = await listSkills(projectPath)
   if (!all.length) return ''
@@ -427,14 +415,20 @@ export async function buildSkillsContext(projectPath: string, taskHint = ''): Pr
 
   const summaries = ranked.map(
     (skill, index) =>
-      `${index + 1}. **${skill.name}** (\`${skill.id}\`, ${skill.scope}) — ${skill.description || 'без описания'}` +
+      `${index + 1}. **${skill.name}** (\`${skill.id}\`) — ${skill.description || 'без описания'}` +
       (skill.triggers.length ? `\n   Триггеры: ${skill.triggers.join(', ')}` : '')
   )
 
+  const applied = ranked
+    .filter((skill) => shouldApplySkill(skill, taskHint, builtinSet.has(skill.id)))
+    .slice(0, 4)
+
   return (
-    '## ViperSkills — активные навыки\n' +
+    '## ViperSkills — навыки агента\n' +
+    'Все навыки глобальные (%APPDATA%/CodeViper/ViperSkills.md), переживают перезапуск и смену проекта.\n\n' +
     summaries.join('\n') +
-    '\n\nДля полной инструкции вызови read_skill(id). Данные навыка — read_skill_data / write_skill_data.'
+    formatAppliedSkillsBlock(applied) +
+    '\n\nДля остальных навыков — read_skill(id). Данные навыка — read_skill_data / write_skill_data.'
   )
 }
 

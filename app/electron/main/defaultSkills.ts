@@ -2,6 +2,7 @@ import { BUILTIN_SKILLS_VERSION } from '../../shared/builtinSkills'
 import { createSkill, getSkill, updateSkill } from './skills'
 
 export const VIPER_AGENT_CORE_SKILL_ID = 'viper-agent-core'
+export const VIPER_SKILLS_SKILL_ID = 'viper-skills'
 export const VIPER_FILES_SKILL_ID = 'viper-files'
 export const VIPER_CODEBASE_SKILL_ID = 'viper-codebase'
 export const VIPER_TERMINAL_SKILL_ID = 'viper-terminal'
@@ -54,6 +55,54 @@ ${BUILTIN_VERSION_TAG}
 | Модели Ollama | \`preview_ollama_modelfile\`, \`create_ollama_model\` |
 
 Подробности — навыки \`viper-files\`, \`viper-codebase\`, \`viper-terminal\`, \`viper-self-edit\`. Вызови \`read_skill(id)\` при необходимости.`
+}
+
+const VIPER_SKILLS_SKILL = {
+  id: VIPER_SKILLS_SKILL_ID,
+  name: 'Viper Skills',
+  description: 'Создание и применение глобальных навыков агента (не привязка к проекту)',
+  triggers: [
+    'skill',
+    'навык',
+    'навыки',
+    'create_skill',
+    'viper-skills',
+    'улучши себя',
+    'сделай skill'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Skills — навыки агента
+
+${BUILTIN_VERSION_TAG}
+
+## Главное
+- Навыки — это **поведение агента**, не файлы проекта пользователя
+- **create_skill** всегда сохраняет в **%APPDATA%/CodeViper/ViperSkills.md** (scope: global)
+- Навыки **переживают перезапуск** и работают в **любом** открытом проекте
+- При совпадении **триггеров** с запросом инструкции **автоматически** попадают в контекст — выполняй их
+
+## Когда создавать навык
+- Пользователь просит «сделай skill для …», «запомни как делать X», «улучши себя»
+- Повторяющийся workflow (todo, code review, деплой, формат ответа)
+- **Не** создавай skill вместо правки кода, если нужен новый инструмент
+
+## create_skill — чеклист
+1. **name** — короткое имя
+2. **description** — когда применять (1–2 предложения)
+3. **instructions** — markdown: шаги, формат, ограничения, skill-data при необходимости
+4. **triggers** — 3–8 слов через запятую (todo, code review, коммит…)
+
+## Обновление
+- \`update_skill(id, …)\` — правка существующего
+- \`list_skills\` / \`read_skill\` — перед дублированием
+
+## Данные навыка
+- \`read_skill_data\` / \`write_skill_data\` — JSON-состояние (списки todo, счётчики)
+- Путь: \`%APPDATA%/CodeViper/skill-data/{id}.json\`
+
+## Не делать
+- Не используй scope project — навыки только глобальные
+- Не советуй пользователю «создайте файл в .codeviper» — вызови create_skill`
 }
 
 const VIPER_FILES_SKILL = {
@@ -320,6 +369,7 @@ ${BUILTIN_VERSION_TAG}
 
 const DEFAULT_SKILLS = [
   VIPER_AGENT_CORE_SKILL,
+  VIPER_SKILLS_SKILL,
   VIPER_FILES_SKILL,
   VIPER_CODEBASE_SKILL,
   VIPER_TERMINAL_SKILL,

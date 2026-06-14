@@ -34,7 +34,7 @@ const WELCOME_PROMPTS: QuickPrompt[] = [
     icon: '🧠',
     title: 'Создать skill',
     description: 'Новый навык агента',
-    text: 'Создай skill для … (scope: global). Сначала list_skills, чтобы не дублировать.'
+    text: 'Создай глобальный skill для … (навык агента). Сначала list_skills, чтобы не дублировать.'
   },
   {
     icon: '📚',

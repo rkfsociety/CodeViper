@@ -541,7 +541,6 @@ export class AgentRunner {
           description: args.description,
           instructions: args.instructions,
           triggers: args.triggers,
-          scope: args.scope === 'project' || args.scope === 'global' ? args.scope : undefined,
           id: args.id
         })
         this.emit({
@@ -549,7 +548,7 @@ export class AgentRunner {
           content: skill.name,
           skillId: skill.id
         })
-        return `Навык создан: ${skill.name} (id: ${skill.id}, scope: ${skill.scope})`
+        return `Навык агента создан (global): ${skill.name} (id: ${skill.id}) → ViperSkills.md`
       }
       case 'update_skill': {
         const skill = await updateSkill(projectPath, args.id, {

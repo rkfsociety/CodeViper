@@ -213,7 +213,7 @@ export const AGENT_TOOLS = [
     function: {
       name: 'create_skill',
       description:
-        'Создать навык агента (сохраняется в ViperSkills.md). По умолчанию scope: global — переживает перезапуск.',
+        'Создать глобальный навык агента → %APPDATA%/CodeViper/ViperSkills.md. Переживает перезапуск и смену проекта; применяется автоматически по триггерам.',
       parameters: {
         type: 'object',
         properties: {
@@ -225,11 +225,7 @@ export const AGENT_TOOLS = [
           },
           triggers: {
             type: 'string',
-            description: 'Слова-триггеры через запятую (todo, задачи, план...)'
-          },
-          scope: {
-            type: 'string',
-            description: 'global (по умолчанию) — навык агента; project — только для текущего репозитория'
+            description: 'Слова-триггеры через запятую — по ним навык подставится в контекст (todo, code review...)'
           },
           id: { type: 'string', description: 'Необязательный id (slug)' }
         },

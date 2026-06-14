@@ -1,5 +1,6 @@
 export const BUILTIN_SKILL_IDS = [
   'viper-agent-core',
+  'viper-skills',
   'viper-files',
   'viper-codebase',
   'viper-terminal',

@@ -116,7 +116,7 @@ export function buildSelfEditContext(): string {
 - append_codeviper_file — дописать в конец существующего файла
 - run_codeviper_command — команды в корне app/ (npm test, npm run typecheck, npm run build)
 
-Навыки (instructions без пересборки): create_skill / update_skill (scope global — для всего агента).
+Навыки (instructions без пересборки): create_skill / update_skill — всегда глобальные, %APPDATA%/CodeViper/ViperSkills.md.
 
 Типичный workflow «улучши себя»:
 1. list_codeviper_directory + read_codeviper_file — изучить agent.ts, skills.ts, shared/

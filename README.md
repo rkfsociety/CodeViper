@@ -20,7 +20,7 @@
 - [x] **Enter** — отправка, **Shift+Enter** — новая строка; очередь сообщений пока модель отвечает
 - [x] **Инструменты файлов:** `create_file`, `edit_file`, `append_file` (+ аналоги для CodeViper)
 - [x] **Автономное самоулучшение:** план `set_self_improvement_plan` + цикл до выполнения всех пунктов
-- [x] **Поиск в коде:** `grep_files`, `find_files` (+ CodeViper); **8 встроенных skills** (files, codebase, terminal, agent-core…)
+- [x] **Поиск в коде:** `grep_files`, `find_files` (+ CodeViper); **9 встроенных skills** (agent-core, viper-skills, files, codebase…)
 - [x] **Каталог моделей Ollama** — 22 модели с tool calling, группировка по RAM (6 GB → 48 GB+)
 - [x] **Автовыбор модели** — под задачу, выгрузка других моделей из RAM Ollama
 - [x] **История:** поиск, drag-and-drop чатов в папки, модалки вместо `prompt`/`confirm`
@@ -148,7 +148,7 @@ Ollama должна быть установлена и запущена отде
 - Настройки **сохраняются между сессиями**: `%APPDATA%/CodeViper/settings.json`
   (модель, URL Ollama, лимит шагов, флаг самообучения)
 - Позиция и размер окна запоминаются в `%APPDATA%/CodeViper/window-state.json`
-- Память и навыки в настройках показываются для **текущего чата** (его проекта)
+- Навыки агента — в **Настройках** (глобальные, `%APPDATA%/CodeViper/ViperSkills.md`); память — для текущего чата
 
 ## Самообучение
 
@@ -159,7 +159,8 @@ Ollama должна быть установлена и запущена отде
 | Глобальные знания (паттерны, навыки) | `%APPDATA%/CodeViper/ViperMemory.md` |
 | Знания проекта | `{проект}/.codeviper/ViperMemory.md` |
 | Правила проекта | `{проект}/.codeviper/rules.md` |
-| **Навыки (skills)** | `%APPDATA%/CodeViper/ViperSkills.md` (global, по умолчанию) и `{проект}/.codeviper/ViperSkills.md` (scope: project) |
+| **Навыки (skills)** | `%APPDATA%/CodeViper/ViperSkills.md` — **только глобальные** (поведение агента, не проекта) |
+| **Viper Skills** (встроенный skill) | `viper-skills` — как создавать и применять навыки |
 | **Viper Memory** (встроенный skill) | `viper-memory` — remember / search_memory / forget → **ViperMemory.md** |
 | **Viper Model Training** (skill) | `viper-model-training` — адаптация Ollama через Modelfile + few-shot |
 | **Viper Agent Core** | `viper-agent-core` — полный workflow и список инструментов |
@@ -168,13 +169,14 @@ Ollama должна быть установлена и запущена отде
 | **Viper Terminal** | `viper-terminal` — run_command |
 | **Viper Self-Edit** | `viper-self-edit` — правка исходников CodeViper |
 | **Viper Self-Improvement** | `viper-self-improvement` — план автономного самоулучшения |
-| **Данные навыков** (todo, состояние) | `%APPDATA%/CodeViper/skill-data/` и `{проект}/.codeviper/skill-data/` |
+| **Данные навыков** (todo, состояние) | `%APPDATA%/CodeViper/skill-data/` |
 
 **Как это работает:**
-1. Перед задачей агент подгружает релевантные знания и **активные skills** в системный промпт
-2. Во время работы: `remember`, `search_memory`, `forget`
-3. **По запросу** («сделай skill для todo», «улучши себя»): `create_skill` (по умолчанию **global** → ViperSkills.md), `update_skill`, `read_skill`
-4. После задачи с инструментами — автоматическая рефлексия (если включено «Самообучение»)
+1. Перед задачей агент подгружает релевантные знания и **навыки агента** в системный промпт
+2. Если запрос совпадает с **триггерами** пользовательского навыка — его **полные инструкции** подставляются автоматически
+3. Во время работы: `remember`, `search_memory`, `forget`
+4. **По запросу** («сделай skill для todo», «улучши себя»): `create_skill` → ViperSkills.md, `update_skill`, `read_skill`
+5. После задачи с инструментами — автоматическая рефлексия (если включено «Самообучение»)
 
 **Примеры запросов:**
 ```
@@ -192,7 +194,7 @@ Ollama должна быть установлена и запущена отде
 
 | Действие | Инструмент |
 |---|---|
-| Навык (инструкции) | `create_skill` с `scope: global` |
+| Навык (инструкции) | `create_skill` — всегда глобальный → ViperSkills.md |
 | Новый файл в app/ | `create_codeviper_file` |
 | Точечная правка | `edit_codeviper_file` (old_string → new_string) |
 | Полная перезапись | `write_codeviper_file` |
