@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { AgentRunner, deleteOllamaModel, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
+import { checkAgentPrerequisites } from './agentPrerequisites'
+import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
 import { filterToolCallingModels } from '../../shared/recommendedModels'
 import { buildAgentContextPreview } from './agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel } from './ollamaRuntime'
@@ -129,6 +131,10 @@ ipcMain.handle('delete-ollama-model', async (_e, url: string, model: string) => 
   await deleteOllamaModel(url, model)
 })
 
+ipcMain.handle('check-agent-prerequisites', async (_e, ollamaUrl: string, projectPath: string) =>
+  checkAgentPrerequisites(ollamaUrl, projectPath)
+)
+
 ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) =>
   runCommand(cwd, command)
 )
@@ -213,6 +219,16 @@ ipcMain.handle(
 
     agentRunState = { chatId }
     activeAgentAbort = new AbortController()
+
+    const prerequisites = await checkAgentPrerequisites(settings.ollamaUrl, projectPath)
+    if (!prerequisites.ok) {
+      stream(chatId, {
+        type: 'error',
+        content: formatPrerequisitesMessage(prerequisites.issues)
+      })
+      stream(chatId, { type: 'done' })
+      return
+    }
 
     let effectiveSettings = settings
 

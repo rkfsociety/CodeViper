@@ -67,6 +67,9 @@ const codeviper = {
     model: string
   ) => ipcRenderer.invoke('preview-agent-context', projectPath, messages, userMessage, model),
 
+  checkAgentPrerequisites: (ollamaUrl: string, projectPath: string) =>
+    ipcRenderer.invoke('check-agent-prerequisites', ollamaUrl, projectPath),
+
   loadSettings: () => ipcRenderer.invoke('load-settings'),
 
   saveSettings: (settings: AgentSettings) => ipcRenderer.invoke('save-settings', settings),

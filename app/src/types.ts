@@ -1,5 +1,9 @@
 export type AgentRole = 'user' | 'assistant' | 'tool' | 'system'
 
+import type { AgentPrerequisitesResult } from '../shared/agentPrerequisites'
+
+export type { AgentPrerequisiteIssue, AgentPrerequisitesResult, PackageManager } from '../shared/agentPrerequisites'
+
 export interface ChatMessage {
   id: string
   role: AgentRole
@@ -212,6 +216,10 @@ export interface CodeViperAPI {
     userMessage: string,
     model: string
   ) => Promise<AgentContextPreview>
+  checkAgentPrerequisites: (
+    ollamaUrl: string,
+    projectPath: string
+  ) => Promise<AgentPrerequisitesResult>
   loadSettings: () => Promise<AgentSettings>
   saveSettings: (settings: AgentSettings) => Promise<AgentSettings>
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => () => void

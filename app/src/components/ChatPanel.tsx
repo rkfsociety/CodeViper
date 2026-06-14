@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
 import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentContextPreview, AgentSettings, ChatMessage } from '../types'
+import type { AgentContextPreview, AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
+import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
 import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
 import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
+import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
 import { MessageBody } from './MessageBody'
 import { MessageCopyButton } from './MessageCopyButton'
 import { MessageRoleBadge } from './MessageRoleBadge'
@@ -22,6 +24,9 @@ interface Props {
   onLearningSaved?: () => void
   onPickProject: () => void
   onActiveModelChange?: (model: string) => void
+  onOpenSettings?: () => void
+  onEnqueueModel?: (modelName: string) => void
+  onRefreshOllama?: () => Promise<void>
 }
 
 function formatProjectLabel(path: string): string {
@@ -58,7 +63,10 @@ export function ChatPanel({
   onBusyChange,
   onLearningSaved,
   onPickProject,
-  onActiveModelChange
+  onActiveModelChange,
+  onOpenSettings,
+  onEnqueueModel,
+  onRefreshOllama
 }: Props) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -68,6 +76,11 @@ export function ChatPanel({
   const [contextPreview, setContextPreview] = useState<AgentContextPreview | null>(null)
   const [contextLoading, setContextLoading] = useState(false)
   const [contextModalOpen, setContextModalOpen] = useState(false)
+  const [prerequisiteBlock, setPrerequisiteBlock] = useState<{
+    issues: AgentPrerequisiteIssue[]
+    pendingRun: { userMessageId: string; text: string }
+    installing: boolean
+  } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesRef = useRef(messages)
@@ -300,7 +313,7 @@ export function ChatPanel({
     const project = projectPathRef.current
     const chat = chatIdRef.current
     const currentSettings = settingsRef.current
-    if (!project || !currentSettings.model || !chat) return
+    if (!project || !chat) return
 
     agentRunningRef.current = true
     setAgentRunning(true)
@@ -313,6 +326,42 @@ export function ChatPanel({
     setAgentPhase('thinking')
     setActiveToolName(undefined)
     setDraft('')
+
+    const prereq = await window.codeviper.checkAgentPrerequisites(
+      currentSettings.ollamaUrl,
+      project
+    )
+    if (!prereq.ok) {
+      agentRunningRef.current = false
+      setAgentRunning(false)
+      syncBusyState(false, queueRef.current.length)
+      setAgentPhase('thinking')
+      setPrerequisiteBlock({
+        issues: prereq.issues,
+        pendingRun: { userMessageId, text },
+        installing: false
+      })
+      appendMessage({
+        id: makeId(),
+        role: 'system',
+        content: formatPrerequisitesMessage(prereq.issues),
+        timestamp: Date.now()
+      })
+      return
+    }
+
+    if (!currentSettings.model.trim()) {
+      agentRunningRef.current = false
+      setAgentRunning(false)
+      syncBusyState(false, queueRef.current.length)
+      appendMessage({
+        id: makeId(),
+        role: 'system',
+        content: 'Модель не выбрана. Скачайте модель в настройках.',
+        timestamp: Date.now()
+      })
+      return
+    }
 
     const idx = messagesRef.current.findIndex((item) => item.id === userMessageId)
     const history = idx >= 0 ? messagesRef.current.slice(0, idx) : messagesRef.current
@@ -366,9 +415,83 @@ export function ChatPanel({
     })
   }
 
+  async function retryAfterPrerequisites() {
+    if (!prerequisiteBlock) return
+    const { pendingRun } = prerequisiteBlock
+
+    const prereq = await window.codeviper.checkAgentPrerequisites(
+      settingsRef.current.ollamaUrl,
+      projectPathRef.current
+    )
+    if (!prereq.ok) {
+      setPrerequisiteBlock({
+        issues: prereq.issues,
+        pendingRun,
+        installing: false
+      })
+      return
+    }
+
+    setPrerequisiteBlock(null)
+    await onRefreshOllama?.()
+    await executeRun(pendingRun.userMessageId, pendingRun.text)
+  }
+
+  async function installNodeDependencies() {
+    if (!prerequisiteBlock) return
+    const nodeIssue = prerequisiteBlock.issues.find((issue) => issue.type === 'node_install')
+    if (!nodeIssue || !projectPathRef.current) return
+
+    setPrerequisiteBlock({ ...prerequisiteBlock, installing: true })
+    try {
+      const result = await window.codeviper.runTerminalCommand(
+        projectPathRef.current,
+        nodeIssue.installCommand
+      )
+      const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim()
+      appendMessage({
+        id: makeId(),
+        role: 'system',
+        content:
+          result.exitCode === 0
+            ? `✓ ${nodeIssue.installCommand} выполнен успешно`
+            : `✗ ${nodeIssue.installCommand} завершился с кодом ${result.exitCode}${output ? `\n${output.slice(0, 500)}` : ''}`,
+        timestamp: Date.now()
+      })
+      if (result.exitCode === 0) {
+        await retryAfterPrerequisites()
+      } else {
+        setPrerequisiteBlock({ ...prerequisiteBlock, installing: false })
+      }
+    } catch (error) {
+      appendMessage({
+        id: makeId(),
+        role: 'system',
+        content: error instanceof Error ? error.message : String(error),
+        timestamp: Date.now()
+      })
+      setPrerequisiteBlock({ ...prerequisiteBlock, installing: false })
+    }
+  }
+
+  function dismissPrerequisites() {
+    setPrerequisiteBlock(null)
+  }
+
+  function queueModelDownload(modelName: string) {
+    onEnqueueModel?.(modelName)
+    onOpenSettings?.()
+    appendMessage({
+      id: makeId(),
+      role: 'system',
+      content: `Модель ${modelName} добавлена в очередь скачивания. После завершения нажмите «Проверить снова».`,
+      timestamp: Date.now()
+    })
+  }
+
   async function send() {
     const text = input.trim()
-    if (!text || !projectPath || !settings.model || !chatId) return
+    if (!text || !projectPath || !chatId) return
 
     const userMessage: ChatMessage = {
       id: makeId(),
@@ -447,6 +570,19 @@ export function ChatPanel({
           preview={contextPreview}
           loading={contextLoading}
           onOpen={() => setContextModalOpen(true)}
+        />
+      )}
+
+      {chatId && prerequisiteBlock && (
+        <AgentPrerequisitesBanner
+          issues={prerequisiteBlock.issues}
+          pendingRun={prerequisiteBlock.pendingRun}
+          installing={prerequisiteBlock.installing}
+          onInstallNodeDeps={() => void installNodeDependencies()}
+          onDownloadModel={queueModelDownload}
+          onOpenSettings={() => onOpenSettings?.()}
+          onRetry={() => void retryAfterPrerequisites()}
+          onDismiss={dismissPrerequisites}
         />
       )}
 

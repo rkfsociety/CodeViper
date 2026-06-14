@@ -303,6 +303,9 @@ export default function App() {
             onBusyChange={setChatBusy}
             onPickProject={pickProjectForActiveChat}
             onActiveModelChange={setActiveRunModel}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onEnqueueModel={downloadQueue.enqueue}
+            onRefreshOllama={refreshOllama}
             onLearningSaved={() => {
               setMemoryRefreshKey((key) => key + 1)
               setSkillsRefreshKey((key) => key + 1)
