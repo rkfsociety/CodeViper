@@ -197,6 +197,8 @@ export function ChatPanel({
     void send()
   }
 
+  const projectLocked = messages.length > 0
+
   return (
     <div className="chat-main">
       {chatId && (
@@ -205,9 +207,11 @@ export function ChatPanel({
             <span className="chat-project-label">📁 {formatProjectLabel(projectPath)}</span>
             {projectPath && <span className="chat-project-path">{projectPath}</span>}
           </div>
-          <button type="button" className="btn" onClick={onPickProject} disabled={busy}>
-            {projectPath ? 'Сменить проект' : 'Выбрать проект'}
-          </button>
+          {!projectLocked && (
+            <button type="button" className="btn" onClick={onPickProject} disabled={busy}>
+              {projectPath ? 'Сменить проект' : 'Выбрать проект'}
+            </button>
+          )}
         </div>
       )}
 

@@ -127,7 +127,7 @@ export default function App() {
   }, [flushCurrentChat])
 
   async function pickProjectForActiveChat() {
-    if (!activeChatId || chatBusy) return
+    if (!activeChatId || chatBusy || messages.length > 0) return
     const folder = await window.codeviper.selectProjectFolder()
     if (!folder) return
     await window.codeviper.updateChat(activeChatId, { projectPath: folder })
