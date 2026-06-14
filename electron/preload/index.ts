@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AgentSettings, AgentStreamEvent, ChatMessage, OllamaPullProgress } from '../src/types'
+import type { AgentSettings, AgentStreamEvent, ChatMessage, OllamaPullProgress } from '../../src/types'
 
 const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
