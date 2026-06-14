@@ -3,6 +3,7 @@ app/dist
 app/out
 app/release
 app/dist-electron
+app/.vitest-tmp
 CodeViper.exe
 CodeViper-Setup.exe
 CodeViper-new.exe

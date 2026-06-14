@@ -12,8 +12,7 @@
 
 - [ ] Рефакторинг: общий `makeId` / `readNdjsonLines`, удалить мёртвый `FileTree.tsx`
 - [ ] Хранилище чатов: атомарная запись, лимит размера, отдельный файл на чат
-- [ ] DevOps: CI (`tsc` + build), иконка приложения
-- [ ] Тесты: unit для `chats.ts`, `memory.ts`, `services.ts`, `parseToolArgs`
+- [ ] Иконка приложения
 
 ### ✅ Сделано
 
@@ -35,6 +34,8 @@
 - [x] Безопасность `run_command` (blocklist, без `shell: true`)
 - [x] Настройки в модальном окне, терминал по кнопке
 - [x] Запуск через `CodeViper.cmd` в корне репозитория
+- [x] Unit-тесты (`vitest`): `chats`, `memory`, `services`, `parseToolArgs`
+- [x] CI на GitHub Actions: `typecheck` → `test` → `build`
 
 ## Возможности
 
@@ -196,6 +197,8 @@ npm run dev        # GUI + hot reload (или двойной клик CodeViper.
 npm run build      # сборка в out/
 npm start          # запуск собранной версии
 npm run typecheck  # проверка TypeScript
+npm test           # unit-тесты (vitest)
+npm run test:watch # тесты в watch-режиме
 ```
 
 ## Сравнение с Cursor
