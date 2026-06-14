@@ -1,0 +1,171 @@
+export type RamTier = '6-8' | '8' | '12' | '16' | '24' | '32' | '48+'
+
+export interface RecommendedModel {
+  name: string
+  description: string
+  ramHint: string
+  /** Группа для сортировки по железу */
+  ramTier: RamTier
+  /** Рекомендуемый выбор в своей категории RAM */
+  featured?: boolean
+}
+
+export const RECOMMENDED_MODEL_TIERS: { id: RamTier; label: string }[] = [
+  { id: '6-8', label: '6–8 GB — минимальное железо' },
+  { id: '8', label: '8 GB — оптимальный баланс' },
+  { id: '12', label: '12 GB' },
+  { id: '16', label: '16 GB — комфортная работа' },
+  { id: '24', label: '24 GB' },
+  { id: '32', label: '32 GB — мощные модели' },
+  { id: '48+', label: '48 GB+ — максимум качества' }
+]
+
+/** Модели Ollama с поддержкой tool calling для агента CodeViper. */
+export const RECOMMENDED_MODELS: RecommendedModel[] = [
+  {
+    name: 'qwen2.5-coder:3b',
+    description: 'Самый лёгкий кодер с tool calling — для слабых ПК',
+    ramHint: '6 GB',
+    ramTier: '6-8',
+    featured: true
+  },
+  {
+    name: 'llama3.2:3b',
+    description: 'Компактная универсальная модель Meta',
+    ramHint: '6–8 GB',
+    ramTier: '6-8'
+  },
+  {
+    name: 'qwen3:4b',
+    description: 'Новая лёгкая Qwen3, хорошо следует инструкциям',
+    ramHint: '6–8 GB',
+    ramTier: '6-8'
+  },
+  {
+    name: 'qwen2.5-coder:7b',
+    description: 'Лучший выбор для кода и агента — быстро и точно',
+    ramHint: '8 GB',
+    ramTier: '8',
+    featured: true
+  },
+  {
+    name: 'qwen2.5:7b',
+    description: 'Универсальная Qwen2.5, tool calling',
+    ramHint: '8 GB',
+    ramTier: '8'
+  },
+  {
+    name: 'llama3.1:8b',
+    description: 'Проверенная модель Meta с tool calling',
+    ramHint: '8 GB',
+    ramTier: '8'
+  },
+  {
+    name: 'qwen3:8b',
+    description: 'Qwen3 — сильнее Qwen2.5 на тех же 8 GB',
+    ramHint: '8 GB',
+    ramTier: '8'
+  },
+  {
+    name: 'deepseek-r1:7b',
+    description: 'Reasoning-модель, подходит для сложных задач',
+    ramHint: '8 GB',
+    ramTier: '8'
+  },
+  {
+    name: 'gemma2:9b',
+    description: 'Google Gemma2 — код и рассуждения',
+    ramHint: '8–10 GB',
+    ramTier: '8'
+  },
+  {
+    name: 'mistral-nemo:12b',
+    description: 'Mistral Nemo 12B — баланс качества и RAM',
+    ramHint: '12 GB',
+    ramTier: '12'
+  },
+  {
+    name: 'qwen2.5-coder:14b',
+    description: 'Код высокого качества, стабильный tool calling',
+    ramHint: '16 GB',
+    ramTier: '16',
+    featured: true
+  },
+  {
+    name: 'qwen2.5:14b',
+    description: 'Универсальная 14B — лучше понимает контекст',
+    ramHint: '16 GB',
+    ramTier: '16'
+  },
+  {
+    name: 'qwen3:14b',
+    description: 'Qwen3 14B — новое поколение на 16 GB',
+    ramHint: '16 GB',
+    ramTier: '16'
+  },
+  {
+    name: 'deepseek-r1:14b',
+    description: 'Reasoning 14B для сложного анализа кода',
+    ramHint: '16 GB',
+    ramTier: '16'
+  },
+  {
+    name: 'phi4:14b',
+    description: 'Microsoft Phi-4 — компактная и умная',
+    ramHint: '16 GB',
+    ramTier: '16'
+  },
+  {
+    name: 'codestral:22b',
+    description: 'Mistral Codestral — специализация на коде',
+    ramHint: '16–24 GB',
+    ramTier: '24'
+  },
+  {
+    name: 'qwen2.5-coder:32b',
+    description: 'Топ кодер для 32 GB — минимум галлюцинаций',
+    ramHint: '24–32 GB',
+    ramTier: '32',
+    featured: true
+  },
+  {
+    name: 'qwen3:30b',
+    description: 'Qwen3 30B — сильная универсальная модель',
+    ramHint: '24–32 GB',
+    ramTier: '32'
+  },
+  {
+    name: 'deepseek-r1:32b',
+    description: 'Reasoning 32B — глубокий анализ и планирование',
+    ramHint: '24–32 GB',
+    ramTier: '32'
+  },
+  {
+    name: 'llama3.1:70b',
+    description: 'Llama 3.1 70B — топ open-source (нужен GPU/RAM)',
+    ramHint: '48 GB+',
+    ramTier: '48+'
+  },
+  {
+    name: 'llama3.3:70b',
+    description: 'Llama 3.3 70B — новее 3.1, лучше рассуждения',
+    ramHint: '48 GB+',
+    ramTier: '48+',
+    featured: true
+  },
+  {
+    name: 'qwen2.5:72b',
+    description: 'Qwen2.5 72B — максимум для локального агента',
+    ramHint: '48 GB+',
+    ramTier: '48+'
+  }
+]
+
+export function groupRecommendedModelsByTier(
+  models: RecommendedModel[] = RECOMMENDED_MODELS
+): { tier: (typeof RECOMMENDED_MODEL_TIERS)[number]; models: RecommendedModel[] }[] {
+  return RECOMMENDED_MODEL_TIERS.map((tier) => ({
+    tier,
+    models: models.filter((model) => model.ramTier === tier.id)
+  })).filter((group) => group.models.length > 0)
+}

@@ -809,9 +809,27 @@ button {
   margin-top: 4px;
 }
 
+.model-tier-group {
+  display: grid;
+  gap: 8px;
+}
+
+.model-tier-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #58a6ff;
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+}
+
 .model-cards {
   display: grid;
   gap: 8px;
+}
+
+.model-card-featured {
+  border-color: #388bfd66;
+  background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
 }
 
 .model-card {

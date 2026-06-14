@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { OllamaModel, OllamaPullProgress, RecommendedModel } from '../types'
-import { RECOMMENDED_MODELS } from '../types'
+import { groupRecommendedModelsByTier } from '../types'
 
 interface Props {
   ollamaUrl: string
@@ -63,6 +63,7 @@ export function ModelPanel({
 
   const percent = pullPercent(pullProgress)
   const installedNames = new Set(models.map((m) => m.name))
+  const tierGroups = groupRecommendedModelsByTier()
 
   return (
     <div className="model-panel">
@@ -99,34 +100,48 @@ export function ModelPanel({
 
       {pullError && <div className="model-error">{pullError}</div>}
 
-      <div className="model-section-title">Рекомендуемые модели</div>
-      <div className="model-cards">
-        {RECOMMENDED_MODELS.map((model) => {
-          const installed = installedNames.has(model.name)
-          return (
-            <div key={model.name} className="model-card">
-              <div className="model-card-head">
-                <strong>{model.name}</strong>
-                <span className="model-ram">{model.ramHint}</span>
-              </div>
-              <div className="model-card-desc">{model.description}</div>
-              <button
-                className="btn"
-                disabled={!ollamaOnline || !!pulling || installed}
-                onClick={() => downloadModel(model)}
-              >
-                {installed ? 'Установлена' : pulling === model.name ? 'Скачивание…' : 'Скачать'}
-              </button>
-            </div>
-          )
-        })}
+      <div className="model-section-title">
+        Рекомендуемые модели (tool calling) — выберите по объёму RAM
       </div>
+
+      {tierGroups.map(({ tier, models: tierModels }) => (
+        <div key={tier.id} className="model-tier-group">
+          <div className="model-tier-title">{tier.label}</div>
+          <div className="model-cards">
+            {tierModels.map((model) => {
+              const installed = installedNames.has(model.name)
+              return (
+                <div
+                  key={model.name}
+                  className={`model-card${model.featured ? ' model-card-featured' : ''}`}
+                >
+                  <div className="model-card-head">
+                    <strong>
+                      {model.featured ? '★ ' : ''}
+                      {model.name}
+                    </strong>
+                    <span className="model-ram">{model.ramHint}</span>
+                  </div>
+                  <div className="model-card-desc">{model.description}</div>
+                  <button
+                    className="btn"
+                    disabled={!ollamaOnline || !!pulling || installed}
+                    onClick={() => downloadModel(model)}
+                  >
+                    {installed ? 'Установлена' : pulling === model.name ? 'Скачивание…' : 'Скачать'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
 
       <div className="model-custom">
         <input
           value={customModel}
           onChange={(e) => setCustomModel(e.target.value)}
-          placeholder="Другая модель, напр. mistral:7b"
+          placeholder="Другая модель Ollama, напр. mistral-nemo:12b"
           disabled={!ollamaOnline || !!pulling}
         />
         <button

@@ -53,34 +53,12 @@ export interface OllamaPullProgress {
   completed?: number
 }
 
-export interface RecommendedModel {
-  name: string
-  description: string
-  ramHint: string
-}
-
-export const RECOMMENDED_MODELS: RecommendedModel[] = [
-  {
-    name: 'qwen2.5-coder:7b',
-    description: 'Быстрая модель для кода, tool calling',
-    ramHint: '8 GB RAM'
-  },
-  {
-    name: 'qwen2.5-coder:14b',
-    description: 'Лучше качество кода',
-    ramHint: '16 GB RAM'
-  },
-  {
-    name: 'llama3.1:8b',
-    description: 'Универсальная модель с tool calling',
-    ramHint: '8 GB RAM'
-  },
-  {
-    name: 'qwen3:8b',
-    description: 'Новая серия Qwen',
-    ramHint: '8 GB RAM'
-  }
-]
+export type { RecommendedModel, RamTier } from '../shared/recommendedModels'
+export {
+  RECOMMENDED_MODELS,
+  RECOMMENDED_MODEL_TIERS,
+  groupRecommendedModelsByTier
+} from '../shared/recommendedModels'
 
 export interface AgentSettings {
   ollamaUrl: string
