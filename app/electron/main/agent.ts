@@ -6,6 +6,7 @@ import type {
 } from '../../src/types'
 import { assertPullableToolModel } from '../../shared/recommendedModels'
 import { isBuiltinSkill } from '../../shared/builtinSkills'
+import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
   MUTATING_TOOLS,
   shouldRetryForMissingTools,
