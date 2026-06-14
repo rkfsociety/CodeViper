@@ -1034,6 +1034,14 @@ button {
   color: #8b949e;
 }
 
+.skill-builtin-badge {
+  margin-left: auto;
+  font-size: 10px;
+  color: #58a6ff;
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+}
+
 .memory-delete {
   margin-left: auto;
   padding: 2px 8px;

@@ -54,6 +54,7 @@ export interface OllamaPullProgress {
 }
 
 export type { RecommendedModel, RamTier } from '../shared/recommendedModels'
+export { isBuiltinSkill } from '../shared/builtinSkills'
 export {
   RECOMMENDED_MODELS,
   RECOMMENDED_MODEL_TIERS,

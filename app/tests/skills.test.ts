@@ -10,6 +10,7 @@ vi.mock('electron', () => ({
 
 import {
   createSkill,
+  deleteSkill,
   listSkills,
   parseSkillsMarkdown,
   renderSkillsMarkdown,
@@ -109,6 +110,10 @@ describe('ViperSkills.md', () => {
     const skills = await listSkills('/proj')
     expect(skills).toHaveLength(1)
     expect(skills[0].scope).toBe('global')
+  })
+
+  it('нельзя удалить встроенный системный навык', async () => {
+    await expect(deleteSkill('', 'viper-agent-core')).rejects.toThrow(/встроенный/)
   })
 
   it('обновление навыка сохраняется на диск', async () => {

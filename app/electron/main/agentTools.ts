@@ -255,7 +255,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'delete_skill',
-      description: 'Удалить навык по id',
+      description: 'Удалить пользовательский навык по id (встроенные viper-* удалять нельзя)',
       parameters: {
         type: 'object',
         properties: {

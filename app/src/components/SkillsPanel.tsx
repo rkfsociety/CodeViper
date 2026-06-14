@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AgentSkill } from '../types'
+import { isBuiltinSkill } from '../types'
 
 interface Props {
   projectPath: string
@@ -38,13 +39,19 @@ export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
   }
 
   function renderSkill(skill: AgentSkill) {
+    const builtin = isBuiltinSkill(skill.id)
+
     return (
       <div key={skill.id} className="memory-item skill-item">
         <div className="memory-item-head">
           <span className="memory-badge skill-badge">{skill.name}</span>
-          <button className="btn memory-delete" onClick={() => remove(skill.id)}>
-            ✕
-          </button>
+          {builtin ? (
+            <span className="memory-scope skill-builtin-badge">системный</span>
+          ) : (
+            <button className="btn memory-delete" onClick={() => remove(skill.id)}>
+              ✕
+            </button>
+          )}
         </div>
         <div className="memory-content">{skill.description || skill.id}</div>
         {skill.triggers.length > 0 && (

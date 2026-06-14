@@ -5,6 +5,7 @@ import type {
   MemoryCategory
 } from '../../src/types'
 import { assertPullableToolModel } from '../../shared/recommendedModels'
+import { isBuiltinSkill } from '../../shared/builtinSkills'
 import {
   MUTATING_TOOLS,
   shouldRetryForMissingTools,
@@ -594,6 +595,9 @@ export class AgentRunner {
         return `Навык обновлён: ${skill.name} (id: ${skill.id})`
       }
       case 'delete_skill': {
+        if (isBuiltinSkill(args.id)) {
+          return `Нельзя удалить встроенный навык: ${args.id}`
+        }
         const removed = await deleteSkill(projectPath, args.id)
         return removed ? `Навык удалён: ${args.id}` : `Навык не найден: ${args.id}`
       }

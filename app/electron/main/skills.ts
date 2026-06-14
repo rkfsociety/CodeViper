@@ -3,7 +3,7 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
-import { BUILTIN_SKILL_IDS } from '../../shared/builtinSkills'
+import { BUILTIN_SKILL_IDS, isBuiltinSkill } from '../../shared/builtinSkills'
 import {
   formatAppliedSkillsBlock,
   scoreSkill,
@@ -296,6 +296,10 @@ export async function updateSkill(
 }
 
 export async function deleteSkill(projectPath: string, id: string): Promise<boolean> {
+  if (isBuiltinSkill(id)) {
+    throw new Error(`Навык «${id}» встроенный (системный) — удаление запрещено`)
+  }
+
   const targets = [
     { md: globalSkillsPath(), legacy: legacyGlobalSkillsPath() },
     ...(projectPath
