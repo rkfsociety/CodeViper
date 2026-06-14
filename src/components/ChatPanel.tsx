@@ -25,8 +25,8 @@ export function ChatPanel({ settings, projectPath, onMessagesChange, onLearningS
 
   useEffect(() => {
     const unsubscribe = window.codeviper.onAgentStream((event) => {
-      if (event.type === 'token' && event.content) {
-        setDraft((prev) => prev + event.content)
+      if (event.type === 'token') {
+        setDraft((prev) => prev + (event.content ?? ''))
       }
 
       if (event.type === 'tool_start') {
@@ -55,25 +55,25 @@ export function ChatPanel({ settings, projectPath, onMessagesChange, onLearningS
         ])
       }
 
-      if (event.type === 'error' && event.content) {
+      if (event.type === 'error') {
         setMessages((prev) => [
           ...prev,
           {
             id: makeId(),
             role: 'system',
-            content: event.content,
+            content: event.content ?? '',
             timestamp: Date.now()
           }
         ])
       }
 
-      if (event.type === 'learning_saved' && event.content) {
+      if (event.type === 'learning_saved') {
         setMessages((prev) => [
           ...prev,
           {
             id: makeId(),
             role: 'system',
-            content: `🧠 Запомнено: ${event.content}`,
+            content: `🧠 Запомнено: ${event.content ?? ''}`,
             timestamp: Date.now()
           }
         ])
