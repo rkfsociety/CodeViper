@@ -11,7 +11,8 @@ describe('actionVerification', () => {
     expect(taskLikelyNeedsMutation('изучи код')).toBe(false)
   })
 
-  it('определяет заявление о выполнении', () => {
+  it('не считает планирование завершением', () => {
+    expect(claimsActionCompleted('Создаю навык для todo-листа. Шаги: …')).toBe(false)
     expect(claimsActionCompleted('Я создал skill для todo-листа.')).toBe(true)
     expect(claimsActionCompleted('Сейчас посмотрю структуру проекта.')).toBe(false)
   })
@@ -20,7 +21,7 @@ describe('actionVerification', () => {
     expect(
       needsToolVerification(
         'Создай skill для todo',
-        'Готово, skill создан.',
+        'Готово. Skill создан.',
         new Set()
       )
     ).toBe(true)

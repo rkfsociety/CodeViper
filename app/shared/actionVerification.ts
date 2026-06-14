@@ -16,12 +16,10 @@ const MUTATION_TASK_PATTERNS: RegExp[] = [
 ]
 
 const COMPLETION_CLAIM_PATTERNS: RegExp[] = [
-  /(?:создал|добавил|записал|обновил|исправил|удалил|сохранил|выполнил|реализовал)/i,
-  /(?:создан|добавлен|записан|обновл[её]н|исправлен|удалён|удален|сохранён|сохранен)/i,
-  /(?:skill|навык|файл|инструмент).{0,24}(?:создан|добавлен|записан|готов)/i,
-  /(?:created|added|wrote|updated|fixed|deleted|saved|implemented)/i,
-  /(?:successfully|done|completed)/i,
-  /(?:^|\s)готово[.!]/i
+  /(?:^|[\s.!?])(?:я\s+)?(?:создал|добавил|записал|обновил|исправил|удалил|сохранил|выполнил|реализовал)(?=\s|[.!?]|$)/i,
+  /(?:^|[\s.!?])(?:skill|навык|файл)\s+(?:создан|добавлен|записан|обновл[eё]н|готов)(?=\s|[.!?]|$)/i,
+  /(?:^|[\s.!?])(?:created|added|wrote|updated|fixed|deleted|saved|implemented)(?=\s|[.!?]|$)/i,
+  /(?:^|[\s.!?])готово[.!]\s*$/i
 ]
 
 export function taskLikelyNeedsMutation(userMessage: string): boolean {
@@ -33,6 +31,11 @@ export function taskLikelyNeedsMutation(userMessage: string): boolean {
 export function claimsActionCompleted(assistantText: string): boolean {
   const text = assistantText.trim()
   if (!text) return false
+
+  if (/созда(?:ю|ем|ет)/i.test(text) && !/(?:создал|создан|создана|создано)(?=\s|[.!?]|$)/i.test(text)) {
+    return false
+  }
+
   return COMPLETION_CLAIM_PATTERNS.some((pattern) => pattern.test(text))
 }
 
@@ -46,6 +49,10 @@ export function needsToolVerification(
   return claimsActionCompleted(assistantText)
 }
 
-export const TOOL_VERIFICATION_NUDGE = `Ты описал результат, но не вызвал инструменты (write_file, create_skill, run_command и т.д.).
-Сейчас выполни задачу по-настоящему: вызови нужные инструменты и только после их успешного ответа кратко сообщи, что сделано.
-Не утверждай, что файл/skill/правка уже созданы, пока инструмент не вернул успех.`
+export const TOOL_VERIFICATION_NUDGE = `STOP. Не описывай план текстом.
+Сейчас вызови нужный инструмент (create_skill, write_file, run_command и т.д.) через tool calling.
+Для skill: create_skill с полями name, description, instructions.
+После успешного ответа инструмента — одно короткое сообщение пользователю.`
+
+export const TOOL_VERIFICATION_FAILED_MESSAGE =
+  'Не удалось выполнить действие: модель не вызвала инструменты. Проверь модель с tool calling (qwen2.5-coder:7b, llama3.1:8b) или переформулируй задачу.'

@@ -7,8 +7,10 @@ import type {
 } from '../../src/types'
 import { extractEmbeddedToolCalls, looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
+  claimsActionCompleted,
   MUTATING_TOOLS,
-  needsToolVerification,
+  taskLikelyNeedsMutation,
+  TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
@@ -475,7 +477,9 @@ export class AgentRunner {
     let usedTools = false
     const mutatingToolsUsed = new Set<string>()
     let verificationRetries = 0
-    const MAX_VERIFICATION_RETRIES = 2
+    let verificationNoticeSent = false
+    let requireToolNext = false
+    const MAX_VERIFICATION_RETRIES = 1
 
     try {
       for (let step = 0; step < this.settings.maxSteps; step++) {
@@ -483,7 +487,7 @@ export class AgentRunner {
 
         let response
         try {
-          response = await this.chat(messages)
+          response = await this.chat(messages, { requireTool: requireToolNext })
         } catch (error) {
           if (isAbortError(error)) {
             this.handleAbort()
@@ -491,6 +495,7 @@ export class AgentRunner {
           }
           throw error
         }
+        requireToolNext = false
 
         const assistantText = sanitizeAssistantContent(response.message?.content ?? '')
         const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
@@ -500,19 +505,41 @@ export class AgentRunner {
         }
 
         if (!toolCalls.length) {
-          if (
-            needsToolVerification(userMessage, assistantText, mutatingToolsUsed) &&
-            verificationRetries < MAX_VERIFICATION_RETRIES
-          ) {
+          const mutationTask = taskLikelyNeedsMutation(userMessage)
+          const noMutatingToolsYet = mutatingToolsUsed.size === 0
+          const shouldRetryWithTools =
+            mutationTask &&
+            noMutatingToolsYet &&
+            verificationRetries < MAX_VERIFICATION_RETRIES &&
+            (claimsActionCompleted(assistantText) || assistantText.length > 0)
+
+          if (shouldRetryWithTools) {
             verificationRetries += 1
+            if (assistantText) {
+              messages.pop()
+            }
             this.emit({ type: 'clear_draft' })
-            this.emit({
-              type: 'error',
-              content:
-                '⚠️ Ответ без вызова инструментов — агент перепроверяет и выполняет задачу заново…'
-            })
+            if (!verificationNoticeSent) {
+              verificationNoticeSent = true
+              this.emit({
+                type: 'error',
+                content:
+                  '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
+              })
+            }
             messages.push({ role: 'user', content: TOOL_VERIFICATION_NUDGE })
+            requireToolNext = true
             continue
+          }
+
+          if (mutationTask && noMutatingToolsYet && verificationRetries >= MAX_VERIFICATION_RETRIES) {
+            if (assistantText) {
+              messages.pop()
+            }
+            this.emit({ type: 'clear_draft' })
+            this.emit({ type: 'error', content: TOOL_VERIFICATION_FAILED_MESSAGE })
+            this.emit({ type: 'done' })
+            return
           }
 
           if (assistantText) {
@@ -576,7 +603,7 @@ export class AgentRunner {
     }
   }
 
-  private async chat(messages: OllamaMessage[]) {
+  private async chat(messages: OllamaMessage[], options?: { requireTool?: boolean }) {
     const res = await fetch(`${this.settings.ollamaUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -584,7 +611,8 @@ export class AgentRunner {
         model: this.settings.model,
         messages,
         tools: TOOLS,
-        stream: true
+        stream: true,
+        ...(options?.requireTool ? { tool_choice: 'required' as const } : {})
       }),
       signal: this.signal
     })
