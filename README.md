@@ -136,6 +136,7 @@ Ollama должна быть установлена и запущена отде
 | Правила проекта | `{проект}/.codeviper/rules.md` |
 | **Навыки (skills)** | `%APPDATA%/CodeViper/ViperSkills.md` (global, по умолчанию) и `{проект}/.codeviper/ViperSkills.md` (scope: project) |
 | **Viper Memory** (встроенный skill) | `viper-memory` — remember / search_memory / forget → **ViperMemory.md** |
+| **Viper Model Training** (skill) | `viper-model-training` — адаптация Ollama через Modelfile + few-shot |
 | **Данные навыков** (todo, состояние) | `%APPDATA%/CodeViper/skill-data/` и `{проект}/.codeviper/skill-data/` |
 
 **Как это работает:**
@@ -174,6 +175,17 @@ Ollama должна быть установлена и запущена отде
 ```
 
 После правок `electron/main/*` нужен **перезапуск** приложения.
+
+### Адаптация моделей Ollama (Viper Model Training)
+
+CodeViper **не выполняет классический GPU fine-tuning**. Вместо этого агент может создать **производную модель Ollama** из файла примеров:
+
+1. Подготовьте JSON/JSONL: `[{"user":"…","assistant":"…"}]` → `.codeviper/training/examples.json`
+2. В чате: «обучи модель на examples.json» или «создай модель my-coder из qwen2.5-coder:7b»
+3. Агент вызовет `preview_ollama_modelfile`, затем `create_ollama_model`
+4. Выберите новую модель в **Настройках**
+
+Инструменты: `preview_ollama_modelfile`, `create_ollama_model`. Встроенный skill: `viper-model-training`.
 
 ## Примеры задач
 

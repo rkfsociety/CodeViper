@@ -8,12 +8,14 @@ export const MUTATING_TOOLS = new Set([
   'delete_skill',
   'write_skill_data',
   'write_codeviper_file',
-  'run_codeviper_command'
+  'run_codeviper_command',
+  'create_ollama_model'
 ])
 
 const MUTATION_TASK_PATTERNS: RegExp[] = [
   /\b(?:создай|сделай|добавь|запиши|измени|исправь|обнови|удали|реализуй|внедри|улучши)\b/i,
   /\b(?:skill|навык|файл|скрипт|функци|компонент|тест|readme)\b/i,
+  /\b(?:обучи|дообуч|train|fine-tune|modelfile)\b/i,
   /\b(?:create|add|write|fix|update|delete|implement|refactor)\b/i
 ]
 

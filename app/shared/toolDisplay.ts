@@ -16,7 +16,9 @@ export const TOOL_LABELS: Record<string, string> = {
   list_codeviper_directory: 'Смотрю исходники CodeViper',
   read_codeviper_file: 'Читаю код CodeViper',
   write_codeviper_file: 'Правлю код CodeViper',
-  run_codeviper_command: 'Команда в CodeViper'
+  run_codeviper_command: 'Команда в CodeViper',
+  preview_ollama_modelfile: 'Собираю Modelfile',
+  create_ollama_model: 'Создаю модель Ollama'
 }
 
 export function toolLabel(name: string | undefined): string {
@@ -76,6 +78,7 @@ export function compactToolChatLine(
     case 'create_skill':
     case 'update_skill':
     case 'delete_skill':
+    case 'create_ollama_model':
       return `✓ ${firstLine(body) || label}`
     default:
       return body.trim()

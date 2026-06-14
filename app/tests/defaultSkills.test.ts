@@ -8,7 +8,7 @@ vi.mock('electron', () => ({
   app: { getPath: () => process.cwd() + '/.vitest-tmp/default-skills' }
 }))
 
-import { ensureDefaultSkills, VIPER_MEMORY_SKILL_ID } from '../electron/main/defaultSkills'
+import { ensureDefaultSkills, VIPER_MEMORY_SKILL_ID, VIPER_MODEL_TRAINING_SKILL_ID } from '../electron/main/defaultSkills'
 import { getSkill, listSkills, SKILLS_FILENAME } from '../electron/main/skills'
 
 beforeEach(() => {
@@ -28,12 +28,21 @@ describe('ensureDefaultSkills', () => {
     expect(skill?.instructions).toContain('ViperMemory.md')
   })
 
-  it('не дублирует навык при повторном вызове', async () => {
+  it('создаёт навык viper-model-training при первом запуске', async () => {
+    await ensureDefaultSkills()
+    const skill = await getSkill('', VIPER_MODEL_TRAINING_SKILL_ID, 'global')
+    expect(skill).not.toBeNull()
+    expect(skill?.instructions).toContain('create_ollama_model')
+  })
+
+  it('не дублирует навыки при повторном вызове', async () => {
     await ensureDefaultSkills()
     await ensureDefaultSkills()
     const skills = await listSkills('')
-    const memorySkills = skills.filter((s) => s.id === VIPER_MEMORY_SKILL_ID)
-    expect(memorySkills).toHaveLength(1)
+    const memorySkills = skills.filter(
+      (s) => s.id === VIPER_MEMORY_SKILL_ID || s.id === VIPER_MODEL_TRAINING_SKILL_ID
+    )
+    expect(memorySkills).toHaveLength(2)
   })
 
   it('сохраняет skills.json в userData', async () => {

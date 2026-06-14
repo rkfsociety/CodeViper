@@ -260,6 +260,43 @@ export const AGENT_TOOLS = [
         required: ['command']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'preview_ollama_modelfile',
+      description:
+        'Собрать Ollama Modelfile из файла с примерами (few-shot). Без создания модели — для проверки.',
+      parameters: {
+        type: 'object',
+        properties: {
+          data_path: { type: 'string', description: 'Абсолютный путь к JSON/JSONL с примерами {user, assistant}' },
+          base_model: { type: 'string', description: 'Базовая модель Ollama (FROM), напр. qwen2.5-coder:7b' },
+          system: { type: 'string', description: 'SYSTEM промпт для производной модели (необязательно)' },
+          temperature: { type: 'string', description: 'PARAMETER temperature (необязательно, напр. 0.3)' }
+        },
+        required: ['data_path', 'base_model']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_ollama_model',
+      description:
+        'Создать производную модель Ollama из файла примеров (Modelfile + MESSAGE). Не GPU fine-tuning.',
+      parameters: {
+        type: 'object',
+        properties: {
+          model_name: { type: 'string', description: 'Имя новой модели, напр. my-project-coder' },
+          data_path: { type: 'string', description: 'Абсолютный путь к JSON/JSONL с примерами' },
+          base_model: { type: 'string', description: 'Базовая модель (FROM)' },
+          system: { type: 'string', description: 'SYSTEM промпт (необязательно)' },
+          temperature: { type: 'string', description: 'temperature (необязательно)' }
+        },
+        required: ['model_name', 'data_path', 'base_model']
+      }
+    }
   }
 ] as const
 

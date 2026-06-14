@@ -1,6 +1,7 @@
 import { getSkill, createSkill } from './skills'
 
 export const VIPER_MEMORY_SKILL_ID = 'viper-memory'
+export const VIPER_MODEL_TRAINING_SKILL_ID = 'viper-model-training'
 
 const VIPER_MEMORY_SKILL = {
   id: VIPER_MEMORY_SKILL_ID,
@@ -32,30 +33,70 @@ const VIPER_MEMORY_SKILL = {
 | \`search_memory\` | Найти записи по ключевым словам перед задачей |
 | \`forget\` | Удалить устаревшую запись по id |
 
-## Категории (category)
-- \`pattern\` — паттерн кода или workflow
-- \`mistake\` — ошибка, которую не повторять
-- \`preference\` — предпочтение пользователя (стиль, язык, инструменты)
-- \`project\` — факт о текущем проекте (архитектура, соглашения)
-- \`skill\` — урок, связанный с навыком
-
 ## Правила
-1. **Перед сложной задачей** — \`search_memory\` по теме запроса
-2. **После успешного решения** — \`remember\` с краткой формулировкой (одна мысль — одна запись)
-3. \`scope: global\` — для предпочтений пользователя; \`scope: project\` — для правил репозитория
-4. Не дублируй: \`remember\` сам объединяет одинаковые записи
-5. Не утверждай «запомнил», пока \`remember\` не вернул id
-6. Файл ViperMemory.md обновляется автоматически — не правь его через \`write_file\` вместо \`remember\`
-
-## Примеры
-- «Запомни: пользователь предпочитает TypeScript strict» → \`remember\` (preference, global)
-- «Что ты знаешь про этот проект?» → \`search_memory\` + краткий ответ
-- «Забудь запись abc123» → \`forget\` с id`
+1. Перед сложной задачей — \`search_memory\`
+2. После успешного решения — \`remember\` (кратко, одна мысль)
+3. Не правь ViperMemory.md через \`write_file\` — только \`remember\``
 }
 
-export async function ensureDefaultSkills(projectPath = ''): Promise<void> {
-  const existing = await getSkill(projectPath, VIPER_MEMORY_SKILL_ID, 'global')
-  if (existing) return
+const VIPER_MODEL_TRAINING_SKILL = {
+  id: VIPER_MODEL_TRAINING_SKILL_ID,
+  name: 'Viper Model Training',
+  description: 'Адаптация локальных моделей Ollama через Modelfile и few-shot примеры',
+  triggers: [
+    'обучи модель',
+    'обучить модель',
+    'train model',
+    'fine-tune',
+    'дообуч',
+    'адаптируй модель',
+    'viper model training'
+  ],
+  scope: 'global' as const,
+  instructions: `# Viper Model Training
 
-  await createSkill(projectPath, VIPER_MEMORY_SKILL)
+## Что это
+CodeViper работает с **Ollama**. «Обучение» здесь — создание **производной модели** через Ollama Modelfile:
+- базовая модель (\`FROM\`)
+- опциональный \`SYSTEM\`
+- few-shot пары \`MESSAGE user\` / \`MESSAGE assistant\` из ваших данных
+
+Это **не** полный GPU fine-tuning. Для классического fine-tuning используйте внешние инструменты и \`ollama import\`.
+
+## Формат данных (\`data_path\`)
+JSON-массив или JSONL (по строке):
+\`\`\`json
+{"user": "вопрос или задача", "assistant": "ожидаемый ответ"}
+\`\`\`
+Алиасы полей: \`prompt/response\`, \`input/output\`, \`question/answer\`.
+
+Рекомендуемый путь в проекте: \`.codeviper/training/examples.json\`
+
+## Workflow
+1. \`read_file\` — проверить/создать файл с примерами (\`write_file\`)
+2. \`preview_ollama_modelfile\` — проверить Modelfile до создания
+3. \`create_ollama_model\` — создать модель в Ollama (\`model_name\`, \`base_model\`, \`data_path\`)
+4. Сообщить пользователю имя модели; предложить выбрать её в настройках CodeViper
+
+## Инструменты
+| Инструмент | Назначение |
+|---|---|
+| \`preview_ollama_modelfile\` | Сборка Modelfile без создания |
+| \`create_ollama_model\` | Создание модели через Ollama API |
+
+## Правила
+- Не утверждай «модель обучена», пока \`create_ollama_model\` не вернул успех
+- Сначала \`preview_ollama_modelfile\`, если данные новые или большие
+- \`base_model\` должна быть уже скачана в Ollama (настройки → модели)
+- До 48 примеров попадут в Modelfile`
+}
+
+const DEFAULT_SKILLS = [VIPER_MEMORY_SKILL, VIPER_MODEL_TRAINING_SKILL]
+
+export async function ensureDefaultSkills(projectPath = ''): Promise<void> {
+  for (const skill of DEFAULT_SKILLS) {
+    const existing = await getSkill(projectPath, skill.id, 'global')
+    if (existing) continue
+    await createSkill(projectPath, skill)
+  }
 }
