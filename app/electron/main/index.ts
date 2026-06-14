@@ -17,6 +17,11 @@ import {
   updateChat
 } from './chats'
 import { loadSettings, saveSettings } from './settings'
+import {
+  loadWindowState,
+  trackWindowState,
+  windowOptionsFromState
+} from './windowState'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -37,13 +42,11 @@ function appIconPath(): string | undefined {
   return candidates.find((path) => existsSync(path))
 }
 
-function createWindow(): void {
+async function createWindow(): Promise<void> {
   const icon = appIconPath()
+  const windowState = await loadWindowState()
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 960,
-    minHeight: 640,
+    ...windowOptionsFromState(windowState),
     title: 'CodeViper',
     backgroundColor: '#0d1117',
     ...(icon ? { icon } : {}),
@@ -54,6 +57,12 @@ function createWindow(): void {
       sandbox: false
     }
   })
+
+  if (windowState.isMaximized) {
+    mainWindow.maximize()
+  }
+
+  trackWindowState(mainWindow)
 
   if (process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -67,11 +76,11 @@ function stream(chatId: string, event: AgentStreamPayload): void {
   mainWindow?.webContents.send('agent-stream', payload)
 }
 
-app.whenReady().then(() => {
-  createWindow()
+app.whenReady().then(async () => {
+  await createWindow()
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow()
   })
 })
 
