@@ -86,6 +86,8 @@ export interface AgentSettings {
   clarifyMode?: boolean
   /** Глубокое рассуждение: think:true для think-моделей, усиленный промпт для остальных */
   deepReasoning?: boolean
+  /** Автоматически коммитить и пушить самоправки агента (правки исходников CodeViper) */
+  autoPushSelfEdits?: boolean
 }
 
 export interface AgentConfirmRequest {

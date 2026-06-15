@@ -131,6 +131,19 @@ export function SettingsModal({
             </span>
           </label>
 
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={settings.autoPushSelfEdits !== false}
+              onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
+            />
+            <span>
+              <strong>Автокоммит самоправок</strong> — когда агент меняет свой код, после
+              задачи автоматически <code>git commit</code> + <code>push</code> на GitHub
+              (чтобы правки не терялись при синхронизации на старте)
+            </span>
+          </label>
+
           <ModelPanel
             ollamaUrl={settings.ollamaUrl}
             ollamaOnline={ollamaOnline}

@@ -16,6 +16,7 @@ export interface PersistedSettings {
   permissionMode: PermissionMode
   clarifyMode: boolean
   deepReasoning: boolean
+  autoPushSelfEdits: boolean
 }
 
 function storePath(): string {
@@ -31,7 +32,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   autoModel: true,
   permissionMode: 'bypass',
   clarifyMode: false,
-  deepReasoning: false
+  deepReasoning: false,
+  autoPushSelfEdits: true
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -51,7 +53,8 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
         ((settings as { confirmActions?: boolean }).confirmActions === true ? 'ask' : 'bypass')
     ),
     clarifyMode: settings.clarifyMode === true,
-    deepReasoning: settings.deepReasoning === true
+    deepReasoning: settings.deepReasoning === true,
+    autoPushSelfEdits: settings.autoPushSelfEdits !== false
   }
 }
 

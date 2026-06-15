@@ -55,6 +55,7 @@ import { parseToolBool } from '../../shared/fileEdit'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { getModelPlacement } from './ollamaRuntime'
 import { isThinkingModel } from '../../shared/reasoning'
+import { commitAndPushSelfEdits } from './selfCommit'
 import {
   safeReadFile,
   safeWriteFile,
@@ -140,6 +141,16 @@ function formatCommandResult(result: {
 
 // Держим модель «тёплой» в видеопамяти между сообщениями — быстрее ответы.
 const OLLAMA_KEEP_ALIVE = '30m'
+
+// Инструменты, меняющие исходники самого CodeViper (для автокоммита самоправок).
+const SELF_EDIT_FILE_TOOLS = new Set([
+  'write_codeviper_file',
+  'create_codeviper_file',
+  'edit_codeviper_file',
+  'append_codeviper_file',
+  'delete_codeviper_file',
+  'move_codeviper_file'
+])
 
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
 [{"content": "краткий урок", "category": "pattern|mistake|preference|project|skill", "tags": ["тег"]}]
@@ -239,6 +250,7 @@ export class AgentRunner {
 
     let usedTools = false
     let gpuChecked = false
+    let selfEdited = false
     const mutatingToolsUsed = new Set<string>()
     let verificationRetries = 0
     let verificationNoticeSent = false
@@ -423,6 +435,10 @@ export class AgentRunner {
             mutatingToolsUsed.add(name)
           }
 
+          if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) {
+            selfEdited = true
+          }
+
           this.emit({
             type: 'tool_end',
             toolName: name,
@@ -453,6 +469,22 @@ export class AgentRunner {
         return
       }
       throw error
+    } finally {
+      if (selfEdited && this.settings.autoPushSelfEdits !== false) {
+        await this.autoCommitSelfEdits(userMessage)
+      }
+    }
+  }
+
+  private async autoCommitSelfEdits(userMessage: string): Promise<void> {
+    try {
+      const result = await commitAndPushSelfEdits(userMessage)
+      this.emit({
+        type: 'context',
+        content: result.ok ? `🔁 Самоправки: ${result.message}` : `⚠️ Автокоммит: ${result.message}`
+      })
+    } catch {
+      // автокоммит необязателен — не критично для задачи
     }
   }
 
