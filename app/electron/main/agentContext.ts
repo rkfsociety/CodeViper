@@ -64,6 +64,9 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 
 Обновляй .codeviper/rules.md через write_file для правил **рабочего проекта** в чате.`
 
+const CLARIFY_PROMPT = `## Режим уточняющих вопросов
+Если задача **неоднозначна** или не хватает важных деталей (что именно менять, где, какой ожидаемый результат, какой стек/формат) — **сначала задай 1–3 коротких уточняющих вопроса обычным текстом и остановись**, не вызывая инструменты и не меняя код. Только когда всё ясно — приступай к выполнению. Не переспрашивай по очевидным вещам.`
+
 export const MAX_PROJECT_TREE_CHARS = 6000
 
 export function formatFileTree(nodes: FileNode[], prefix = ''): string {
@@ -97,9 +100,15 @@ function buildSystemPrompt(
   projectPath: string,
   memoryContext: string,
   projectTreeText: string,
-  selfImproveMode = false
+  selfImproveMode = false,
+  clarifyMode = false
 ): string {
   const parts = [BASE_SYSTEM_PROMPT, buildSelfEditContext()]
+
+  // Уточняющие вопросы несовместимы с автономным самоулучшением.
+  if (clarifyMode && !selfImproveMode) {
+    parts.push(CLARIFY_PROMPT)
+  }
 
   if (selfImproveMode) {
     parts.push(SELF_IMPROVEMENT_MODE_PROMPT)
@@ -166,6 +175,7 @@ export function estimateTokens(charCount: number): number {
 export interface PrepareAgentContextOptions {
   ollamaUrl?: string
   signal?: AbortSignal
+  clarifyMode?: boolean
 }
 
 function section(id: string, title: string, content: string, subtitle?: string): AgentContextSection {
@@ -219,7 +229,13 @@ export async function buildAgentContextPreview(
     }
   }
 
-  let systemContent = buildSystemPrompt(projectPath, memorySkillsContext, projectTreeText, selfImproveMode)
+  let systemContent = buildSystemPrompt(
+    projectPath,
+    memorySkillsContext,
+    projectTreeText,
+    selfImproveMode,
+    options.clarifyMode
+  )
 
   const mappedHistory = history
     .map(mapHistoryMessageToOllama)

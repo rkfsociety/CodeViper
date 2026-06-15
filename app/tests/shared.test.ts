@@ -27,6 +27,7 @@ import {
   estimateTokensFromChars
 } from '../shared/contextLimits'
 import { scoreSkill, shouldApplySkill, truncateSkillInstructions } from '../shared/skillMatching'
+import { normalizePermissionMode, toolRequiresConfirm } from '../shared/permissions'
 
 describe('toolCalls', () => {
   it('извлекает встроенный вызов из json-блока', () => {
@@ -208,5 +209,33 @@ describe('skillMatching', () => {
   it('truncateSkillInstructions обрезает длинный текст', () => {
     expect(truncateSkillInstructions('x'.repeat(10), 5)).toContain('обрезана')
     expect(truncateSkillInstructions('коротко', 100)).toBe('коротко')
+  })
+})
+
+describe('permissions', () => {
+  it('normalizePermissionMode валидирует значение', () => {
+    expect(normalizePermissionMode('ask')).toBe('ask')
+    expect(normalizePermissionMode('acceptEdits')).toBe('acceptEdits')
+    expect(normalizePermissionMode('bypass')).toBe('bypass')
+    expect(normalizePermissionMode('мусор')).toBe('bypass')
+    expect(normalizePermissionMode(undefined)).toBe('bypass')
+  })
+
+  it('toolRequiresConfirm: bypass никогда не спрашивает', () => {
+    expect(toolRequiresConfirm('bypass', 'write_file')).toBe(false)
+    expect(toolRequiresConfirm('bypass', 'run_command')).toBe(false)
+  })
+
+  it('toolRequiresConfirm: ask спрашивает все мутации, но не чтение', () => {
+    expect(toolRequiresConfirm('ask', 'write_file')).toBe(true)
+    expect(toolRequiresConfirm('ask', 'run_command')).toBe(true)
+    expect(toolRequiresConfirm('ask', 'read_file')).toBe(false)
+  })
+
+  it('toolRequiresConfirm: acceptEdits принимает правки, спрашивает команды', () => {
+    expect(toolRequiresConfirm('acceptEdits', 'write_file')).toBe(false)
+    expect(toolRequiresConfirm('acceptEdits', 'edit_file')).toBe(false)
+    expect(toolRequiresConfirm('acceptEdits', 'run_command')).toBe(true)
+    expect(toolRequiresConfirm('acceptEdits', 'create_ollama_model')).toBe(true)
   })
 })

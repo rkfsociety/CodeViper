@@ -286,16 +286,12 @@ ipcMain.handle(
         throw new Error('Модель не выбрана. Скачайте модель в настройках или включите Ollama.')
       }
 
-      const confirmFn = effectiveSettings.confirmActions
-        ? makeConfirmFn(activeAgentAbort.signal)
-        : undefined
-
       const runner = new AgentRunner(
         effectiveSettings,
         projectPath,
         (event) => stream(chatId, event),
         activeAgentAbort.signal,
-        confirmFn
+        makeConfirmFn(activeAgentAbort.signal)
       )
 
       await runner.run(history, userMessage)

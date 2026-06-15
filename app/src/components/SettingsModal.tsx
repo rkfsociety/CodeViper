@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import type { AgentSettings, OllamaModel } from '../types'
+import type { AgentSettings, OllamaModel, PermissionMode } from '../types'
+import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
 import { ModelPanel } from './ModelPanel'
 import { MemoryPanel } from './MemoryPanel'
 import { SkillsPanel } from './SkillsPanel'
@@ -84,15 +85,36 @@ export function SettingsModal({
             </span>
           </label>
 
+          <label>
+            Режим доступа
+            <select
+              value={settings.permissionMode ?? 'bypass'}
+              onChange={(e) =>
+                onSettingsChange({ permissionMode: e.target.value as PermissionMode })
+              }
+            >
+              {PERMISSION_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {PERMISSION_MODE_LABELS[mode]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="settings-hint">
+            <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
+            <strong>Принимать правки</strong> — файлы без вопросов, команды с подтверждением.{' '}
+            <strong>Без подтверждений</strong> — агент действует сам.
+          </div>
+
           <label className="settings-toggle">
             <input
               type="checkbox"
-              checked={settings.confirmActions === true}
-              onChange={(e) => onSettingsChange({ confirmActions: e.target.checked })}
+              checked={settings.clarifyMode === true}
+              onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
             />
             <span>
-              <strong>Подтверждать действия</strong> — спрашивать перед записью файлов и
-              запуском команд (мутирующие инструменты агента)
+              <strong>Уточняющие вопросы</strong> — при неоднозначной задаче агент сначала
+              задаёт вопросы, а потом приступает
             </span>
           </label>
 

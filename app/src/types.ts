@@ -1,8 +1,11 @@
 export type AgentRole = 'user' | 'assistant' | 'tool' | 'system'
 
 import type { AgentPrerequisitesResult } from '../shared/agentPrerequisites'
+import type { PermissionMode } from '../shared/permissions'
 
 export type { AgentPrerequisiteIssue, AgentPrerequisitesResult, PackageManager } from '../shared/agentPrerequisites'
+export type { PermissionMode } from '../shared/permissions'
+export { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../shared/permissions'
 
 export interface ChatMessage {
   id: string
@@ -76,8 +79,10 @@ export interface AgentSettings {
   selfLearning?: boolean
   /** Автовыбор модели под задачу и выгрузка других из RAM */
   autoModel?: boolean
-  /** Спрашивать подтверждение перед мутирующими инструментами (запись файлов, команды) */
-  confirmActions?: boolean
+  /** Режим доступа: ask — спрашивать всё, acceptEdits — принимать правки/спрашивать команды, bypass — без подтверждений */
+  permissionMode?: PermissionMode
+  /** Сначала задавать уточняющие вопросы при неоднозначной задаче */
+  clarifyMode?: boolean
 }
 
 export interface AgentConfirmRequest {

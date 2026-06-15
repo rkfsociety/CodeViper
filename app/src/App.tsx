@@ -16,7 +16,8 @@ const DEFAULT_SETTINGS: AgentSettings = {
   maxSteps: 12,
   selfLearning: true,
   autoModel: true,
-  confirmActions: false
+  permissionMode: 'bypass',
+  clarifyMode: false
 }
 
 export default function App() {

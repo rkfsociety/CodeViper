@@ -3,6 +3,7 @@ import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import type { AgentSettings } from '../../src/types'
+import { normalizePermissionMode, type PermissionMode } from '../../shared/permissions'
 import { writeJsonAtomic } from './fsUtil'
 
 export interface PersistedSettings {
@@ -12,7 +13,8 @@ export interface PersistedSettings {
   maxSteps: number
   selfLearning: boolean
   autoModel: boolean
-  confirmActions: boolean
+  permissionMode: PermissionMode
+  clarifyMode: boolean
 }
 
 function storePath(): string {
@@ -26,7 +28,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   maxSteps: 12,
   selfLearning: true,
   autoModel: true,
-  confirmActions: false
+  permissionMode: 'bypass',
+  clarifyMode: false
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -40,7 +43,12 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
         : DEFAULT_SETTINGS.maxSteps,
     selfLearning: settings.selfLearning !== false,
     autoModel: settings.autoModel !== false,
-    confirmActions: settings.confirmActions === true
+    // Миграция со старого булева confirmActions: true → 'ask'.
+    permissionMode: normalizePermissionMode(
+      settings.permissionMode ??
+        ((settings as { confirmActions?: boolean }).confirmActions === true ? 'ask' : 'bypass')
+    ),
+    clarifyMode: settings.clarifyMode === true
   }
 }
 

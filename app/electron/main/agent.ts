@@ -50,6 +50,7 @@ import {
   isAllowedSelfPath
 } from './codeviperSource'
 import { parseToolBool } from '../../shared/fileEdit'
+import { toolRequiresConfirm } from '../../shared/permissions'
 import {
   safeReadFile,
   safeWriteFile,
@@ -200,7 +201,11 @@ export class AgentRunner {
       userMessage,
       this.settings.model,
       autonomousSelfImprove,
-      { ollamaUrl: this.settings.ollamaUrl, signal: this.signal }
+      {
+        ollamaUrl: this.settings.ollamaUrl,
+        signal: this.signal,
+        clarifyMode: this.settings.clarifyMode
+      }
     )
     this.throwIfAborted()
 
@@ -379,8 +384,8 @@ export class AgentRunner {
             toolInput
           })
 
-          // Подтверждение мутирующих действий, если включено в настройках.
-          if (this.confirm && MUTATING_TOOLS.has(name)) {
+          // Подтверждение мутирующих действий согласно режиму доступа.
+          if (this.confirm && toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)) {
             const approved = await this.confirm(name, toolInput)
             this.throwIfAborted()
             if (!approved) {
