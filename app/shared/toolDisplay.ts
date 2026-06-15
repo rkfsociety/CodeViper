@@ -8,6 +8,9 @@ export const TOOL_LABELS: Record<string, string> = {
   edit_file: 'Редактирую файл',
   append_file: 'Дописываю в файл',
   run_command: 'Выполняю команду',
+  git_status: 'Смотрю git status',
+  git_diff: 'Смотрю git diff',
+  git_log: 'Смотрю git log',
   remember: 'Запоминаю',
   search_memory: 'Ищу в памяти',
   forget: 'Удаляю из памяти',
@@ -68,7 +71,10 @@ export function compactToolChatLine(
     case 'grep_files':
     case 'find_files':
     case 'grep_codeviper_files':
-    case 'find_codeviper_files': {
+    case 'find_codeviper_files':
+    case 'git_status':
+    case 'git_diff':
+    case 'git_log': {
       const count = countTreeLines(body)
       return count > 0 ? `✓ ${label} — ${count} элементов` : `✓ ${label} — пусто`
     }

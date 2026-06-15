@@ -47,6 +47,7 @@ import { toolRequiresConfirm } from '../../shared/permissions'
 import { getModelPlacement } from './ollamaRuntime'
 import { isThinkingModel } from '../../shared/reasoning'
 import { commitAndPushSelfEdits } from './selfCommit'
+import { gitStatus, gitDiff, gitLog } from './gitTools'
 import {
   safeReadFile,
   safeWriteFile,
@@ -653,6 +654,19 @@ export class AgentRunner {
         const result = await runCommand(this.projectPath, args.command)
         return formatCommandResult(result)
       },
+      git_status: async (args) => gitStatus(this.projectPath, args.path),
+      git_diff: async (args) =>
+        gitDiff(this.projectPath, {
+          path: args.path,
+          staged: args.staged,
+          commit: args.commit
+        }),
+      git_log: async (args) =>
+        gitLog(this.projectPath, {
+          limit: args.limit,
+          path: args.path,
+          oneline: args.oneline
+        }),
       remember: async (args) => {
         const entry = await addMemory(this.projectPath, {
           content: args.content,

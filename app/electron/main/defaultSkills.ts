@@ -47,6 +47,7 @@ ${BUILTIN_VERSION_TAG}
 |---|---|
 | Обзор | \`list_directory\`, \`find_files\`, \`grep_files\` |
 | Чтение/запись | \`read_file\`, \`create_file\`, \`edit_file\`, \`append_file\`, \`write_file\` |
+| Git (чтение) | \`git_status\`, \`git_diff\`, \`git_log\` |
 | Терминал | \`run_command\` |
 | Память | \`remember\`, \`search_memory\`, \`forget\` |
 | Навыки | \`list_skills\`, \`read_skill\`, \`create_skill\`, \`update_skill\`, \`read_skill_data\`, \`write_skill_data\` |
@@ -194,7 +195,7 @@ ${BUILTIN_VERSION_TAG}
 const VIPER_TERMINAL_SKILL = {
   id: VIPER_TERMINAL_SKILL_ID,
   name: 'Viper Terminal',
-  description: 'Запуск команд в терминале проекта (npm test, git, build)',
+  description: 'Запуск команд в терминале проекта (npm test, build); git — через git_* инструменты',
   triggers: [
     'терминал',
     'run_command',
@@ -211,14 +212,22 @@ const VIPER_TERMINAL_SKILL = {
 
 ${BUILTIN_VERSION_TAG}
 
-## Инструмент
+## Инструменты
 \`run_command\` — shell в **корне открытого проекта**.
 
 Для CodeViper: \`run_codeviper_command\` в корне app/.
 
-## Типичные команды
+## Git (только чтение — предпочтительно)
+| Инструмент | Назначение |
+|---|---|
+| \`git_status\` | Ветка и изменённые файлы |
+| \`git_diff\` | Diff (рабочая копия, staged или коммит) |
+| \`git_log\` | История коммитов (limit, path, oneline) |
+
+Не используй \`run_command\` для \`git status/diff/log\` — есть безопасные git_*.
+
+## Типичные команды run_command
 - \`npm test\`, \`npm run typecheck\`, \`npm run build\`
-- \`git status\`, \`git diff\`
 - \`npm install <pkg>\`
 
 ## Правила

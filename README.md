@@ -139,6 +139,7 @@ Ollama должна быть установлена и запущена отде
 | **Viper Files** | `viper-files` — read/create/edit/append/write файлов |
 | **Viper Codebase** | `viper-codebase` — list_directory, grep_files, find_files |
 | **Viper Terminal** | `viper-terminal` — run_command |
+| **Viper Git** | `git_status`, `git_diff`, `git_log` — только чтение, без shell |
 | **Viper Self-Edit** | `viper-self-edit` — правка исходников CodeViper |
 | **Viper Self-Improvement** | `viper-self-improvement` — план автономного самоулучшения |
 | **Данные навыков** (todo, состояние) | `%APPDATA%/CodeViper/skill-data/` |
@@ -240,7 +241,7 @@ CodeViper/
 
 Агент использует цикл **ReAct**:
 1. Отправляет запрос в Ollama с инструментами, памятью, **путём проекта**, **структурой файлов** и **полной историей чата**
-2. Модель вызывает `list_directory`, `grep_files`, `find_files`, `read_file`, `create_file`, `edit_file`, `write_file`, `run_command`, …
+2. Модель вызывает `list_directory`, `grep_files`, `find_files`, `read_file`, `create_file`, `edit_file`, `write_file`, `git_status`, `git_diff`, `git_log`, `run_command`, …
 
 ### Просмотр контекста (как в Cursor)
 
@@ -284,6 +285,7 @@ CodeViper **не выполняет** ваш запрос отдельно от 
   - Отказ в диалоге возвращается модели, и она продолжает без этого действия
 - Файлы больше 500 KB не читаются
 - Опасные команды блокируются (rm -rf, format, shutdown, diskpart, encoded powershell и др.)
+- `git_status`, `git_diff`, `git_log` — только чтение через фиксированные аргументы `git` (без shell); path ограничен проектом
 - `run_command` запускается через `cmd.exe` / `sh` **без** `shell: true`; лимит длины команды — 4096 символов
 - Команды в терминале автоматически прерываются через **120 секунд** (exit code 124)
 - Повреждённые файлы хранилищ (память, индекс/данные чатов) не затираются — сохраняются как `*.corrupt-<ts>` для восстановления

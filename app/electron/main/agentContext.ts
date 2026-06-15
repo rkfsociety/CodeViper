@@ -36,6 +36,7 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 Используй инструменты для чтения, записи файлов, просмотра структуры и запуска команд.
 **Файлы:** create_file — новый файл; edit_file — точечная замена (предпочтительно для правок); write_file — полная перезапись; append_file — дописать в конец.
 **Поиск:** find_files — по имени/glob; grep_files — текст в содержимом; затем read_file.
+**Git (только чтение):** git_status, git_diff, git_log — безопаснее, чем run_command для просмотра истории и изменений.
 Перед правками сначала прочитай файл. Делай минимальные точечные изменения через edit_file.
 После выполнения задачи кратко объясни, что сделал.
 
@@ -91,6 +92,7 @@ function buildProjectContext(projectPath: string, treeText: string): string {
   return `# Открытый проект
 Корень: ${projectPath}
 run_command выполняется в корне проекта.
+git_status / git_diff / git_log — только чтение, в корне git-репозитория проекта.
 read_file / write_file / create_file / edit_file / append_file принимают абсолютные пути к файлам внутри проекта.
 
 Структура (до 3 уровней, без node_modules и .git):

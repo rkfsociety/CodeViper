@@ -170,6 +170,51 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'git_status',
+      description:
+        'Статус git-репозитория проекта (ветка, изменённые файлы). Только чтение — безопаснее, чем run_command.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить подпапкой проекта (абсолютный путь, необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'git_diff',
+      description:
+        'Diff изменений в git (рабочая копия, staged или конкретный коммит). Только чтение — безопаснее, чем run_command.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить файлом/папкой (абсолютный путь, необязательно)' },
+          staged: { type: 'string', description: 'true — только staged (git diff --staged)' },
+          commit: { type: 'string', description: 'Хеш/ссылка коммита — показать его изменения (git show)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'git_log',
+      description: 'История коммитов git проекта. Только чтение — безопаснее, чем run_command.',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: { type: 'string', description: 'Число коммитов 1–100 (по умолчанию 20)' },
+          path: { type: 'string', description: 'Только коммиты, затронувшие путь (необязательно)' },
+          oneline: { type: 'string', description: 'true — краткий формат (--oneline)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'remember',
       description: 'Сохранить знание в ViperMemory.md (паттерн, ошибка, предпочтение, правило проекта)',
       parameters: {
@@ -591,6 +636,9 @@ export interface ToolArgs {
   delete_file: { path: string }
   move_file: { from: string; to: string }
   run_command: { command: string }
+  git_status: { path?: string }
+  git_diff: { path?: string; staged?: string; commit?: string }
+  git_log: { limit?: string; path?: string; oneline?: string }
   remember: { content: string; category: string; tags?: string; scope?: string }
   search_memory: { query: string }
   forget: { id: string }
