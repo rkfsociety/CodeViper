@@ -67,4 +67,33 @@ describe('contextSummarizer', () => {
     expect(result.summarized).toBe(false)
     expect(result.messages.length).toBeLessThan(hugeHistory().length)
   })
+
+  it('зовёт onCompressStart, когда сжатие реально началось', async () => {
+    const onCompressStart = vi.fn()
+    await compressContextMessages({
+      messages: hugeHistory(),
+      model: 'qwen2.5-coder:7b',
+      toolsJsonChars: 20_000,
+      onCompressStart
+    })
+
+    expect(onCompressStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('не зовёт onCompressStart, когда контекст в пределах лимита', async () => {
+    const onCompressStart = vi.fn()
+    const result = await compressContextMessages({
+      messages: [
+        { role: 'system', content: 'system' },
+        { role: 'user', content: 'короткий запрос' }
+      ],
+      model: 'qwen2.5-coder:7b',
+      toolsJsonChars: 100,
+      onCompressStart
+    })
+
+    expect(result.summarized).toBe(false)
+    expect(result.truncated).toBe(false)
+    expect(onCompressStart).not.toHaveBeenCalled()
+  })
 })

@@ -87,6 +87,8 @@ export async function compressContextMessages(options: {
   ollamaUrl?: string
   signal?: AbortSignal
   minRecentMessages?: number
+  /** Вызывается один раз, когда сжатие реально начинается (суммаризация или обрезка). */
+  onCompressStart?: () => void
 }): Promise<ContextCompressionResult> {
   const minRecent = options.minRecentMessages ?? MIN_RECENT_CONTEXT_MESSAGES
   let messages = [...options.messages]
@@ -110,6 +112,8 @@ export async function compressContextMessages(options: {
       estimatedTokens: usage.estimatedTokens
     }
   }
+
+  options.onCompressStart?.()
 
   while (usage.shouldSummarize && messages.length > minRecent + 1) {
     const system = messages[0]?.role === 'system' ? messages[0] : null

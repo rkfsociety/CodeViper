@@ -30,13 +30,22 @@ interface Props {
   toolName?: string
   model?: string
   queueSize?: number
+  /** Идёт сжатие контекста — показываем отдельную метку поверх обычной фазы */
+  summarizing?: boolean
 }
 
-export function AgentStatusBar({ phase, toolName, model, queueSize = 0 }: Props) {
-  const label = agentStatusLabel(phase, toolName, model, queueSize)
+export function AgentStatusBar({ phase, toolName, model, queueSize = 0, summarizing = false }: Props) {
+  const queueHint = queueSize > 0 ? ` · в очереди ${queueSize}` : ''
+  const label = summarizing
+    ? `Сжимаю контекст…${queueHint}`
+    : agentStatusLabel(phase, toolName, model, queueSize)
 
   return (
-    <div className={`agent-status-bar phase-${phase}`} role="status" aria-live="polite">
+    <div
+      className={`agent-status-bar phase-${phase}${summarizing ? ' summarizing' : ''}`}
+      role="status"
+      aria-live="polite"
+    >
       <div className="agent-status-bar-head">
         <span className="agent-status-pulse" aria-hidden="true" />
         <span className="agent-status-label">{label}</span>

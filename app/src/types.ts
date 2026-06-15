@@ -198,6 +198,8 @@ export interface AgentStreamPayload {
   selectedModel?: string
   modelReason?: string
   contextPreview?: AgentContextPreview
+  /** Идёт ли прямо сейчас сжатие контекста (суммаризация/обрезка) — для индикатора в UI */
+  summarizing?: boolean
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {

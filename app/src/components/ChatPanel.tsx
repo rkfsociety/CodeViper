@@ -77,6 +77,7 @@ export function ChatPanel({
   const [activeToolName, setActiveToolName] = useState<string | undefined>()
   const [contextPreview, setContextPreview] = useState<AgentContextPreview | null>(null)
   const [contextLoading, setContextLoading] = useState(false)
+  const [summarizing, setSummarizing] = useState(false)
   const [contextModalOpen, setContextModalOpen] = useState(false)
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<{
     issues: AgentPrerequisiteIssue[]
@@ -145,6 +146,7 @@ export function ChatPanel({
     activeToolMessageIdRef.current = null
     lastAssistantContentRef.current = ''
     setContextPreview(null)
+    setSummarizing(false)
     queueRef.current = []
     setQueueSize(0)
     agentRunningRef.current = false
@@ -295,8 +297,21 @@ export function ChatPanel({
         })
       }
 
-      if (event.type === 'context' && event.contextPreview) {
-        setContextPreview(event.contextPreview)
+      if (event.type === 'context') {
+        if (typeof event.summarizing === 'boolean') {
+          setSummarizing(event.summarizing)
+        }
+        if (event.contextPreview) {
+          setContextPreview(event.contextPreview)
+        } else if (event.content) {
+          // Уведомления о контексте (суммаризация, CPU, автокоммит) — раньше терялись.
+          appendMessage({
+            id: makeId(),
+            role: 'system',
+            content: event.content,
+            timestamp: Date.now()
+          })
+        }
       }
 
       if (event.type === 'done') {
@@ -307,6 +322,7 @@ export function ChatPanel({
         setDraftThinking('')
         setAgentPhase('thinking')
         setActiveToolName(undefined)
+        setSummarizing(false)
         activeToolMessageIdRef.current = null
         void processNextQueuedRunRef.current()
       }
@@ -660,6 +676,7 @@ export function ChatPanel({
             toolName={activeToolName}
             model={runModel || settings.model}
             queueSize={queueSize}
+            summarizing={summarizing}
           />
         )}
         {chatId && projectPath && (

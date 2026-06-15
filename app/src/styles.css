@@ -724,6 +724,16 @@ button {
   animation-duration: 1.8s;
 }
 
+.agent-status-bar.summarizing .agent-status-pulse {
+  background: #bc8cff;
+  box-shadow: 0 0 0 0 rgba(188, 140, 255, 0.45);
+}
+
+.agent-status-bar.summarizing .agent-status-fill {
+  background: linear-gradient(90deg, transparent, #bc8cff, #a371f7, transparent);
+  animation-duration: 1.2s;
+}
+
 @keyframes agent-pulse {
   0%,
   100% {

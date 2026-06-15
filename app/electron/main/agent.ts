@@ -493,13 +493,22 @@ export class AgentRunner {
   private async chat(messages: OllamaMessage[], options?: { requireTool?: boolean }) {
     this.throwIfAborted()
 
+    let compressionNotified = false
     const compression = await compressContextMessages({
       messages,
       model: this.settings.model,
       toolsJsonChars: JSON.stringify(AGENT_TOOLS).length,
       ollamaUrl: this.settings.ollamaUrl,
-      signal: this.signal
+      signal: this.signal,
+      onCompressStart: () => {
+        compressionNotified = true
+        this.emit({ type: 'context', summarizing: true })
+      }
     })
+
+    if (compressionNotified) {
+      this.emit({ type: 'context', summarizing: false })
+    }
 
     if (compression.summarized || compression.droppedMessageCount > 0) {
       messages.splice(0, messages.length, ...compression.messages)
