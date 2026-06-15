@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, rmSync, readFileSync } from 'fs'
+import { mkdtempSync, rmSync, readFileSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
@@ -9,7 +9,9 @@ import {
   safeCreateFile,
   safeEditFile,
   safeAppendFile,
-  safeWriteFile
+  safeWriteFile,
+  safeDeleteFile,
+  safeMoveFile
 } from '../electron/main/services'
 
 describe('isInsideProject', () => {
@@ -125,6 +127,37 @@ describe('file operations', () => {
       await safeWriteFile(dir, path, 'line1\n')
       await safeAppendFile(dir, path, 'line2\n')
       expect(readFileSync(path, 'utf-8')).toBe('line1\nline2\n')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('delete_file удаляет файл и запрещает выход за проект', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cv-file-'))
+    const path = join(dir, 'a.txt')
+    try {
+      await safeWriteFile(dir, path, 'x')
+      await safeDeleteFile(dir, path)
+      expect(existsSync(path)).toBe(false)
+      await expect(safeDeleteFile(dir, path)).rejects.toThrow(/не найден/)
+      await expect(safeDeleteFile(dir, join(tmpdir(), 'outside.txt'))).rejects.toThrow(/вне проекта/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('move_file переименовывает и не перезаписывает существующий', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cv-file-'))
+    const from = join(dir, 'a.txt')
+    const to = join(dir, 'sub', 'b.txt')
+    try {
+      await safeWriteFile(dir, from, 'data')
+      await safeMoveFile(dir, from, to)
+      expect(existsSync(from)).toBe(false)
+      expect(readFileSync(to, 'utf-8')).toBe('data')
+
+      await safeWriteFile(dir, from, 'again')
+      await expect(safeMoveFile(dir, from, to)).rejects.toThrow(/уже существует/)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

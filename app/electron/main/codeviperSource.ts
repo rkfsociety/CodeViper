@@ -6,7 +6,9 @@ import {
   runCommand,
   safeAppendFile,
   safeCreateFile,
+  safeDeleteFile,
   safeEditFile,
+  safeMoveFile,
   safeReadFile,
   safeWriteFile
 } from './services'
@@ -96,6 +98,19 @@ export async function editCodeViperFile(
 export async function appendCodeViperFile(filePath: string, content: string): Promise<void> {
   const root = assertCodeViperPath(filePath)
   await safeAppendFile(root, filePath, content)
+}
+
+export async function deleteCodeViperFile(filePath: string): Promise<void> {
+  const root = assertCodeViperPath(filePath)
+  await safeDeleteFile(root, filePath)
+}
+
+export async function moveCodeViperFile(fromPath: string, toPath: string): Promise<void> {
+  const root = assertCodeViperPath(fromPath)
+  if (!isAllowedSelfPath(root, toPath)) {
+    throw new Error('Доступ запрещён: целевой путь вне исходников CodeViper или в исключённой папке')
+  }
+  await safeMoveFile(root, fromPath, toPath)
 }
 
 export async function runCodeViperCommand(command: string) {

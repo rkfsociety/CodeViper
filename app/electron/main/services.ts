@@ -1,4 +1,4 @@
-import { access, appendFile, mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
+import { access, appendFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'fs/promises'
 import { constants } from 'fs'
 import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
@@ -199,6 +199,41 @@ export async function safeAppendFile(
   }
 
   await appendFile(filePath, content, 'utf-8')
+}
+
+export async function safeDeleteFile(projectPath: string, filePath: string): Promise<void> {
+  assertPathInsideProject(projectPath, filePath)
+
+  const info = await stat(filePath).catch(() => null)
+  if (!info) throw new Error('Файл не найден')
+  if (!info.isFile()) throw new Error('Это не файл (удаление папок не поддерживается)')
+
+  await unlink(filePath)
+}
+
+export async function safeMoveFile(
+  projectPath: string,
+  fromPath: string,
+  toPath: string
+): Promise<void> {
+  assertPathInsideProject(projectPath, fromPath, 'исходный файл')
+  assertPathInsideProject(projectPath, toPath, 'целевой файл')
+
+  const info = await stat(fromPath).catch(() => null)
+  if (!info) throw new Error('Исходный файл не найден')
+  if (!info.isFile()) throw new Error('Это не файл (перенос папок не поддерживается)')
+
+  const targetDir = dirname(toPath)
+  assertPathInsideProject(projectPath, targetDir, 'целевая папка')
+
+  const targetExists = await access(toPath, constants.F_OK).then(
+    () => true,
+    () => false
+  )
+  if (targetExists) throw new Error('Целевой файл уже существует')
+
+  await mkdir(targetDir, { recursive: true })
+  await rename(fromPath, toPath)
 }
 
 function killProcessTree(child: ChildProcess): void {

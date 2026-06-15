@@ -45,6 +45,8 @@ import {
   createCodeViperFile,
   editCodeViperFile,
   appendCodeViperFile,
+  deleteCodeViperFile,
+  moveCodeViperFile,
   runCodeViperCommand,
   writeCodeViperFile,
   isAllowedSelfPath
@@ -57,6 +59,8 @@ import {
   safeCreateFile,
   safeEditFile,
   safeAppendFile,
+  safeDeleteFile,
+  safeMoveFile,
   runCommand,
   buildFileTree,
   isInsideProject
@@ -576,6 +580,14 @@ export class AgentRunner {
         await safeAppendFile(this.projectPath, args.path, args.content)
         return `Добавлено в конец: ${args.path}`
       },
+      delete_file: async (args) => {
+        await safeDeleteFile(this.projectPath, args.path)
+        return `Файл удалён: ${args.path}`
+      },
+      move_file: async (args) => {
+        await safeMoveFile(this.projectPath, args.from, args.to)
+        return `Файл перемещён: ${args.from} → ${args.to}`
+      },
       run_command: async (args) => {
         const result = await runCommand(this.projectPath, args.command)
         return formatCommandResult(result)
@@ -714,6 +726,14 @@ export class AgentRunner {
       append_codeviper_file: async (args) => {
         await appendCodeViperFile(args.path, args.content)
         return `Добавлено в конец CodeViper: ${args.path}`
+      },
+      delete_codeviper_file: async (args) => {
+        await deleteCodeViperFile(args.path)
+        return `Файл CodeViper удалён: ${args.path}`
+      },
+      move_codeviper_file: async (args) => {
+        await moveCodeViperFile(args.from, args.to)
+        return `Файл CodeViper перемещён: ${args.from} → ${args.to}`
       },
       run_codeviper_command: async (args) => {
         const result = await runCodeViperCommand(args.command)

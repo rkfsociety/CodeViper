@@ -134,6 +134,8 @@ ${BUILTIN_VERSION_TAG}
 | **Точечная правка** | \`edit_file\` — old_string → new_string (сначала read_file!) |
 | Дописать в конец | \`append_file\` |
 | Полная перезапись | \`write_file\` |
+| Удалить файл | \`delete_file\` |
+| Переместить/переименовать | \`move_file\` |
 
 ## Правила edit_file
 1. Всегда \`read_file\` перед правкой
@@ -254,6 +256,7 @@ ${BUILTIN_VERSION_TAG}
 | Правка | \`edit_codeviper_file\` |
 | Перезапись | \`write_codeviper_file\` |
 | Дописать | \`append_codeviper_file\` |
+| Удалить/переместить | \`delete_codeviper_file\`, \`move_codeviper_file\` |
 | Команды | \`run_codeviper_command\` |
 
 ## Workflow

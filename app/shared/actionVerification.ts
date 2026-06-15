@@ -3,6 +3,8 @@ export const MUTATING_TOOLS = new Set([
   'create_file',
   'edit_file',
   'append_file',
+  'delete_file',
+  'move_file',
   'run_command',
   'remember',
   'forget',
@@ -14,6 +16,8 @@ export const MUTATING_TOOLS = new Set([
   'create_codeviper_file',
   'edit_codeviper_file',
   'append_codeviper_file',
+  'delete_codeviper_file',
+  'move_codeviper_file',
   'run_codeviper_command',
   'create_ollama_model'
 ])

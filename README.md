@@ -18,7 +18,7 @@
 - [x] Хранилище чатов v2: атомарная запись, лимиты, отдельный файл на чат (`chats/index.json` + `chats/data/{id}.json`)
 - [x] Иконка приложения (`app/resources/icon.png`)
 - [x] **Enter** — отправка, **Shift+Enter** — новая строка; очередь сообщений пока модель отвечает
-- [x] **Инструменты файлов:** `create_file`, `edit_file`, `append_file` (+ аналоги для CodeViper)
+- [x] **Инструменты файлов:** `create_file`, `edit_file`, `append_file`, `delete_file`, `move_file` (+ аналоги для CodeViper)
 - [x] **Автономное самоулучшение:** план `set_self_improvement_plan` + цикл до выполнения всех пунктов
 - [x] **Поиск в коде:** `grep_files`, `find_files` (+ CodeViper); **9 встроенных skills** (agent-core, viper-skills, files, codebase…)
 - [x] **Каталог моделей Ollama** — только модели с tool calling, группировка по RAM (6 GB → 48 GB+); удаление установленных

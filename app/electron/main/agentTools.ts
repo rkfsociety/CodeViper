@@ -127,6 +127,35 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'delete_file',
+      description: 'Удалить файл проекта (только файл, не папку)',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь к файлу' }
+        },
+        required: ['path']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'move_file',
+      description: 'Переместить или переименовать файл проекта (целевой не должен существовать)',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'Текущий абсолютный путь файла' },
+          to: { type: 'string', description: 'Новый абсолютный путь файла' }
+        },
+        required: ['from', 'to']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'run_command',
       description: 'Выполнить shell-команду в корне проекта',
       parameters: {
@@ -452,6 +481,35 @@ export const AGENT_TOOLS = [
           content: { type: 'string', description: 'Текст для добавления' }
         },
         required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_codeviper_file',
+      description: 'Удалить файл исходников CodeViper (только файл)',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' }
+        },
+        required: ['path']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'move_codeviper_file',
+      description: 'Переместить/переименовать файл исходников CodeViper (целевой не должен существовать)',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'Текущий путь внутри исходников CodeViper' },
+          to: { type: 'string', description: 'Новый путь внутри исходников CodeViper' }
+        },
+        required: ['from', 'to']
       }
     }
   },

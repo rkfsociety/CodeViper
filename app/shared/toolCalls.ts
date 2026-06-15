@@ -7,6 +7,8 @@ export const AGENT_TOOL_NAMES = [
   'create_file',
   'edit_file',
   'append_file',
+  'delete_file',
+  'move_file',
   'run_command',
   'remember',
   'search_memory',
@@ -29,6 +31,8 @@ export const AGENT_TOOL_NAMES = [
   'create_codeviper_file',
   'edit_codeviper_file',
   'append_codeviper_file',
+  'delete_codeviper_file',
+  'move_codeviper_file',
   'run_codeviper_command'
 ] as const
 
