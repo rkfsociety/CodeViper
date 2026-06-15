@@ -22,7 +22,7 @@
 - [ ] **Разгрузить `ChatPanel.tsx`** (~630 строк) — хуки `useAgentStream`, `useMessageQueue`, `useContextPreview`
 - [ ] **Тесты на ядро агента** — `executeTool` (моки fs/spawn), цикл самоулучшения, nudge при JSON-плане в тексте, связка `toolRequiresConfirm` с реальными сценариями
 - [ ] **Защита `parseToolArgs`** — разбор аргументов tool call (`agent.ts`, ~стр. 409) сейчас вне `try/catch` вокруг `executeTool`: битый JSON у слабых Ollama-моделей роняет весь прогон. Обернуть и при провале вернуть модели tool-сообщение для повтора
-- [ ] **План самоулучшения — в экземпляр `AgentRunner`** — сейчас модульный глобал `activePlan` в `selfImprovementStore.ts`, не привязан к чату (спасает только гард `agentRunState`)
+- [x] **План самоулучшения — в экземпляр `AgentRunner`** — `SelfImprovementPlanStore` на каждый run, без модульного глобала `activePlan`
 
 ### Продукт и UX
 

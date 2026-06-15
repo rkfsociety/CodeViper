@@ -1,43 +1,47 @@
 import type { SelfImprovementItem } from '../../shared/selfImprovement'
+import { isPlanComplete } from '../../shared/selfImprovement'
 
-let activePlan: SelfImprovementItem[] | null = null
+/** Состояние плана самоулучшения — один экземпляр на AgentRunner. */
+export class SelfImprovementPlanStore {
+  private activePlan: SelfImprovementItem[] | null = null
 
-export function resetSelfImprovementPlan(): void {
-  activePlan = null
-}
+  reset(): void {
+    this.activePlan = null
+  }
 
-export function setSelfImprovementPlan(items: SelfImprovementItem[]): SelfImprovementItem[] {
-  activePlan = items.map((item) => ({ ...item, done: false }))
-  return activePlan
-}
+  set(items: SelfImprovementItem[]): SelfImprovementItem[] {
+    this.activePlan = items.map((item) => ({ ...item, done: false }))
+    return this.activePlan
+  }
 
-export function adoptSelfImprovementPlan(items: SelfImprovementItem[]): SelfImprovementItem[] {
-  activePlan = items.map((item) => ({ ...item }))
-  return activePlan
-}
+  adopt(items: SelfImprovementItem[]): SelfImprovementItem[] {
+    this.activePlan = items.map((item) => ({ ...item }))
+    return this.activePlan
+  }
 
-export function completeSelfImprovementItem(id: string): SelfImprovementItem[] {
-  if (!activePlan) throw new Error('План не задан — сначала set_self_improvement_plan')
+  complete(id: string): SelfImprovementItem[] {
+    if (!this.activePlan) throw new Error('План не задан — сначала set_self_improvement_plan')
 
-  const item = activePlan.find((entry) => entry.id === id)
-  if (!item) throw new Error(`Пункт не найден: ${id}`)
+    const item = this.activePlan.find((entry) => entry.id === id)
+    if (!item) throw new Error(`Пункт не найден: ${id}`)
 
-  item.done = true
-  return activePlan
-}
+    item.done = true
+    return this.activePlan
+  }
 
-export function getSelfImprovementPlan(): SelfImprovementItem[] | null {
-  return activePlan
-}
+  get(): SelfImprovementItem[] | null {
+    return this.activePlan
+  }
 
-export function hasSelfImprovementPlan(): boolean {
-  return Boolean(activePlan?.length)
-}
+  has(): boolean {
+    return Boolean(this.activePlan?.length)
+  }
 
-export function hasPendingSelfImprovementItems(): boolean {
-  return Boolean(activePlan?.some((item) => !item.done))
-}
+  hasPending(): boolean {
+    return Boolean(this.activePlan?.some((item) => !item.done))
+  }
 
-export function isSelfImprovementPlanComplete(): boolean {
-  return Boolean(activePlan?.length && activePlan.every((item) => item.done))
+  isComplete(): boolean {
+    return isPlanComplete(this.activePlan)
+  }
 }

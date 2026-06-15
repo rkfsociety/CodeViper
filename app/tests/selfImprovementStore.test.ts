@@ -1,27 +1,30 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  resetSelfImprovementPlan,
-  setSelfImprovementPlan,
-  completeSelfImprovementItem,
-  getSelfImprovementPlan,
-  isSelfImprovementPlanComplete
-} from '../electron/main/selfImprovementStore'
+import { SelfImprovementPlanStore } from '../electron/main/selfImprovementStore'
 
-describe('selfImprovementStore', () => {
+describe('SelfImprovementPlanStore', () => {
+  let store: SelfImprovementPlanStore
+
   beforeEach(() => {
-    resetSelfImprovementPlan()
+    store = new SelfImprovementPlanStore()
   })
 
   it('хранит и завершает пункты плана', () => {
-    setSelfImprovementPlan([
+    store.set([
       { id: '1', title: 'A', done: false },
       { id: '2', title: 'B', done: false }
     ])
-    completeSelfImprovementItem('1')
-    const plan = getSelfImprovementPlan()
+    store.complete('1')
+    const plan = store.get()
     expect(plan?.[0].done).toBe(true)
-    expect(isSelfImprovementPlanComplete()).toBe(false)
-    completeSelfImprovementItem('2')
-    expect(isSelfImprovementPlanComplete()).toBe(true)
+    expect(store.isComplete()).toBe(false)
+    store.complete('2')
+    expect(store.isComplete()).toBe(true)
+  })
+
+  it('изолирован между экземплярами', () => {
+    const other = new SelfImprovementPlanStore()
+    store.set([{ id: '1', title: 'A', done: false }])
+    expect(store.has()).toBe(true)
+    expect(other.has()).toBe(false)
   })
 })

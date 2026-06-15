@@ -29,16 +29,7 @@ import {
   buildSelfImprovementContinueNudge,
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
-import {
-  resetSelfImprovementPlan,
-  setSelfImprovementPlan,
-  adoptSelfImprovementPlan,
-  completeSelfImprovementItem,
-  getSelfImprovementPlan,
-  hasSelfImprovementPlan,
-  hasPendingSelfImprovementItems,
-  isSelfImprovementPlanComplete
-} from './selfImprovementStore'
+import { SelfImprovementPlanStore } from './selfImprovementStore'
 import {
   getCodeViperSourceRoot,
   readCodeViperFile,
@@ -159,6 +150,8 @@ const REFLECTION_PROMPT = `Проанализируй выполненную з�
 Только JSON, без пояснений.`
 
 export class AgentRunner {
+  private selfImprovementPlan = new SelfImprovementPlanStore()
+
   constructor(
     private settings: AgentSettings,
     private projectPath: string,
@@ -187,17 +180,17 @@ export class AgentRunner {
   }
 
   private adoptPlanFromAssistantText(assistantText: string): boolean {
-    if (!hasSelfImprovementPlan()) {
+    if (!this.selfImprovementPlan.has()) {
       const parsed = parsePlanFromAssistantText(assistantText)
       if (parsed) {
-        adoptSelfImprovementPlan(parsed)
+        this.selfImprovementPlan.adopt(parsed)
         this.emitSelfImprovementPlan(parsed)
         return true
       }
       return false
     }
 
-    const plan = getSelfImprovementPlan()
+    const plan = this.selfImprovementPlan.get()
     if (plan) {
       syncPlanFromChecklist(assistantText, plan)
     }
@@ -213,7 +206,7 @@ export class AgentRunner {
       : this.settings.maxSteps
 
     if (autonomousSelfImprove) {
-      resetSelfImprovementPlan()
+      this.selfImprovementPlan.reset()
     }
 
     const prepared = await prepareAgentRunContext(
@@ -295,9 +288,9 @@ export class AgentRunner {
               ? this.adoptPlanFromAssistantText(assistantText)
               : false
 
-            const plan = getSelfImprovementPlan()
+            const plan = this.selfImprovementPlan.get()
 
-            if (isSelfImprovementPlanComplete()) {
+            if (this.selfImprovementPlan.isComplete()) {
               if (assistantText && !adoptedPlan) {
                 this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
               }
@@ -309,7 +302,7 @@ export class AgentRunner {
               return
             }
 
-            if (plan && hasPendingSelfImprovementItems()) {
+            if (plan && this.selfImprovementPlan.hasPending()) {
               selfImprovePlanNudges = 0
               if (assistantText && !adoptedPlan) {
                 this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
@@ -454,9 +447,9 @@ export class AgentRunner {
         }
       }
 
-      const pendingPlan = getSelfImprovementPlan()
+      const pendingPlan = this.selfImprovementPlan.get()
       const pendingNote =
-        autonomousSelfImprove && pendingPlan && hasPendingSelfImprovementItems()
+        autonomousSelfImprove && pendingPlan && this.selfImprovementPlan.hasPending()
           ? `\nНевыполнено пунктов: ${pendingPlan.filter((item) => !item.done).length}.`
           : ''
 
@@ -727,12 +720,12 @@ export class AgentRunner {
         return ok ? `Данные навыка записаны: ${args.skill_id}` : `Навык не найден: ${args.skill_id}`
       },
       set_self_improvement_plan: async (args) => {
-        const plan = setSelfImprovementPlan(parsePlanItemsJson(args.items))
+        const plan = this.selfImprovementPlan.set(parsePlanItemsJson(args.items))
         this.emitSelfImprovementPlan(plan)
         return `${formatPlanSummary(plan)}\n\nНачни выполнение пункта 1 через инструменты.`
       },
       complete_self_improvement_item: async (args) => {
-        const plan = completeSelfImprovementItem(args.id)
+        const plan = this.selfImprovementPlan.complete(args.id)
         this.emitSelfImprovementPlan(plan)
         const pending = plan.filter((item) => !item.done)
         if (!pending.length) {
@@ -741,7 +734,7 @@ export class AgentRunner {
         return `Пункт ${args.id} выполнен. Следующий: «${pending[0].title}» (id: ${pending[0].id})`
       },
       get_self_improvement_plan: async () => {
-        const plan = getSelfImprovementPlan()
+        const plan = this.selfImprovementPlan.get()
         if (!plan) return 'План не задан. Вызовите set_self_improvement_plan после изучения кода.'
         return formatPlanSummary(plan)
       },
