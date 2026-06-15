@@ -24,6 +24,7 @@ import {
   updateChat
 } from './chats'
 import { loadSettings, saveSettings } from './settings'
+import { makeId } from '../../shared/makeId'
 import {
   loadWindowState,
   trackWindowState,
@@ -40,6 +41,7 @@ import type {
 let mainWindow: BrowserWindow | null = null
 let agentRunState: { chatId: string } | null = null
 let activeAgentAbort: AbortController | null = null
+const pendingConfirms = new Map<string, (approved: boolean) => void>()
 
 function appIconPath(): string | undefined {
   const candidates = [
@@ -188,6 +190,31 @@ ipcMain.handle('stop-agent', async () => {
   return true
 })
 
+ipcMain.on('agent-confirm-response', (_e, id: string, approved: boolean) => {
+  const resolve = pendingConfirms.get(id)
+  if (resolve) {
+    pendingConfirms.delete(id)
+    resolve(approved)
+  }
+})
+
+function makeConfirmFn(
+  signal: AbortSignal
+): (toolName: string, toolInput: string) => Promise<boolean> {
+  return (toolName, toolInput) =>
+    new Promise<boolean>((resolve) => {
+      const id = makeId()
+      const settle = (approved: boolean) => {
+        pendingConfirms.delete(id)
+        resolve(approved)
+      }
+      pendingConfirms.set(id, settle)
+      // Прерывание агента во время ожидания = отказ (инструмент не выполняется).
+      signal.addEventListener('abort', () => settle(false), { once: true })
+      mainWindow?.webContents.send('agent-confirm', { id, toolName, toolInput })
+    })
+}
+
 ipcMain.handle(
   'preview-agent-context',
   async (
@@ -259,11 +286,16 @@ ipcMain.handle(
         throw new Error('Модель не выбрана. Скачайте модель в настройках или включите Ollama.')
       }
 
+      const confirmFn = effectiveSettings.confirmActions
+        ? makeConfirmFn(activeAgentAbort.signal)
+        : undefined
+
       const runner = new AgentRunner(
         effectiveSettings,
         projectPath,
         (event) => stream(chatId, event),
-        activeAgentAbort.signal
+        activeAgentAbort.signal,
+        confirmFn
       )
 
       await runner.run(history, userMessage)

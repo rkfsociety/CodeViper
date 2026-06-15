@@ -76,6 +76,14 @@ export interface AgentSettings {
   selfLearning?: boolean
   /** Автовыбор модели под задачу и выгрузка других из RAM */
   autoModel?: boolean
+  /** Спрашивать подтверждение перед мутирующими инструментами (запись файлов, команды) */
+  confirmActions?: boolean
+}
+
+export interface AgentConfirmRequest {
+  id: string
+  toolName: string
+  toolInput: string
 }
 
 export type MemoryCategory = 'pattern' | 'mistake' | 'preference' | 'project' | 'skill'
@@ -240,6 +248,8 @@ export interface CodeViperAPI {
   deleteChatFolder: (id: string) => Promise<void>
   setActiveChat: (id: string | null) => Promise<void>
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
+  onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
+  respondAgentConfirm: (id: string, approved: boolean) => void
 }
 
 declare global {

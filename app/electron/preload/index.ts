@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
+  AgentConfirmRequest,
   AgentSettings,
   AgentStreamEvent,
   ChatMessage,
@@ -117,7 +118,16 @@ const codeviper = {
   setActiveChat: (id: string | null) => ipcRenderer.invoke('set-active-chat', id),
 
   moveChatToFolder: (chatId: string, folderId: string | null) =>
-    ipcRenderer.invoke('move-chat-to-folder', chatId, folderId)
+    ipcRenderer.invoke('move-chat-to-folder', chatId, folderId),
+
+  onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => {
+    const handler = (_: unknown, request: AgentConfirmRequest) => callback(request)
+    ipcRenderer.on('agent-confirm', handler)
+    return () => ipcRenderer.removeListener('agent-confirm', handler)
+  },
+
+  respondAgentConfirm: (id: string, approved: boolean) =>
+    ipcRenderer.send('agent-confirm-response', id, approved)
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)

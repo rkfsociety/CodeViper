@@ -127,7 +127,8 @@ export class AgentRunner {
     private settings: AgentSettings,
     private projectPath: string,
     private emit: (event: AgentStreamPayload) => void,
-    private signal?: AbortSignal
+    private signal?: AbortSignal,
+    private confirm?: (toolName: string, toolInput: string) => Promise<boolean>
   ) {}
 
   private throwIfAborted(): void {
@@ -357,11 +358,24 @@ export class AgentRunner {
 
           const name = call.function.name
           const args = parseToolArgs(call.function.arguments ?? {})
+          const toolInput = JSON.stringify(args, null, 2)
           this.emit({
             type: 'tool_start',
             toolName: name,
-            toolInput: JSON.stringify(args, null, 2)
+            toolInput
           })
+
+          // Подтверждение мутирующих действий, если включено в настройках.
+          if (this.confirm && MUTATING_TOOLS.has(name)) {
+            const approved = await this.confirm(name, toolInput)
+            this.throwIfAborted()
+            if (!approved) {
+              const output = '⛔ Действие отклонено пользователем'
+              this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
+              messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
+              continue
+            }
+          }
 
           let output = ''
           try {

@@ -12,6 +12,7 @@ export interface PersistedSettings {
   maxSteps: number
   selfLearning: boolean
   autoModel: boolean
+  confirmActions: boolean
 }
 
 function storePath(): string {
@@ -24,7 +25,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   model: '',
   maxSteps: 12,
   selfLearning: true,
-  autoModel: true
+  autoModel: true,
+  confirmActions: false
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -37,7 +39,8 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
         ? settings.maxSteps
         : DEFAULT_SETTINGS.maxSteps,
     selfLearning: settings.selfLearning !== false,
-    autoModel: settings.autoModel !== false
+    autoModel: settings.autoModel !== false,
+    confirmActions: settings.confirmActions === true
   }
 }
 

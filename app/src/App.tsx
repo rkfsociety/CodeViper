@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
+import type { AgentConfirmRequest, AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
 import { TerminalPanel } from './components/TerminalPanel'
 import { SettingsModal } from './components/SettingsModal'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
+import { ConfirmDialog } from './components/ConfirmDialog'
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
 
@@ -14,7 +15,8 @@ const DEFAULT_SETTINGS: AgentSettings = {
   model: '',
   maxSteps: 12,
   selfLearning: true,
-  autoModel: true
+  autoModel: true,
+  confirmActions: false
 }
 
 export default function App() {
@@ -31,6 +33,7 @@ export default function App() {
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
   const [activeRunModel, setActiveRunModel] = useState('')
+  const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
 
@@ -98,6 +101,16 @@ export default function App() {
       setSettingsReady(true)
     })
   }, [])
+
+  useEffect(() => {
+    return window.codeviper.onAgentConfirm((request) => setConfirmReq(request))
+  }, [])
+
+  function resolveConfirm(approved: boolean) {
+    if (!confirmReq) return
+    window.codeviper.respondAgentConfirm(confirmReq.id, approved)
+    setConfirmReq(null)
+  }
 
   useEffect(() => {
     if (!settingsReady) return
@@ -343,6 +356,19 @@ export default function App() {
         onSelfLearningChange={(selfLearning) =>
           setSettings((prev) => ({ ...prev, selfLearning }))
         }
+      />
+
+      <ConfirmDialog
+        open={!!confirmReq}
+        title="Подтвердите действие агента"
+        message={
+          confirmReq
+            ? `Инструмент: ${confirmReq.toolName}\n\n${confirmReq.toolInput.slice(0, 800)}`
+            : ''
+        }
+        confirmLabel="Выполнить"
+        onConfirm={() => resolveConfirm(true)}
+        onCancel={() => resolveConfirm(false)}
       />
     </div>
   )

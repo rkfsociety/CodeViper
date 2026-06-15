@@ -84,6 +84,18 @@ export function SettingsModal({
             </span>
           </label>
 
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={settings.confirmActions === true}
+              onChange={(e) => onSettingsChange({ confirmActions: e.target.checked })}
+            />
+            <span>
+              <strong>Подтверждать действия</strong> — спрашивать перед записью файлов и
+              запуском команд (мутирующие инструменты агента)
+            </span>
+          </label>
+
           <ModelPanel
             ollamaUrl={settings.ollamaUrl}
             ollamaOnline={ollamaOnline}

@@ -224,6 +224,10 @@ button {
   font-size: 14px;
   line-height: 1.5;
   color: #c9d1d9;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow: auto;
 }
 
 .settings-modal .settings {
