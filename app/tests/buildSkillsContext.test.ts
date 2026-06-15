@@ -3,6 +3,7 @@ import { rmSync } from 'fs'
 import { join } from 'path'
 
 const USER_DATA = join(process.cwd(), '.vitest-tmp', 'build-skills-context')
+const PROJECT = join(USER_DATA, 'project')
 
 vi.mock('electron', () => ({
   app: { getPath: () => process.cwd() + '/.vitest-tmp/build-skills-context' }
@@ -27,7 +28,7 @@ describe('buildSkillsContext', () => {
       triggers: ['todo']
     })
 
-    const ctx = await buildSkillsContext('/any/project', 'сделай todo на сегодня')
+    const ctx = await buildSkillsContext(PROJECT, 'сделай todo на сегодня')
     expect(ctx).toContain('Применяемые навыки агента')
     expect(ctx).toContain('AUTO_APPLY_MARKER')
   })
@@ -40,7 +41,7 @@ describe('buildSkillsContext', () => {
       triggers: ['deploy', 'релиз']
     })
 
-    const ctx = await buildSkillsContext('/any/project', 'прочитай readme')
+    const ctx = await buildSkillsContext(PROJECT, 'прочитай readme')
     expect(ctx).not.toContain('SECRET_DEPLOY_STEPS')
     expect(ctx).not.toContain('Применяемые навыки агента')
   })
