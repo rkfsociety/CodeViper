@@ -3,6 +3,7 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
+import { backupCorruptFile } from './fsUtil'
 import type { MemoryCategory, MemoryEntry, MemoryScope, MemoryStore } from '../../src/types'
 
 export const MEMORY_FILENAME = 'ViperMemory.md'
@@ -104,10 +105,24 @@ async function loadLegacyJson(path: string): Promise<MemoryStore | null> {
 
 async function loadStore(mdPath: string, legacyPath: string): Promise<MemoryStore> {
   if (existsSync(mdPath)) {
+    let raw: string
     try {
-      const raw = await readFile(mdPath, 'utf-8')
-      return parseMemoryMarkdown(raw)
+      raw = await readFile(mdPath, 'utf-8')
     } catch {
+      return emptyStore()
+    }
+
+    const match = raw.match(/<!-- viper-memory-store\n([\s\S]*?)\n-->/)
+    // Нет маркера — легитимно пустой/новый файл, не трогаем.
+    if (!match) return emptyStore()
+
+    try {
+      const parsed = JSON.parse(match[1]) as MemoryStore
+      if (!Array.isArray(parsed.entries)) throw new Error('bad shape')
+      return parsed
+    } catch {
+      // Маркер есть, но JSON повреждён — спасаем файл, чтобы не затереть пустым.
+      await backupCorruptFile(mdPath)
       return emptyStore()
     }
   }

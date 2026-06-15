@@ -164,3 +164,22 @@ describe('parseReflectionLearnings', () => {
     expect(parseReflectionLearnings('')).toEqual([])
   })
 })
+
+describe('защита от потери при повреждении', () => {
+  it('повреждённый ViperMemory.md бэкапится, не затирается пустым', async () => {
+    const { mkdirSync, writeFileSync, readdirSync } = await import('fs')
+    mkdirSync(USER_DATA, { recursive: true })
+    const md = join(USER_DATA, MEMORY_FILENAME)
+    writeFileSync(md, '# ViperMemory\n<!-- viper-memory-store\n{битый json\n-->\n', 'utf-8')
+
+    // Загрузка не падает и не затирает файл пустым.
+    expect(await listMemories('')).toEqual([])
+
+    const backups = readdirSync(USER_DATA).filter((f) => f.includes('.corrupt-'))
+    expect(backups).toHaveLength(1)
+
+    // Последующая запись работает с чистого листа, не воскрешая повреждённые данные.
+    await addMemory('', { content: 'после бэкапа', category: 'pattern' })
+    expect((await listMemories('')).map((m) => m.content)).toEqual(['после бэкапа'])
+  })
+})

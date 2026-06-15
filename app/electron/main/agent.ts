@@ -795,7 +795,7 @@ export class AgentRunner {
 }
 
 export async function fetchOllamaModels(baseUrl: string) {
-  const res = await fetch(`${baseUrl}/api/tags`)
+  const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(10_000) })
   if (!res.ok) throw new Error('Ollama недоступна')
   const data = (await res.json()) as {
     models?: Array<{ name: string; size: number; modified_at: string }>
@@ -809,7 +809,7 @@ export async function fetchOllamaModels(baseUrl: string) {
 
 export async function pingOllama(baseUrl: string): Promise<boolean> {
   try {
-    const res = await fetch(`${baseUrl}/api/tags`)
+    const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(5_000) })
     return res.ok
   } catch {
     return false
@@ -863,7 +863,8 @@ export async function deleteOllamaModel(baseUrl: string, model: string): Promise
   const res = await fetch(`${url}/api/delete`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: trimmed })
+    body: JSON.stringify({ name: trimmed }),
+    signal: AbortSignal.timeout(15_000)
   })
 
   if (!res.ok) {

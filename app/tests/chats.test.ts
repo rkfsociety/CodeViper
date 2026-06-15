@@ -118,3 +118,35 @@ describe('trimChatMessages', () => {
     expect(trimChatMessages(messages)).toEqual(messages)
   })
 })
+
+describe('защита от потери при повреждении', () => {
+  it('повреждённый файл чата бэкапится, сообщения не затираются', async () => {
+    const { writeFileSync, readdirSync } = await import('fs')
+    const chat = await createChat()
+    await updateChat(chat.id, {
+      messages: [{ id: 'm1', role: 'user', content: 'привет', timestamp: 0 }]
+    })
+
+    const dataFile = join(USER_DATA, 'data', `${chat.id}.json`)
+    writeFileSync(dataFile, '{битый json', 'utf-8')
+
+    const store = await getChatStore()
+    expect(store.chats.find((c) => c.id === chat.id)?.messages).toEqual([])
+
+    const backups = readdirSync(join(USER_DATA, 'data')).filter((f) => f.includes('.corrupt-'))
+    expect(backups).toHaveLength(1)
+  })
+
+  it('повреждённый индекс бэкапится, не затирается пустым', async () => {
+    const { writeFileSync, readdirSync } = await import('fs')
+    await createChat()
+    const idx = join(USER_DATA, 'index.json')
+    writeFileSync(idx, '{не json', 'utf-8')
+
+    const store = await getChatStore()
+    expect(store.chats).toEqual([])
+
+    const backups = readdirSync(USER_DATA).filter((f) => f.includes('.corrupt-'))
+    expect(backups).toHaveLength(1)
+  })
+})

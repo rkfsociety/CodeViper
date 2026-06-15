@@ -42,8 +42,10 @@
 - [x] Безопасность `run_command` (blocklist, без `shell: true`)
 - [x] Настройки в модальном окне, терминал по кнопке
 - [x] Запуск через `CodeViper.cmd` в корне репозитория
-- [x] Unit-тесты (`vitest`): `chats`, `memory`, `services`, `parseToolArgs`
+- [x] Unit-тесты (`vitest`): `chats`, `memory`, `services`, `parseToolArgs`, а также `shared/` (`modelRouter`, `toolCalls`, `fileEdit`, `actionVerification`, `contextLimits`, `skillMatching`)
 - [x] CI на GitHub Actions: `typecheck` → `test` → `build`
+- [x] Устойчивость хранилищ: повреждённые `ViperMemory.md` / индекс чатов / файлы чатов сохраняются как `*.corrupt-<ts>` вместо молчаливой перезаписи пустыми
+- [x] Таймауты для запросов к Ollama (ping/список моделей/удаление) — нет зависаний при недоступной Ollama
 
 ## Возможности
 
@@ -312,6 +314,7 @@ CodeViper **не выполняет** ваш запрос отдельно от 
 - Опасные команды блокируются (rm -rf, format, shutdown, diskpart, encoded powershell и др.)
 - `run_command` запускается через `cmd.exe` / `sh` **без** `shell: true`; лимит длины команды — 4096 символов
 - Команды в терминале автоматически прерываются через **120 секунд** (exit code 124)
+- Повреждённые файлы хранилищ (память, индекс/данные чатов) не затираются — сохраняются как `*.corrupt-<ts>` для восстановления
 - Все данные остаются на вашем ПК
 
 ## Разработка

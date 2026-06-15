@@ -65,7 +65,6 @@ const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент 
 Обновляй .codeviper/rules.md через write_file для правил **рабочего проекта** в чате.`
 
 export const MAX_PROJECT_TREE_CHARS = 6000
-const MIN_RECENT_MESSAGES = 8
 
 export function formatFileTree(nodes: FileNode[], prefix = ''): string {
   const lines: string[] = []
@@ -158,35 +157,6 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
 
 function estimateMessageCharsLocal(message: OllamaMessage): number {
   return estimateMessageChars(message.content)
-}
-
-export function trimHistoryForContext(history: ChatMessage[]): {
-  messages: OllamaMessage[]
-  truncated: boolean
-  droppedMessageCount: number
-} {
-  const allMapped = history
-    .map(mapHistoryMessageToOllama)
-    .filter((m): m is OllamaMessage => m !== null)
-
-  let mapped = allMapped
-  let truncated = false
-
-  while (mapped.length > MIN_RECENT_MESSAGES) {
-    const total = mapped.reduce((sum, message) => sum + estimateMessageCharsLocal(message), 0)
-    const usage = computeContextUsage(total, 'qwen2.5-coder:7b')
-    if (!usage.shouldSummarize) break
-
-    const dropCount = Math.min(2, mapped.length - MIN_RECENT_MESSAGES)
-    mapped = mapped.slice(dropCount)
-    truncated = true
-  }
-
-  return {
-    messages: mapped,
-    truncated,
-    droppedMessageCount: allMapped.length - mapped.length
-  }
 }
 
 export function estimateTokens(charCount: number): number {

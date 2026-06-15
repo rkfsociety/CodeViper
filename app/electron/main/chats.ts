@@ -3,7 +3,7 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, rename, unlink } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
-import { writeJsonAtomic } from './fsUtil'
+import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
 import type { ChatFolder, ChatMessage, ChatStore, SavedChat } from '../../src/types'
 
 const MAX_CHATS = 150
@@ -66,10 +66,12 @@ async function loadIndex(): Promise<ChatsIndex> {
     const raw = await readFile(path, 'utf-8')
     const parsed = JSON.parse(raw) as ChatsIndex
     if (parsed.version !== 2 || !Array.isArray(parsed.folders) || !Array.isArray(parsed.chats)) {
-      return emptyIndex()
+      throw new Error('bad index shape')
     }
     return parsed
   } catch {
+    // Индекс повреждён — спасаем файл, чтобы не затереть список чатов пустым.
+    await backupCorruptFile(path)
     return emptyIndex()
   }
 }
@@ -85,8 +87,11 @@ async function loadChatData(id: string): Promise<ChatMessage[]> {
   try {
     const raw = await readFile(path, 'utf-8')
     const parsed = JSON.parse(raw) as { messages?: ChatMessage[] }
-    return Array.isArray(parsed.messages) ? parsed.messages : []
+    if (!Array.isArray(parsed.messages)) throw new Error('bad chat data shape')
+    return parsed.messages
   } catch {
+    // Файл чата повреждён — спасаем его, иначе автосейв затрёт сообщения пустым массивом.
+    await backupCorruptFile(path)
     return []
   }
 }
