@@ -4,6 +4,7 @@ import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentContextPreview, AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
 import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
+import type { GenerationMetrics } from '../../shared/generationMetrics'
 import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
 import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
@@ -110,6 +111,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [queueSize, setQueueSize] = useState(0)
   const [agentRunning, setAgentRunning] = useState(false)
   const [runModel, setRunModel] = useState('')
+  const [generationMetrics, setGenerationMetrics] = useState<GenerationMetrics | null>(null)
 
   messagesRef.current = messages
   chatIdRef.current = chatId
@@ -154,6 +156,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     lastAssistantContentRef.current = ''
     setContextPreview(null)
     setSummarizing(false)
+    setGenerationMetrics(null)
     queueRef.current = []
     setQueueSize(0)
     agentRunningRef.current = false
@@ -304,6 +307,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         })
       }
 
+      if (event.type === 'generation_metrics' && event.generationMetrics) {
+        setGenerationMetrics(event.generationMetrics)
+      }
+
       if (event.type === 'context') {
         if (typeof event.summarizing === 'boolean') {
           setSummarizing(event.summarizing)
@@ -363,6 +370,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setAgentPhase('thinking')
     setActiveToolName(undefined)
     setDraft('')
+    setGenerationMetrics(null)
 
     const prereq = await window.codeviper.checkAgentPrerequisites(
       currentSettings.ollamaUrl,
@@ -688,6 +696,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             model={runModel || settings.model}
             queueSize={queueSize}
             summarizing={summarizing}
+            generationMetrics={generationMetrics}
           />
         )}
         {chatId && projectPath && (

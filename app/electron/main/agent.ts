@@ -68,6 +68,7 @@ import {
 } from './fileSearch'
 import { buildModelfile, parseTrainingData, prepareModelFromTrainingFile } from './ollamaModels'
 import { compressContextMessages } from './contextSummarizer'
+import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
 import { readNdjsonLines } from './ndjson'
 import {
   addMemory,
@@ -99,6 +100,9 @@ interface OllamaChatChunk {
     thinking?: string
     tool_calls?: ToolCall[]
   }
+  done?: boolean
+  eval_count?: number
+  eval_duration?: number
 }
 
 function isAbortError(error: unknown): boolean {
@@ -546,9 +550,17 @@ export class AgentRunner {
     let content = ''
     let thinking = ''
     const toolCalls: ToolCall[] = []
+    let evalCount: number | undefined
+    let evalDurationNs: number | undefined
 
     for await (const chunk of readNdjsonLines(res.body, this.signal)) {
-      const message = chunk.message as OllamaChatChunk['message'] | undefined
+      const ollamaChunk = chunk as OllamaChatChunk
+      if (ollamaChunk.done || ollamaChunk.eval_count != null || ollamaChunk.eval_duration != null) {
+        if (typeof ollamaChunk.eval_count === 'number') evalCount = ollamaChunk.eval_count
+        if (typeof ollamaChunk.eval_duration === 'number') evalDurationNs = ollamaChunk.eval_duration
+      }
+
+      const message = ollamaChunk.message
 
       const thinkingPiece = message?.thinking
       if (thinkingPiece) {
@@ -570,6 +582,11 @@ export class AgentRunner {
       if (message?.tool_calls?.length) {
         toolCalls.push(...message.tool_calls)
       }
+    }
+
+    const generationMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
+    if (generationMetrics) {
+      this.emit({ type: 'generation_metrics', generationMetrics })
     }
 
     const embedded = extractEmbeddedToolCalls(content)

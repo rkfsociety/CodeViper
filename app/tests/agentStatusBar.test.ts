@@ -21,4 +21,14 @@ describe('agentStatusLabel', () => {
       'qwen2.5-coder думает… · в очереди 2'
     )
   })
+
+  it('показывает метрики генерации', () => {
+    expect(
+      agentStatusLabel('thinking', undefined, 'qwen2.5-coder:7b', 0, {
+        evalCount: 42,
+        evalDurationSec: 2,
+        tokensPerSec: 21
+      })
+    ).toBe('qwen2.5-coder думает… · 21.0 tok/s · 2.0с')
+  })
 })

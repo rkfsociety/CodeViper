@@ -1,4 +1,5 @@
 import { TOOL_LABELS } from '../../shared/toolDisplay'
+import { formatGenerationMetricsHint, type GenerationMetrics } from '../../shared/generationMetrics'
 
 export type AgentPhase = 'thinking' | 'writing' | 'tool'
 
@@ -12,17 +13,21 @@ export function agentStatusLabel(
   phase: AgentPhase,
   toolName?: string,
   model?: string,
-  queueSize = 0
+  queueSize = 0,
+  generationMetrics?: GenerationMetrics | null
 ): string {
   const queueHint = queueSize > 0 ? ` · в очереди ${queueSize}` : ''
+  const metricsHint = generationMetrics
+    ? ` · ${formatGenerationMetricsHint(generationMetrics)}`
+    : ''
 
-  if (phase === 'writing') return `Пишу ответ…${queueHint}`
+  if (phase === 'writing') return `Пишу ответ…${metricsHint}${queueHint}`
   if (phase === 'tool') {
     const label = toolName ? TOOL_LABELS[toolName] : undefined
-    return `${label ?? (toolName ? `Запускаю ${toolName}` : 'Работаю с инструментом…')}${queueHint}`
+    return `${label ?? (toolName ? `Запускаю ${toolName}` : 'Работаю с инструментом…')}${metricsHint}${queueHint}`
   }
   const modelLabel = formatModelLabel(model ?? '')
-  return `${modelLabel} думает…${queueHint}`
+  return `${modelLabel} думает…${metricsHint}${queueHint}`
 }
 
 interface Props {
@@ -32,13 +37,22 @@ interface Props {
   queueSize?: number
   /** Идёт сжатие контекста — показываем отдельную метку поверх обычной фазы */
   summarizing?: boolean
+  /** Метрики последнего шага генерации (tok/s, длительность) */
+  generationMetrics?: GenerationMetrics | null
 }
 
-export function AgentStatusBar({ phase, toolName, model, queueSize = 0, summarizing = false }: Props) {
+export function AgentStatusBar({
+  phase,
+  toolName,
+  model,
+  queueSize = 0,
+  summarizing = false,
+  generationMetrics = null
+}: Props) {
   const queueHint = queueSize > 0 ? ` · в очереди ${queueSize}` : ''
   const label = summarizing
     ? `Сжимаю контекст…${queueHint}`
-    : agentStatusLabel(phase, toolName, model, queueSize)
+    : agentStatusLabel(phase, toolName, model, queueSize, generationMetrics)
 
   return (
     <div

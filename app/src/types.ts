@@ -1,6 +1,7 @@
 export type AgentRole = 'user' | 'assistant' | 'tool' | 'system'
 
 import type { AgentPrerequisitesResult } from '../shared/agentPrerequisites'
+import type { GenerationMetrics } from '../shared/generationMetrics'
 import type { PermissionMode } from '../shared/permissions'
 
 export type { AgentPrerequisiteIssue, AgentPrerequisitesResult, PackageManager } from '../shared/agentPrerequisites'
@@ -64,6 +65,7 @@ export interface OllamaPullProgress {
 }
 
 export type { RecommendedModel, RamTier } from '../shared/recommendedModels'
+export type { GenerationMetrics } from '../shared/generationMetrics'
 export { isBuiltinSkill } from '../shared/builtinSkills'
 export {
   RECOMMENDED_MODELS,
@@ -188,6 +190,7 @@ export interface AgentStreamPayload {
     | 'context'
     | 'self_improve_plan'
     | 'model_selected'
+    | 'generation_metrics'
   content?: string
   /** Полные рассуждения (передаётся вместе с событием assistant) */
   thinking?: string
@@ -202,6 +205,8 @@ export interface AgentStreamPayload {
   contextPreview?: AgentContextPreview
   /** Идёт ли прямо сейчас сжатие контекста (суммаризация/обрезка) — для индикатора в UI */
   summarizing?: boolean
+  /** Метрики последнего шага генерации Ollama (tok/s, длительность) */
+  generationMetrics?: GenerationMetrics
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {
