@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
 import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
@@ -14,6 +14,10 @@ import { MessageRoleBadge } from './MessageRoleBadge'
 import { ThinkingBlock } from './ThinkingBlock'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
+
+export interface ChatPanelHandle {
+  insertPath: (path: string) => void
+}
 
 interface Props {
   settings: AgentSettings
@@ -55,20 +59,23 @@ function messageCopyText(message: ChatMessage): string {
   return message.content
 }
 
-export function ChatPanel({
-  settings,
-  projectPath,
-  chatId,
-  messages,
-  onMessagesChange,
-  onBusyChange,
-  onLearningSaved,
-  onPickProject,
-  onActiveModelChange,
-  onOpenSettings,
-  onEnqueueModel,
-  onRefreshOllama
-}: Props) {
+export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
+  {
+    settings,
+    projectPath,
+    chatId,
+    messages,
+    onMessagesChange,
+    onBusyChange,
+    onLearningSaved,
+    onPickProject,
+    onActiveModelChange,
+    onOpenSettings,
+    onEnqueueModel,
+    onRefreshOllama
+  },
+  ref
+) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState('')
@@ -445,6 +452,10 @@ export function ChatPanel({
     })
   }
 
+  useImperativeHandle(ref, () => ({
+    insertPath: (path: string) => insertPrompt(path)
+  }))
+
   async function retryAfterPrerequisites() {
     if (!prerequisiteBlock) return
     const { pendingRun } = prerequisiteBlock
@@ -720,4 +731,4 @@ export function ChatPanel({
       </div>
     </div>
   )
-}
+})

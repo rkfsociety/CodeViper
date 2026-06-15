@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentConfirmRequest, AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
-import { ChatPanel } from './components/ChatPanel'
+import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
+import { FileTree } from './components/FileTree'
 import { TerminalPanel } from './components/TerminalPanel'
 import { SettingsModal } from './components/SettingsModal'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
@@ -39,6 +40,7 @@ export default function App() {
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
+  const chatPanelRef = useRef<ChatPanelHandle>(null)
 
   activeChatIdRef.current = activeChatId
   messagesRef.current = messages
@@ -302,9 +304,22 @@ export default function App() {
           />
         </section>
 
+        <section className="panel panel-files">
+          <div className="panel-header">Файлы</div>
+          {activeProjectPath ? (
+            <FileTree
+              root={activeProjectPath}
+              onSelect={(path) => chatPanelRef.current?.insertPath(path)}
+            />
+          ) : (
+            <div className="file-tree empty">Выберите проект в чате</div>
+          )}
+        </section>
+
         <section className="panel panel-main">
           <div className="panel-header">Агент</div>
           <ChatPanel
+            ref={chatPanelRef}
             settings={settings}
             projectPath={activeProjectPath}
             chatId={activeChatId}

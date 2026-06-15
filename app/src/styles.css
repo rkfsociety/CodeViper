@@ -105,8 +105,12 @@ button {
 
 .layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 280px 240px minmax(0, 1fr);
   min-height: 0;
+}
+
+.panel-files {
+  min-width: 0;
 }
 
 .panel-main {
