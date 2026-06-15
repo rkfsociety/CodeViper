@@ -53,6 +53,7 @@ import {
 } from './codeviperSource'
 import { parseToolBool } from '../../shared/fileEdit'
 import { toolRequiresConfirm } from '../../shared/permissions'
+import { getModelPlacement } from './ollamaRuntime'
 import {
   safeReadFile,
   safeWriteFile,
@@ -135,6 +136,9 @@ function formatCommandResult(result: {
     .filter(Boolean)
     .join('\n')
 }
+
+// Держим модель «тёплой» в видеопамяти между сообщениями — быстрее ответы.
+const OLLAMA_KEEP_ALIVE = '30m'
 
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
 [{"content": "краткий урок", "category": "pattern|mistake|preference|project|skill", "tags": ["тег"]}]
@@ -232,6 +236,7 @@ export class AgentRunner {
     const messages: OllamaMessage[] = prepared.messages
 
     let usedTools = false
+    let gpuChecked = false
     const mutatingToolsUsed = new Set<string>()
     let verificationRetries = 0
     let verificationNoticeSent = false
@@ -255,6 +260,11 @@ export class AgentRunner {
           throw error
         }
         requireToolNext = false
+
+        if (!gpuChecked) {
+          gpuChecked = true
+          await this.warnIfCpu()
+        }
 
         const assistantText = sanitizeAssistantContent(response.message?.content ?? '')
         const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
@@ -473,6 +483,7 @@ export class AgentRunner {
         messages,
         tools: AGENT_TOOLS,
         stream: true,
+        keep_alive: OLLAMA_KEEP_ALIVE,
         ...(options?.requireTool ? { tool_choice: 'required' as const } : {})
       }),
       signal: this.signal
@@ -786,6 +797,22 @@ export class AgentRunner {
     return handler(args)
   }
 
+  private async warnIfCpu(): Promise<void> {
+    const placement = await getModelPlacement(this.settings.ollamaUrl, this.settings.model)
+    if (placement === 'cpu') {
+      this.emit({
+        type: 'context',
+        content:
+          '🐢 Модель загружена в RAM (CPU), не в видеопамять — ответы будут медленнее. Проверьте, что Ollama видит GPU (драйверы CUDA/ROCm) или выберите модель меньшего размера.'
+      })
+    } else if (placement === 'partial') {
+      this.emit({
+        type: 'context',
+        content: '⚙️ Модель размещена частично в GPU и RAM — для скорости можно выбрать модель меньшего размера.'
+      })
+    }
+  }
+
   private async reflectAndLearn(
     messages: OllamaMessage[],
     userMessage: string,
@@ -802,7 +829,8 @@ export class AgentRunner {
         body: JSON.stringify({
           model: this.settings.model,
           messages: [...messages, { role: 'user', content: REFLECTION_PROMPT }],
-          stream: false
+          stream: false,
+          keep_alive: OLLAMA_KEEP_ALIVE
         }),
         signal: this.signal
       })

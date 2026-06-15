@@ -23,6 +23,33 @@ export async function listLoadedOllamaModels(baseUrl: string): Promise<OllamaLoa
   }
 }
 
+export type ModelPlacement = 'gpu' | 'cpu' | 'partial' | 'unknown'
+
+/**
+ * Где загружена модель: целиком в GPU (VRAM), частично, или на CPU.
+ * Определяется по /api/ps (size_vram vs size). Ollama сам решает размещение —
+ * это лишь индикатор, чтобы предупредить о медленной работе на CPU.
+ */
+export async function getModelPlacement(baseUrl: string, model: string): Promise<ModelPlacement> {
+  try {
+    const res = await fetch(`${baseUrl}/api/ps`, { signal: AbortSignal.timeout(5_000) })
+    if (!res.ok) return 'unknown'
+
+    const data = (await res.json()) as {
+      models?: Array<{ name: string; size?: number; size_vram?: number }>
+    }
+    const entry = (data.models ?? []).find((item) => modelsMatch(item.name, model))
+    if (!entry || !entry.size) return 'unknown'
+
+    const vram = entry.size_vram ?? 0
+    if (vram <= 0) return 'cpu'
+    if (vram >= entry.size) return 'gpu'
+    return 'partial'
+  } catch {
+    return 'unknown'
+  }
+}
+
 export async function unloadOllamaModel(baseUrl: string, model: string): Promise<void> {
   const res = await fetch(`${baseUrl}/api/generate`, {
     method: 'POST',
