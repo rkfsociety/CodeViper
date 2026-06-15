@@ -15,7 +15,7 @@ import {
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
 import { prepareAgentRunContext, formatFileTree, type OllamaMessage } from './agentContext'
-import { AGENT_TOOLS } from './agentTools'
+import { AGENT_TOOLS, type ToolHandlers, type ToolName } from './agentTools'
 import {
   isSelfImprovementTask,
   selfImprovementStepLimit,
@@ -586,9 +586,9 @@ export class AgentRunner {
     }
   }
 
-  private toolHandlers?: Record<string, (args: Record<string, string>) => Promise<string>>
+  private toolHandlers?: ToolHandlers
 
-  private getToolHandlers(): Record<string, (args: Record<string, string>) => Promise<string>> {
+  private getToolHandlers(): ToolHandlers {
     if (this.toolHandlers) return this.toolHandlers
 
     this.toolHandlers = {
@@ -656,7 +656,6 @@ export class AgentRunner {
           content: args.content,
           category: args.category as MemoryCategory,
           tags: args.tags,
-          source: args.source,
           scope: args.scope === 'project' || args.scope === 'global' ? args.scope : undefined
         })
         this.emit({ type: 'learning_saved', content: entry.content, memoryId: entry.id })
@@ -840,7 +839,9 @@ export class AgentRunner {
   }
 
   private async executeTool(name: string, args: Record<string, string>): Promise<string> {
-    const handler = this.getToolHandlers()[name]
+    const handler = this.getToolHandlers()[name as ToolName] as
+      | ((args: Record<string, string>) => Promise<string>)
+      | undefined
     if (!handler) return `Неизвестный инструмент: ${name}`
     return handler(args)
   }

@@ -571,3 +571,89 @@ export function formatAgentToolsSummary(): string {
     (tool) => `- **${tool.function.name}** — ${tool.function.description}`
   ).join('\n')
 }
+
+/** Имя любого инструмента — выводится прямо из AGENT_TOOLS, не разъезжается со схемами. */
+export type ToolName = (typeof AGENT_TOOLS)[number]['function']['name']
+
+/**
+ * Точные типы аргументов каждого инструмента. Значения — строки (приходят из JSON
+ * tool call); обязательность полей соответствует `required` в схемах AGENT_TOOLS.
+ */
+export interface ToolArgs {
+  list_directory: { path?: string; max_depth?: string }
+  grep_files: { query: string; path?: string }
+  find_files: { pattern: string; path?: string }
+  read_file: { path: string }
+  write_file: { path: string; content: string }
+  create_file: { path: string; content: string }
+  edit_file: { path: string; old_string: string; new_string: string; replace_all?: string }
+  append_file: { path: string; content: string }
+  delete_file: { path: string }
+  move_file: { from: string; to: string }
+  run_command: { command: string }
+  remember: { content: string; category: string; tags?: string; scope?: string }
+  search_memory: { query: string }
+  forget: { id: string }
+  list_skills: Record<string, never>
+  read_skill: { id: string }
+  create_skill: {
+    name: string
+    description: string
+    instructions: string
+    triggers?: string
+    id?: string
+  }
+  update_skill: {
+    id: string
+    name?: string
+    description?: string
+    instructions?: string
+    triggers?: string
+  }
+  delete_skill: { id: string }
+  read_skill_data: { skill_id: string }
+  write_skill_data: { skill_id: string; content: string }
+  set_self_improvement_plan: { items: string }
+  complete_self_improvement_item: { id: string }
+  get_self_improvement_plan: Record<string, never>
+  list_codeviper_directory: { path?: string; max_depth?: string }
+  grep_codeviper_files: { query: string; path?: string }
+  find_codeviper_files: { pattern: string; path?: string }
+  read_codeviper_file: { path: string }
+  write_codeviper_file: { path: string; content: string }
+  create_codeviper_file: { path: string; content: string }
+  edit_codeviper_file: {
+    path: string
+    old_string: string
+    new_string: string
+    replace_all?: string
+  }
+  append_codeviper_file: { path: string; content: string }
+  delete_codeviper_file: { path: string }
+  move_codeviper_file: { from: string; to: string }
+  run_codeviper_command: { command: string }
+  preview_ollama_modelfile: {
+    data_path: string
+    base_model: string
+    system?: string
+    temperature?: string
+  }
+  create_ollama_model: {
+    model_name: string
+    data_path: string
+    base_model: string
+    system?: string
+    temperature?: string
+  }
+}
+
+// Гарантия на этапе компиляции: у каждого инструмента из AGENT_TOOLS описаны аргументы.
+// Если добавить инструмент в AGENT_TOOLS и забыть тип — здесь будет ошибка с его именем.
+type MissingToolArgs = Exclude<ToolName, keyof ToolArgs>
+const _toolArgsComplete: MissingToolArgs extends never ? true : MissingToolArgs = true
+void _toolArgsComplete
+
+/** Реестр обработчиков: каждому имени соответствует обработчик со своими типами аргументов. */
+export type ToolHandlers = {
+  [K in ToolName]: (args: ToolArgs[K]) => Promise<string>
+}
