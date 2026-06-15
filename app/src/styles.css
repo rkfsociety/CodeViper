@@ -1703,3 +1703,127 @@ button.topbar-pill.topbar-download-error {
   border-color: #58a6ff;
   box-shadow: 0 0 0 1px #58a6ff44;
 }
+
+/* ======================================================================
+   Полировка интерфейса (визуальный апгрейд)
+   ====================================================================== */
+
+/* Плавные переходы для интерактивных элементов */
+.btn,
+.settings input,
+.settings select,
+.terminal-input input,
+.chat-input textarea,
+.message,
+.chat-history-item,
+.model-card,
+.topbar-pill {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+/* Кнопки — лёгкий «подъём» при наведении и нажатии */
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn.primary {
+  box-shadow: 0 1px 0 #0d111733, 0 0 0 0 #2ea04300;
+}
+
+.btn.primary:hover:not(:disabled) {
+  box-shadow: 0 2px 10px #2ea04340;
+}
+
+/* Единое фокус-кольцо для полей ввода */
+.settings input:focus,
+.settings select:focus,
+.terminal-input input:focus,
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px #58a6ff33;
+}
+
+/* Подсказка под селектором режима доступа */
+.settings-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8b949e;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.settings-hint strong {
+  color: #adbac7;
+}
+
+/* Карточки сообщений — мягкая тень и приподнятие активного черновика */
+.message {
+  box-shadow: 0 1px 2px #01040933;
+}
+
+.message.assistant.draft {
+  box-shadow: 0 0 0 1px #23863633;
+}
+
+/* Элементы истории чатов — аккуратный hover/active */
+.chat-history-item:hover {
+  background: #1c2230;
+}
+
+.chat-history-item.active {
+  box-shadow: inset 2px 0 0 #2ea043;
+}
+
+/* Модалки — глубина и плавное появление */
+.modal {
+  box-shadow: 0 16px 48px #010409aa;
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(2px);
+}
+
+/* Современный тонкий скроллбар */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #30363d transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
