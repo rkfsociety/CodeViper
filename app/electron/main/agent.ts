@@ -54,6 +54,7 @@ import {
 import { parseToolBool } from '../../shared/fileEdit'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { getModelPlacement } from './ollamaRuntime'
+import { isThinkingModel } from '../../shared/reasoning'
 import {
   safeReadFile,
   safeWriteFile,
@@ -212,7 +213,8 @@ export class AgentRunner {
       {
         ollamaUrl: this.settings.ollamaUrl,
         signal: this.signal,
-        clarifyMode: this.settings.clarifyMode
+        clarifyMode: this.settings.clarifyMode,
+        deepReasoning: this.settings.deepReasoning
       }
     )
     this.throwIfAborted()
@@ -484,6 +486,9 @@ export class AgentRunner {
         tools: AGENT_TOOLS,
         stream: true,
         keep_alive: OLLAMA_KEEP_ALIVE,
+        ...(this.settings.deepReasoning && isThinkingModel(this.settings.model)
+          ? { think: true }
+          : {}),
         ...(options?.requireTool ? { tool_choice: 'required' as const } : {})
       }),
       signal: this.signal

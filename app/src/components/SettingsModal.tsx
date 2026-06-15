@@ -118,6 +118,19 @@ export function SettingsModal({
             </span>
           </label>
 
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={settings.deepReasoning === true}
+              onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
+            />
+            <span>
+              <strong>Глубокое рассуждение</strong> — для think-моделей (qwen3, deepseek-r1,
+              qwq) включает режим рассуждения, для остальных усиливает промпт. Точнее, но
+              медленнее
+            </span>
+          </label>
+
           <ModelPanel
             ollamaUrl={settings.ollamaUrl}
             ollamaOnline={ollamaOnline}

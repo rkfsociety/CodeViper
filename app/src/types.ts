@@ -6,6 +6,7 @@ import type { PermissionMode } from '../shared/permissions'
 export type { AgentPrerequisiteIssue, AgentPrerequisitesResult, PackageManager } from '../shared/agentPrerequisites'
 export type { PermissionMode } from '../shared/permissions'
 export { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../shared/permissions'
+export { isThinkingModel } from '../shared/reasoning'
 
 export interface ChatMessage {
   id: string
@@ -83,6 +84,8 @@ export interface AgentSettings {
   permissionMode?: PermissionMode
   /** Сначала задавать уточняющие вопросы при неоднозначной задаче */
   clarifyMode?: boolean
+  /** Глубокое рассуждение: think:true для think-моделей, усиленный промпт для остальных */
+  deepReasoning?: boolean
 }
 
 export interface AgentConfirmRequest {

@@ -28,6 +28,7 @@ import {
 } from '../shared/contextLimits'
 import { scoreSkill, shouldApplySkill, truncateSkillInstructions } from '../shared/skillMatching'
 import { normalizePermissionMode, toolRequiresConfirm } from '../shared/permissions'
+import { isThinkingModel } from '../shared/reasoning'
 
 describe('toolCalls', () => {
   it('извлекает встроенный вызов из json-блока', () => {
@@ -237,5 +238,18 @@ describe('permissions', () => {
     expect(toolRequiresConfirm('acceptEdits', 'edit_file')).toBe(false)
     expect(toolRequiresConfirm('acceptEdits', 'run_command')).toBe(true)
     expect(toolRequiresConfirm('acceptEdits', 'create_ollama_model')).toBe(true)
+  })
+})
+
+describe('reasoning', () => {
+  it('isThinkingModel распознаёт think-модели', () => {
+    expect(isThinkingModel('qwen3:8b')).toBe(true)
+    expect(isThinkingModel('deepseek-r1:7b')).toBe(true)
+    expect(isThinkingModel('qwq:32b')).toBe(true)
+  })
+
+  it('isThinkingModel: обычные модели — нет', () => {
+    expect(isThinkingModel('qwen2.5-coder:7b')).toBe(false)
+    expect(isThinkingModel('llama3.1:8b')).toBe(false)
   })
 })

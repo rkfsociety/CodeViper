@@ -12,6 +12,7 @@ import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
 import { AGENT_TOOLS, formatAgentToolsSummary } from './agentTools'
 import { SELF_IMPROVEMENT_MODE_PROMPT } from '../../shared/selfImprovement'
+import { DEEP_REASONING_PROMPT, isThinkingModel } from '../../shared/reasoning'
 import {
   computeContextUsage,
   estimateMessageChars,
@@ -101,9 +102,15 @@ function buildSystemPrompt(
   memoryContext: string,
   projectTreeText: string,
   selfImproveMode = false,
-  clarifyMode = false
+  clarifyMode = false,
+  cotReasoning = false
 ): string {
   const parts = [BASE_SYSTEM_PROMPT, buildSelfEditContext()]
+
+  // Для не-think моделей усиливаем рассуждение через промпт.
+  if (cotReasoning) {
+    parts.push(DEEP_REASONING_PROMPT)
+  }
 
   // Уточняющие вопросы несовместимы с автономным самоулучшением.
   if (clarifyMode && !selfImproveMode) {
@@ -176,6 +183,7 @@ export interface PrepareAgentContextOptions {
   ollamaUrl?: string
   signal?: AbortSignal
   clarifyMode?: boolean
+  deepReasoning?: boolean
 }
 
 function section(id: string, title: string, content: string, subtitle?: string): AgentContextSection {
@@ -229,12 +237,15 @@ export async function buildAgentContextPreview(
     }
   }
 
+  // Для think-моделей рассуждение включается нативно (think:true), промпт не нужен.
+  const cotReasoning = !!options.deepReasoning && !isThinkingModel(model)
   let systemContent = buildSystemPrompt(
     projectPath,
     memorySkillsContext,
     projectTreeText,
     selfImproveMode,
-    options.clarifyMode
+    options.clarifyMode,
+    cotReasoning
   )
 
   const mappedHistory = history
