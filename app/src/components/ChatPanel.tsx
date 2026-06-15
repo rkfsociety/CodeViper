@@ -11,6 +11,7 @@ import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
 import { MessageBody } from './MessageBody'
 import { MessageCopyButton } from './MessageCopyButton'
 import { MessageRoleBadge } from './MessageRoleBadge'
+import { ThinkingBlock } from './ThinkingBlock'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
 
@@ -71,6 +72,7 @@ export function ChatPanel({
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState('')
+  const [draftThinking, setDraftThinking] = useState('')
   const [agentPhase, setAgentPhase] = useState<AgentPhase>('thinking')
   const [activeToolName, setActiveToolName] = useState<string | undefined>()
   const [contextPreview, setContextPreview] = useState<AgentContextPreview | null>(null)
@@ -135,6 +137,7 @@ export function ChatPanel({
 
   useEffect(() => {
     setDraft('')
+    setDraftThinking('')
     setInput('')
     setBusy(false)
     setAgentPhase('thinking')
@@ -178,6 +181,11 @@ export function ChatPanel({
     const unsubscribe = window.codeviper.onAgentStream((event) => {
       if (event.chatId !== chatIdRef.current) return
 
+      if (event.type === 'thinking') {
+        setAgentPhase('thinking')
+        setDraftThinking((prev) => prev + (event.content ?? ''))
+      }
+
       if (event.type === 'token') {
         setAgentPhase('writing')
         setDraft((prev) => prev + (event.content ?? ''))
@@ -185,10 +193,13 @@ export function ChatPanel({
 
       if (event.type === 'clear_draft') {
         setDraft('')
+        setDraftThinking('')
       }
 
       if (event.type === 'assistant') {
         setDraft('')
+        const thinking = event.thinking?.trim() || undefined
+        setDraftThinking('')
         const cleaned = visibleAssistantContent(event.content ?? '')
         if (!cleaned || lastAssistantContentRef.current === cleaned) return
         lastAssistantContentRef.current = cleaned
@@ -196,12 +207,14 @@ export function ChatPanel({
           id: makeId(),
           role: 'assistant',
           content: cleaned,
+          thinking,
           timestamp: Date.now()
         })
       }
 
       if (event.type === 'tool_start') {
         setDraft('')
+        setDraftThinking('')
         setAgentPhase('tool')
         setActiveToolName(event.toolName)
         const id = makeId()
@@ -291,6 +304,7 @@ export function ChatPanel({
         if (doneRunIdRef.current === runId) return
         doneRunIdRef.current = runId
         setDraft('')
+        setDraftThinking('')
         setAgentPhase('thinking')
         setActiveToolName(undefined)
         activeToolMessageIdRef.current = null
@@ -611,6 +625,9 @@ export function ChatPanel({
               <MessageRoleBadge role={message.role} toolName={message.toolName} />
               <MessageCopyButton text={messageCopyText(message)} />
             </div>
+            {message.role === 'assistant' && message.thinking && (
+              <ThinkingBlock content={message.thinking} />
+            )}
             <MessageBody
               role={message.role}
               content={
@@ -622,13 +639,14 @@ export function ChatPanel({
           </div>
         ))}
 
-        {visibleDraft && (
+        {(visibleDraft || draftThinking) && (
           <div className="message assistant draft">
             <div className="message-header">
               <MessageRoleBadge role="assistant" />
-              <MessageCopyButton text={visibleDraft} />
+              {visibleDraft && <MessageCopyButton text={visibleDraft} />}
             </div>
-            <MessageBody role="assistant" content={visibleDraft} />
+            {draftThinking && <ThinkingBlock content={draftThinking} live />}
+            {visibleDraft && <MessageBody role="assistant" content={visibleDraft} />}
           </div>
         )}
 

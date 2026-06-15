@@ -1827,3 +1827,73 @@ button.topbar-pill.topbar-download-error {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Сворачиваемый блок «Размышления» (think-модели) */
+.thinking-block {
+  margin: 4px 0 10px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+.thinking-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12.5px;
+  color: #8b949e;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+
+.thinking-summary::-webkit-details-marker {
+  display: none;
+}
+
+.thinking-summary:hover {
+  background: #161b22;
+}
+
+.thinking-icon {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.thinking-title {
+  font-weight: 600;
+  color: #adbac7;
+}
+
+.thinking-toggle-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: #6e7681;
+}
+
+.thinking-toggle-hint::after {
+  content: 'показать';
+}
+
+.thinking-block[open] .thinking-toggle-hint::after {
+  content: 'скрыть';
+}
+
+.thinking-block[open] .thinking-summary {
+  border-bottom: 1px solid #21262d;
+}
+
+.thinking-content {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #8b949e;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}

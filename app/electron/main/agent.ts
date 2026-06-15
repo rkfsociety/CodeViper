@@ -104,6 +104,7 @@ interface ToolCall {
 interface OllamaChatChunk {
   message?: {
     content?: string
+    thinking?: string
     tool_calls?: ToolCall[]
   }
 }
@@ -281,6 +282,7 @@ export class AgentRunner {
         }
 
         const assistantText = sanitizeAssistantContent(response.message?.content ?? '')
+        const assistantThinking = response.message?.thinking
         const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
 
         if (assistantText) {
@@ -297,7 +299,7 @@ export class AgentRunner {
 
             if (isSelfImprovementPlanComplete()) {
               if (assistantText && !adoptedPlan) {
-                this.emit({ type: 'assistant', content: assistantText })
+                this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
               }
               if (plan) this.emitSelfImprovementPlan(plan)
               if (this.settings.selfLearning !== false) {
@@ -310,7 +312,7 @@ export class AgentRunner {
             if (plan && hasPendingSelfImprovementItems()) {
               selfImprovePlanNudges = 0
               if (assistantText && !adoptedPlan) {
-                this.emit({ type: 'assistant', content: assistantText })
+                this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
               }
               this.emitSelfImprovementPlan(plan)
               messages.push({ role: 'user', content: buildSelfImprovementContinueNudge(plan) })
@@ -330,7 +332,7 @@ export class AgentRunner {
                 return
               }
               if (assistantText && !adoptedPlan && !parsePlanFromAssistantText(assistantText)) {
-                this.emit({ type: 'assistant', content: assistantText })
+                this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
               }
               messages.push({ role: 'user', content: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE })
               requireToolNext = true
@@ -389,7 +391,7 @@ export class AgentRunner {
           }
 
           if (assistantText) {
-            this.emit({ type: 'assistant', content: assistantText })
+            this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
           }
           if (this.settings.selfLearning !== false) {
             await this.reflectAndLearn(messages, userMessage, mutatingToolsUsed.size > 0)
@@ -536,10 +538,18 @@ export class AgentRunner {
     }
 
     let content = ''
+    let thinking = ''
     const toolCalls: ToolCall[] = []
 
     for await (const chunk of readNdjsonLines(res.body, this.signal)) {
       const message = chunk.message as OllamaChatChunk['message'] | undefined
+
+      const thinkingPiece = message?.thinking
+      if (thinkingPiece) {
+        thinking += thinkingPiece
+        this.emit({ type: 'thinking', content: thinkingPiece })
+      }
+
       const piece = message?.content
       if (piece) {
         content += piece
@@ -570,6 +580,7 @@ export class AgentRunner {
     return {
       message: {
         content: content.trim() || undefined,
+        thinking: thinking.trim() || undefined,
         tool_calls: toolCalls.length ? toolCalls : undefined
       }
     }

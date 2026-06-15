@@ -33,20 +33,21 @@ export interface SelfCommitResult {
  * Best-effort: не git-репозиторий, отсутствие изменений или офлайн — не ошибка приложения.
  */
 export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommitResult> {
+  // Все операции выполняются в каталоге исходников (app/) и ограничены им
+  // через pathspec '.', чтобы не затронуть прочие файлы репозитория.
   const source = getCodeViperSourceRoot()
 
   const top = await runGit(source, ['rev-parse', '--show-toplevel'])
   if (top.code !== 0) {
     return { ok: false, message: 'не git-репозиторий — автокоммит пропущен' }
   }
-  const root = top.stdout.trim()
 
-  const status = await runGit(root, ['status', '--porcelain'])
+  const status = await runGit(source, ['status', '--porcelain', '--', '.'])
   if (!status.stdout.trim()) {
     return { ok: true, message: 'нет изменений для коммита' }
   }
 
-  const add = await runGit(root, ['add', '-A'])
+  const add = await runGit(source, ['add', '-A', '--', '.'])
   if (add.code !== 0) {
     return { ok: false, message: `git add: ${(add.stderr || add.stdout).trim()}` }
   }
@@ -54,12 +55,12 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
   const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 80) || 'правки агента'
   const message = `chore(self): автоправки агента — ${shortSummary}`
 
-  const commit = await runGit(root, ['commit', '-m', message])
+  const commit = await runGit(source, ['commit', '-m', message, '--', '.'])
   if (commit.code !== 0) {
     return { ok: false, message: `git commit не удался: ${(commit.stderr || commit.stdout).trim()}` }
   }
 
-  const push = await runGit(root, ['push'])
+  const push = await runGit(source, ['push'])
   if (push.code !== 0) {
     return {
       ok: false,

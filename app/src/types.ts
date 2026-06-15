@@ -14,6 +14,8 @@ export interface ChatMessage {
   content: string
   toolName?: string
   toolOutput?: string
+  /** Рассуждения think-модели (показываются сворачиваемым блоком) */
+  thinking?: string
   timestamp: number
 }
 
@@ -172,6 +174,7 @@ export interface AgentContextPreview {
 export interface AgentStreamPayload {
   type:
     | 'token'
+    | 'thinking'
     | 'assistant'
     | 'clear_draft'
     | 'tool_start'
@@ -184,6 +187,8 @@ export interface AgentStreamPayload {
     | 'self_improve_plan'
     | 'model_selected'
   content?: string
+  /** Полные рассуждения (передаётся вместе с событием assistant) */
+  thinking?: string
   toolName?: string
   toolInput?: string
   toolOutput?: string
