@@ -614,11 +614,25 @@ button {
   overflow: auto;
 }
 
+.message-body pre.hljs {
+  padding: 10px 12px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+}
+
 .message-body pre code {
   padding: 0;
   border: 0;
   background: transparent;
   font-size: 13px;
+}
+
+.message-body pre.hljs code.hljs {
+  padding: 0;
+  background: transparent;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .message-body table {

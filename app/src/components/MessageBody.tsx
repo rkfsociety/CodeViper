@@ -1,6 +1,11 @@
 import ReactMarkdown from 'react-markdown'
+import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import type { AgentRole } from '../types'
+import 'highlight.js/styles/github-dark.min.css'
+
+const remarkPlugins = [remarkGfm]
+const rehypePlugins = [rehypeHighlight]
 
 interface Props {
   role: AgentRole
@@ -14,7 +19,9 @@ export function MessageBody({ role, content }: Props) {
 
   return (
     <div className="message-body">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins}>
+        {content}
+      </ReactMarkdown>
     </div>
   )
 }
