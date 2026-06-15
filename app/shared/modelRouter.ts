@@ -244,3 +244,37 @@ export function shouldUseAutoModel(
   if (autoModelEnabled === false) return false
   return installedCount >= 1
 }
+
+const EMBED_MODEL_PATTERN = /embed/i
+
+/** Самая лёгкая установленная модель для суммаризации контекста (без embed). */
+export function selectLightestModelForSummarization(
+  installed: InstalledModelInfo[],
+  fallbackModel: string
+): string {
+  const usable = installed.filter(
+    (item) =>
+      item.name.trim() &&
+      !isAvoidedModel(item.name) &&
+      !EMBED_MODEL_PATTERN.test(item.name)
+  )
+  if (!usable.length) return fallbackModel.trim()
+
+  const sorted = [...usable].sort((a, b) => {
+    const pa = inferParamBillions(a.name, a.size)
+    const pb = inferParamBillions(b.name, b.size)
+    return pa - pb || a.size - b.size
+  })
+  return sorted[0].name
+}
+
+/** Явная модель из настроек или авто — самая лёгкая установленная. */
+export function resolveSummarizeModel(
+  installed: InstalledModelInfo[],
+  agentModel: string,
+  explicitModel = ''
+): string {
+  const trimmed = explicitModel.trim()
+  if (trimmed) return trimmed
+  return selectLightestModelForSummarization(installed, agentModel)
+}

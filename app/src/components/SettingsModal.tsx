@@ -86,6 +86,25 @@ export function SettingsModal({
           </label>
 
           <label>
+            Модель для суммаризации
+            <select
+              value={settings.summarizeModel ?? ''}
+              onChange={(e) => onSettingsChange({ summarizeModel: e.target.value })}
+            >
+              <option value="">Авто — самая лёгкая установленная</option>
+              {models.map((model) => (
+                <option key={model.name} value={model.name}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="settings-hint">
+            Сжатие длинной истории чата при ~85% лимита контекста. По умолчанию берётся самая
+            лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
+          </div>
+
+          <label>
             Режим доступа
             <select
               value={settings.permissionMode ?? 'bypass'}

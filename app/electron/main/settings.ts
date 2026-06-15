@@ -17,6 +17,7 @@ export interface PersistedSettings {
   clarifyMode: boolean
   deepReasoning: boolean
   autoPushSelfEdits: boolean
+  summarizeModel: string
 }
 
 function storePath(): string {
@@ -33,7 +34,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   permissionMode: 'bypass',
   clarifyMode: false,
   deepReasoning: false,
-  autoPushSelfEdits: true
+  autoPushSelfEdits: true,
+  summarizeModel: ''
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -54,7 +56,8 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ),
     clarifyMode: settings.clarifyMode === true,
     deepReasoning: settings.deepReasoning === true,
-    autoPushSelfEdits: settings.autoPushSelfEdits !== false
+    autoPushSelfEdits: settings.autoPushSelfEdits !== false,
+    summarizeModel: settings.summarizeModel?.trim() ?? ''
   }
 }
 

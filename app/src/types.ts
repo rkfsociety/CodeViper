@@ -90,6 +90,8 @@ export interface AgentSettings {
   deepReasoning?: boolean
   /** Автоматически коммитить и пушить самоправки агента (правки исходников CodeViper) */
   autoPushSelfEdits?: boolean
+  /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
+  summarizeModel?: string
 }
 
 export interface AgentConfirmRequest {

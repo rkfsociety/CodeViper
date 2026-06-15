@@ -35,6 +35,25 @@ describe('contextSummarizer', () => {
     expect(fetchMock).toHaveBeenCalled()
   })
 
+  it('использует summarizeModel вместо основной модели агента', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ message: { content: 'Сводка' } })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await compressContextMessages({
+      messages: hugeHistory(),
+      model: 'qwen2.5-coder:14b',
+      summarizeModel: 'qwen2.5-coder:3b',
+      toolsJsonChars: 20_000,
+      ollamaUrl: 'http://127.0.0.1:11434'
+    })
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
+    expect(body.model).toBe('qwen2.5-coder:3b')
+  })
+
   it('суммаризирует старую историю при ~85%+ лимита', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

@@ -186,6 +186,7 @@ export interface PrepareAgentContextOptions {
   signal?: AbortSignal
   clarifyMode?: boolean
   deepReasoning?: boolean
+  summarizeModel?: string
 }
 
 function section(id: string, title: string, content: string, subtitle?: string): AgentContextSection {
@@ -264,6 +265,7 @@ export async function buildAgentContextPreview(
   const compressed = await compressContextMessages({
     messages: initialMessages,
     model,
+    summarizeModel: options.summarizeModel,
     toolsJsonChars,
     ollamaUrl: options.ollamaUrl,
     signal: options.signal

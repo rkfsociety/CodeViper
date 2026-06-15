@@ -20,7 +20,8 @@ const DEFAULT_SETTINGS: AgentSettings = {
   permissionMode: 'bypass',
   clarifyMode: false,
   deepReasoning: false,
-  autoPushSelfEdits: true
+  autoPushSelfEdits: true,
+  summarizeModel: ''
 }
 
 export default function App() {

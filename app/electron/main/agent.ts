@@ -158,7 +158,8 @@ export class AgentRunner {
     private projectPath: string,
     private emit: (event: AgentStreamPayload) => void,
     private signal?: AbortSignal,
-    private confirm?: (toolName: string, toolInput: string) => Promise<boolean>
+    private confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
+    private summarizeModel?: string
   ) {}
 
   private throwIfAborted(): void {
@@ -220,7 +221,8 @@ export class AgentRunner {
         ollamaUrl: this.settings.ollamaUrl,
         signal: this.signal,
         clarifyMode: this.settings.clarifyMode,
-        deepReasoning: this.settings.deepReasoning
+        deepReasoning: this.settings.deepReasoning,
+        summarizeModel: this.summarizeModel
       }
     )
     this.throwIfAborted()
@@ -491,6 +493,7 @@ export class AgentRunner {
     const compression = await compressContextMessages({
       messages,
       model: this.settings.model,
+      summarizeModel: this.summarizeModel,
       toolsJsonChars: JSON.stringify(AGENT_TOOLS).length,
       ollamaUrl: this.settings.ollamaUrl,
       signal: this.signal,

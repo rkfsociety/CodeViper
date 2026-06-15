@@ -82,7 +82,10 @@ function dropOldestNonSystem(messages: OllamaMessage[], count: number): OllamaMe
 
 export async function compressContextMessages(options: {
   messages: OllamaMessage[]
+  /** Модель агента — для оценки лимита контекста */
   model: string
+  /** Модель для вызова суммаризации; по умолчанию та же, что model */
+  summarizeModel?: string
   toolsJsonChars: number
   ollamaUrl?: string
   signal?: AbortSignal
@@ -91,6 +94,7 @@ export async function compressContextMessages(options: {
   onCompressStart?: () => void
 }): Promise<ContextCompressionResult> {
   const minRecent = options.minRecentMessages ?? MIN_RECENT_CONTEXT_MESSAGES
+  const summarizeModel = options.summarizeModel?.trim() || options.model
   let messages = [...options.messages]
   let truncated = false
   let summarized = false
@@ -132,7 +136,7 @@ export async function compressContextMessages(options: {
       try {
         const summary = await summarizeOllamaMessages(
           options.ollamaUrl,
-          options.model,
+          summarizeModel,
           older,
           options.signal
         )

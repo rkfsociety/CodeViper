@@ -7,7 +7,7 @@ import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
 import { filterToolCallingModels } from '../../shared/recommendedModels'
 import { buildAgentContextPreview } from './agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel } from './ollamaRuntime'
-import { selectModelForTask, shouldUseAutoModel } from '../../shared/modelRouter'
+import { selectModelForTask, shouldUseAutoModel, resolveSummarizeModel } from '../../shared/modelRouter'
 import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
@@ -286,12 +286,19 @@ ipcMain.handle(
         throw new Error('Модель не выбрана. Скачайте модель в настройках или включите Ollama.')
       }
 
+      const summarizeModel = resolveSummarizeModel(
+        installed,
+        effectiveSettings.model,
+        settings.summarizeModel
+      )
+
       const runner = new AgentRunner(
         effectiveSettings,
         projectPath,
         (event) => stream(chatId, event),
         activeAgentAbort.signal,
-        makeConfirmFn(activeAgentAbort.signal)
+        makeConfirmFn(activeAgentAbort.signal),
+        summarizeModel
       )
 
       await runner.run(history, userMessage)
