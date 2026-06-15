@@ -117,6 +117,20 @@ function parseTreeDepth(value: string | undefined): number {
   return Math.min(5, Math.max(1, Math.round(depth)))
 }
 
+function formatCommandResult(result: {
+  exitCode: number | null
+  stdout: string
+  stderr: string
+}): string {
+  return [
+    `exit: ${result.exitCode}`,
+    result.stdout ? `stdout:\n${result.stdout}` : '',
+    result.stderr ? `stderr:\n${result.stderr}` : ''
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
 [{"content": "краткий урок", "category": "pattern|mistake|preference|project|skill", "tags": ["тег"]}]
 Если уроков нет — верни [].
@@ -504,154 +518,136 @@ export class AgentRunner {
     }
   }
 
-  private async executeTool(name: string, args: Record<string, string>): Promise<string> {
-    const { projectPath } = this
+  private toolHandlers?: Record<string, (args: Record<string, string>) => Promise<string>>
 
-    switch (name) {
-      case 'list_directory': {
-        const target = args.path?.trim() || projectPath
-        if (!isInsideProject(projectPath, target)) {
+  private getToolHandlers(): Record<string, (args: Record<string, string>) => Promise<string>> {
+    if (this.toolHandlers) return this.toolHandlers
+
+    this.toolHandlers = {
+      list_directory: async (args) => {
+        const target = args.path?.trim() || this.projectPath
+        if (!isInsideProject(this.projectPath, target)) {
           throw new Error('Доступ запрещён: папка вне проекта')
         }
         const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
         return formatFileTree(tree) || '(пусто)'
-      }
-      case 'grep_files': {
+      },
+      grep_files: async (args) => {
         const subpath = args.path?.trim()
-        if (subpath && !isInsideProject(projectPath, subpath)) {
+        if (subpath && !isInsideProject(this.projectPath, subpath)) {
           throw new Error('Доступ запрещён: path вне проекта')
         }
-        const result = await grepInTree(projectPath, args.query, { subpath })
-        return formatGrepResults(projectPath, args.query, result)
-      }
-      case 'find_files': {
+        const result = await grepInTree(this.projectPath, args.query, { subpath })
+        return formatGrepResults(this.projectPath, args.query, result)
+      },
+      find_files: async (args) => {
         const subpath = args.path?.trim()
-        if (subpath && !isInsideProject(projectPath, subpath)) {
+        if (subpath && !isInsideProject(this.projectPath, subpath)) {
           throw new Error('Доступ запрещён: path вне проекта')
         }
-        const result = await findFilesInTree(projectPath, args.pattern, { subpath })
-        return formatFindResults(projectPath, args.pattern, result)
-      }
-      case 'read_file': {
-        return safeReadFile(projectPath, args.path)
-      }
-      case 'write_file': {
-        await safeWriteFile(projectPath, args.path, args.content)
+        const result = await findFilesInTree(this.projectPath, args.pattern, { subpath })
+        return formatFindResults(this.projectPath, args.pattern, result)
+      },
+      read_file: async (args) => safeReadFile(this.projectPath, args.path),
+      write_file: async (args) => {
+        await safeWriteFile(this.projectPath, args.path, args.content)
         return `Файл записан: ${args.path}`
-      }
-      case 'create_file': {
-        await safeCreateFile(projectPath, args.path, args.content)
+      },
+      create_file: async (args) => {
+        await safeCreateFile(this.projectPath, args.path, args.content)
         return `Файл создан: ${args.path}`
-      }
-      case 'edit_file': {
+      },
+      edit_file: async (args) => {
         const count = await safeEditFile(
-          projectPath,
+          this.projectPath,
           args.path,
           args.old_string,
           args.new_string,
           parseToolBool(args.replace_all)
         )
         return `Файл изменён: ${args.path} (замен: ${count})`
-      }
-      case 'append_file': {
-        await safeAppendFile(projectPath, args.path, args.content)
+      },
+      append_file: async (args) => {
+        await safeAppendFile(this.projectPath, args.path, args.content)
         return `Добавлено в конец: ${args.path}`
-      }
-      case 'run_command': {
-        const result = await runCommand(projectPath, args.command)
-        return [
-          `exit: ${result.exitCode}`,
-          result.stdout ? `stdout:\n${result.stdout}` : '',
-          result.stderr ? `stderr:\n${result.stderr}` : ''
-        ]
-          .filter(Boolean)
-          .join('\n')
-      }
-      case 'remember': {
-        const entry = await addMemory(projectPath, {
+      },
+      run_command: async (args) => {
+        const result = await runCommand(this.projectPath, args.command)
+        return formatCommandResult(result)
+      },
+      remember: async (args) => {
+        const entry = await addMemory(this.projectPath, {
           content: args.content,
           category: args.category as MemoryCategory,
           tags: args.tags,
           source: args.source,
           scope: args.scope === 'project' || args.scope === 'global' ? args.scope : undefined
         })
-        this.emit({
-          type: 'learning_saved',
-          content: entry.content,
-          memoryId: entry.id
-        })
+        this.emit({ type: 'learning_saved', content: entry.content, memoryId: entry.id })
         return `Запомнено [${entry.category}/${entry.scope}]: ${entry.content} (id: ${entry.id})`
-      }
-      case 'search_memory': {
-        const results = await searchMemories(projectPath, args.query, 10)
+      },
+      search_memory: async (args) => {
+        const results = await searchMemories(this.projectPath, args.query, 10)
         return JSON.stringify(results, null, 2)
-      }
-      case 'forget': {
-        const removed = await deleteMemory(projectPath, args.id)
+      },
+      forget: async (args) => {
+        const removed = await deleteMemory(this.projectPath, args.id)
         return removed ? `Забыто: ${args.id}` : `Запись не найдена: ${args.id}`
-      }
-      case 'list_skills': {
-        const skills = await listSkills(projectPath)
+      },
+      list_skills: async () => {
+        const skills = await listSkills(this.projectPath)
         return JSON.stringify(skills, null, 2)
-      }
-      case 'read_skill': {
-        const skill = await getSkill(projectPath, args.id)
+      },
+      read_skill: async (args) => {
+        const skill = await getSkill(this.projectPath, args.id)
         if (!skill) return `Навык не найден: ${args.id}`
-        await touchSkill(projectPath, skill.id)
+        await touchSkill(this.projectPath, skill.id)
         return JSON.stringify(skill, null, 2)
-      }
-      case 'create_skill': {
-        const skill = await createSkill(projectPath, {
+      },
+      create_skill: async (args) => {
+        const skill = await createSkill(this.projectPath, {
           name: args.name,
           description: args.description,
           instructions: args.instructions,
           triggers: args.triggers,
           id: args.id
         })
-        this.emit({
-          type: 'skill_saved',
-          content: skill.name,
-          skillId: skill.id
-        })
+        this.emit({ type: 'skill_saved', content: skill.name, skillId: skill.id })
         return `Навык агента создан (global): ${skill.name} (id: ${skill.id}) → ViperSkills.md`
-      }
-      case 'update_skill': {
-        const skill = await updateSkill(projectPath, args.id, {
+      },
+      update_skill: async (args) => {
+        const skill = await updateSkill(this.projectPath, args.id, {
           name: args.name,
           description: args.description,
           instructions: args.instructions,
           triggers: args.triggers
         })
         if (!skill) return `Навык не найден: ${args.id}`
-        this.emit({
-          type: 'skill_saved',
-          content: skill.name,
-          skillId: skill.id
-        })
+        this.emit({ type: 'skill_saved', content: skill.name, skillId: skill.id })
         return `Навык обновлён: ${skill.name} (id: ${skill.id})`
-      }
-      case 'delete_skill': {
+      },
+      delete_skill: async (args) => {
         if (isBuiltinSkill(args.id)) {
           return `Нельзя удалить встроенный навык: ${args.id}`
         }
-        const removed = await deleteSkill(projectPath, args.id)
+        const removed = await deleteSkill(this.projectPath, args.id)
         return removed ? `Навык удалён: ${args.id}` : `Навык не найден: ${args.id}`
-      }
-      case 'read_skill_data': {
-        const data = await readSkillData(projectPath, args.skill_id)
+      },
+      read_skill_data: async (args) => {
+        const data = await readSkillData(this.projectPath, args.skill_id)
         if (!data) return `Навык не найден: ${args.skill_id}`
         return data.content
-      }
-      case 'write_skill_data': {
-        const ok = await writeSkillData(projectPath, args.skill_id, args.content)
+      },
+      write_skill_data: async (args) => {
+        const ok = await writeSkillData(this.projectPath, args.skill_id, args.content)
         return ok ? `Данные навыка записаны: ${args.skill_id}` : `Навык не найден: ${args.skill_id}`
-      }
-      case 'set_self_improvement_plan': {
+      },
+      set_self_improvement_plan: async (args) => {
         const plan = setSelfImprovementPlan(parsePlanItemsJson(args.items))
         this.emitSelfImprovementPlan(plan)
         return `${formatPlanSummary(plan)}\n\nНачни выполнение пункта 1 через инструменты.`
-      }
-      case 'complete_self_improvement_item': {
+      },
+      complete_self_improvement_item: async (args) => {
         const plan = completeSelfImprovementItem(args.id)
         this.emitSelfImprovementPlan(plan)
         const pending = plan.filter((item) => !item.done)
@@ -659,13 +655,13 @@ export class AgentRunner {
           return `Пункт ${args.id} выполнен. Все пункты плана завершены.`
         }
         return `Пункт ${args.id} выполнен. Следующий: «${pending[0].title}» (id: ${pending[0].id})`
-      }
-      case 'get_self_improvement_plan': {
+      },
+      get_self_improvement_plan: async () => {
         const plan = getSelfImprovementPlan()
         if (!plan) return 'План не задан. Вызовите set_self_improvement_plan после изучения кода.'
         return formatPlanSummary(plan)
-      }
-      case 'list_codeviper_directory': {
+      },
+      list_codeviper_directory: async (args) => {
         const root = getCodeViperSourceRoot()
         const target = args.path?.trim() || root
         if (!isAllowedSelfPath(root, target)) {
@@ -673,8 +669,8 @@ export class AgentRunner {
         }
         const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
         return formatFileTree(tree) || '(пусто)'
-      }
-      case 'grep_codeviper_files': {
+      },
+      grep_codeviper_files: async (args) => {
         const root = getCodeViperSourceRoot()
         const subpath = args.path?.trim()
         if (subpath && !isAllowedSelfPath(root, subpath)) {
@@ -682,8 +678,8 @@ export class AgentRunner {
         }
         const result = await grepInTree(root, args.query, { subpath })
         return formatGrepResults(root, args.query, result)
-      }
-      case 'find_codeviper_files': {
+      },
+      find_codeviper_files: async (args) => {
         const root = getCodeViperSourceRoot()
         const subpath = args.path?.trim()
         if (subpath && !isAllowedSelfPath(root, subpath)) {
@@ -691,19 +687,17 @@ export class AgentRunner {
         }
         const result = await findFilesInTree(root, args.pattern, { subpath })
         return formatFindResults(root, args.pattern, result)
-      }
-      case 'read_codeviper_file': {
-        return readCodeViperFile(args.path)
-      }
-      case 'write_codeviper_file': {
+      },
+      read_codeviper_file: async (args) => readCodeViperFile(args.path),
+      write_codeviper_file: async (args) => {
         await writeCodeViperFile(args.path, args.content)
         return `Файл CodeViper записан: ${args.path}`
-      }
-      case 'create_codeviper_file': {
+      },
+      create_codeviper_file: async (args) => {
         await createCodeViperFile(args.path, args.content)
         return `Файл CodeViper создан: ${args.path}`
-      }
-      case 'edit_codeviper_file': {
+      },
+      edit_codeviper_file: async (args) => {
         const count = await editCodeViperFile(
           args.path,
           args.old_string,
@@ -711,23 +705,17 @@ export class AgentRunner {
           parseToolBool(args.replace_all)
         )
         return `Файл CodeViper изменён: ${args.path} (замен: ${count})`
-      }
-      case 'append_codeviper_file': {
+      },
+      append_codeviper_file: async (args) => {
         await appendCodeViperFile(args.path, args.content)
         return `Добавлено в конец CodeViper: ${args.path}`
-      }
-      case 'run_codeviper_command': {
+      },
+      run_codeviper_command: async (args) => {
         const result = await runCodeViperCommand(args.command)
-        return [
-          `exit: ${result.exitCode}`,
-          result.stdout ? `stdout:\n${result.stdout}` : '',
-          result.stderr ? `stderr:\n${result.stderr}` : ''
-        ]
-          .filter(Boolean)
-          .join('\n')
-      }
-      case 'preview_ollama_modelfile': {
-        const raw = await safeReadFile(projectPath, args.data_path)
+        return formatCommandResult(result)
+      },
+      preview_ollama_modelfile: async (args) => {
+        const raw = await safeReadFile(this.projectPath, args.data_path)
         const examples = parseTrainingData(raw)
         if (!examples.length) {
           return 'Ошибка: в файле нет примеров {user, assistant} (JSON или JSONL).'
@@ -739,9 +727,9 @@ export class AgentRunner {
           temperature: args.temperature ? Number(args.temperature) : undefined
         })
         return `Примеров: ${examples.length}\n\n${modelfile}`
-      }
-      case 'create_ollama_model': {
-        const raw = await safeReadFile(projectPath, args.data_path)
+      },
+      create_ollama_model: async (args) => {
+        const raw = await safeReadFile(this.projectPath, args.data_path)
         const temperature = args.temperature ? Number(args.temperature) : undefined
         const result = await prepareModelFromTrainingFile({
           baseUrl: this.settings.ollamaUrl,
@@ -762,9 +750,15 @@ export class AgentRunner {
           result.modelfile
         ].join('\n')
       }
-      default:
-        return `Неизвестный инструмент: ${name}`
     }
+
+    return this.toolHandlers
+  }
+
+  private async executeTool(name: string, args: Record<string, string>): Promise<string> {
+    const handler = this.getToolHandlers()[name]
+    if (!handler) return `Неизвестный инструмент: ${name}`
+    return handler(args)
   }
 
   private async reflectAndLearn(
