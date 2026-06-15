@@ -6,6 +6,8 @@ import { makeId } from '../../shared/makeId'
 import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
 import type { ChatFolder, ChatMessage, ChatStore, SavedChat } from '../../src/types'
 
+export { makeChatTitle, deriveChatTitle } from '../../shared/chatTitle'
+
 const MAX_CHATS = 150
 const MAX_MESSAGES_PER_CHAT = 400
 const MAX_CHAT_JSON_CHARS = 1_500_000
@@ -171,12 +173,6 @@ function enforceChatLimit(index: ChatsIndex): void {
   }
 }
 
-export function makeChatTitle(text: string): string {
-  const line = text.trim().replace(/\s+/g, ' ')
-  if (!line) return 'Новый чат'
-  return line.length > 48 ? `${line.slice(0, 48)}…` : line
-}
-
 export async function getChatStore(): Promise<ChatStore> {
   const index = await loadIndex()
   const chats = await Promise.all(index.chats.map(hydrateChat))
@@ -289,8 +285,3 @@ export async function moveChatToFolder(chatId: string, folderId: string | null):
   await saveIndex(index)
 }
 
-export function deriveChatTitle(messages: ChatMessage[]): string | undefined {
-  const firstUser = messages.find((message) => message.role === 'user')
-  if (!firstUser?.content.trim()) return undefined
-  return makeChatTitle(firstUser.content)
-}

@@ -344,7 +344,7 @@ export class AgentRunner {
             this.emit({ type: 'assistant', content: assistantText })
           }
           if (this.settings.selfLearning !== false) {
-            await this.reflectAndLearn(messages, userMessage, usedTools)
+            await this.reflectAndLearn(messages, userMessage, mutatingToolsUsed.size > 0)
           }
           this.emit({ type: 'done' })
           return
@@ -756,9 +756,11 @@ export class AgentRunner {
   private async reflectAndLearn(
     messages: OllamaMessage[],
     userMessage: string,
-    usedTools: boolean
+    hadMutations: boolean
   ): Promise<void> {
-    if (!usedTools) return
+    // Рефлексия (доп. запрос к модели) имеет смысл только после реальных изменений,
+    // а не после чисто исследовательских задач (read_file/grep/...).
+    if (!hadMutations) return
 
     try {
       const res = await fetch(`${this.settings.ollamaUrl}/api/chat`, {

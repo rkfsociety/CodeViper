@@ -7,6 +7,7 @@ import { TerminalPanel } from './components/TerminalPanel'
 import { SettingsModal } from './components/SettingsModal'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
+import { deriveChatTitle } from '../shared/chatTitle'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -14,13 +15,6 @@ const DEFAULT_SETTINGS: AgentSettings = {
   maxSteps: 12,
   selfLearning: true,
   autoModel: true
-}
-
-function makeChatTitle(messages: ChatMessage[]): string | undefined {
-  const firstUser = messages.find((message) => message.role === 'user')
-  if (!firstUser?.content.trim()) return undefined
-  const line = firstUser.content.trim().replace(/\s+/g, ' ')
-  return line.length > 48 ? `${line.slice(0, 48)}…` : line
 }
 
 export default function App() {
@@ -54,7 +48,7 @@ export default function App() {
     const chatMessages = messagesRef.current
     if (!chatId) return
 
-    const title = makeChatTitle(chatMessages)
+    const title = deriveChatTitle(chatMessages)
     await window.codeviper.updateChat(chatId, {
       messages: chatMessages,
       ...(title ? { title } : {})
