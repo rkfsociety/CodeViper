@@ -4,7 +4,11 @@ import { readFile } from 'fs/promises'
 import { join } from 'path'
 import type { AgentSettings } from '../../src/types'
 import { normalizePermissionMode, type PermissionMode } from '../../shared/permissions'
-import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX, DEFAULT_MODEL_PROVIDER } from '../../shared/constants'
+import {
+  DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX,
+  DEFAULT_MAX_RUNS_PER_HOUR, MAX_RUNS_PER_HOUR_MIN, MAX_RUNS_PER_HOUR_MAX,
+  DEFAULT_MODEL_PROVIDER
+} from '../../shared/constants'
 import { writeJsonAtomic } from './fsUtil'
 
 export interface PersistedSettings {
@@ -12,6 +16,7 @@ export interface PersistedSettings {
   ollamaUrl: string
   model: string
   maxSteps: number
+  maxRunsPerHour: number
   selfLearning: boolean
   autoModel: boolean
   permissionMode: PermissionMode
@@ -32,6 +37,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
   maxSteps: DEFAULT_MAX_STEPS,
+  maxRunsPerHour: DEFAULT_MAX_RUNS_PER_HOUR,
   selfLearning: true,
   autoModel: true,
   permissionMode: 'bypass',
@@ -52,6 +58,10 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
       typeof settings.maxSteps === 'number' && settings.maxSteps >= MAX_STEPS_MIN && settings.maxSteps <= MAX_STEPS_MAX
         ? settings.maxSteps
         : DEFAULT_SETTINGS.maxSteps,
+    maxRunsPerHour:
+      typeof settings.maxRunsPerHour === 'number' && settings.maxRunsPerHour >= MAX_RUNS_PER_HOUR_MIN && settings.maxRunsPerHour <= MAX_RUNS_PER_HOUR_MAX
+        ? settings.maxRunsPerHour
+        : DEFAULT_SETTINGS.maxRunsPerHour,
     selfLearning: settings.selfLearning !== false,
     autoModel: settings.autoModel !== false,
     // Миграция со старого булева confirmActions: true → 'ask'.

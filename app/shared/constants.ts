@@ -3,6 +3,11 @@ export const DEFAULT_MAX_STEPS = 12
 export const MAX_STEPS_MIN = 3
 export const MAX_STEPS_MAX = 30
 
+// ── Агент: прогоны в час ──────────────────────────────────────────────────────
+export const DEFAULT_MAX_RUNS_PER_HOUR = 20
+export const MAX_RUNS_PER_HOUR_MIN = 1
+export const MAX_RUNS_PER_HOUR_MAX = 100
+
 // ── Агент: контекст ───────────────────────────────────────────────────────────
 /** Порог заполнения контекста (0–1), при котором запускается суммаризация */
 export const CONTEXT_SUMMARIZE_THRESHOLD = 0.85

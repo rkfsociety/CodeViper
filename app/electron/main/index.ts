@@ -44,6 +44,23 @@ let agentRunState: { chatId: string } | null = null
 let activeAgentAbort: AbortController | null = null
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
 
+// Скользящее окно прогонов: хранит timestamp начала каждого прогона за последний час.
+const runTimestamps: number[] = []
+const HOUR_MS = 60 * 60 * 1000
+
+function recordRun(): void {
+  const now = Date.now()
+  runTimestamps.push(now)
+  // Удаляем записи старше часа.
+  const cutoff = now - HOUR_MS
+  while (runTimestamps.length > 0 && runTimestamps[0] < cutoff) runTimestamps.shift()
+}
+
+function runsInLastHour(): number {
+  const cutoff = Date.now() - HOUR_MS
+  return runTimestamps.filter((t) => t >= cutoff).length
+}
+
 function appIconPath(): string | undefined {
   const candidates = [
     join(__dirname, '../../resources/icon.png'),
@@ -248,6 +265,18 @@ ipcMain.handle(
     if (agentRunState) {
       throw new Error('Агент уже выполняет задачу. Дождитесь завершения текущего запроса.')
     }
+
+    const maxRuns = settings.maxRunsPerHour ?? 20
+    const currentRuns = runsInLastHour()
+    if (currentRuns >= maxRuns) {
+      stream(chatId, {
+        type: 'error',
+        content: `Достигнут лимит прогонов агента: ${maxRuns} за последний час (сейчас: ${currentRuns}). Подождите или увеличьте лимит в настройках.`
+      })
+      stream(chatId, { type: 'done' })
+      return
+    }
+    recordRun()
 
     agentRunState = { chatId }
     activeAgentAbort = new AbortController()

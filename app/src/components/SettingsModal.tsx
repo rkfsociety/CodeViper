@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { AgentSettings, OllamaModel, PermissionMode } from '../types'
-import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX, DEEPSEEK_API_BASE_URL, DEEPSEEK_MODEL_DEFAULT } from '../../shared/constants'
+import {
+  DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX,
+  DEFAULT_MAX_RUNS_PER_HOUR, MAX_RUNS_PER_HOUR_MIN, MAX_RUNS_PER_HOUR_MAX,
+  DEEPSEEK_API_BASE_URL, DEEPSEEK_MODEL_DEFAULT
+} from '../../shared/constants'
 import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
 import { ModelPanel } from './ModelPanel'
 import { MemoryPanel } from './MemoryPanel'
@@ -325,6 +329,19 @@ export function SettingsModal({
               value={settings.maxSteps}
               onChange={(e) =>
                 onSettingsChange({ maxSteps: Number(e.target.value) || DEFAULT_MAX_STEPS })
+              }
+            />
+          </label>
+
+          <label>
+            Макс. прогонов в час
+            <input
+              type="number"
+              min={MAX_RUNS_PER_HOUR_MIN}
+              max={MAX_RUNS_PER_HOUR_MAX}
+              value={settings.maxRunsPerHour ?? DEFAULT_MAX_RUNS_PER_HOUR}
+              onChange={(e) =>
+                onSettingsChange({ maxRunsPerHour: Number(e.target.value) || DEFAULT_MAX_RUNS_PER_HOUR })
               }
             />
           </label>
