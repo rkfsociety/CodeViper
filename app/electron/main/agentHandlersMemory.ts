@@ -4,22 +4,27 @@ import { addMemory, deleteMemory, searchMemories } from './memory'
 
 export function createMemoryToolHandlers(
   projectPath: string,
-  emit: (event: AgentStreamPayload) => void
+  emit: (event: AgentStreamPayload) => void,
+  ollamaUrl?: string
 ): Partial<ToolHandlers> {
   return {
     remember: async (args) => {
-      const entry = await addMemory(projectPath, {
-        content: args.content,
-        category: args.category as MemoryCategory,
-        tags: args.tags,
-        scope: args.scope === 'project' || args.scope === 'global' ? args.scope : undefined
-      })
+      const entry = await addMemory(
+        projectPath,
+        {
+          content: args.content,
+          category: args.category as MemoryCategory,
+          tags: args.tags,
+          scope: args.scope === 'project' || args.scope === 'global' ? args.scope : undefined
+        },
+        ollamaUrl
+      )
       emit({ type: 'learning_saved', content: entry.content, memoryId: entry.id })
       return `Запомнено [${entry.category}/${entry.scope}]: ${entry.content} (id: ${entry.id})`
     },
 
     search_memory: async (args) => {
-      const results = await searchMemories(projectPath, args.query, 10)
+      const results = await searchMemories(projectPath, args.query, 10, ollamaUrl)
       return JSON.stringify(results, null, 2)
     },
 

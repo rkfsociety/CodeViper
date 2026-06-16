@@ -653,7 +653,7 @@ export class AgentRunner {
     this.toolHandlers = {
       ...createProjectToolHandlers(this.projectPath),
       ...createCodeViperToolHandlers(),
-      ...createMemoryToolHandlers(this.projectPath, this.emit),
+      ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
       ...createSkillsToolHandlers(this.projectPath, this.emit),
       ...createSelfImprovementToolHandlers(
         this.selfImprovementPlan,
@@ -717,10 +717,11 @@ export class AgentRunner {
       const learnings = parseReflectionLearnings(data.message?.content ?? '')
 
       for (const learning of learnings) {
-        const entry = await addMemory(this.projectPath, {
-          ...learning,
-          source: userMessage.slice(0, 120)
-        })
+        const entry = await addMemory(
+          this.projectPath,
+          { ...learning, source: userMessage.slice(0, 120) },
+          this.settings.ollamaUrl
+        )
         this.emit({
           type: 'learning_saved',
           content: entry.content,
