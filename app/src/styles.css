@@ -323,6 +323,30 @@ button {
   line-height: 1.4;
 }
 
+.clarify-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 0;
+  padding: 8px 14px;
+  border: 1px solid #388bfd55;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #0d1b2a 0%, #0d1117 100%);
+  font-size: 13px;
+  color: #79c0ff;
+  animation: clarify-fadein 0.2s ease;
+}
+
+@keyframes clarify-fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.clarify-banner-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
 .chat-project-bar {
   display: flex;
   align-items: center;

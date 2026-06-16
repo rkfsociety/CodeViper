@@ -302,6 +302,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const projectLocked = messages.length > 0
   const visibleDraft = visibleAssistantContent(draft)
 
+  const lastVisibleMessage = [...messages].reverse().find(shouldShowAssistantMessage)
+  const awaitingClarification =
+    settings.clarifyMode &&
+    !busy &&
+    !!chatId &&
+    !!projectPath &&
+    lastVisibleMessage?.role === 'assistant'
+
   return (
     <div className="chat-main">
       {chatId && (
@@ -389,6 +397,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
         <div ref={bottomRef} />
       </div>
+
+      {awaitingClarification && (
+        <div className="clarify-banner" role="status">
+          <span className="clarify-banner-icon">💬</span>
+          <span>Агент ждёт ответа на уточнение</span>
+        </div>
+      )}
 
       <div className="chat-input">
         {busy && (
