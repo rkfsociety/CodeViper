@@ -24,7 +24,8 @@ describe('gitTools', () => {
   })
 
   it('отклоняет path вне проекта', async () => {
-    const result = await gitStatus(REPO_ROOT, 'C:/Windows/System32')
+    const outsidePath = resolve(REPO_ROOT, '../../outside-test-dir')
+    const result = await gitStatus(REPO_ROOT, outsidePath)
     expect(result).toMatch(/вне проекта/)
   })
 
