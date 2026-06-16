@@ -239,8 +239,18 @@ CodeViper/
 ├── CodeViper.cmd      # запуск приложения
 └── app/               # исходники
     ├── resources/     # иконка приложения
-    ├── shared/        # общие утилиты (makeId)
-    ├── electron/      # Main process: агент, Ollama, файлы, терминал
+    ├── shared/        # общие утилиты (permissions, reasoning, toolCalls и др.)
+    ├── electron/
+    │   └── main/
+    │       ├── agent.ts                      # AgentRunner: цикл ReAct, chat(), рефлексия
+    │       ├── agentHandlersProject.ts        # инструменты проекта: файлы, команды, git
+    │       ├── agentHandlersCodeViper.ts      # саморедактирование исходников CodeViper
+    │       ├── agentHandlersMemory.ts         # remember / search_memory / forget
+    │       ├── agentHandlersSkills.ts         # CRUD навыков агента
+    │       ├── agentHandlersSelfImprovement.ts# план автономного самоулучшения
+    │       ├── agentHandlersModels.ts         # обучение моделей Ollama
+    │       ├── agentHandlersUtils.ts          # parseTreeDepth, formatCommandResult
+    │       └── agentLogger.ts                 # NDJSON-лог шагов агента
     └── src/           # React GUI
 ```
 
