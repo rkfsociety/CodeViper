@@ -26,15 +26,15 @@
 
 ### Облачные API моделей
 
-- [x] **Абстракция провайдеров** — интерфейс `ModelProvider` + реализации для Ollama и OpenAI-совместимых API
+- [x] **Абстракция провайдеров** — интерфейс `ModelProvider` + реализации для Ollama и OpenAI-совместимых API (`ModelRuntime` фасад)
+- [x] **Конфигурация провайдера в настройках** — добавлено в `AgentSettings`: `modelProvider` (тип), `providerApiKey` + сохранение в `settings.json`
+- [x] **DeepSeek API — конфигурация** — добавлены константы (`DEEPSEEK_API_BASE_URL`, `DEEPSEEK_MODEL_DEFAULT`)
 - [ ] **Обёртка чата ModelRuntime** — унифицировать ответы разных провайдеров (Ollama + OpenAI) в единый формат ChatChunk
 - [ ] **Интеграция в agent.ts: основной цикл** — заменить fetch(`/api/chat`) на `this.modelRuntime.chat()`
 - [ ] **Интеграция в agent.ts: утилиты** — заменить `listLoadedOllamaModels()`, `prepareOllamaModel()`, `getModelPlacement()` на методы ModelRuntime
 - [ ] **Интеграция в contextSummarizer.ts** — использовать `ModelRuntime` для суммаризации контекста
-- [ ] **Конфигурация провайдера в настройках** — добавить в `AgentSettings`: `modelProvider` (тип), `providerConfig` (URL, ключ и т.д.)
-- [ ] **DeepSeek API** — поддержка DeepSeek через OpenAI-совместимый API (базовый URL, API ключ)
-- [ ] **Управление ключами** — безопасное хранение API ключей (шифрование в `settings.json` или secure storage Windows)
 - [ ] **Выбор провайдера в настройках UI** — переключатель между Ollama и облачными API; конфигурация по провайдеру (URL, ключ, модель)
+- [ ] **Управление ключами** — безопасное хранение API ключей (шифрование в `settings.json` или secure storage Windows)
 - [ ] **Каталог облачных моделей** — для выбранного провайдера показывать доступные модели (если провайдер предоставляет список)
 - [ ] **Fallback на Ollama** — если облачный API недоступен, автоматический откат на локальную Ollama
 - [ ] **Стоимость запросов** — опциональный показ оценки цены за запрос для платных моделей + накопленная сумма за сессию
