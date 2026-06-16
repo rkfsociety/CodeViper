@@ -1,6 +1,19 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import type { OllamaMessage } from '../electron/main/agentContext'
-import { compressContextMessages, summarizeOllamaMessages } from '../electron/main/contextSummarizer'
+import { compressContextMessages } from '../electron/main/contextSummarizer'
+
+/** Мок fetch, возвращающий Ollama-style NDJSON стрим с одним чанком контента */
+function makeOllamaStreamMock(content: string) {
+  const line = JSON.stringify({ message: { role: 'assistant', content }, done: true }) + '\n'
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(line))
+      controller.close()
+    }
+  })
+  return vi.fn().mockResolvedValue({ ok: true, body: stream })
+}
 
 function hugeHistory(extraMessages = 40): OllamaMessage[] {
   const messages: OllamaMessage[] = [
@@ -19,27 +32,23 @@ describe('contextSummarizer', () => {
     vi.restoreAllMocks()
   })
 
-  it('summarizeOllamaMessages вызывает /api/chat', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ message: { content: 'Краткая сводка' } })
-    })
+  it('вызывает fetch при суммаризации через ollamaUrl', async () => {
+    const fetchMock = makeOllamaStreamMock('Краткая сводка')
     vi.stubGlobal('fetch', fetchMock)
 
-    const summary = await summarizeOllamaMessages('http://127.0.0.1:11434', 'qwen2.5-coder:7b', [
-      { role: 'user', content: 'старый вопрос' },
-      { role: 'assistant', content: 'старый ответ' }
-    ])
+    const result = await compressContextMessages({
+      messages: hugeHistory(),
+      model: 'qwen2.5-coder:7b',
+      toolsJsonChars: 20_000,
+      ollamaUrl: 'http://127.0.0.1:11434'
+    })
 
-    expect(summary).toBe('Краткая сводка')
     expect(fetchMock).toHaveBeenCalled()
+    expect(result.summarized).toBe(true)
   })
 
   it('использует summarizeModel вместо основной модели агента', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ message: { content: 'Сводка' } })
-    })
+    const fetchMock = makeOllamaStreamMock('Сводка')
     vi.stubGlobal('fetch', fetchMock)
 
     await compressContextMessages({
@@ -55,10 +64,7 @@ describe('contextSummarizer', () => {
   })
 
   it('суммаризирует старую историю при ~85%+ лимита', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ message: { content: 'Сводка: правили agent.ts' } })
-    })
+    const fetchMock = makeOllamaStreamMock('Сводка: правили agent.ts')
     vi.stubGlobal('fetch', fetchMock)
 
     const result = await compressContextMessages({

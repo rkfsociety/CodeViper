@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import { resolve } from 'path'
 import { gitStatus, gitDiff, gitLog } from '../electron/main/gitTools'
 
-const REPO_ROOT = 'F:/github/CodeViper'
+// Корень репозитория — два уровня вверх от папки app/
+const REPO_ROOT = resolve(__dirname, '../..')
 
 describe('gitTools', () => {
   it('git_status возвращает статус репозитория', async () => {
