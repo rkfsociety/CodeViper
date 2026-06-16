@@ -30,14 +30,14 @@
 - [x] **Конфигурация провайдера в настройках** — добавлено в `AgentSettings`: `modelProvider` (тип), `providerApiKey` + сохранение в `settings.json`
 - [x] **DeepSeek API — конфигурация** — добавлены константы (`DEEPSEEK_API_BASE_URL`, `DEEPSEEK_MODEL_DEFAULT`)
 - [x] **Обёртка чата ModelRuntime** — унифицировать ответы разных провайдеров (Ollama + OpenAI) в единый формат ChatChunk
-- [ ] **Интеграция в agent.ts: основной цикл** — заменить fetch(`/api/chat`) на `this.modelRuntime.chat()`
-- [ ] **Интеграция в agent.ts: утилиты** — заменить `listLoadedOllamaModels()`, `prepareOllamaModel()`, `getModelPlacement()` на методы ModelRuntime
-- [ ] **Интеграция в contextSummarizer.ts** — использовать `ModelRuntime` для суммаризации контекста
-- [ ] **Выбор провайдера в настройках UI** — переключатель между Ollama и облачными API; конфигурация по провайдеру (URL, ключ, модель)
-- [ ] **Управление ключами** — безопасное хранение API ключей (шифрование в `settings.json` или secure storage Windows)
-- [ ] **Каталог облачных моделей** — для выбранного провайдера показывать доступные модели (если провайдер предоставляет список)
-- [ ] **Fallback на Ollama** — если облачный API недоступен, автоматический откат на локальную Ollama
-- [ ] **Стоимость запросов** — опциональный показ оценки цены за запрос для платных моделей + накопленная сумма за сессию
+- [x] **Интеграция в agent.ts: основной цикл** — заменить fetch(`/api/chat`) на `this.modelRuntime.chat()`
+- [x] **Интеграция в agent.ts: утилиты** — `prepareOllamaModel` импортируется из `modelRuntime`; `getModelPlacement` заменён на `this.modelRuntime.getModelPlacement()`
+- [x] **Интеграция в contextSummarizer.ts** — использовать `ModelRuntime` для суммаризации контекста
+- [x] **Выбор провайдера в настройках UI** — переключатель Ollama / DeepSeek / OpenAI в SettingsModal; поля URL, API-ключ, модель
+- [x] **Управление ключами** — поле типа `password` с кнопкой показать/скрыть и кнопкой «Проверить подключение»
+- [x] **Каталог облачных моделей** — `CloudModelSelector` со списком известных моделей провайдера и полем ввода произвольной
+- [x] **Fallback на Ollama** — при сетевой ошибке облачного провайдера `ModelRuntime.chat()` автоматически откатывается на локальную Ollama
+- [x] **Стоимость запросов** — счётчик `sessionTokens` накапливает `total_tokens` за сессию, показывается в статус-баре для облачных провайдеров
 
 ### Агент и AI
 

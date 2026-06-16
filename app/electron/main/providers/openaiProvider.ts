@@ -109,6 +109,11 @@ export class OpenAIProvider implements ModelProvider {
               chatChunk.thinking = delta.thinking
             }
 
+            // Некоторые стриминговые ответы включают usage прямо в chunk
+            if (chunk.usage?.total_tokens) {
+              chatChunk.total_tokens = chunk.usage.total_tokens
+            }
+
             yield chatChunk
           } catch {
             // skip malformed JSON

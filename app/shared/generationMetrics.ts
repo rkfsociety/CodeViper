@@ -2,6 +2,10 @@ export interface GenerationMetrics {
   evalCount: number
   evalDurationSec: number
   tokensPerSec: number
+  /** Общее число токенов за запрос (для облачных провайдеров) */
+  totalTokens?: number
+  /** Накопленные токены за всю сессию (только для облачных провайдеров) */
+  sessionTokens?: number
 }
 
 /** Метрики из финального чанка Ollama (`eval_count`, `eval_duration` в наносекундах). */
@@ -26,6 +30,13 @@ export function parseOllamaGenerationMetrics(
 }
 
 export function formatGenerationMetricsHint(metrics: GenerationMetrics): string {
+  if (metrics.totalTokens != null) {
+    const parts = [`${metrics.totalTokens} tok`]
+    if (metrics.sessionTokens != null) {
+      parts.push(`сессия: ${metrics.sessionTokens} tok`)
+    }
+    return parts.join(' · ')
+  }
   const tps =
     metrics.tokensPerSec >= 100
       ? String(Math.round(metrics.tokensPerSec))

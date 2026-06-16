@@ -96,6 +96,7 @@ export class AgentRunner {
   private selfImprovementPlan = new SelfImprovementPlanStore()
   private modelRuntime: ModelRuntime
   private providerConfig: ProviderConfig
+  private sessionTokens = 0
 
   constructor(
     private settings: AgentSettings,
@@ -653,11 +654,27 @@ export class AgentRunner {
           this.emit({ type: 'token', content: piece })
         }
       }
+
+      if (chunk.total_tokens != null) {
+        this.sessionTokens += chunk.total_tokens
+      }
     }
 
-    const generationMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
-    if (generationMetrics) {
-      this.emit({ type: 'generation_metrics', generationMetrics })
+    const isCloudProvider = this.providerConfig.type !== 'ollama'
+    const ollamaMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
+
+    if (ollamaMetrics) {
+      this.emit({ type: 'generation_metrics', generationMetrics: ollamaMetrics })
+    } else if (isCloudProvider && this.sessionTokens > 0) {
+      this.emit({
+        type: 'generation_metrics',
+        generationMetrics: {
+          evalCount: 0,
+          evalDurationSec: 0,
+          tokensPerSec: 0,
+          sessionTokens: this.sessionTokens
+        }
+      })
     }
 
     const embedded = extractEmbeddedToolCalls(content)

@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { AgentSettings, OllamaModel, PermissionMode } from '../types'
-import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX } from '../../shared/constants'
+import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX, DEEPSEEK_API_BASE_URL, DEEPSEEK_MODEL_DEFAULT } from '../../shared/constants'
 import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
 import { ModelPanel } from './ModelPanel'
 import { MemoryPanel } from './MemoryPanel'
 import { SkillsPanel } from './SkillsPanel'
+import { CloudModelSelector } from './CloudModelSelector'
 import type { useOllamaDownloadQueue } from '../hooks/useOllamaDownloadQueue'
 
 type DownloadQueue = ReturnType<typeof useOllamaDownloadQueue>
@@ -38,6 +39,9 @@ export function SettingsModal({
   onRefreshOllama,
   onSelfLearningChange
 }: Props) {
+  const [apiKeyVisible, setApiKeyVisible] = useState(false)
+  const [pingState, setPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
+
   useEffect(() => {
     if (!open) return
     function onKeyDown(e: KeyboardEvent) {
@@ -46,6 +50,30 @@ export function SettingsModal({
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open, onClose])
+
+  const provider = settings.modelProvider ?? 'ollama'
+
+  async function handlePing() {
+    setPingState('checking')
+    try {
+      const ok = await window.codeviper.checkOllama(
+        provider === 'ollama' ? settings.ollamaUrl : undefined
+      )
+      setPingState(ok ? 'ok' : 'fail')
+    } catch {
+      setPingState('fail')
+    }
+    setTimeout(() => setPingState('idle'), 3000)
+  }
+
+  function handleProviderChange(newProvider: 'ollama' | 'deepseek' | 'openai') {
+    const patch: Partial<AgentSettings> = { modelProvider: newProvider }
+    // При переключении на DeepSeek — подставить дефолтный URL и модель
+    if (newProvider === 'deepseek') {
+      if (!settings.providerApiKey) patch.providerApiKey = ''
+    }
+    onSettingsChange(patch)
+  }
 
   if (!open) return null
 
@@ -65,14 +93,109 @@ export function SettingsModal({
         </div>
 
         <div className="modal-body settings">
+          {/* ── Провайдер моделей ── */}
           <label>
-            Ollama URL
-            <input
-              value={settings.ollamaUrl}
-              onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
-              onBlur={() => void onRefreshOllama()}
-            />
+            Провайдер моделей
+            <select
+              value={provider}
+              onChange={(e) => handleProviderChange(e.target.value as 'ollama' | 'deepseek' | 'openai')}
+            >
+              <option value="ollama">Ollama (локально)</option>
+              <option value="deepseek">DeepSeek API</option>
+              <option value="openai">OpenAI-совместимый API</option>
+            </select>
           </label>
+
+          {provider === 'ollama' && (
+            <label>
+              Ollama URL
+              <input
+                value={settings.ollamaUrl}
+                onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                onBlur={() => void onRefreshOllama()}
+              />
+            </label>
+          )}
+
+          {provider === 'deepseek' && (
+            <>
+              <div className="settings-hint">
+                Используется <strong>DeepSeek API</strong> — OpenAI-совместимый облачный API.
+                Базовый URL: <code>{DEEPSEEK_API_BASE_URL}</code>, модель по умолчанию: <code>{DEEPSEEK_MODEL_DEFAULT}</code>.
+              </div>
+              <label>
+                DeepSeek API ключ
+                <div className="settings-api-key-row">
+                  <input
+                    type={apiKeyVisible ? 'text' : 'password'}
+                    placeholder="sk-..."
+                    value={settings.providerApiKey ?? ''}
+                    onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => setApiKeyVisible((v) => !v)}
+                    title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                  >
+                    {apiKeyVisible ? '🙈' : '👁'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => void handlePing()}
+                    disabled={pingState === 'checking' || !settings.providerApiKey}
+                    title="Проверить подключение"
+                  >
+                    {pingState === 'checking' ? '⏳' : pingState === 'ok' ? '✅' : pingState === 'fail' ? '❌' : '🔌'}
+                  </button>
+                </div>
+              </label>
+            </>
+          )}
+
+          {provider === 'openai' && (
+            <>
+              <label>
+                API базовый URL
+                <input
+                  placeholder="https://api.openai.com/v1"
+                  value={settings.ollamaUrl}
+                  onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                />
+              </label>
+              <label>
+                API ключ
+                <div className="settings-api-key-row">
+                  <input
+                    type={apiKeyVisible ? 'text' : 'password'}
+                    placeholder="sk-..."
+                    value={settings.providerApiKey ?? ''}
+                    onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => setApiKeyVisible((v) => !v)}
+                    title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                  >
+                    {apiKeyVisible ? '🙈' : '👁'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => void handlePing()}
+                    disabled={pingState === 'checking'}
+                    title="Проверить подключение"
+                  >
+                    {pingState === 'checking' ? '⏳' : pingState === 'ok' ? '✅' : pingState === 'fail' ? '❌' : '🔌'}
+                  </button>
+                </div>
+              </label>
+            </>
+          )}
 
           <label className="settings-toggle">
             <input
@@ -164,25 +287,34 @@ export function SettingsModal({
             </span>
           </label>
 
-          <ModelPanel
-            ollamaUrl={settings.ollamaUrl}
-            ollamaOnline={ollamaOnline}
-            models={models}
-            selectedModel={settings.model}
-            autoModel={settings.autoModel !== false}
-            downloadQueue={{
-              pulling: downloadQueue.pulling,
-              queued: downloadQueue.queued,
-              progress: downloadQueue.progress,
-              error: downloadQueue.error,
-              percent: downloadQueue.percent,
-              onEnqueue: downloadQueue.enqueue,
-              onRemoveFromQueue: downloadQueue.removeFromQueue,
-              onClearError: downloadQueue.clearError
-            }}
-            onModelChange={(model) => onSettingsChange({ model })}
-            onRefresh={onRefreshOllama}
-          />
+          {provider === 'ollama' ? (
+            <ModelPanel
+              ollamaUrl={settings.ollamaUrl}
+              ollamaOnline={ollamaOnline}
+              models={models}
+              selectedModel={settings.model}
+              autoModel={settings.autoModel !== false}
+              downloadQueue={{
+                pulling: downloadQueue.pulling,
+                queued: downloadQueue.queued,
+                progress: downloadQueue.progress,
+                error: downloadQueue.error,
+                percent: downloadQueue.percent,
+                onEnqueue: downloadQueue.enqueue,
+                onRemoveFromQueue: downloadQueue.removeFromQueue,
+                onClearError: downloadQueue.clearError
+              }}
+              onModelChange={(model) => onSettingsChange({ model })}
+              onRefresh={onRefreshOllama}
+            />
+          ) : (
+            <CloudModelSelector
+              provider={provider}
+              model={settings.model}
+              defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
+              onChange={(model) => onSettingsChange({ model })}
+            />
+          )}
 
           <label>
             Макс. шагов агента

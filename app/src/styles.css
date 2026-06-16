@@ -1826,6 +1826,31 @@ button.topbar-pill.topbar-download-error {
   color: #adbac7;
 }
 
+.settings-hint code {
+  font-size: 11px;
+  background: #2d333b;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: #e3b341;
+}
+
+.settings-api-key-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.settings-api-key-row input {
+  flex: 1;
+  margin: 0;
+}
+
+.settings-api-key-row .btn-sm {
+  padding: 4px 8px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
 /* Карточки сообщений — мягкая тень и приподнятие активного черновика */
 .message {
   box-shadow: 0 1px 2px #01040933;

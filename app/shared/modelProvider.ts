@@ -28,6 +28,8 @@ export interface ChatChunk {
   prompt_eval_count?: number
   prompt_eval_duration?: number
   model?: string
+  /** Общее число токенов (для облачных провайдеров — из usage.total_tokens) */
+  total_tokens?: number
 }
 
 export interface LoadedModel {
