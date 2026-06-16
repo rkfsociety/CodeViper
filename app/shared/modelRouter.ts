@@ -180,7 +180,17 @@ export function selectModelForTask(
   const targetTier = targetRamTier(task.difficulty)
   const targetRank = RAM_TIER_RANK[targetTier]
 
-  const scored: ScoredCandidate[] = usable.map((item) => {
+  // Для сложных задач отсекаем слишком слабые модели
+  const minParams =
+    task.difficulty >= 75 ? 14 :
+    task.difficulty >= 60 ? 7 :
+    0
+  const candidates = minParams > 0
+    ? usable.filter((item) => inferParamBillions(item.name, item.size) >= minParams)
+    : usable
+  const pool = candidates.length > 0 ? candidates : usable
+
+  const scored: ScoredCandidate[] = pool.map((item) => {
     const params = inferParamBillions(item.name, item.size)
     const tier = inferRamTier(item.name, item.size)
     const tierRank = RAM_TIER_RANK[tier]
