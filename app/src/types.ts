@@ -95,6 +95,10 @@ export interface AgentSettings {
   autoPushSelfEdits?: boolean
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
+  /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */
+  modelProvider?: 'ollama' | 'deepseek' | 'openai'
+  /** API ключ для облачных провайдеров (DeepSeek, OpenAI и т.д.) */
+  providerApiKey?: string
 }
 
 export interface AgentConfirmRequest {

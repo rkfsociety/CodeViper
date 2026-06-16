@@ -16,3 +16,11 @@ export const READ_DEFAULT_LINE_LIMIT = 300
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
 export const CONTEXT_PREVIEW_DEBOUNCE_MS = 350
+
+// ── Провайдеры моделей ────────────────────────────────────────────────────────
+/** URL DeepSeek API (OpenAI-совместимый) */
+export const DEEPSEEK_API_BASE_URL = 'https://api.deepseek.com/v1'
+/** Модель DeepSeek по умолчанию */
+export const DEEPSEEK_MODEL_DEFAULT = 'deepseek-chat'
+/** Провайдер по умолчанию */
+export const DEFAULT_MODEL_PROVIDER = 'ollama' as const

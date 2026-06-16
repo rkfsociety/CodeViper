@@ -4,7 +4,7 @@ import { readFile } from 'fs/promises'
 import { join } from 'path'
 import type { AgentSettings } from '../../src/types'
 import { normalizePermissionMode, type PermissionMode } from '../../shared/permissions'
-import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX } from '../../shared/constants'
+import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX, DEFAULT_MODEL_PROVIDER } from '../../shared/constants'
 import { writeJsonAtomic } from './fsUtil'
 
 export interface PersistedSettings {
@@ -19,6 +19,8 @@ export interface PersistedSettings {
   deepReasoning: boolean
   autoPushSelfEdits: boolean
   summarizeModel: string
+  modelProvider: 'ollama' | 'deepseek' | 'openai'
+  providerApiKey: string
 }
 
 function storePath(): string {
@@ -36,7 +38,9 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   clarifyMode: false,
   deepReasoning: false,
   autoPushSelfEdits: true,
-  summarizeModel: ''
+  summarizeModel: '',
+  modelProvider: DEFAULT_MODEL_PROVIDER,
+  providerApiKey: ''
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -58,7 +62,9 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     clarifyMode: settings.clarifyMode === true,
     deepReasoning: settings.deepReasoning === true,
     autoPushSelfEdits: settings.autoPushSelfEdits !== false,
-    summarizeModel: settings.summarizeModel?.trim() ?? ''
+    summarizeModel: settings.summarizeModel?.trim() ?? '',
+    modelProvider: (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as 'ollama' | 'deepseek' | 'openai',
+    providerApiKey: settings.providerApiKey?.trim() ?? ''
   }
 }
 
