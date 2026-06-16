@@ -188,11 +188,13 @@ export async function createChat(folderId: string | null = null): Promise<SavedC
   const index = await loadIndex()
   const now = new Date().toISOString()
 
+  const lastProjectPath = index.chats.find((c) => c.projectPath)?.projectPath ?? ''
+
   const chat: SavedChat = {
     id: makeId(),
     title: 'Новый чат',
     folderId,
-    projectPath: '',
+    projectPath: lastProjectPath,
     messages: [],
     createdAt: now,
     updatedAt: now
