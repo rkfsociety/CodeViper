@@ -47,6 +47,7 @@ import { toolRequiresConfirm } from '../../shared/permissions'
 import { getModelPlacement } from './ollamaRuntime'
 import { isThinkingModel } from '../../shared/reasoning'
 import { commitAndPushSelfEdits } from './selfCommit'
+import { agentLogger } from './agentLogger'
 import { gitStatus, gitDiff, gitLog } from './gitTools'
 import {
   safeReadFile,
@@ -206,6 +207,13 @@ export class AgentRunner {
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
     this.throwIfAborted()
 
+    const runStartMs = Date.now()
+    void agentLogger.write({
+      event: 'run_start',
+      model: this.settings.model,
+      message: userMessage.slice(0, 200)
+    })
+
     const autonomousSelfImprove = isSelfImprovementTask(userMessage)
     const stepLimit = autonomousSelfImprove
       ? selfImprovementStepLimit(this.settings.maxSteps)
@@ -264,6 +272,7 @@ export class AgentRunner {
       for (let step = 0; step < stepLimit; step++) {
         this.throwIfAborted()
 
+        const stepStartMs = Date.now()
         let response
         try {
           response = await this.chat(messages, { requireTool: requireToolNext })
@@ -275,6 +284,18 @@ export class AgentRunner {
           throw error
         }
         requireToolNext = false
+        void agentLogger.write({
+          event: 'llm_response',
+          step,
+          model: this.settings.model,
+          duration_ms: Date.now() - stepStartMs,
+          tokens: response.metrics?.evalCount,
+          toks_per_sec: response.metrics?.tokensPerSec != null
+            ? Math.round(response.metrics.tokensPerSec * 10) / 10
+            : undefined,
+          has_tools: (response.message?.tool_calls?.length ?? 0) > 0,
+          has_thinking: !!response.message?.thinking
+        })
 
         if (!gpuChecked) {
           gpuChecked = true
@@ -426,11 +447,29 @@ export class AgentRunner {
             }
           }
 
+          void agentLogger.write({ event: 'tool_call', step, tool: name, args: args })
+          const toolStartMs = Date.now()
           let output = ''
           try {
             output = await this.executeTool(name, args)
+            void agentLogger.write({
+              event: 'tool_result',
+              step,
+              tool: name,
+              ok: true,
+              duration_ms: Date.now() - toolStartMs,
+              output_len: output.length
+            })
           } catch (error) {
             output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+            void agentLogger.write({
+              event: 'tool_result',
+              step,
+              tool: name,
+              ok: false,
+              duration_ms: Date.now() - toolStartMs,
+              error: output
+            })
           }
 
           if (MUTATING_TOOLS.has(name)) {
@@ -472,6 +511,11 @@ export class AgentRunner {
       }
       throw error
     } finally {
+      void agentLogger.write({
+        event: 'run_end',
+        model: this.settings.model,
+        total_ms: Date.now() - runStartMs
+      })
       if (selfEdited && this.settings.autoPushSelfEdits !== false) {
         await this.autoCommitSelfEdits(userMessage)
       }
@@ -605,7 +649,8 @@ export class AgentRunner {
         content: content.trim() || undefined,
         thinking: thinking.trim() || undefined,
         tool_calls: toolCalls.length ? toolCalls : undefined
-      }
+      },
+      metrics: parseOllamaGenerationMetrics(evalCount, evalDurationNs)
     }
   }
 
