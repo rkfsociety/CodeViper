@@ -75,6 +75,17 @@ export function parseToolArgs(args: Record<string, string> | string): Record<str
 // Держим модель «тёплой» в видеопамяти между сообщениями — быстрее ответы.
 const OLLAMA_KEEP_ALIVE = '30m'
 
+// Read-only инструменты — безопасно запускать параллельно (Promise.all).
+const PARALLEL_SAFE_TOOLS = new Set([
+  'read_file', 'grep_files', 'find_files', 'list_directory',
+  'read_codeviper_file', 'grep_codeviper_files', 'find_codeviper_files', 'list_codeviper_directory',
+  'git_status', 'git_diff', 'git_log',
+  'search_memory',
+  'list_skills', 'read_skill', 'read_skill_data',
+  'get_self_improvement_plan',
+  'preview_ollama_modelfile'
+])
+
 // Инструменты, меняющие исходники самого CodeViper (для автокоммита самоправок).
 const SELF_EDIT_FILE_TOOLS = new Set([
   'write_codeviper_file',
@@ -358,73 +369,118 @@ export class AgentRunner {
 
         usedTools = true
 
-        for (const call of toolCalls) {
-          this.throwIfAborted()
-
-          const name = call.function.name
-          const args = parseToolArgs(call.function.arguments ?? {})
-          const toolInput = JSON.stringify(args, null, 2)
-          this.emit({
-            type: 'tool_start',
-            toolName: name,
-            toolInput
+        // Все вызовы read-only и не требуют подтверждения → запускаем параллельно.
+        const allParallelSafe =
+          toolCalls.length > 1 &&
+          toolCalls.every((call) => {
+            const n = call.function.name
+            return (
+              PARALLEL_SAFE_TOOLS.has(n) &&
+              !toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', n)
+            )
           })
 
-          // Подтверждение мутирующих действий согласно режиму доступа.
-          if (this.confirm && toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)) {
-            const approved = await this.confirm(name, toolInput)
+        if (allParallelSafe) {
+          const parsedCalls = toolCalls.map((call) => ({
+            name: call.function.name,
+            args: parseToolArgs(call.function.arguments ?? {})
+          }))
+
+          for (const { name, args } of parsedCalls) {
+            this.emit({ type: 'tool_start', toolName: name, toolInput: JSON.stringify(args, null, 2) })
+          }
+
+          const results = await Promise.all(
+            parsedCalls.map(async ({ name, args }) => {
+              void agentLogger.write({ event: 'tool_call', step, tool: name, args })
+              const toolStartMs = Date.now()
+              let output = ''
+              try {
+                output = await this.executeTool(name, args)
+                void agentLogger.write({
+                  event: 'tool_result',
+                  step,
+                  tool: name,
+                  ok: true,
+                  duration_ms: Date.now() - toolStartMs,
+                  output_len: output.length
+                })
+              } catch (error) {
+                output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+                void agentLogger.write({
+                  event: 'tool_result',
+                  step,
+                  tool: name,
+                  ok: false,
+                  duration_ms: Date.now() - toolStartMs,
+                  error: output
+                })
+              }
+              return { name, output }
+            })
+          )
+
+          for (const { name, output } of results) {
+            this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
+            messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
+          }
+        } else {
+          for (const call of toolCalls) {
             this.throwIfAborted()
-            if (!approved) {
-              const output = '⛔ Действие отклонено пользователем'
-              this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-              messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
-              continue
+
+            const name = call.function.name
+            const args = parseToolArgs(call.function.arguments ?? {})
+            const toolInput = JSON.stringify(args, null, 2)
+            this.emit({ type: 'tool_start', toolName: name, toolInput })
+
+            // Подтверждение мутирующих действий согласно режиму доступа.
+            if (this.confirm && toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)) {
+              const approved = await this.confirm(name, toolInput)
+              this.throwIfAborted()
+              if (!approved) {
+                const output = '⛔ Действие отклонено пользователем'
+                this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
+                messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
+                continue
+              }
             }
+
+            void agentLogger.write({ event: 'tool_call', step, tool: name, args: args })
+            const toolStartMs = Date.now()
+            let output = ''
+            try {
+              output = await this.executeTool(name, args)
+              void agentLogger.write({
+                event: 'tool_result',
+                step,
+                tool: name,
+                ok: true,
+                duration_ms: Date.now() - toolStartMs,
+                output_len: output.length
+              })
+            } catch (error) {
+              output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+              void agentLogger.write({
+                event: 'tool_result',
+                step,
+                tool: name,
+                ok: false,
+                duration_ms: Date.now() - toolStartMs,
+                error: output
+              })
+            }
+
+            if (MUTATING_TOOLS.has(name)) {
+              mutatingToolsUsed.add(name)
+            }
+
+            if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) {
+              selfEdited = true
+            }
+
+            this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
+            messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
           }
-
-          void agentLogger.write({ event: 'tool_call', step, tool: name, args: args })
-          const toolStartMs = Date.now()
-          let output = ''
-          try {
-            output = await this.executeTool(name, args)
-            void agentLogger.write({
-              event: 'tool_result',
-              step,
-              tool: name,
-              ok: true,
-              duration_ms: Date.now() - toolStartMs,
-              output_len: output.length
-            })
-          } catch (error) {
-            output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
-            void agentLogger.write({
-              event: 'tool_result',
-              step,
-              tool: name,
-              ok: false,
-              duration_ms: Date.now() - toolStartMs,
-              error: output
-            })
-          }
-
-          if (MUTATING_TOOLS.has(name)) {
-            mutatingToolsUsed.add(name)
-          }
-
-          if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) {
-            selfEdited = true
-          }
-
-          this.emit({
-            type: 'tool_end',
-            toolName: name,
-            toolOutput: output
-          })
-
-          messages.push({
-            role: 'tool',
-            content: `Инструмент ${name}:\n${output}`
-          })
         }
       }
 
