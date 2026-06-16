@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { AgentSettings, OllamaModel, PermissionMode } from '../types'
+import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX } from '../../shared/constants'
 import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
 import { ModelPanel } from './ModelPanel'
 import { MemoryPanel } from './MemoryPanel'
@@ -187,11 +188,11 @@ export function SettingsModal({
             Макс. шагов агента
             <input
               type="number"
-              min={3}
-              max={30}
+              min={MAX_STEPS_MIN}
+              max={MAX_STEPS_MAX}
               value={settings.maxSteps}
               onChange={(e) =>
-                onSettingsChange({ maxSteps: Number(e.target.value) || 12 })
+                onSettingsChange({ maxSteps: Number(e.target.value) || DEFAULT_MAX_STEPS })
               }
             />
           </label>

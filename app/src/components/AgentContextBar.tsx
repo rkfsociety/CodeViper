@@ -1,4 +1,5 @@
 import type { AgentContextPreview } from '../types'
+import { CONTEXT_SUMMARIZE_THRESHOLD } from '../../shared/constants'
 
 interface Props {
   preview: AgentContextPreview | null
@@ -13,7 +14,7 @@ function formatChars(value: number): string {
 
 function usageClass(percent: number): string {
   if (percent >= 95) return 'context-bar-stat danger'
-  if (percent >= 85) return 'context-bar-stat warning'
+  if (percent >= CONTEXT_SUMMARIZE_THRESHOLD * 100) return 'context-bar-stat warning'
   return 'context-bar-stat'
 }
 
@@ -65,7 +66,7 @@ export function AgentContextBar({ preview, loading, onOpen }: Props) {
               −{preview.droppedMessageCount}
             </span>
           )}
-          {preview.contextUsagePercent >= 85 && (
+          {preview.contextUsagePercent >= CONTEXT_SUMMARIZE_THRESHOLD * 100 && (
             <span className="context-chip warning" title="Близко к лимиту контекста модели">
               {preview.contextUsagePercent}%
             </span>

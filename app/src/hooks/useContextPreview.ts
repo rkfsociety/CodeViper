@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AgentContextPreview, ChatMessage } from '../types'
+import { CONTEXT_PREVIEW_DEBOUNCE_MS } from '../../shared/constants'
 
 export function useContextPreview(
   chatId: string | null,
@@ -36,7 +37,7 @@ export function useContextPreview(
       } finally {
         setContextLoading(false)
       }
-    }, 350)
+    }, CONTEXT_PREVIEW_DEBOUNCE_MS)
 
     return () => window.clearTimeout(timer)
   }, [chatId, projectPath, messages, input, model])

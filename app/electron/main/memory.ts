@@ -5,6 +5,7 @@ import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import { backupCorruptFile } from './fsUtil'
 import type { MemoryCategory, MemoryEntry, MemoryScope, MemoryStore } from '../../src/types'
+import { upsertEmbedding, removeEmbedding, semanticSearch } from './embeddings'
 
 export const MEMORY_FILENAME = 'ViperMemory.md'
 const LEGACY_MEMORY_FILENAME = 'memory.json'
@@ -192,7 +193,8 @@ export async function addMemory(
     tags?: string[] | string
     source?: string
     scope?: MemoryScope
-  }
+  },
+  ollamaUrl?: string
 ): Promise<MemoryEntry> {
   const content = input.content.trim()
   if (!content) throw new Error('Пустое знание')
@@ -236,6 +238,11 @@ export async function addMemory(
 
   store.entries.unshift(entry)
   await saveStore(filePath, trimStore(store, max))
+
+  if (ollamaUrl) {
+    void upsertEmbedding(entry.id, entry.content, scope, projectPath, ollamaUrl)
+  }
+
   return entry
 }
 
@@ -262,6 +269,7 @@ export async function deleteMemory(
     if (index >= 0) {
       store.entries.splice(index, 1)
       await saveStore(md, store)
+      void removeEmbedding(id, projectPath)
       return true
     }
   }
@@ -272,11 +280,21 @@ export async function deleteMemory(
 export async function searchMemories(
   projectPath: string,
   query: string,
-  limit = 10
+  limit = 10,
+  ollamaUrl?: string
 ): Promise<MemoryEntry[]> {
   const all = await listMemories(projectPath)
   const q = query.trim().toLowerCase()
   if (!q) return all.slice(0, limit)
+
+  if (ollamaUrl) {
+    const scored = await semanticSearch(query, projectPath, ollamaUrl, limit)
+    if (scored && scored.length > 0) {
+      const byId = new Map(all.map((e) => [e.id, e]))
+      const semantic = scored.map((s) => byId.get(s.id)).filter(Boolean) as MemoryEntry[]
+      if (semantic.length > 0) return semantic
+    }
+  }
 
   return all
     .filter((entry) => {

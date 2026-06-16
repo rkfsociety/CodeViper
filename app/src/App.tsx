@@ -9,11 +9,12 @@ import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
+import { DEFAULT_MAX_STEPS } from '../shared/constants'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
-  maxSteps: 12,
+  maxSteps: DEFAULT_MAX_STEPS,
   selfLearning: true,
   autoModel: true,
   permissionMode: 'bypass',

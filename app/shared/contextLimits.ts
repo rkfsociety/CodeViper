@@ -1,4 +1,5 @@
-export const CONTEXT_SUMMARIZE_THRESHOLD = 0.85
+export { CONTEXT_SUMMARIZE_THRESHOLD } from './constants'
+import { CONTEXT_SUMMARIZE_THRESHOLD } from './constants'
 export const MIN_RECENT_CONTEXT_MESSAGES = 8
 export const MAX_TOOL_MESSAGE_CHARS = 4_000
 

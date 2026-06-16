@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'fs/promises'
 import { join, relative, resolve, sep } from 'path'
+import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
 
 const IGNORED_DIRS = new Set([
   'node_modules',
@@ -18,7 +19,7 @@ const IGNORED_DIRS = new Set([
 const MAX_WALK_FILES = 800
 const MAX_GREP_RESULTS = 60
 const MAX_FIND_RESULTS = 80
-const MAX_GREP_FILE_BYTES = 512_000
+const MAX_GREP_FILE_BYTES = FILE_SIZE_LIMIT_BYTES
 
 export interface GrepMatch {
   path: string

@@ -4,6 +4,7 @@ import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
+import { FILE_SIZE_LIMIT_BYTES, READ_DEFAULT_LINE_LIMIT } from '../../shared/constants'
 
 const COMMAND_TIMEOUT_MS = 120_000
 const MAX_COMMAND_LEN = 4096
@@ -106,13 +107,10 @@ export async function safeReadFile(projectPath: string, filePath: string): Promi
 
   const info = await stat(filePath)
   if (!info.isFile()) throw new Error('Это не файл')
-  if (info.size > 512_000) throw new Error('Файл слишком большой (>500 KB)')
+  if (info.size > FILE_SIZE_LIMIT_BYTES) throw new Error('Файл слишком большой (>500 KB)')
 
   return readFile(filePath, 'utf-8')
 }
-
-// Сколько строк читать по умолчанию при частичном доступе.
-const READ_DEFAULT_LINE_LIMIT = 300
 
 export async function safeReadFilePartial(
   projectPath: string,
@@ -127,7 +125,7 @@ export async function safeReadFilePartial(
   const info = await stat(filePath)
   if (!info.isFile()) throw new Error('Это не файл')
 
-  const isLarge = info.size > 512_000
+  const isLarge = info.size > FILE_SIZE_LIMIT_BYTES
   const usePartial = isLarge || offset > 0 || limit != null
 
   if (!usePartial) {
@@ -235,7 +233,7 @@ export async function safeAppendFile(
 
   const info = await stat(filePath)
   if (!info.isFile()) throw new Error('Это не файл')
-  if (info.size + Buffer.byteLength(content, 'utf-8') > 512_000) {
+  if (info.size + Buffer.byteLength(content, 'utf-8') > FILE_SIZE_LIMIT_BYTES) {
     throw new Error('После добавления файл превысит лимит 500 KB')
   }
 

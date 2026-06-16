@@ -6,7 +6,6 @@
 
 ### Топ-10 приоритетов
 
-- [ ] **Константы** — вынести магические числа (12 шагов, 85% контекста, 500 ms debounce) в `shared/constants.ts`
 - [ ] **Обработка ошибок** — класс `AgentError` и единый механизм обработки
 - [ ] **Кэширование** — кэшировать файловое дерево на 5 секунд
 - [ ] **Доступность** — ARIA-атрибуты, полноценное управление с клавиатуры
@@ -118,4 +117,5 @@
 - [x] **Индикатор clarifyMode** — синий баннер «Агент ждёт ответа на уточнение» появляется когда включён режим уточняющих вопросов и агент закончил ответ
 - [x] **Частичное чтение больших файлов** — `read_file`/`read_codeviper_file` принимают `offset` и `limit` (строки, 0-based); файлы >500 KB автоматически читаются чанками по 300 строк с заголовком `[строки N–M из K]` и подсказкой `offset=M` для следующего чанка
 - [x] **Параллельные tool calls** — read-only инструменты (`read_file`, `grep_files`, `find_files`, `git_status` и др.) выполняются одновременно через `Promise.all` когда модель запрашивает несколько за раз; мутирующие инструменты остаются последовательными
-- [x] **Подсветка кода в чате** — `rehype-highlight` + `highlight.js` (тема GitHub Dark) для fenced code blocks в Markdown
+- [x] **Подсветка кода в чате**
+- [x] **Константы** — магические числа (12 шагов, 85% контекста, 500 KB лимит, 350 ms debounce) вынесены в `shared/constants.ts`; используются в `services.ts`, `fileSearch.ts`, `settings.ts`, `App.tsx`, `AgentContextBar.tsx`, `SettingsModal.tsx`, `useContextPreview.ts` — `rehype-highlight` + `highlight.js` (тема GitHub Dark) для fenced code blocks в Markdown

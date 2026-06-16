@@ -4,6 +4,7 @@ import { readFile } from 'fs/promises'
 import { join } from 'path'
 import type { AgentSettings } from '../../src/types'
 import { normalizePermissionMode, type PermissionMode } from '../../shared/permissions'
+import { DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX } from '../../shared/constants'
 import { writeJsonAtomic } from './fsUtil'
 
 export interface PersistedSettings {
@@ -28,7 +29,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   version: 1,
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
-  maxSteps: 12,
+  maxSteps: DEFAULT_MAX_STEPS,
   selfLearning: true,
   autoModel: true,
   permissionMode: 'bypass',
@@ -44,7 +45,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ollamaUrl: settings.ollamaUrl?.trim() || DEFAULT_SETTINGS.ollamaUrl,
     model: settings.model?.trim() ?? '',
     maxSteps:
-      typeof settings.maxSteps === 'number' && settings.maxSteps >= 3 && settings.maxSteps <= 30
+      typeof settings.maxSteps === 'number' && settings.maxSteps >= MAX_STEPS_MIN && settings.maxSteps <= MAX_STEPS_MAX
         ? settings.maxSteps
         : DEFAULT_SETTINGS.maxSteps,
     selfLearning: settings.selfLearning !== false,
