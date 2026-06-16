@@ -212,6 +212,26 @@ export function SettingsModal({
             и нажми «Обновить Ollama» в верхней панели.
           </div>
         )}
+
+        <div className="settings-about">
+          <span className="settings-about-version">CodeViper v{__APP_VERSION__}</span>
+          <a
+            className="settings-about-link"
+            href="https://github.com/rkfsociety/CodeViper/issues"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Сообщить об ошибке
+          </a>
+          <a
+            className="settings-about-link"
+            href="https://github.com/rkfsociety/CodeViper"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+          </a>
+        </div>
       </div>
     </div>
   )
