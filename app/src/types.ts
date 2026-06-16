@@ -23,6 +23,7 @@ export interface ChatMessage {
 export interface ChatFolder {
   id: string
   name: string
+  projectPath?: string
   createdAt: string
   updatedAt: string
 }
@@ -268,6 +269,7 @@ export interface CodeViperAPI {
   deleteChat: (id: string) => Promise<void>
   createChatFolder: (name: string) => Promise<ChatFolder>
   renameChatFolder: (id: string, name: string) => Promise<void>
+  updateChatFolder: (id: string, patch: Partial<Pick<ChatFolder, 'name' | 'projectPath'>>) => Promise<void>
   deleteChatFolder: (id: string) => Promise<void>
   setActiveChat: (id: string | null) => Promise<void>
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>

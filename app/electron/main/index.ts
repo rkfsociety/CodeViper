@@ -20,6 +20,7 @@ import {
   getChatStore,
   moveChatToFolder,
   renameFolder,
+  updateFolder,
   setActiveChat,
   updateChat
 } from './chats'
@@ -171,6 +172,12 @@ ipcMain.handle('delete-chat', async (_e, id: string) => deleteChat(id))
 ipcMain.handle('create-chat-folder', async (_e, name: string) => createFolder(name))
 
 ipcMain.handle('rename-chat-folder', async (_e, id: string, name: string) => renameFolder(id, name))
+
+ipcMain.handle(
+  'update-chat-folder',
+  async (_e, id: string, patch: Partial<{ name: string; projectPath: string }>) =>
+    updateFolder(id, patch)
+)
 
 ipcMain.handle('delete-chat-folder', async (_e, id: string) => deleteFolder(id))
 

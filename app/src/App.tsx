@@ -219,6 +219,13 @@ export default function App() {
     await refreshChatStore()
   }
 
+  async function updateFolderProject(id: string) {
+    const folder = await window.codeviper.selectProjectFolder()
+    if (!folder) return
+    await window.codeviper.updateChatFolder(id, { projectPath: folder })
+    await refreshChatStore()
+  }
+
   async function deleteFolder(id: string) {
     await window.codeviper.deleteChatFolder(id)
     await refreshChatStore()
@@ -300,6 +307,7 @@ export default function App() {
             onDeleteChat={deleteChat}
             onRenameChat={renameChat}
             onRenameFolder={renameFolder}
+            onUpdateFolderProject={updateFolderProject}
             onDeleteFolder={deleteFolder}
             onMoveChat={moveChat}
           />

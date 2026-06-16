@@ -188,7 +188,11 @@ export async function createChat(folderId: string | null = null): Promise<SavedC
   const index = await loadIndex()
   const now = new Date().toISOString()
 
-  const lastProjectPath = index.chats.find((c) => c.projectPath)?.projectPath ?? ''
+  const folderProjectPath = folderId
+    ? (index.folders.find((f) => f.id === folderId)?.projectPath ?? '')
+    : ''
+  const lastProjectPath =
+    folderProjectPath || (index.chats.find((c) => c.projectPath)?.projectPath ?? '')
 
   const chat: SavedChat = {
     id: makeId(),
@@ -259,6 +263,19 @@ export async function renameFolder(id: string, name: string): Promise<void> {
   const folder = index.folders.find((item) => item.id === id)
   if (!folder) return
   folder.name = name.trim() || folder.name
+  folder.updatedAt = new Date().toISOString()
+  await saveIndex(index)
+}
+
+export async function updateFolder(
+  id: string,
+  patch: Partial<Pick<ChatFolder, 'name' | 'projectPath'>>
+): Promise<void> {
+  const index = await loadIndex()
+  const folder = index.folders.find((item) => item.id === id)
+  if (!folder) return
+  if (patch.name !== undefined) folder.name = patch.name.trim() || folder.name
+  if (patch.projectPath !== undefined) folder.projectPath = patch.projectPath
   folder.updatedAt = new Date().toISOString()
   await saveIndex(index)
 }

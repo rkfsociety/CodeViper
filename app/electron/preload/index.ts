@@ -111,6 +111,9 @@ const codeviper = {
   renameChatFolder: (id: string, name: string) =>
     ipcRenderer.invoke('rename-chat-folder', id, name),
 
+  updateChatFolder: (id: string, patch: Partial<{ name: string; projectPath: string }>) =>
+    ipcRenderer.invoke('update-chat-folder', id, patch),
+
   deleteChatFolder: (id: string) => ipcRenderer.invoke('delete-chat-folder', id),
 
   setActiveChat: (id: string | null) => ipcRenderer.invoke('set-active-chat', id),

@@ -14,6 +14,7 @@ interface Props {
   onDeleteFolder: (id: string) => void
   onRenameChat: (id: string, title: string) => void
   onRenameFolder: (id: string, name: string) => void
+  onUpdateFolderProject: (id: string) => void
   onMoveChat: (chatId: string, folderId: string | null) => void
 }
 
@@ -57,6 +58,7 @@ export function ChatHistoryPanel({
   onDeleteFolder,
   onRenameChat,
   onRenameFolder,
+  onUpdateFolderProject,
   onMoveChat
 }: Props) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -221,15 +223,29 @@ export function ChatHistoryPanel({
                 <button className="chat-history-folder-toggle" onClick={() => toggleFolder(folder.id)}>
                   {isCollapsed ? '▶' : '▼'}
                 </button>
-                <span
-                  className="chat-history-folder-name"
-                  onDoubleClick={() =>
-                    setPrompt({ kind: 'rename-folder', folderId: folder.id, defaultValue: folder.name })
-                  }
-                >
-                  📁 {folder.name}
+                <span className="chat-history-folder-label">
+                  <span
+                    className="chat-history-folder-name"
+                    onDoubleClick={() =>
+                      setPrompt({ kind: 'rename-folder', folderId: folder.id, defaultValue: folder.name })
+                    }
+                  >
+                    📁 {folder.name}
+                  </span>
+                  {folder.projectPath && (
+                    <span className="chat-history-folder-project" title={folder.projectPath}>
+                      {formatProject(folder.projectPath)}
+                    </span>
+                  )}
                 </span>
                 <span className="chat-history-folder-count">{chats.length}</span>
+                <button
+                  className="btn chat-history-btn"
+                  title={folder.projectPath ? `Проект: ${folder.projectPath}` : 'Привязать проект к папке'}
+                  onClick={() => onUpdateFolderProject(folder.id)}
+                >
+                  📂
+                </button>
                 <button
                   className="btn chat-history-btn"
                   title="Новый чат в папке"
