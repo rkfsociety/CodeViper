@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { OllamaModel, OllamaPullProgress, RecommendedModel } from '../types'
 import { filterToolCallingModels, groupRecommendedModelsByTier, isRecommendedModelInstalled } from '../types'
+import { ConfirmDialog } from './ConfirmDialog'
 
 interface DownloadQueueProps {
   pulling: string | null
@@ -41,6 +42,7 @@ export function ModelPanel({
 }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   const { pulling, queued, progress, error, percent, onEnqueue, onRemoveFromQueue, onClearError } =
     downloadQueue
@@ -56,10 +58,12 @@ export function ModelPanel({
     onEnqueue(model.name)
   }
 
-  async function removeModel(name: string) {
+  function requestRemoveModel(name: string) {
     if (!ollamaOnline || pulling || deleting) return
-    if (!window.confirm(`Удалить модель ${name} с диска?`)) return
+    setConfirmDelete(name)
+  }
 
+  async function removeModel(name: string) {
     setDeleting(name)
     setActionError('')
 
@@ -184,7 +188,7 @@ export function ModelPanel({
                 <button
                   className="btn model-delete-btn"
                   disabled={!ollamaOnline || !!pulling || !!deleting}
-                  onClick={() => removeModel(model.name)}
+                  onClick={() => requestRemoveModel(model.name)}
                 >
                   {deleting === model.name ? 'Удаление…' : 'Удалить'}
                 </button>
@@ -212,7 +216,7 @@ export function ModelPanel({
                 <button
                   className="btn model-delete-btn"
                   disabled={!ollamaOnline || !!pulling || !!deleting}
-                  onClick={() => removeModel(model.name)}
+                  onClick={() => requestRemoveModel(model.name)}
                 >
                   {deleting === model.name ? 'Удаление…' : 'Удалить'}
                 </button>
@@ -270,6 +274,20 @@ export function ModelPanel({
           </div>
         </div>
       ))}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Удалить модель"
+        message={confirmDelete ? `Удалить модель ${confirmDelete} с диска? Скачать заново можно из каталога.` : ''}
+        confirmLabel="Удалить"
+        danger
+        onConfirm={() => {
+          const name = confirmDelete
+          setConfirmDelete(null)
+          if (name) void removeModel(name)
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

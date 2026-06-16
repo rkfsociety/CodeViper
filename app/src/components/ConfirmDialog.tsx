@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useModalA11y } from '../hooks/useModalA11y'
 
 interface Props {
   open: boolean
@@ -19,6 +20,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel
 }: Props) {
+  const modalRef = useModalA11y<HTMLDivElement>(open)
+
   useEffect(() => {
     if (!open) return
     function onKeyDown(e: KeyboardEvent) {
@@ -33,9 +36,12 @@ export function ConfirmDialog({
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div
+        ref={modalRef}
         className="modal confirm-dialog"
         role="dialog"
+        aria-modal="true"
         aria-labelledby="confirm-title"
+        aria-describedby="confirm-message"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
@@ -44,7 +50,9 @@ export function ConfirmDialog({
             ✕
           </button>
         </div>
-        <div className="modal-body confirm-dialog-body">{message}</div>
+        <div id="confirm-message" className="modal-body confirm-dialog-body">
+          {message}
+        </div>
         <div className="modal-footer">
           <button type="button" className="btn" onClick={onCancel}>
             Отмена

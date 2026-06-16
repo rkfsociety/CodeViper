@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useModalA11y } from '../hooks/useModalA11y'
 
 interface Props {
   open: boolean
@@ -21,6 +22,7 @@ export function PromptDialog({
 }: Props) {
   const [value, setValue] = useState(defaultValue)
   const inputRef = useRef<HTMLInputElement>(null)
+  const modalRef = useModalA11y<HTMLDivElement>(open)
 
   useEffect(() => {
     if (!open) return
@@ -49,8 +51,10 @@ export function PromptDialog({
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div
+        ref={modalRef}
         className="modal prompt-dialog"
         role="dialog"
+        aria-modal="true"
         aria-labelledby="prompt-title"
         onClick={(e) => e.stopPropagation()}
       >

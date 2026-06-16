@@ -7,9 +7,12 @@ interface Props {
   refreshKey?: number
 }
 
+const PAGE_SIZE = 10
+
 export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
   const [skills, setSkills] = useState<AgentSkill[]>([])
   const [loading, setLoading] = useState(false)
+  const [visible, setVisible] = useState(PAGE_SIZE)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -77,10 +80,16 @@ export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
         <div className="empty">Пока нет навыков — попроси агента создать.</div>
       )}
 
-      <div className="memory-list">{globalSkills.slice(0, 10).map(renderSkill)}</div>
+      <div className="memory-list">{globalSkills.slice(0, visible).map(renderSkill)}</div>
 
-      {globalSkills.length > 10 && (
-        <div className="memory-more">+ ещё {globalSkills.length - 10} навыков</div>
+      {globalSkills.length > visible && (
+        <button
+          type="button"
+          className="btn memory-more-btn"
+          onClick={() => setVisible((v) => v + PAGE_SIZE)}
+        >
+          Показать ещё ({globalSkills.length - visible})
+        </button>
       )}
 
       {legacyProjectSkills.length > 0 && (

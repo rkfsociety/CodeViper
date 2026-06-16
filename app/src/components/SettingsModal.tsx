@@ -10,9 +10,18 @@ import { ModelPanel } from './ModelPanel'
 import { MemoryPanel } from './MemoryPanel'
 import { SkillsPanel } from './SkillsPanel'
 import { CloudModelSelector } from './CloudModelSelector'
+import { useModalA11y } from '../hooks/useModalA11y'
 import type { useOllamaDownloadQueue } from '../hooks/useOllamaDownloadQueue'
 
 type DownloadQueue = ReturnType<typeof useOllamaDownloadQueue>
+
+type SettingsTab = 'model' | 'behavior' | 'memory'
+
+const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'model', label: 'Модель' },
+  { id: 'behavior', label: 'Поведение' },
+  { id: 'memory', label: 'Память и навыки' }
+]
 
 interface Props {
   open: boolean
@@ -45,6 +54,8 @@ export function SettingsModal({
 }: Props) {
   const [apiKeyVisible, setApiKeyVisible] = useState(false)
   const [pingState, setPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
+  const [tab, setTab] = useState<SettingsTab>('model')
+  const modalRef = useModalA11y<HTMLDivElement>(open)
 
   useEffect(() => {
     if (!open) return
@@ -84,8 +95,10 @@ export function SettingsModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
+        ref={modalRef}
         className="modal settings-modal"
         role="dialog"
+        aria-modal="true"
         aria-labelledby="settings-title"
         onClick={(e) => e.stopPropagation()}
       >
@@ -96,7 +109,24 @@ export function SettingsModal({
           </button>
         </div>
 
+        <div className="settings-tabs" role="tablist">
+          {SETTINGS_TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.id}
+              className={`settings-tab${tab === item.id ? ' active' : ''}`}
+              onClick={() => setTab(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
         <div className="modal-body settings">
+          {tab === 'model' && (
+            <>
           {/* ── Провайдер моделей ── */}
           <label>
             Провайдер моделей
@@ -232,6 +262,11 @@ export function SettingsModal({
             лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
           </div>
 
+            </>
+          )}
+
+          {tab === 'behavior' && (
+            <>
           <label>
             Режим доступа
             <select
@@ -291,6 +326,11 @@ export function SettingsModal({
             </span>
           </label>
 
+            </>
+          )}
+
+          {tab === 'model' && (
+            <>
           {provider === 'ollama' ? (
             <ModelPanel
               ollamaUrl={settings.ollamaUrl}
@@ -346,6 +386,11 @@ export function SettingsModal({
             />
           </label>
 
+            </>
+          )}
+
+          {tab === 'memory' && (
+            <>
           <MemoryPanel
             projectPath={chatProjectPath}
             selfLearning={settings.selfLearning !== false}
@@ -354,6 +399,8 @@ export function SettingsModal({
           />
 
           <SkillsPanel projectPath={chatProjectPath} refreshKey={skillsRefreshKey} />
+            </>
+          )}
         </div>
 
         {!ollamaOnline && (

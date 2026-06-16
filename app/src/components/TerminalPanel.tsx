@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { parseAnsi } from '../../shared/ansi'
 
 interface Props {
   projectPath: string
@@ -8,6 +9,8 @@ interface Props {
 export function TerminalPanel({ projectPath, embedded = false }: Props) {
   const [command, setCommand] = useState('')
   const [output, setOutput] = useState<string>('CodeViper Terminal — команды выполняются в корне проекта.\n')
+
+  const segments = useMemo(() => parseAnsi(output), [output])
 
   async function run() {
     if (!command.trim()) return
@@ -29,7 +32,22 @@ export function TerminalPanel({ projectPath, embedded = false }: Props) {
   return (
     <>
       {!embedded && <div className="panel-header">Терминал</div>}
-      <div className="terminal-output">{output}</div>
+      <div className="terminal-output">
+        {segments.map((seg, i) => (
+          <span
+            key={i}
+            style={{
+              color: seg.color,
+              background: seg.background,
+              fontWeight: seg.bold ? 700 : undefined,
+              fontStyle: seg.italic ? 'italic' : undefined,
+              textDecoration: seg.underline ? 'underline' : undefined
+            }}
+          >
+            {seg.text}
+          </span>
+        ))}
+      </div>
       <div className="terminal-input">
         <input
           value={command}

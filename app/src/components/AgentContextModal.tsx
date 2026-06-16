@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AgentContextPreview } from '../types'
 import { MessageCopyButton } from './MessageCopyButton'
+import { useModalA11y } from '../hooks/useModalA11y'
 
 interface Props {
   open: boolean
@@ -15,6 +16,7 @@ function formatChars(value: number): string {
 
 export function AgentContextModal({ open, preview, onClose }: Props) {
   const [activeId, setActiveId] = useState('system')
+  const modalRef = useModalA11y<HTMLDivElement>(open)
 
   const items = useMemo(() => {
     if (!preview) return []
@@ -59,9 +61,11 @@ export function AgentContextModal({ open, preview, onClose }: Props) {
   return (
     <div className="modal-backdrop context-modal-backdrop" onClick={onClose}>
       <div
+        ref={modalRef}
         className="modal context-modal"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="context-modal-title"
       >
         <div className="modal-header">
@@ -83,7 +87,7 @@ export function AgentContextModal({ open, preview, onClose }: Props) {
               )}
             </div>
           </div>
-          <button type="button" className="btn modal-close" onClick={onClose}>
+          <button type="button" className="btn modal-close" onClick={onClose} aria-label="Закрыть">
             ✕
           </button>
         </div>

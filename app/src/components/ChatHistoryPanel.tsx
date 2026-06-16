@@ -18,6 +18,8 @@ interface Props {
   onMoveChat: (chatId: string, folderId: string | null) => void
 }
 
+const CHAT_PAGE_SIZE = 40
+
 type DropTarget = string | null | 'root'
 
 type PromptState =
@@ -67,6 +69,7 @@ export function ChatHistoryPanel({
   const [dropTarget, setDropTarget] = useState<DropTarget | undefined>(undefined)
   const [prompt, setPrompt] = useState<PromptState | null>(null)
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
+  const [chatLimit, setChatLimit] = useState(CHAT_PAGE_SIZE)
 
   const filteredChats = useMemo(() => {
     const chats = store?.chats ?? []
@@ -180,6 +183,24 @@ export function ChatHistoryPanel({
     )
   }
 
+  function renderChatList(chats: SavedChat[]) {
+    const shown = chats.slice(0, chatLimit)
+    return (
+      <>
+        {shown.map(renderChat)}
+        {chats.length > chatLimit && (
+          <button
+            type="button"
+            className="btn memory-more-btn"
+            onClick={() => setChatLimit((value) => value + CHAT_PAGE_SIZE)}
+          >
+            Показать ещё ({chats.length - chatLimit})
+          </button>
+        )}
+      </>
+    )
+  }
+
   function dropZoneClass(target: DropTarget): string {
     return dropTarget === target ? 'drop-target' : ''
   }
@@ -271,7 +292,7 @@ export function ChatHistoryPanel({
                   onDragLeave={() => setDropTarget(undefined)}
                   onDrop={(e) => handleDrop(folder.id, e)}
                 >
-                  {chats.map(renderChat)}
+                  {renderChatList(chats)}
                 </div>
               )}
             </div>
@@ -286,7 +307,7 @@ export function ChatHistoryPanel({
             onDrop={(e) => handleDrop('root', e)}
           >
             <div className="chat-history-section-title">Без папки</div>
-            {rootChats.map(renderChat)}
+            {renderChatList(rootChats)}
           </div>
         )}
 

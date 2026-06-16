@@ -8,6 +8,8 @@ interface Props {
   refreshKey?: number
 }
 
+const PAGE_SIZE = 12
+
 const CATEGORY_LABELS: Record<MemoryEntry['category'], string> = {
   pattern: 'паттерн',
   mistake: 'ошибка',
@@ -24,6 +26,7 @@ export function MemoryPanel({
 }: Props) {
   const [entries, setEntries] = useState<MemoryEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [visible, setVisible] = useState(PAGE_SIZE)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -66,7 +69,7 @@ export function MemoryPanel({
       )}
 
       <div className="memory-list">
-        {entries.slice(0, 12).map((entry) => (
+        {entries.slice(0, visible).map((entry) => (
           <div key={entry.id} className="memory-item">
             <div className="memory-item-head">
               <span className="memory-badge">{CATEGORY_LABELS[entry.category]}</span>
@@ -83,8 +86,14 @@ export function MemoryPanel({
         ))}
       </div>
 
-      {entries.length > 12 && (
-        <div className="memory-more">+ ещё {entries.length - 12} записей</div>
+      {entries.length > visible && (
+        <button
+          type="button"
+          className="btn memory-more-btn"
+          onClick={() => setVisible((v) => v + PAGE_SIZE)}
+        >
+          Показать ещё ({entries.length - visible})
+        </button>
       )}
     </div>
   )
