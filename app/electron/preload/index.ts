@@ -25,8 +25,6 @@ const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
     ipcRenderer.invoke('select-project-folder'),
 
-  listDirectory: (dirPath: string) => ipcRenderer.invoke('list-directory', dirPath),
-
   readFile: (projectPath: string, filePath: string) =>
     ipcRenderer.invoke('read-file', projectPath, filePath),
 

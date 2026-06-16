@@ -3,7 +3,6 @@ import type { AgentConfirmRequest, AgentSettings, ChatMessage, ChatStore, Ollama
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
-import { FileTree } from './components/FileTree'
 import { TerminalPanel } from './components/TerminalPanel'
 import { SettingsModal } from './components/SettingsModal'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
@@ -303,18 +302,6 @@ export default function App() {
             onDeleteFolder={deleteFolder}
             onMoveChat={moveChat}
           />
-        </section>
-
-        <section className="panel panel-files">
-          <div className="panel-header">Файлы</div>
-          {activeProjectPath ? (
-            <FileTree
-              root={activeProjectPath}
-              onSelect={(path) => chatPanelRef.current?.insertPath(path)}
-            />
-          ) : (
-            <div className="file-tree empty">Выберите проект в чате</div>
-          )}
         </section>
 
         <section className="panel panel-main">

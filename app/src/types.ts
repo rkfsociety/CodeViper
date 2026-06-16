@@ -225,7 +225,6 @@ export interface TerminalResult {
 
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
-  listDirectory: (dirPath: string) => Promise<FileNode[]>
   readFile: (projectPath: string, filePath: string) => Promise<string>
   writeFile: (projectPath: string, filePath: string, content: string) => Promise<void>
   listOllamaModels: (url?: string) => Promise<OllamaModel[]>

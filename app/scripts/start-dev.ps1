@@ -99,11 +99,28 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   exit 1
 }
 
-if (-not (Test-Path (Join-Path $root 'node_modules'))) {
-  Write-Log 'npm install...'
+function Get-DepsHash {
+  # Хэш package-lock.json (или package.json как запасной вариант) — отпечаток зависимостей.
+  $lock = Join-Path $root 'package-lock.json'
+  if (-not (Test-Path $lock)) { $lock = Join-Path $root 'package.json' }
+  if (-not (Test-Path $lock)) { return $null }
+  return (Get-FileHash -Path $lock -Algorithm SHA256).Hash
+}
+
+# Устанавливаем зависимости, если node_modules нет ИЛИ package-lock.json изменился.
+$stampFile = Join-Path $root 'node_modules\.codeviper-deps-hash'
+$currentHash = Get-DepsHash
+$installedHash = if (Test-Path $stampFile) { (Get-Content $stampFile -Raw).Trim() } else { $null }
+$needInstall = (-not (Test-Path (Join-Path $root 'node_modules'))) -or ($currentHash -ne $installedHash)
+
+if ($needInstall) {
+  Write-Log 'npm install... (зависимости отсутствуют или изменились)'
   if ((Invoke-Npm @('install')) -ne 0) {
     Show-Error "npm install не удался.`nЛог: $devLogFile"
     exit 1
+  }
+  if ($currentHash) {
+    try { $currentHash | Out-File -FilePath $stampFile -Encoding ascii -NoNewline } catch {}
   }
 }
 

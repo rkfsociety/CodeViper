@@ -8,7 +8,7 @@ import { filterToolCallingModels } from '../../shared/recommendedModels'
 import { buildAgentContextPreview } from './agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel } from './ollamaRuntime'
 import { selectModelForTask, shouldUseAutoModel, resolveSummarizeModel } from '../../shared/modelRouter'
-import { buildFileTree, safeReadFile, safeWriteFile, runCommand } from './services'
+import { safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
 import { ensureDefaultSkills } from './defaultSkills'
@@ -104,8 +104,6 @@ ipcMain.handle('select-project-folder', async () => {
   })
   return result.canceled ? null : result.filePaths[0] ?? null
 })
-
-ipcMain.handle('list-directory', async (_e, dirPath: string) => buildFileTree(dirPath))
 
 ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>
   safeReadFile(projectPath, filePath)

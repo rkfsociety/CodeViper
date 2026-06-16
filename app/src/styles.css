@@ -105,12 +105,8 @@ button {
 
 .layout {
   display: grid;
-  grid-template-columns: 280px 240px minmax(0, 1fr);
+  grid-template-columns: 280px minmax(0, 1fr);
   min-height: 0;
-}
-
-.panel-files {
-  min-width: 0;
 }
 
 .panel-main {
@@ -283,33 +279,12 @@ button {
   border-bottom: 1px solid #30363d;
 }
 
-.file-tree,
 .chat-messages,
 .terminal-output {
   overflow: auto;
   padding: 12px;
   min-height: 0;
   flex: 1;
-}
-
-.file-node {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: transparent;
-  color: #c9d1d9;
-  padding: 4px 6px;
-  border-radius: 6px;
-}
-
-.file-node:hover,
-.file-node.active {
-  background: #21262d;
-}
-
-.file-node.dir {
-  color: #79c0ff;
 }
 
 .agent-prerequisites-banner {
