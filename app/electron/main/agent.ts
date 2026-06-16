@@ -319,6 +319,29 @@ export class AgentRunner {
             }
           }
 
+          // Явный рефьюзал («я не могу», «напрямую из чата» и т.п.) → сразу эскалируем модель
+          if (
+            !escalated &&
+            assistantText &&
+            isRefusalResponse(assistantText) &&
+            this.settings.autoModel !== false
+          ) {
+            const models = await fetchOllamaModels(this.settings.ollamaUrl).catch(() => [])
+            const nextModel = escalateModel(this.settings.model, models)
+            if (nextModel) {
+              escalated = true
+              messages.pop()
+              this.emit({ type: 'clear_draft' })
+              this.emit({
+                type: 'context',
+                content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${nextModel}**…`
+              })
+              this.settings = { ...this.settings, model: nextModel }
+              requireToolNext = true
+              continue
+            }
+          }
+
           const mutationTask = taskLikelyNeedsMutation(userMessage)
           const noMutatingToolsYet = mutatingToolsUsed.size === 0
           const shouldRetryWithTools =
@@ -359,28 +382,6 @@ export class AgentRunner {
             return
           }
 
-          // Модель отказалась от задачи ("я не могу", "как AI-агент") → эскалация на модель тяжелее
-          if (
-            !escalated &&
-            assistantText &&
-            isRefusalResponse(assistantText) &&
-            this.settings.autoModel !== false
-          ) {
-            const models = await fetchOllamaModels(this.settings.ollamaUrl).catch(() => [])
-            const nextModel = escalateModel(this.settings.model, models)
-            if (nextModel) {
-              escalated = true
-              messages.pop()
-              this.emit({ type: 'clear_draft' })
-              this.emit({
-                type: 'context',
-                content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${nextModel}**…`
-              })
-              this.settings = { ...this.settings, model: nextModel }
-              requireToolNext = true
-              continue
-            }
-          }
 
           if (assistantText) {
             this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })

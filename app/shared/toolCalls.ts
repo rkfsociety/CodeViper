@@ -212,7 +212,8 @@ export function looksLikeEmbeddedToolCall(text: string): boolean {
 
 const REFUSAL_PATTERNS: RegExp[] = [
   /как\s+(?:ai|ии|языковая\s+модель|llm|ассистент)/i,
-  /я\s+не\s+могу\s+(?:просматривать|изучать|читать|открывать|выполнять|обращаться|получить)/i,
+  /я\s+не\s+могу\s+(?:просматривать|изучать|читать|открывать|выполнять|обращаться|получить|запускать|обрабатывать|работать|видеть|напрямую)/i,
+  /напрямую\s+из\s+чата/i,
   /у\s+меня\s+нет\s+(?:доступа|возможности|способности)/i,
   /as\s+an?\s+(?:ai|language\s+model|llm|assistant)/i,
   /i\s+(?:can't|cannot|am\s+unable\s+to)\s+(?:access|read|view|browse|open|execute|directly)/i,
