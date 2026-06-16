@@ -1,11 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
-import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentContextPreview, AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
-import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
-import type { GenerationMetrics } from '../../shared/generationMetrics'
-import { AgentStatusBar, type AgentPhase } from './AgentStatusBar'
+import type { AgentSettings, ChatMessage } from '../types'
+import { AgentStatusBar } from './AgentStatusBar'
 import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
@@ -15,6 +12,9 @@ import { MessageRoleBadge } from './MessageRoleBadge'
 import { ThinkingBlock } from './ThinkingBlock'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
+import { useContextPreview } from '../hooks/useContextPreview'
+import { useAgentStream } from '../hooks/useAgentStream'
+import { useMessageQueue, type PrerequisiteBlock } from '../hooks/useMessageQueue'
 
 export interface ChatPanelHandle {
   insertPath: (path: string) => void
@@ -51,12 +51,8 @@ function shouldShowAssistantMessage(message: ChatMessage): boolean {
 }
 
 function messageCopyText(message: ChatMessage): string {
-  if (message.role === 'assistant') {
-    return visibleAssistantContent(message.content)
-  }
-  if (message.role === 'tool' && message.toolOutput?.trim()) {
-    return message.toolOutput
-  }
+  if (message.role === 'assistant') return visibleAssistantContent(message.content)
+  if (message.role === 'tool' && message.toolOutput?.trim()) return message.toolOutput
   return message.content
 }
 
@@ -78,20 +74,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   ref
 ) {
   const [input, setInput] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [draft, setDraft] = useState('')
-  const [draftThinking, setDraftThinking] = useState('')
-  const [agentPhase, setAgentPhase] = useState<AgentPhase>('thinking')
-  const [activeToolName, setActiveToolName] = useState<string | undefined>()
-  const [contextPreview, setContextPreview] = useState<AgentContextPreview | null>(null)
-  const [contextLoading, setContextLoading] = useState(false)
-  const [summarizing, setSummarizing] = useState(false)
+  const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
   const [contextModalOpen, setContextModalOpen] = useState(false)
-  const [prerequisiteBlock, setPrerequisiteBlock] = useState<{
-    issues: AgentPrerequisiteIssue[]
-    pendingRun: { userMessageId: string; text: string }
-    installing: boolean
-  } | null>(null)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesRef = useRef(messages)
@@ -101,17 +86,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const onMessagesChangeRef = useRef(onMessagesChange)
   const onLearningSavedRef = useRef(onLearningSaved)
   const onActiveModelChangeRef = useRef(onActiveModelChange)
+
+  // Координационные рефы между хуками — созданы здесь, переданы в оба.
+  const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
   const doneRunIdRef = useRef(-1)
-  const lastAssistantContentRef = useRef('')
-  const activeToolMessageIdRef = useRef<string | null>(null)
-  const agentRunningRef = useRef(false)
-  const queueRef = useRef<Array<{ id: string; text: string }>>([])
-  const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
-  const [queueSize, setQueueSize] = useState(0)
-  const [agentRunning, setAgentRunning] = useState(false)
-  const [runModel, setRunModel] = useState('')
-  const [generationMetrics, setGenerationMetrics] = useState<GenerationMetrics | null>(null)
 
   messagesRef.current = messages
   chatIdRef.current = chatId
@@ -141,329 +120,74 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     commitMessages(next)
   }
 
-  useEffect(() => {
-    onBusyChange?.(busy)
-  }, [busy, onBusyChange])
+  // ── Хук: контекст-превью (debounce 350 ms) ──────────────────────────────
+  const { contextPreview, contextLoading, setContextPreview } = useContextPreview(
+    chatId,
+    projectPath,
+    messages,
+    input,
+    settings.model
+  )
 
+  // ── Хук: стрим событий агента ────────────────────────────────────────────
+  const {
+    draft,
+    draftThinking,
+    agentPhase,
+    activeToolName,
+    summarizing,
+    generationMetrics,
+    runModel,
+    resetStreamState
+  } = useAgentStream({
+    chatIdRef,
+    runIdRef,
+    doneRunIdRef,
+    onLearningSavedRef,
+    onActiveModelChangeRef,
+    processNextQueuedRunRef,
+    appendMessage,
+    upsertMessage,
+    setContextPreview
+  })
+
+  // ── Хук: очередь сообщений и запуск агента ───────────────────────────────
+  const {
+    submitMessage,
+    stopAgent,
+    executeRun,
+    resetQueue,
+    queueSize,
+    agentRunning,
+    busy
+  } = useMessageQueue({
+    chatIdRef,
+    projectPathRef,
+    settingsRef,
+    messagesRef,
+    runIdRef,
+    doneRunIdRef,
+    processNextQueuedRunRef,
+    appendMessage,
+    onRunStart: resetStreamState,
+    onBusyChange,
+    onPrerequisiteIssue: setPrerequisiteBlock
+  })
+
+  // ── Сброс при смене чата ─────────────────────────────────────────────────
   useEffect(() => {
-    setDraft('')
-    setDraftThinking('')
     setInput('')
-    setBusy(false)
-    setAgentPhase('thinking')
-    setActiveToolName(undefined)
-    activeToolMessageIdRef.current = null
-    lastAssistantContentRef.current = ''
+    setPrerequisiteBlock(null)
     setContextPreview(null)
-    setSummarizing(false)
-    setGenerationMetrics(null)
-    queueRef.current = []
-    setQueueSize(0)
-    agentRunningRef.current = false
-    setAgentRunning(false)
-  }, [chatId])
-
-  useEffect(() => {
-    if (!chatId || !settings.model) {
-      setContextPreview(null)
-      return
-    }
-
-    const timer = window.setTimeout(async () => {
-      setContextLoading(true)
-      try {
-        const preview = await window.codeviper.previewAgentContext(
-          projectPath,
-          messages,
-          input.trim(),
-          settings.model
-        )
-        setContextPreview(preview)
-      } catch {
-        setContextPreview(null)
-      } finally {
-        setContextLoading(false)
-      }
-    }, 350)
-
-    return () => window.clearTimeout(timer)
-  }, [chatId, projectPath, messages, input, settings.model])
-
-  useEffect(() => {
-    const unsubscribe = window.codeviper.onAgentStream((event) => {
-      if (event.chatId !== chatIdRef.current) return
-
-      if (event.type === 'thinking') {
-        setAgentPhase('thinking')
-        setDraftThinking((prev) => prev + (event.content ?? ''))
-      }
-
-      if (event.type === 'token') {
-        setAgentPhase('writing')
-        setDraft((prev) => prev + (event.content ?? ''))
-      }
-
-      if (event.type === 'clear_draft') {
-        setDraft('')
-        setDraftThinking('')
-      }
-
-      if (event.type === 'assistant') {
-        setDraft('')
-        const thinking = event.thinking?.trim() || undefined
-        setDraftThinking('')
-        const cleaned = visibleAssistantContent(event.content ?? '')
-        if (!cleaned || lastAssistantContentRef.current === cleaned) return
-        lastAssistantContentRef.current = cleaned
-        appendMessage({
-          id: makeId(),
-          role: 'assistant',
-          content: cleaned,
-          thinking,
-          timestamp: Date.now()
-        })
-      }
-
-      if (event.type === 'tool_start') {
-        setDraft('')
-        setDraftThinking('')
-        setAgentPhase('tool')
-        setActiveToolName(event.toolName)
-        const id = makeId()
-        activeToolMessageIdRef.current = id
-        upsertMessage({
-          id,
-          role: 'tool',
-          content: compactToolChatLine(event.toolName, undefined, 'start'),
-          toolName: event.toolName,
-          timestamp: Date.now()
-        })
-      }
-
-      if (event.type === 'tool_end') {
-        setAgentPhase('thinking')
-        setActiveToolName(undefined)
-        const id = activeToolMessageIdRef.current ?? makeId()
-        activeToolMessageIdRef.current = null
-        upsertMessage({
-          id,
-          role: 'tool',
-          content: compactToolChatLine(event.toolName, event.toolOutput, 'end'),
-          toolName: event.toolName,
-          toolOutput: event.toolOutput,
-          timestamp: Date.now()
-        })
-      }
-
-      if (event.type === 'error') {
-        appendMessage({
-          id: makeId(),
-          role: 'system',
-          content: event.content ?? '',
-          timestamp: Date.now()
-        })
-      }
-
-      if (event.type === 'learning_saved') {
-        appendMessage({
-          id: makeId(),
-          role: 'system',
-          content: `🧠 Запомнено: ${event.content ?? ''}`,
-          timestamp: Date.now()
-        })
-        onLearningSavedRef.current?.()
-      }
-
-      if (event.type === 'skill_saved') {
-        appendMessage({
-          id: makeId(),
-          role: 'system',
-          content: `🛠️ Навык сохранён: ${event.content ?? ''}${event.skillId ? ` (${event.skillId})` : ''}`,
-          timestamp: Date.now()
-        })
-        onLearningSavedRef.current?.()
-      }
-
-      if (event.type === 'self_improve_plan') {
-        appendMessage({
-          id: makeId(),
-          role: 'system',
-          content: event.content ?? '',
-          timestamp: Date.now()
-        })
-      }
-
-      if (event.type === 'model_selected') {
-        const model = event.selectedModel ?? ''
-        if (model) {
-          setRunModel(model)
-          onActiveModelChangeRef.current?.(model)
-        }
-        appendMessage({
-          id: makeId(),
-          role: 'system',
-          content: event.content ?? `🤖 Модель: ${model}`,
-          timestamp: Date.now()
-        })
-      }
-
-      if (event.type === 'generation_metrics' && event.generationMetrics) {
-        setGenerationMetrics(event.generationMetrics)
-      }
-
-      if (event.type === 'context') {
-        if (typeof event.summarizing === 'boolean') {
-          setSummarizing(event.summarizing)
-        }
-        if (event.contextPreview) {
-          setContextPreview(event.contextPreview)
-        } else if (event.content) {
-          // Уведомления о контексте (суммаризация, CPU, автокоммит) — раньше терялись.
-          appendMessage({
-            id: makeId(),
-            role: 'system',
-            content: event.content,
-            timestamp: Date.now()
-          })
-        }
-      }
-
-      if (event.type === 'done') {
-        const runId = runIdRef.current
-        if (doneRunIdRef.current === runId) return
-        doneRunIdRef.current = runId
-        setDraft('')
-        setDraftThinking('')
-        setAgentPhase('thinking')
-        setActiveToolName(undefined)
-        setSummarizing(false)
-        activeToolMessageIdRef.current = null
-        void processNextQueuedRunRef.current()
-      }
-    })
-
-    return unsubscribe
-  }, [])
+    resetStreamState()
+    resetQueue()
+  }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, draft, queueSize])
 
-  function syncBusyState(running: boolean, queued: number) {
-    setBusy(running || queued > 0)
-  }
-
-  async function executeRun(userMessageId: string, text: string) {
-    const project = projectPathRef.current
-    const chat = chatIdRef.current
-    const currentSettings = settingsRef.current
-    if (!project || !chat) return
-
-    agentRunningRef.current = true
-    setAgentRunning(true)
-    syncBusyState(true, queueRef.current.length)
-
-    runIdRef.current += 1
-    doneRunIdRef.current = -1
-    lastAssistantContentRef.current = ''
-    activeToolMessageIdRef.current = null
-    setAgentPhase('thinking')
-    setActiveToolName(undefined)
-    setDraft('')
-    setGenerationMetrics(null)
-
-    const prereq = await window.codeviper.checkAgentPrerequisites(
-      currentSettings.ollamaUrl,
-      project
-    )
-    if (!prereq.ok) {
-      agentRunningRef.current = false
-      setAgentRunning(false)
-      syncBusyState(false, queueRef.current.length)
-      setAgentPhase('thinking')
-      setPrerequisiteBlock({
-        issues: prereq.issues,
-        pendingRun: { userMessageId, text },
-        installing: false
-      })
-      appendMessage({
-        id: makeId(),
-        role: 'system',
-        content: formatPrerequisitesMessage(prereq.issues),
-        timestamp: Date.now()
-      })
-      return
-    }
-
-    if (!currentSettings.model.trim()) {
-      agentRunningRef.current = false
-      setAgentRunning(false)
-      syncBusyState(false, queueRef.current.length)
-      appendMessage({
-        id: makeId(),
-        role: 'system',
-        content: 'Модель не выбрана. Скачайте модель в настройках.',
-        timestamp: Date.now()
-      })
-      return
-    }
-
-    const idx = messagesRef.current.findIndex((item) => item.id === userMessageId)
-    const history = idx >= 0 ? messagesRef.current.slice(0, idx) : messagesRef.current
-
-    try {
-      await window.codeviper.runAgent(
-        currentSettings,
-        project,
-        chat,
-        history,
-        text
-      )
-    } catch (error) {
-      agentRunningRef.current = false
-      setAgentRunning(false)
-      syncBusyState(false, queueRef.current.length)
-      setAgentPhase('thinking')
-      setActiveToolName(undefined)
-      appendMessage({
-        id: makeId(),
-        role: 'system',
-        content: error instanceof Error ? error.message : String(error),
-        timestamp: Date.now()
-      })
-    }
-  }
-
-  async function processNextQueuedRun() {
-    agentRunningRef.current = false
-    setAgentRunning(false)
-
-    const next = queueRef.current.shift()
-    setQueueSize(queueRef.current.length)
-
-    if (!next) {
-      syncBusyState(false, 0)
-      return
-    }
-
-    await executeRun(next.id, next.text)
-  }
-
-  processNextQueuedRunRef.current = processNextQueuedRun
-
-  function insertPrompt(text: string) {
-    setInput((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
-    requestAnimationFrame(() => {
-      inputRef.current?.focus()
-      const len = inputRef.current?.value.length ?? 0
-      inputRef.current?.setSelectionRange(len, len)
-    })
-  }
-
-  useImperativeHandle(ref, () => ({
-    insertPath: (path: string) => insertPrompt(path)
-  }))
-
+  // ── Prerequisites ────────────────────────────────────────────────────────
   async function retryAfterPrerequisites() {
     if (!prerequisiteBlock) return
     const { pendingRun } = prerequisiteBlock
@@ -473,11 +197,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       projectPathRef.current
     )
     if (!prereq.ok) {
-      setPrerequisiteBlock({
-        issues: prereq.issues,
-        pendingRun,
-        installing: false
-      })
+      setPrerequisiteBlock({ issues: prereq.issues, pendingRun, installing: false })
       return
     }
 
@@ -523,10 +243,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     }
   }
 
-  function dismissPrerequisites() {
-    setPrerequisiteBlock(null)
-  }
-
   function queueModelDownload(modelName: string) {
     onEnqueueModel?.(modelName)
     onOpenSettings?.()
@@ -538,6 +254,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     })
   }
 
+  // ── Ввод ─────────────────────────────────────────────────────────────────
+  function insertPrompt(text: string) {
+    setInput((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      const len = inputRef.current?.value.length ?? 0
+      inputRef.current?.setSelectionRange(len, len)
+    })
+  }
+
+  useImperativeHandle(ref, () => ({ insertPath: (path: string) => insertPrompt(path) }))
+
   async function send() {
     const text = input.trim()
     if (!text || !projectPath || !chatId) return
@@ -548,32 +276,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       content: text,
       timestamp: Date.now()
     }
-
     appendMessage(userMessage)
     setInput('')
-
-    if (agentRunningRef.current) {
-      queueRef.current.push({ id: userMessage.id, text })
-      setQueueSize(queueRef.current.length)
-      syncBusyState(true, queueRef.current.length)
-      return
-    }
-
-    await executeRun(userMessage.id, text)
-  }
-
-  async function stopAgent() {
-    if (!agentRunningRef.current && queueRef.current.length === 0) return
-    queueRef.current = []
-    setQueueSize(0)
-    syncBusyState(agentRunningRef.current, 0)
-    if (agentRunningRef.current) {
-      await window.codeviper.stopAgent()
-    } else {
-      agentRunningRef.current = false
-      setAgentRunning(false)
-      syncBusyState(false, 0)
-    }
+    await submitMessage(userMessage.id, text)
   }
 
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -586,8 +291,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       const end = ta.selectionEnd ?? input.length
       const next = `${input.slice(0, start)}\n${input.slice(end)}`
       setInput(next)
-      const cursor = start + 1
-      requestAnimationFrame(() => ta.setSelectionRange(cursor, cursor))
+      requestAnimationFrame(() => ta.setSelectionRange(start + 1, start + 1))
       return
     }
 
@@ -631,7 +335,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           onDownloadModel={queueModelDownload}
           onOpenSettings={() => onOpenSettings?.()}
           onRetry={() => void retryAfterPrerequisites()}
-          onDismiss={dismissPrerequisites}
+          onDismiss={() => setPrerequisiteBlock(null)}
         />
       )}
 
@@ -645,11 +349,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         {!chatId && (
           <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>
         )}
-
         {chatId && !projectPath && !messages.length && !draft && (
           <div className="empty">Выбери папку с кодом — кнопка «Выбрать проект» выше.</div>
         )}
-
         {chatId && projectPath && !messages.length && !draft && (
           <WelcomePanel onSelect={insertPrompt} />
         )}

@@ -251,7 +251,12 @@ CodeViper/
     │       ├── agentHandlersModels.ts         # обучение моделей Ollama
     │       ├── agentHandlersUtils.ts          # parseTreeDepth, formatCommandResult
     │       └── agentLogger.ts                 # NDJSON-лог шагов агента
-    └── src/           # React GUI
+    └── src/
+        ├── hooks/
+        │   ├── useAgentStream.ts    # подписка на стрим агента, всё stream-состояние
+        │   ├── useMessageQueue.ts   # очередь сообщений, executeRun, stopAgent
+        │   └── useContextPreview.ts # debounce-превью контекста модели
+        └── components/              # React GUI
 ```
 
 Агент использует цикл **ReAct**:

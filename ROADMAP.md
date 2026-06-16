@@ -18,7 +18,7 @@
 ### Архитектура и код
 
 - [x] **Разбить `agent.ts`** (~900 строк) — реестр инструментов вынесен в 6 доменных модулей (`agentHandlersProject`, `agentHandlersCodeViper`, `agentHandlersMemory`, `agentHandlersSkills`, `agentHandlersSelfImprovement`, `agentHandlersModels`)
-- [ ] **Разгрузить `ChatPanel.tsx`** (~630 строк) — хуки `useAgentStream`, `useMessageQueue`, `useContextPreview`
+- [x] **Разгрузить `ChatPanel.tsx`** (~630 строк) — вынесены хуки `useAgentStream` (стрим событий), `useMessageQueue` (очередь и запуск), `useContextPreview` (debounce-превью); ChatPanel: 744 → 445 строк
 - [ ] **Тесты на ядро агента** — `executeTool` (моки fs/spawn), цикл самоулучшения, nudge при JSON-плане в тексте, связка `toolRequiresConfirm` с реальными сценариями
 - [ ] **Защита `parseToolArgs`** — разбор аргументов tool call (`agent.ts`, ~стр. 409) сейчас вне `try/catch` вокруг `executeTool`: битый JSON у слабых Ollama-моделей роняет весь прогон. Обернуть и при провале вернуть модели tool-сообщение для повтора
 - [x] **План самоулучшения — в экземпляр `AgentRunner`** — `SelfImprovementPlanStore` на каждый run, без модульного глобала `activePlan`
@@ -116,3 +116,4 @@
 - [x] **Автокоммит самоправок** — после задачи, в которой агент менял свой код, он сам делает `git commit` + `push` (ограничено папкой `app/`; правки переживают синхронизацию на старте)
 - [x] **Структурированное логирование** — каждый шаг агента (`run_start/end`), все tool call (`tool_call/result`, имя, аргументы, время, ok/error), ответы LLM (токены, tok/s, время шага) пишутся в NDJSON: `%APPDATA%/CodeViper/logs/agent-ГГГГ-ММ-ДД.ndjson`; файл ротируется раз в день
 - [x] **Разбит `agent.ts`** — реестр инструментов (~260 строк) вынесен в 6 доменных модулей + `agentHandlersUtils.ts`; `getToolHandlers()` стал 8-строчным spread
+- [x] **Разгружен `ChatPanel.tsx`** — вынесены хуки `useAgentStream`, `useMessageQueue`, `useContextPreview`; ChatPanel: 744 → 445 строк
