@@ -14,7 +14,8 @@ import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
-import { useMessageQueue, type PrerequisiteBlock } from '../hooks/useMessageQueue'
+import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export interface ChatPanelHandle {
   insertPath: (path: string) => void
@@ -75,6 +76,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 ) {
   const [input, setInput] = useState('')
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
+  const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
   const [contextModalOpen, setContextModalOpen] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -154,6 +156,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   // ── Хук: очередь сообщений и запуск агента ───────────────────────────────
   const {
     submitMessage,
+    confirmDangerRun,
     stopAgent,
     executeRun,
     resetQueue,
@@ -171,7 +174,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     appendMessage,
     onRunStart: resetStreamState,
     onBusyChange,
-    onPrerequisiteIssue: setPrerequisiteBlock
+    onPrerequisiteIssue: setPrerequisiteBlock,
+    onDangerWarning: setDangerBlock
   })
 
   // ── Сброс при смене чата ─────────────────────────────────────────────────
@@ -455,6 +459,28 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!dangerBlock}
+        title={`⚠️ ${dangerBlock?.warning.title ?? 'Опасная операция'}`}
+        message={`${dangerBlock?.warning.description ?? ''}\n\nПродолжить выполнение задачи?`}
+        confirmLabel="Продолжить"
+        danger={dangerBlock?.warning.level === 'danger'}
+        onConfirm={() => {
+          if (!dangerBlock) return
+          const { userMessageId, text } = dangerBlock.pendingRun
+          setDangerBlock(null)
+          void confirmDangerRun(userMessageId, text)
+        }}
+        onCancel={() => {
+          if (dangerBlock) {
+            // убрать сообщение пользователя из чата
+            const { userMessageId } = dangerBlock.pendingRun
+            commitMessages(messagesRef.current.filter((m) => m.id !== userMessageId))
+          }
+          setDangerBlock(null)
+        }}
+      />
     </div>
   )
 })

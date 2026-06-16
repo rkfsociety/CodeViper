@@ -2,12 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import type { MutableRefObject } from 'react'
 import { makeId } from '../../shared/makeId'
 import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
+import { detectDanger } from '../../shared/dangerDetector'
+import type { DangerWarning } from '../../shared/dangerDetector'
 import type { AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
 
 export interface PrerequisiteBlock {
   issues: AgentPrerequisiteIssue[]
   pendingRun: { userMessageId: string; text: string }
   installing: boolean
+}
+
+export interface DangerBlock {
+  warning: DangerWarning
+  pendingRun: { userMessageId: string; text: string }
 }
 
 export interface UseMessageQueueOptions {
@@ -22,6 +29,7 @@ export interface UseMessageQueueOptions {
   onRunStart: () => void
   onBusyChange?: (busy: boolean) => void
   onPrerequisiteIssue: (block: PrerequisiteBlock) => void
+  onDangerWarning: (block: DangerBlock) => void
 }
 
 export function useMessageQueue({
@@ -35,18 +43,21 @@ export function useMessageQueue({
   appendMessage,
   onRunStart,
   onBusyChange,
-  onPrerequisiteIssue
+  onPrerequisiteIssue,
+  onDangerWarning
 }: UseMessageQueueOptions) {
   const queueRef = useRef<Array<{ id: string; text: string }>>([])
   const agentRunningRef = useRef(false)
   const onRunStartRef = useRef(onRunStart)
   const onPrerequisiteIssueRef = useRef(onPrerequisiteIssue)
+  const onDangerWarningRef = useRef(onDangerWarning)
   const [queueSize, setQueueSize] = useState(0)
   const [agentRunning, setAgentRunning] = useState(false)
 
   // Держим рефы на свежих колбэках — без этого стейт-машина видит устаревшие замыкания.
   onRunStartRef.current = onRunStart
   onPrerequisiteIssueRef.current = onPrerequisiteIssue
+  onDangerWarningRef.current = onDangerWarning
 
   const busy = agentRunning || queueSize > 0
 
@@ -144,6 +155,21 @@ export function useMessageQueue({
   processNextQueuedRunRef.current = processNextQueuedRun
 
   async function submitMessage(userMessageId: string, text: string) {
+    const danger = detectDanger(text)
+    if (danger) {
+      onDangerWarningRef.current({ warning: danger, pendingRun: { userMessageId, text } })
+      return
+    }
+    if (agentRunningRef.current) {
+      queueRef.current.push({ id: userMessageId, text })
+      setQueueSize(queueRef.current.length)
+      syncBusyState(true, queueRef.current.length)
+      return
+    }
+    await executeRun(userMessageId, text)
+  }
+
+  async function confirmDangerRun(userMessageId: string, text: string) {
     if (agentRunningRef.current) {
       queueRef.current.push({ id: userMessageId, text })
       setQueueSize(queueRef.current.length)
@@ -176,6 +202,7 @@ export function useMessageQueue({
 
   return {
     submitMessage,
+    confirmDangerRun,
     stopAgent,
     executeRun,
     resetQueue,
