@@ -716,24 +716,32 @@ button {
 }
 
 .agent-status-pulse {
+  position: relative;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #7ee787;
-  box-shadow: 0 0 0 0 rgba(126, 231, 135, 0.45);
-  animation: agent-pulse 1.6s ease-in-out infinite;
   flex-shrink: 0;
+  will-change: transform;
+  animation: agent-pulse-dot 1.6s ease-in-out infinite;
 }
 
-.agent-status-bar.phase-writing .agent-status-pulse {
-  background: #79c0ff;
-  box-shadow: 0 0 0 0 rgba(121, 192, 255, 0.45);
+.agent-status-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: #7ee787;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: agent-pulse-ring 1.6s ease-in-out infinite;
 }
 
-.agent-status-bar.phase-tool .agent-status-pulse {
-  background: #d29922;
-  box-shadow: 0 0 0 0 rgba(210, 153, 34, 0.45);
-}
+.agent-status-bar.phase-writing .agent-status-pulse { background: #79c0ff; }
+.agent-status-bar.phase-writing .agent-status-pulse::after { background: #79c0ff; }
+
+.agent-status-bar.phase-tool .agent-status-pulse { background: #d29922; }
+.agent-status-bar.phase-tool .agent-status-pulse::after { background: #d29922; }
 
 .agent-status-label {
   font-size: 13px;
@@ -754,6 +762,7 @@ button {
   border-radius: inherit;
   background: linear-gradient(90deg, transparent, #7ee787, #3fb950, transparent);
   animation: agent-bar-slide 1.4s ease-in-out infinite;
+  will-change: transform;
 }
 
 .agent-status-bar.phase-writing .agent-status-fill {
@@ -766,27 +775,22 @@ button {
   animation-duration: 1.8s;
 }
 
-.agent-status-bar.summarizing .agent-status-pulse {
-  background: #bc8cff;
-  box-shadow: 0 0 0 0 rgba(188, 140, 255, 0.45);
-}
+.agent-status-bar.summarizing .agent-status-pulse { background: #bc8cff; }
+.agent-status-bar.summarizing .agent-status-pulse::after { background: #bc8cff; }
 
 .agent-status-bar.summarizing .agent-status-fill {
   background: linear-gradient(90deg, transparent, #bc8cff, #a371f7, transparent);
   animation-duration: 1.2s;
 }
 
-@keyframes agent-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(126, 231, 135, 0.35);
-  }
+@keyframes agent-pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
 
-  50% {
-    transform: scale(1.08);
-    box-shadow: 0 0 0 8px rgba(126, 231, 135, 0);
-  }
+@keyframes agent-pulse-ring {
+  0% { transform: scale(0.5); opacity: 0.5; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 @keyframes agent-bar-slide {
