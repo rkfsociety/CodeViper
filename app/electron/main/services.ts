@@ -111,6 +111,47 @@ export async function safeReadFile(projectPath: string, filePath: string): Promi
   return readFile(filePath, 'utf-8')
 }
 
+// Сколько строк читать по умолчанию при частичном доступе.
+const READ_DEFAULT_LINE_LIMIT = 300
+
+export async function safeReadFilePartial(
+  projectPath: string,
+  filePath: string,
+  offset = 0,
+  limit?: number
+): Promise<string> {
+  if (!isInsideProject(projectPath, filePath)) {
+    throw new Error('Доступ запрещён: файл вне проекта')
+  }
+
+  const info = await stat(filePath)
+  if (!info.isFile()) throw new Error('Это не файл')
+
+  const isLarge = info.size > 512_000
+  const usePartial = isLarge || offset > 0 || limit != null
+
+  if (!usePartial) {
+    return readFile(filePath, 'utf-8')
+  }
+
+  const raw = await readFile(filePath, 'utf-8')
+  const allLines = raw.split('\n')
+  const totalLines = allLines.length
+  const from = Math.max(0, offset)
+  const count = limit != null ? Math.max(1, limit) : READ_DEFAULT_LINE_LIMIT
+  const to = Math.min(from + count, totalLines)
+  const chunk = allLines.slice(from, to).join('\n')
+  const remaining = totalLines - to
+
+  const header = `[Файл: ${filePath} | строки ${from + 1}–${to} из ${totalLines}]`
+  const footer =
+    remaining > 0
+      ? `\n[Ещё ${remaining} строк. Читай дальше: offset=${to}]`
+      : `\n[Конец файла]`
+
+  return `${header}\n${chunk}${footer}`
+}
+
 export async function safeWriteFile(
   projectPath: string,
   filePath: string,

@@ -1,7 +1,7 @@
 import type { ToolHandlers } from './agentTools'
 import {
   getCodeViperSourceRoot,
-  readCodeViperFile,
+  readCodeViperFilePartial,
   createCodeViperFile,
   editCodeViperFile,
   appendCodeViperFile,
@@ -49,7 +49,11 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       return formatFindResults(root, args.pattern, result)
     },
 
-    read_codeviper_file: async (args) => readCodeViperFile(args.path),
+    read_codeviper_file: async (args) => {
+      const offset = args.offset ? parseInt(args.offset, 10) : 0
+      const limit = args.limit ? parseInt(args.limit, 10) : undefined
+      return readCodeViperFilePartial(args.path, offset, limit)
+    },
 
     write_codeviper_file: async (args) => {
       await writeCodeViperFile(args.path, args.content)

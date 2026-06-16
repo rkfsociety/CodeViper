@@ -47,11 +47,13 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'read_file',
-      description: 'Прочитать содержимое файла',
+      description: 'Прочитать содержимое файла. Большие файлы (>500 KB) читаются частями: укажи offset и limit. Ответ содержит заголовок с номерами строк и подсказку, если файл не закончился.',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь к файлу' }
+          path: { type: 'string', description: 'Абсолютный путь к файлу' },
+          offset: { type: 'string', description: 'Начальная строка (0-based). По умолчанию 0.' },
+          limit: { type: 'string', description: 'Количество строк для чтения. По умолчанию 300.' }
         },
         required: ['path']
       }
@@ -456,11 +458,13 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'read_codeviper_file',
-      description: 'Прочитать файл исходников CodeViper по абсолютному пути',
+      description: 'Прочитать файл исходников CodeViper. Поддерживает offset/limit для больших файлов.',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' }
+          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          offset: { type: 'string', description: 'Начальная строка (0-based). По умолчанию 0.' },
+          limit: { type: 'string', description: 'Количество строк для чтения. По умолчанию 300.' }
         },
         required: ['path']
       }
@@ -628,7 +632,7 @@ export interface ToolArgs {
   list_directory: { path?: string; max_depth?: string }
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
-  read_file: { path: string }
+  read_file: { path: string; offset?: string; limit?: string }
   write_file: { path: string; content: string }
   create_file: { path: string; content: string }
   edit_file: { path: string; old_string: string; new_string: string; replace_all?: string }
@@ -667,7 +671,7 @@ export interface ToolArgs {
   list_codeviper_directory: { path?: string; max_depth?: string }
   grep_codeviper_files: { query: string; path?: string }
   find_codeviper_files: { pattern: string; path?: string }
-  read_codeviper_file: { path: string }
+  read_codeviper_file: { path: string; offset?: string; limit?: string }
   write_codeviper_file: { path: string; content: string }
   create_codeviper_file: { path: string; content: string }
   edit_codeviper_file: {

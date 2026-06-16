@@ -1,7 +1,7 @@
 import type { ToolHandlers } from './agentTools'
 import { formatFileTree } from './agentContext'
 import {
-  safeReadFile,
+  safeReadFilePartial,
   safeWriteFile,
   safeCreateFile,
   safeEditFile,
@@ -46,7 +46,11 @@ export function createProjectToolHandlers(projectPath: string): Partial<ToolHand
       return formatFindResults(projectPath, args.pattern, result)
     },
 
-    read_file: async (args) => safeReadFile(projectPath, args.path),
+    read_file: async (args) => {
+      const offset = args.offset ? parseInt(args.offset, 10) : 0
+      const limit = args.limit ? parseInt(args.limit, 10) : undefined
+      return safeReadFilePartial(projectPath, args.path, offset, limit)
+    },
 
     write_file: async (args) => {
       await safeWriteFile(projectPath, args.path, args.content)

@@ -10,6 +10,7 @@ import {
   safeEditFile,
   safeMoveFile,
   safeReadFile,
+  safeReadFilePartial,
   safeWriteFile
 } from './services'
 
@@ -62,6 +63,18 @@ export async function readCodeViperFile(filePath: string): Promise<string> {
     throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
   }
   return safeReadFile(root, filePath)
+}
+
+export async function readCodeViperFilePartial(
+  filePath: string,
+  offset: number,
+  limit?: number
+): Promise<string> {
+  const root = getCodeViperSourceRoot()
+  if (!isAllowedSelfPath(root, filePath)) {
+    throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
+  }
+  return safeReadFilePartial(root, filePath, offset, limit)
 }
 
 export async function writeCodeViperFile(filePath: string, content: string): Promise<void> {
