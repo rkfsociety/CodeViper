@@ -209,3 +209,16 @@ export function looksLikeEmbeddedToolCall(text: string): boolean {
 
   return sanitizeAssistantContent(trimmed).length === 0 && trimmed.length > 0
 }
+
+const REFUSAL_PATTERNS: RegExp[] = [
+  /как\s+(?:ai|ии|языковая\s+модель|llm|ассистент)/i,
+  /я\s+не\s+могу\s+(?:просматривать|изучать|читать|открывать|выполнять|обращаться|получить)/i,
+  /у\s+меня\s+нет\s+(?:доступа|возможности|способности)/i,
+  /as\s+an?\s+(?:ai|language\s+model|llm|assistant)/i,
+  /i\s+(?:can't|cannot|am\s+unable\s+to)\s+(?:access|read|view|browse|open|execute|directly)/i,
+]
+
+/** Модель утверждает что не может работать с файлами/инструментами — нужна эскалация. */
+export function isRefusalResponse(text: string): boolean {
+  return REFUSAL_PATTERNS.some((p) => p.test(text))
+}

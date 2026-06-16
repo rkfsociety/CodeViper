@@ -268,6 +268,24 @@ export function selectLightestModelForSummarization(
   return sorted[0].name
 }
 
+/**
+ * Следующая по размеру модель тяжелее текущей (для эскалации при рефьюзале).
+ * Возвращает null если более тяжёлой нет.
+ */
+export function escalateModel(
+  currentModel: string,
+  installed: InstalledModelInfo[]
+): string | null {
+  const usable = installed.filter(
+    (item) => item.name.trim() && !isAvoidedModel(item.name) && isToolCallingModel(item.name)
+  )
+  const currentParams = inferParamBillions(currentModel, 0)
+  const heavier = usable
+    .filter((item) => inferParamBillions(item.name, item.size) > currentParams)
+    .sort((a, b) => inferParamBillions(a.name, a.size) - inferParamBillions(b.name, b.size))
+  return heavier.length > 0 ? heavier[0].name : null
+}
+
 /** Явная модель из настроек или авто — самая лёгкая установленная. */
 export function resolveSummarizeModel(
   installed: InstalledModelInfo[],

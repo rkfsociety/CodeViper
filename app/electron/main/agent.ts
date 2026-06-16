@@ -4,7 +4,8 @@ import type {
   ChatMessage
 } from '../../src/types'
 import { assertPullableToolModel } from '../../shared/recommendedModels'
-import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
+import { escalateModel } from '../../shared/modelRouter'
+import { extractEmbeddedToolCalls, sanitizeAssistantContent, isRefusalResponse } from '../../shared/toolCalls'
 import {
   MUTATING_TOOLS,
   shouldRetryForMissingTools,
@@ -210,6 +211,7 @@ export class AgentRunner {
     let verificationRetries = 0
     let verificationNoticeSent = false
     let requireToolNext = false
+    let escalated = false
     const MAX_VERIFICATION_RETRIES = 1
     let selfImprovePlanNudges = 0
     const MAX_SELF_IMPROVE_PLAN_NUDGES = 6
@@ -355,6 +357,29 @@ export class AgentRunner {
             this.emit({ type: 'error', content: TOOL_VERIFICATION_FAILED_MESSAGE })
             this.emit({ type: 'done' })
             return
+          }
+
+          // Модель отказалась от задачи ("я не могу", "как AI-агент") → эскалация на модель тяжелее
+          if (
+            !escalated &&
+            assistantText &&
+            isRefusalResponse(assistantText) &&
+            this.settings.autoModel !== false
+          ) {
+            const models = await fetchOllamaModels(this.settings.ollamaUrl).catch(() => [])
+            const nextModel = escalateModel(this.settings.model, models)
+            if (nextModel) {
+              escalated = true
+              messages.pop()
+              this.emit({ type: 'clear_draft' })
+              this.emit({
+                type: 'context',
+                content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${nextModel}**…`
+              })
+              this.settings = { ...this.settings, model: nextModel }
+              requireToolNext = true
+              continue
+            }
           }
 
           if (assistantText) {
