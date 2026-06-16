@@ -24,21 +24,6 @@
 - [ ] **Экспорт / импорт чатов** — JSON или Markdown, бэкап и восстановление
 - [ ] **Параллельные чаты** — очередь или фоновый run по `chatId` (сейчас один глобальный `agentRunState`)
 
-### Облачные API моделей
-
-- [x] **Абстракция провайдеров** — интерфейс `ModelProvider` + реализации для Ollama и OpenAI-совместимых API (`ModelRuntime` фасад)
-- [x] **Конфигурация провайдера в настройках** — добавлено в `AgentSettings`: `modelProvider` (тип), `providerApiKey` + сохранение в `settings.json`
-- [x] **DeepSeek API — конфигурация** — добавлены константы (`DEEPSEEK_API_BASE_URL`, `DEEPSEEK_MODEL_DEFAULT`)
-- [x] **Обёртка чата ModelRuntime** — унифицировать ответы разных провайдеров (Ollama + OpenAI) в единый формат ChatChunk
-- [x] **Интеграция в agent.ts: основной цикл** — заменить fetch(`/api/chat`) на `this.modelRuntime.chat()`
-- [x] **Интеграция в agent.ts: утилиты** — `prepareOllamaModel` импортируется из `modelRuntime`; `getModelPlacement` заменён на `this.modelRuntime.getModelPlacement()`
-- [x] **Интеграция в contextSummarizer.ts** — использовать `ModelRuntime` для суммаризации контекста
-- [x] **Выбор провайдера в настройках UI** — переключатель Ollama / DeepSeek / OpenAI в SettingsModal; поля URL, API-ключ, модель
-- [x] **Управление ключами** — поле типа `password` с кнопкой показать/скрыть и кнопкой «Проверить подключение»
-- [x] **Каталог облачных моделей** — `CloudModelSelector` со списком известных моделей провайдера и полем ввода произвольной
-- [x] **Fallback на Ollama** — при сетевой ошибке облачного провайдера `ModelRuntime.chat()` автоматически откатывается на локальную Ollama
-- [x] **Стоимость запросов** — счётчик `sessionTokens` накапливает `total_tokens` за сессию, показывается в статус-баре для облачных провайдеров
-
 ### Агент и AI
 
 - [ ] **Детектор опасных задач** — анализ текста задачи до запуска агента; при совпадении с паттернами (удаление, массовые операции) показывает предупреждение и требует подтверждения
@@ -69,6 +54,7 @@
 
 ## ✅ Сделано
 
+- [x] **Облачные API моделей** — поддержка DeepSeek и любых OpenAI-совместимых API: абстракция `ModelProvider`, `ModelRuntime` фасад, унификация ответов в `ChatChunk`, интеграция в `agent.ts` и `contextSummarizer.ts`, UI выбора провайдера в настройках (URL, API-ключ с маскировкой, ping), `CloudModelSelector` с каталогом моделей, автоматический fallback на Ollama при ошибке облака, счётчик токенов сессии в статус-баре
 - [x] **Разгружен `ChatPanel.tsx`** — вынесены хуки `useAgentStream`, `useMessageQueue`, `useContextPreview`; ChatPanel: 744 → 445 строк
 - [x] **Разбит `agent.ts`** — реестр инструментов (~260 строк) вынесен в 6 доменных модулей + `agentHandlersUtils.ts`; `getToolHandlers()` стал 8-строчным spread
 - [x] **Структурированное логирование** — каждый шаг агента (`run_start/end`), все tool call (`tool_call/result`, имя, аргументы, время, ok/error), ответы LLM (токены, tok/s, время шага) пишутся в NDJSON: `%APPDATA%/CodeViper/logs/agent-ГГГГ-ММ-ДД.ndjson`; файл ротируется раз в день
