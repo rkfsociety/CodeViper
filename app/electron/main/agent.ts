@@ -31,7 +31,7 @@ import {
 import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { ModelRuntime } from './modelRuntime'
-import { isThinkingModel } from '../../shared/reasoning'
+import type { ProviderConfig } from '../../shared/modelProvider'
 import { commitAndPushSelfEdits } from './selfCommit'
 import { agentLogger } from './agentLogger'
 import { compressContextMessages } from './contextSummarizer'
@@ -50,17 +50,6 @@ interface ToolCall {
     name: string
     arguments: Record<string, string> | string
   }
-}
-
-interface OllamaChatChunk {
-  message?: {
-    content?: string
-    thinking?: string
-    tool_calls?: ToolCall[]
-  }
-  done?: boolean
-  eval_count?: number
-  eval_duration?: number
 }
 
 function isAbortError(error: unknown): boolean {
@@ -106,6 +95,7 @@ const REFLECTION_PROMPT = `Проанализируй выполненную з�
 export class AgentRunner {
   private selfImprovementPlan = new SelfImprovementPlanStore()
   private modelRuntime: ModelRuntime
+  private providerConfig: ProviderConfig
 
   constructor(
     private settings: AgentSettings,
@@ -115,12 +105,13 @@ export class AgentRunner {
     private confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
     private summarizeModel?: string
   ) {
-    this.modelRuntime = new ModelRuntime({
+    this.providerConfig = {
       type: this.settings.modelProvider || 'ollama',
       baseUrl: this.settings.ollamaUrl,
       apiKey: this.settings.providerApiKey,
       model: this.settings.model
-    })
+    }
+    this.modelRuntime = new ModelRuntime(this.providerConfig)
   }
 
   private throwIfAborted(): void {
@@ -187,6 +178,7 @@ export class AgentRunner {
       autonomousSelfImprove,
       {
         ollamaUrl: this.settings.ollamaUrl,
+        providerConfig: this.providerConfig,
         signal: this.signal,
         clarifyMode: this.settings.clarifyMode,
         deepReasoning: this.settings.deepReasoning,
@@ -589,7 +581,7 @@ export class AgentRunner {
       model: this.settings.model,
       summarizeModel: this.summarizeModel,
       toolsJsonChars: JSON.stringify(AGENT_TOOLS).length,
-      ollamaUrl: this.settings.ollamaUrl,
+      providerConfig: this.providerConfig,
       signal: this.signal,
       onCompressStart: () => {
         compressionNotified = true
@@ -611,54 +603,47 @@ export class AgentRunner {
       }
     }
 
-    const res = await fetch(`${this.settings.ollamaUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.settings.model,
-        messages,
-        tools: AGENT_TOOLS,
-        stream: true,
-        keep_alive: OLLAMA_KEEP_ALIVE,
-        ...(this.settings.deepReasoning && isThinkingModel(this.settings.model)
-          ? { think: true }
-          : {}),
-        ...(options?.requireTool ? { tool_choice: 'required' as const } : {})
-      }),
-      signal: this.signal
-    })
-
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`Ollama: ${res.status} ${text}`)
-    }
-
-    if (!res.body) {
-      throw new Error('Ollama: пустой ответ (нет body)')
-    }
-
     let content = ''
     let thinking = ''
     const toolCalls: ToolCall[] = []
     let evalCount: number | undefined
     let evalDurationNs: number | undefined
 
-    for await (const chunk of readNdjsonLines(res.body, this.signal)) {
-      const ollamaChunk = chunk as OllamaChatChunk
-      if (ollamaChunk.done || ollamaChunk.eval_count != null || ollamaChunk.eval_duration != null) {
-        if (typeof ollamaChunk.eval_count === 'number') evalCount = ollamaChunk.eval_count
-        if (typeof ollamaChunk.eval_duration === 'number') evalDurationNs = ollamaChunk.eval_duration
-      }
+    // Конвертируем OllamaMessage в ChatMessage (фильтруем tool сообщения)
+    const chatMessages = messages.filter((msg) => msg.role !== 'tool').map((msg) => ({
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: msg.content
+    }))
 
-      const message = ollamaChunk.message
+    // Трансформируем AGENT_TOOLS в формат провайдеров (name + description + input_schema)
+    const toolsForProvider = AGENT_TOOLS.map((tool) => ({
+      name: tool.function.name,
+      description: tool.function.description,
+      input_schema: tool.function.parameters
+    }))
 
-      const thinkingPiece = message?.thinking
+    // Используем ModelRuntime для универсальной поддержки разных провайдеров
+    const chatOptions = {
+      model: this.settings.model,
+      messages: chatMessages,
+      tools: toolsForProvider,
+      stream: true,
+      keep_alive: OLLAMA_KEEP_ALIVE as string | number,
+      signal: this.signal,
+      ...(options?.requireTool ? { tool_choice: 'required' as const } : {})
+    }
+
+    for await (const chunk of this.modelRuntime.chat(chatOptions)) {
+      if (chunk.eval_count != null) evalCount = chunk.eval_count
+      if (chunk.eval_duration != null) evalDurationNs = chunk.eval_duration
+
+      const thinkingPiece = chunk.thinking
       if (thinkingPiece) {
         thinking += thinkingPiece
         this.emit({ type: 'thinking', content: thinkingPiece })
       }
 
-      const piece = message?.content
+      const piece = chunk.content
       if (piece) {
         content += piece
         const visible = sanitizeAssistantContent(content)
@@ -667,10 +652,6 @@ export class AgentRunner {
         if (!isPureToolCall && visible) {
           this.emit({ type: 'token', content: piece })
         }
-      }
-
-      if (message?.tool_calls?.length) {
-        toolCalls.push(...message.tool_calls)
       }
     }
 
@@ -729,7 +710,7 @@ export class AgentRunner {
   }
 
   private async warnIfCpu(): Promise<void> {
-    const placement = await getModelPlacement(this.settings.ollamaUrl, this.settings.model)
+    const placement = await this.modelRuntime.getModelPlacement(this.settings.model)
     if (placement === 'cpu') {
       this.emit({
         type: 'context',
@@ -754,22 +735,26 @@ export class AgentRunner {
     if (!hadMutations) return
 
     try {
-      const res = await fetch(`${this.settings.ollamaUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.settings.model,
-          messages: [...messages, { role: 'user', content: REFLECTION_PROMPT }],
-          stream: false,
-          keep_alive: OLLAMA_KEEP_ALIVE
-        }),
+      let reflectionContent = ''
+
+      // Конвертируем OllamaMessage в ChatMessage для рефлексии
+      const reflectionMessages = messages
+        .filter((msg) => msg.role !== 'tool')
+        .map((msg) => ({
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content
+        }))
+
+      for await (const chunk of this.modelRuntime.chat({
+        model: this.settings.model,
+        messages: [...reflectionMessages, { role: 'user', content: REFLECTION_PROMPT }],
+        keep_alive: OLLAMA_KEEP_ALIVE as string | number,
         signal: this.signal
-      })
+      })) {
+        reflectionContent += chunk.content
+      }
 
-      if (!res.ok) return
-
-      const data = (await res.json()) as { message?: { content?: string } }
-      const learnings = parseReflectionLearnings(data.message?.content ?? '')
+      const learnings = parseReflectionLearnings(reflectionContent)
 
       for (const learning of learnings) {
         const entry = await addMemory(

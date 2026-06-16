@@ -20,6 +20,7 @@ import {
   MAX_TOOL_MESSAGE_CHARS
 } from '../../shared/contextLimits'
 import { compressContextMessages } from './contextSummarizer'
+import type { ProviderConfig } from '../../shared/modelProvider'
 
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -183,6 +184,7 @@ export function estimateTokens(charCount: number): number {
 
 export interface PrepareAgentContextOptions {
   ollamaUrl?: string
+  providerConfig?: ProviderConfig
   signal?: AbortSignal
   clarifyMode?: boolean
   deepReasoning?: boolean
@@ -268,6 +270,7 @@ export async function buildAgentContextPreview(
     summarizeModel: options.summarizeModel,
     toolsJsonChars,
     ollamaUrl: options.ollamaUrl,
+    providerConfig: options.providerConfig,
     signal: options.signal
   })
 

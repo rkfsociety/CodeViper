@@ -4,6 +4,8 @@ import {
   MIN_RECENT_CONTEXT_MESSAGES
 } from '../../shared/contextLimits'
 import type { OllamaMessage } from './agentContext'
+import { ModelRuntime } from './modelRuntime'
+import type { ProviderConfig } from '../../shared/modelProvider'
 
 const SUMMARIZE_SYSTEM_PROMPT = `Сожми фрагмент диалога агента-программиста в краткую сводку на русском.
 Сохрани: принятые решения, изменённые файлы, ошибки, незавершённые задачи, важные выводы инструментов.
@@ -32,9 +34,9 @@ function buildSummaryMessage(summary: string): OllamaMessage {
   }
 }
 
-export async function summarizeOllamaMessages(
-  baseUrl: string,
-  model: string,
+async function summarizeWithProvider(
+  provider: ModelRuntime,
+  summarizeModel: string,
   messages: OllamaMessage[],
   signal?: AbortSignal
 ): Promise<string> {
@@ -45,29 +47,20 @@ export async function summarizeOllamaMessages(
     .join('\n\n')
     .slice(0, 60_000)
 
-  const url = baseUrl.replace(/\/$/, '')
-  const res = await fetch(`${url}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      stream: false,
-      messages: [
-        { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
-        { role: 'user', content: `Суммаризируй диалог:\n\n${transcript}` }
-      ],
-      options: { temperature: 0.2 }
-    }),
+  let summaryContent = ''
+  for await (const chunk of provider.chat({
+    model: summarizeModel,
+    messages: [
+      { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
+      { role: 'user', content: `Суммаризируй диалог:\n\n${transcript}` }
+    ],
+    temperature: 0.2,
     signal
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Ollama summarize: ${res.status} ${text}`)
+  })) {
+    summaryContent += chunk.content
   }
 
-  const data = (await res.json()) as { message?: { content?: string } }
-  return (data.message?.content ?? '').trim()
+  return summaryContent.trim()
 }
 
 function dropOldestNonSystem(messages: OllamaMessage[], count: number): OllamaMessage[] {
@@ -88,6 +81,8 @@ export async function compressContextMessages(options: {
   summarizeModel?: string
   toolsJsonChars: number
   ollamaUrl?: string
+  /** Конфигурация провайдера моделей (для поддержки DeepSeek и др.) */
+  providerConfig?: ProviderConfig
   signal?: AbortSignal
   minRecentMessages?: number
   /** Вызывается один раз, когда сжатие реально начинается (суммаризация или обрезка). */
@@ -132,14 +127,21 @@ export async function compressContextMessages(options: {
 
     droppedMessageCount += older.length
 
-    if (options.ollamaUrl) {
+    if (options.ollamaUrl || options.providerConfig) {
       try {
-        const summary = await summarizeOllamaMessages(
-          options.ollamaUrl,
-          summarizeModel,
-          older,
-          options.signal
-        )
+        let summary = ''
+
+        if (options.providerConfig) {
+          const provider = new ModelRuntime(options.providerConfig)
+          summary = await summarizeWithProvider(provider, summarizeModel, older, options.signal)
+        } else if (options.ollamaUrl) {
+          // Обратная совместимость: если передан только ollamaUrl, используем Ollama
+          const provider = new ModelRuntime({
+            type: 'ollama',
+            baseUrl: options.ollamaUrl
+          })
+          summary = await summarizeWithProvider(provider, summarizeModel, older, options.signal)
+        }
 
         if (summary) {
           messages = system

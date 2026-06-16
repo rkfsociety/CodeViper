@@ -29,7 +29,7 @@
 - [x] **Абстракция провайдеров** — интерфейс `ModelProvider` + реализации для Ollama и OpenAI-совместимых API (`ModelRuntime` фасад)
 - [x] **Конфигурация провайдера в настройках** — добавлено в `AgentSettings`: `modelProvider` (тип), `providerApiKey` + сохранение в `settings.json`
 - [x] **DeepSeek API — конфигурация** — добавлены константы (`DEEPSEEK_API_BASE_URL`, `DEEPSEEK_MODEL_DEFAULT`)
-- [ ] **Обёртка чата ModelRuntime** — унифицировать ответы разных провайдеров (Ollama + OpenAI) в единый формат ChatChunk
+- [x] **Обёртка чата ModelRuntime** — унифицировать ответы разных провайдеров (Ollama + OpenAI) в единый формат ChatChunk
 - [ ] **Интеграция в agent.ts: основной цикл** — заменить fetch(`/api/chat`) на `this.modelRuntime.chat()`
 - [ ] **Интеграция в agent.ts: утилиты** — заменить `listLoadedOllamaModels()`, `prepareOllamaModel()`, `getModelPlacement()` на методы ModelRuntime
 - [ ] **Интеграция в contextSummarizer.ts** — использовать `ModelRuntime` для суммаризации контекста

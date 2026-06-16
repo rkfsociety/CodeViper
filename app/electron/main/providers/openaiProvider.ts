@@ -35,25 +35,34 @@ export class OpenAIProvider implements ModelProvider {
 
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
     const url = this.baseUrl.replace(/\/$/, '')
+    const body = {
+      model: options.model || this.modelName,
+      stream: true,
+      messages: options.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content
+      })),
+      temperature: options.temperature,
+      top_p: options.top_p,
+      max_tokens: options.max_tokens,
+      tools: options.tools,
+      tool_choice: options.tool_choice
+    } as Record<string, unknown>
+
+    // Некоторые OpenAI-совместимые API (DeepSeek, др.) поддерживают thinking
+    // для моделей с расширенными возможностями (о1, о3, r1)
+    const modelName = options.model || this.modelName
+    if (modelName && /^(o1|o3|deepseek-r1|qwq)/.test(modelName)) {
+      body.reasoning_effort = 'medium'
+    }
+
     const res = await fetch(`${url}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`
       },
-      body: JSON.stringify({
-        model: options.model || this.modelName,
-        stream: true,
-        messages: options.messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        temperature: options.temperature,
-        top_p: options.top_p,
-        max_tokens: options.max_tokens,
-        tools: options.tools,
-        tool_choice: options.tool_choice
-      }),
+      body: JSON.stringify(body),
       signal: options.signal
     })
 
@@ -84,12 +93,23 @@ export class OpenAIProvider implements ModelProvider {
           try {
             const chunk = JSON.parse(data)
             const delta = chunk.choices?.[0]?.delta
-            if (delta) {
-              yield {
-                content: delta.content ?? '',
-                stop_reason: chunk.choices?.[0]?.finish_reason
-              }
+            if (!delta) continue
+
+            // Конвертируем в единый формат ChatChunk
+            const chatChunk: ChatChunk = {
+              content: delta.content ?? '',
+              stop_reason: chunk.choices?.[0]?.finish_reason,
+              model: options.model || this.modelName
             }
+
+            // Некоторые провайдеры могут передавать thinking в delta
+            if (delta.reasoning) {
+              chatChunk.thinking = delta.reasoning
+            } else if (delta.thinking) {
+              chatChunk.thinking = delta.thinking
+            }
+
+            yield chatChunk
           } catch {
             // skip malformed JSON
           }
