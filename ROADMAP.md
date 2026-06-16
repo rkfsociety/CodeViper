@@ -27,7 +27,9 @@
 ### Облачные API моделей
 
 - [x] **Абстракция провайдеров** — интерфейс `ModelProvider` + реализации для Ollama и OpenAI-совместимых API
-- [ ] **Интеграция в agent.ts** — обновить цикл агента чтобы использовать `ModelRuntime` вместо прямых вызовов к Ollama
+- [ ] **Обёртка чата ModelRuntime** — унифицировать ответы разных провайдеров (Ollama + OpenAI) в единый формат ChatChunk
+- [ ] **Интеграция в agent.ts: основной цикл** — заменить fetch(`/api/chat`) на `this.modelRuntime.chat()`
+- [ ] **Интеграция в agent.ts: утилиты** — заменить `listLoadedOllamaModels()`, `prepareOllamaModel()`, `getModelPlacement()` на методы ModelRuntime
 - [ ] **Интеграция в contextSummarizer.ts** — использовать `ModelRuntime` для суммаризации контекста
 - [ ] **Конфигурация провайдера в настройках** — добавить в `AgentSettings`: `modelProvider` (тип), `providerConfig` (URL, ключ и т.д.)
 - [ ] **DeepSeek API** — поддержка DeepSeek через OpenAI-совместимый API (базовый URL, API ключ)

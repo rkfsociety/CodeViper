@@ -30,7 +30,7 @@ import {
 } from '../../shared/selfImprovement'
 import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { toolRequiresConfirm } from '../../shared/permissions'
-import { getModelPlacement } from './ollamaRuntime'
+import { ModelRuntime } from './modelRuntime'
 import { isThinkingModel } from '../../shared/reasoning'
 import { commitAndPushSelfEdits } from './selfCommit'
 import { agentLogger } from './agentLogger'
@@ -105,6 +105,7 @@ const REFLECTION_PROMPT = `Проанализируй выполненную з�
 
 export class AgentRunner {
   private selfImprovementPlan = new SelfImprovementPlanStore()
+  private modelRuntime: ModelRuntime
 
   constructor(
     private settings: AgentSettings,
@@ -113,7 +114,14 @@ export class AgentRunner {
     private signal?: AbortSignal,
     private confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
     private summarizeModel?: string
-  ) {}
+  ) {
+    this.modelRuntime = new ModelRuntime({
+      type: this.settings.modelProvider || 'ollama',
+      baseUrl: this.settings.ollamaUrl,
+      apiKey: this.settings.providerApiKey,
+      model: this.settings.model
+    })
+  }
 
   private throwIfAborted(): void {
     if (this.signal?.aborted) {
