@@ -10,7 +10,7 @@ export class SelfImprovementPlanStore {
   }
 
   set(items: SelfImprovementItem[]): SelfImprovementItem[] {
-    this.activePlan = items.map((item) => ({ ...item, done: false }))
+    this.activePlan = items.map((item) => ({ ...item, done: false, attemptCount: 0 }))
     return this.activePlan
   }
 

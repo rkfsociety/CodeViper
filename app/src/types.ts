@@ -159,6 +159,9 @@ export interface SelfImprovementPlanItem {
   id: string
   title: string
   done: boolean
+  attemptCount?: number
+  blocked?: boolean
+  blockReason?: string
 }
 
 export interface AgentContextPreview {

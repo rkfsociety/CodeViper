@@ -2,6 +2,9 @@ export interface SelfImprovementItem {
   id: string
   title: string
   done: boolean
+  attemptCount?: number
+  blocked?: boolean
+  blockReason?: string
 }
 
 /** Запрос на автономное самоулучшение до выполнения всех пунктов плана. */
@@ -41,7 +44,8 @@ export function parsePlanItemsJson(raw: string): SelfImprovementItem[] {
     return {
       id: String(record.id ?? index + 1),
       title,
-      done: false
+      done: false,
+      attemptCount: 0
     }
   })
 }
@@ -56,7 +60,8 @@ export function parseChecklistAsPlan(text: string): SelfImprovementItem[] | null
     items.push({
       id: String(items.length + 1),
       title: match[2].trim(),
-      done: match[1].toLowerCase() === 'x'
+      done: match[1].toLowerCase() === 'x',
+      attemptCount: 0
     })
   }
 
@@ -134,8 +139,26 @@ export function planProgress(plan: SelfImprovementItem[]): {
   return {
     done,
     total: plan.length,
-    pending: plan.filter((item) => !item.done)
+    pending: plan.filter((item) => !item.done && !item.blocked)
   }
+}
+
+export function isItemBlocked(item: SelfImprovementItem): boolean {
+  return Boolean(item.blocked)
+}
+
+export function blockItem(item: SelfImprovementItem, reason: string): void {
+  item.blocked = true
+  item.blockReason = reason
+}
+
+export function incrementAttempt(item: SelfImprovementItem): number {
+  const count = (item.attemptCount ?? 0) + 1
+  item.attemptCount = count
+  if (count >= 3) {
+    blockItem(item, `Заблокирован после 3 попыток`)
+  }
+  return count
 }
 
 export function isPlanComplete(plan: SelfImprovementItem[] | null): boolean {
@@ -144,9 +167,13 @@ export function isPlanComplete(plan: SelfImprovementItem[] | null): boolean {
 
 export function formatPlanSummary(plan: SelfImprovementItem[]): string {
   const { done, total } = planProgress(plan)
-  const lines = plan.map(
-    (item) => `${item.done ? '✅' : '⬜'} ${item.id}. ${item.title}`
-  )
+  const lines = plan.map((item) => {
+    let icon = '⬜'
+    if (item.done) icon = '✅'
+    else if (item.blocked) icon = '🚫'
+    const suffix = item.blocked && item.blockReason ? ` (${item.blockReason})` : ''
+    return `${icon} ${item.id}. ${item.title}${suffix}`
+  })
   return `План самоулучшения (${done}/${total}):\n${lines.join('\n')}`
 }
 
@@ -178,15 +205,21 @@ export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Начни автоно
 
 export function buildSelfImprovementContinueNudge(plan: SelfImprovementItem[]): string {
   const { done, total, pending } = planProgress(plan)
+  const blocked = plan.filter((item) => item.blocked).length
   const next = pending[0]
 
+  const blocked_info = blocked > 0 ? `\n⚠️ Заблокировано ${blocked} пунктов (не переоформляй их).` : ''
+
   if (!next) {
-    return 'Все пункты плана выполнены. Кратко подведи итог и заверши.'
+    const summary = blocked > 0
+      ? `${done} пункта выполнены${blocked_info}. Кратко подведи итог и заверши.`
+      : 'Все пункты плана выполнены. Кратко подведи итог и заверши.'
+    return summary
   }
 
-  return `План самоулучшения: выполнено ${done}/${total}.
+  return `План самоулучшения: выполнено ${done}/${total}.${blocked_info}
 Следующий пункт: «${next.title}» (id: ${next.id}).
 
 Вызови инструменты для этого пункта. После успеха — complete_self_improvement_item(id: "${next.id}"), затем следующий пункт.
-Не останавливайся, пока все пункты не отмечены done.`
+Не останавливайся, пока все активные пункты не отмечены done.`
 }

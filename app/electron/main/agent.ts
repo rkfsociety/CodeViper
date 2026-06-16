@@ -25,6 +25,7 @@ import {
   SELF_IMPROVE_PLAN_STUCK_MESSAGE,
   START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
   buildSelfImprovementContinueNudge,
+  incrementAttempt,
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
 import { SelfImprovementPlanStore } from './selfImprovementStore'
@@ -214,6 +215,7 @@ export class AgentRunner {
     let escalated = false
     const MAX_VERIFICATION_RETRIES = 1
     let selfImprovePlanNudges = 0
+    let currentPlanItemId: string | null = null
     const MAX_SELF_IMPROVE_PLAN_NUDGES = 6
 
     try {
@@ -280,10 +282,29 @@ export class AgentRunner {
 
             if (plan && this.selfImprovementPlan.hasPending()) {
               selfImprovePlanNudges = 0
+
+              // Если не удалось завершить текущий пункт — инкрементируем попытку
+              if (currentPlanItemId && !assistantText?.includes('complete_self_improvement_item')) {
+                const currentItem = plan.find((item) => item.id === currentPlanItemId)
+                if (currentItem && !currentItem.done) {
+                  const attemptNum = incrementAttempt(currentItem)
+                  if (currentItem.blocked) {
+                    this.emit({
+                      type: 'context',
+                      content: `🚫 Пункт «${currentItem.title}» заблокирован после ${attemptNum} попыток`
+                    })
+                  }
+                }
+              }
+
               if (assistantText && !adoptedPlan) {
                 this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
               }
               this.emitSelfImprovementPlan(plan)
+              const nextItem = plan.find((item) => !item.done && !item.blocked)
+              if (nextItem) {
+                currentPlanItemId = nextItem.id
+              }
               messages.push({ role: 'user', content: buildSelfImprovementContinueNudge(plan) })
               requireToolNext = true
               continue
