@@ -200,7 +200,7 @@ export default function App() {
       setActiveChatId(chat.id)
       setMessages(chat.messages)
     })
-  }, [settingsReady])
+  }, [settingsReady]) // eslint-disable-line react-hooks/exhaustive-deps -- функции переопределяются на каждый рендер
 
   useEffect(() => {
     if (!settingsReady) return

@@ -39,9 +39,22 @@ export default [
         PromiseRejectionEvent: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
         HTMLElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
         KeyboardEvent: 'readonly',
+        AudioContext: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        localStorage: 'readonly',
+        navigator: 'readonly',
+        React: 'readonly',
         console: 'readonly',
+        // App globals
+        __APP_VERSION__: 'readonly',
         // Electron
         Electron: 'readonly'
       }

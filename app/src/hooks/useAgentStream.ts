@@ -249,7 +249,7 @@ export function useAgentStream({
     })
 
     return unsubscribe
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps — все зависимости через стабильные рефы
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- все зависимости через стабильные рефы
 
   return {
     draft,
