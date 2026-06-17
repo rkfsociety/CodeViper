@@ -41,6 +41,21 @@ export class OpenAIProvider implements ModelProvider {
 
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
     const url = this.baseUrl.replace(/\/$/, '')
+    // ChatOptions использует Anthropic-формат { name, description, input_schema }.
+    // OpenAI-совместимые API (DeepSeek и др.) ожидают { type, function: { name, description, parameters } }.
+    const openAiTools = options.tools?.map((t) => ({
+      type: 'function' as const,
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.input_schema
+      }
+    }))
+
+    // 'required' поддерживается только OpenAI v2; большинство совместимых API понимают 'auto'.
+    const toolChoice =
+      options.tool_choice === 'required' ? 'auto' : (options.tool_choice ?? 'auto')
+
     const body = {
       model: options.model || this.modelName,
       stream: true,
@@ -51,8 +66,8 @@ export class OpenAIProvider implements ModelProvider {
       temperature: options.temperature,
       top_p: options.top_p,
       max_tokens: options.max_tokens,
-      tools: options.tools,
-      tool_choice: options.tool_choice
+      tools: openAiTools,
+      tool_choice: toolChoice
     } as Record<string, unknown>
 
     // Некоторые OpenAI-совместимые API (DeepSeek, др.) поддерживают thinking
