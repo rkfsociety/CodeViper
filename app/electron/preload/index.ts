@@ -42,6 +42,13 @@ const codeviper = {
   listOllamaModels: (url?: string) =>
     withTimeout(ipcRenderer.invoke('list-ollama-models', url), IPC_TIMEOUT_MS, 'listOllamaModels'),
 
+  listProviderModels: (config: { type: string; baseUrl?: string; apiKey?: string }) =>
+    withTimeout(
+      ipcRenderer.invoke('list-provider-models', config),
+      IPC_TIMEOUT_MS,
+      'listProviderModels'
+    ),
+
   checkOllama: (url?: string) =>
     withTimeout(ipcRenderer.invoke('check-ollama', url), IPC_TIMEOUT_MS, 'checkOllama'),
 

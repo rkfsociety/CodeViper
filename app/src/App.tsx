@@ -17,7 +17,7 @@ import { ConfirmDialog } from './components/ConfirmDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
-import { DEFAULT_MAX_STEPS, DEEPSEEK_MODEL_DEFAULT } from '../shared/constants'
+import { DEFAULT_MAX_STEPS, DEEPSEEK_API_BASE_URL } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 
 const DEFAULT_SETTINGS: AgentSettings = {
@@ -86,6 +86,25 @@ export default function App() {
   }, [])
 
   const refreshOllama = useCallback(async () => {
+    const provider = settings.modelProvider
+
+    if (provider === 'deepseek') {
+      // Для облачного провайдера: пинговать Ollama не нужно, загружаем список моделей с API
+      setOllamaOnline(false)
+      try {
+        const list = await window.codeviper.listProviderModels({
+          type: 'deepseek',
+          baseUrl: DEEPSEEK_API_BASE_URL,
+          apiKey: settings.providerApiKey
+        })
+        const ollamaModels = list.map((m) => ({ name: m.name, size: m.size ?? 0, modifiedAt: '' }))
+        setModels(ollamaModels)
+      } catch {
+        setModels([])
+      }
+      return
+    }
+
     const online = await window.codeviper.checkOllama(settings.ollamaUrl)
     setOllamaOnline(online)
 
@@ -104,7 +123,7 @@ export default function App() {
     } else {
       setModels([])
     }
-  }, [settings.ollamaUrl])
+  }, [settings.ollamaUrl, settings.modelProvider, settings.providerApiKey])
 
   const downloadQueue = useOllamaDownloadQueue({
     ollamaUrl: settings.ollamaUrl,
@@ -426,10 +445,7 @@ export default function App() {
                 {models.length > 0 && <div className="model-picker-sep" />}
 
                 {/* Список моделей провайдера */}
-                {(settings.modelProvider === 'deepseek'
-                  ? [DEEPSEEK_MODEL_DEFAULT, 'deepseek-reasoner']
-                  : models.map((m) => m.name)
-                ).map((name) => {
+                {models.map((m) => m.name).map((name) => {
                   const isActive = settings.autoModel === false && settings.model === name
                   const shortName = name.split(':')[0]
                   const tag = name.includes(':') ? name.split(':')[1] : undefined

@@ -267,6 +267,7 @@ export interface CodeViperAPI {
   readFile: (projectPath: string, filePath: string) => Promise<string>
   writeFile: (projectPath: string, filePath: string, content: string) => Promise<void>
   listOllamaModels: (url?: string) => Promise<OllamaModel[]>
+  listProviderModels: (config: { type: string; baseUrl?: string; apiKey?: string }) => Promise<{ name: string; size?: number }[]>
   checkOllama: (url?: string) => Promise<boolean>
   pullOllamaModel: (url: string, model: string) => Promise<void>
   deleteOllamaModel: (url: string, model: string) => Promise<void>

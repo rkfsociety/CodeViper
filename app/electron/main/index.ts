@@ -13,7 +13,7 @@ import { checkAgentPrerequisites } from './agentPrerequisites'
 import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
 import { filterToolCallingModels } from '../../shared/recommendedModels'
 import { buildAgentContextPreview } from './agentContext'
-import { formatModelSwitchMessage, prepareOllamaModel } from './modelRuntime'
+import { formatModelSwitchMessage, prepareOllamaModel, ModelRuntime } from './modelRuntime'
 import {
   selectModelForTask,
   shouldUseAutoModel,
@@ -178,6 +178,14 @@ ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') => pin
 
 ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') =>
   fetchOllamaModels(url)
+)
+
+ipcMain.handle(
+  'list-provider-models',
+  async (_e, config: { type: string; baseUrl?: string; apiKey?: string }) => {
+    const runtime = new ModelRuntime(config)
+    return runtime.listModels()
+  }
 )
 
 ipcMain.handle('pull-ollama-model', async (_e, url: string, model: string) => {
