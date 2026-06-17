@@ -36,6 +36,7 @@ import { commitAndPushSelfEdits } from './selfCommit'
 import { agentLogger } from './agentLogger'
 import { compressContextMessages } from './contextSummarizer'
 import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
+import { DEEPSEEK_API_BASE_URL } from '../../shared/constants'
 import { readNdjsonLines } from './ndjson'
 import { parseReflectionLearnings, addMemory } from './memory'
 import { createProjectToolHandlers } from './agentHandlersProject'
@@ -122,9 +123,14 @@ export class AgentRunner {
     private confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
     private summarizeModel?: string
   ) {
+    const providerType = this.settings.modelProvider || 'ollama'
+    const providerBaseUrl =
+      providerType === 'deepseek'
+        ? DEEPSEEK_API_BASE_URL
+        : this.settings.ollamaUrl
     this.providerConfig = {
-      type: this.settings.modelProvider || 'ollama',
-      baseUrl: this.settings.ollamaUrl,
+      type: providerType,
+      baseUrl: providerBaseUrl,
       apiKey: this.settings.providerApiKey,
       model: this.settings.model
     }
