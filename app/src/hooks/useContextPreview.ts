@@ -17,7 +17,7 @@ export function useContextPreview(
   const [contextLoading, setContextLoading] = useState(false)
 
   useEffect(() => {
-    if (!chatId || !model) {
+    if (!chatId || !model || !input.trim()) {
       setContextPreview(null)
       return
     }
