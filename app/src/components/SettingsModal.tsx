@@ -3,6 +3,7 @@ import type { AgentSettings, OllamaModel, PermissionMode } from '../types'
 import {
   DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX,
   DEFAULT_MAX_RUNS_PER_HOUR, MAX_RUNS_PER_HOUR_MIN, MAX_RUNS_PER_HOUR_MAX,
+  DEFAULT_COMMAND_TIMEOUT_SEC, COMMAND_TIMEOUT_SEC_MIN, COMMAND_TIMEOUT_SEC_MAX,
   DEEPSEEK_API_BASE_URL, DEEPSEEK_MODEL_DEFAULT
 } from '../../shared/constants'
 import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
@@ -325,6 +326,25 @@ export function SettingsModal({
               (чтобы правки не терялись при синхронизации на старте)
             </span>
           </label>
+
+          <label>
+            Таймаут команд (сек)
+            <input
+              type="number"
+              min={COMMAND_TIMEOUT_SEC_MIN}
+              max={COMMAND_TIMEOUT_SEC_MAX}
+              value={settings.commandTimeoutSec ?? DEFAULT_COMMAND_TIMEOUT_SEC}
+              onChange={(e) =>
+                onSettingsChange({
+                  commandTimeoutSec: Number(e.target.value) || DEFAULT_COMMAND_TIMEOUT_SEC
+                })
+              }
+            />
+          </label>
+          <div className="settings-hint">
+            Максимальное время выполнения одной команды агентом. По умолчанию 120 с. Увеличьте
+            для долгих сборок или тестов (макс. {COMMAND_TIMEOUT_SEC_MAX} с).
+          </div>
 
             </>
           )}

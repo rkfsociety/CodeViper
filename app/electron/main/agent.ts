@@ -704,7 +704,12 @@ export class AgentRunner {
     if (this.toolHandlers) return this.toolHandlers
 
     this.toolHandlers = {
-      ...createProjectToolHandlers(this.projectPath),
+      ...createProjectToolHandlers(
+        this.projectPath,
+        this.settings.commandTimeoutSec != null
+          ? this.settings.commandTimeoutSec * 1000
+          : undefined
+      ),
       ...createCodeViperToolHandlers(),
       ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
       ...createSkillsToolHandlers(this.projectPath, this.emit),

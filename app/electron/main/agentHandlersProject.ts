@@ -17,7 +17,7 @@ import { gitStatus, gitDiff, gitLog } from './gitTools'
 import { parseToolBool } from '../../shared/fileEdit'
 import { parseTreeDepth, formatCommandResult } from './agentHandlersUtils'
 
-export function createProjectToolHandlers(projectPath: string): Partial<ToolHandlers> {
+export function createProjectToolHandlers(projectPath: string, commandTimeoutMs?: number): Partial<ToolHandlers> {
   return {
     list_directory: async (args) => {
       const target = args.path?.trim() || projectPath
@@ -89,7 +89,7 @@ export function createProjectToolHandlers(projectPath: string): Partial<ToolHand
     },
 
     run_command: async (args) => {
-      const result = await runCommand(projectPath, args.command)
+      const result = await runCommand(projectPath, args.command, commandTimeoutMs)
       return formatCommandResult(result)
     },
 

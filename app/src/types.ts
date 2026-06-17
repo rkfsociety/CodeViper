@@ -101,6 +101,8 @@ export interface AgentSettings {
   modelProvider?: 'ollama' | 'deepseek' | 'openai'
   /** API ключ для облачных провайдеров (DeepSeek, OpenAI и т.д.) */
   providerApiKey?: string
+  /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
+  commandTimeoutSec?: number
 }
 
 export interface AgentConfirmRequest {

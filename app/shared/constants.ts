@@ -18,9 +18,15 @@ export const FILE_SIZE_LIMIT_BYTES = 512_000
 /** Количество строк, возвращаемых read_file по умолчанию при частичном чтении */
 export const READ_DEFAULT_LINE_LIMIT = 300
 
+// ── Команды ───────────────────────────────────────────────────────────────────
+/** Таймаут выполнения команды по умолчанию (сек) */
+export const DEFAULT_COMMAND_TIMEOUT_SEC = 120
+export const COMMAND_TIMEOUT_SEC_MIN = 10
+export const COMMAND_TIMEOUT_SEC_MAX = 600
+
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
-export const CONTEXT_PREVIEW_DEBOUNCE_MS = 350
+export const CONTEXT_PREVIEW_DEBOUNCE_MS = 600
 
 // ── Провайдеры моделей ────────────────────────────────────────────────────────
 /** URL DeepSeek API (OpenAI-совместимый) */

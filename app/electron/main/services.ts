@@ -4,9 +4,9 @@ import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
-import { FILE_SIZE_LIMIT_BYTES, READ_DEFAULT_LINE_LIMIT } from '../../shared/constants'
+import { FILE_SIZE_LIMIT_BYTES, READ_DEFAULT_LINE_LIMIT, DEFAULT_COMMAND_TIMEOUT_SEC } from '../../shared/constants'
 
-const COMMAND_TIMEOUT_MS = 120_000
+const COMMAND_TIMEOUT_MS = DEFAULT_COMMAND_TIMEOUT_SEC * 1000
 const MAX_COMMAND_LEN = 4096
 
 const BLOCKED_PATTERNS: RegExp[] = [
