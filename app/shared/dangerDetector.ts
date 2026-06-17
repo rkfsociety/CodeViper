@@ -117,6 +117,12 @@ const PATTERNS: DangerPattern[] = [
     level: 'warning',
     title: 'Перезапись .env файла',
     description: 'Задача может перезаписать файл конфигурации с секретными ключами.'
+  },
+  {
+    pattern: /\.ps1\b|\.bat\b|powershell(?:\.exe)?\s+(?!-Command|\s*-Version)/i,
+    level: 'warning',
+    title: 'Запуск PowerShell или bat-скрипта',
+    description: 'Задача запускает скрипт .ps1 или .bat. Требуется явное подтверждение.'
   }
 ]
 

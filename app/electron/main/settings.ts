@@ -40,7 +40,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   maxRunsPerHour: DEFAULT_MAX_RUNS_PER_HOUR,
   selfLearning: true,
   autoModel: true,
-  permissionMode: 'bypass',
+  permissionMode: 'acceptEdits',
   clarifyMode: false,
   deepReasoning: false,
   autoPushSelfEdits: true,

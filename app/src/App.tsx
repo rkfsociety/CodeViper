@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS: AgentSettings = {
   maxSteps: DEFAULT_MAX_STEPS,
   selfLearning: true,
   autoModel: true,
-  permissionMode: 'bypass',
+  permissionMode: 'acceptEdits',
   clarifyMode: false,
   deepReasoning: false,
   autoPushSelfEdits: true,
@@ -41,6 +41,7 @@ export default function App() {
   const [activeRunModel, setActiveRunModel] = useState('')
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const [lightMode, setLightMode] = useState(false)
+  const [showSecurityNotice, setShowSecurityNotice] = useState(false)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
   const chatPanelRef = useRef<ChatPanelHandle>(null)
@@ -138,6 +139,11 @@ export default function App() {
       if (active) {
         setSettings(saved)
         setSettingsReady(true)
+        // Показать предупреждение о дефолтах безопасности при первом запуске
+        if (!localStorage.getItem('cv-security-notice-seen')) {
+          setShowSecurityNotice(true)
+          localStorage.setItem('cv-security-notice-seen', 'true')
+        }
       }
     })
     return () => { active = false }
@@ -432,6 +438,17 @@ export default function App() {
         onSelfLearningChange={(selfLearning) =>
           setSettings((prev) => ({ ...prev, selfLearning }))
         }
+      />
+
+      <ConfirmDialog
+        open={showSecurityNotice}
+        title="Усилены настройки безопасности"
+        message={
+          'По умолчанию режим доступа теперь: «Принимать правки, спрашивать команды» вместо «Без подтверждений». Это требует подтверждения для команд и скриптов. Ты можешь изменить это в настройках.\n\nТакже включена песочница (sandbox) и добавлена проверка на скрипты .ps1 и .bat.'
+        }
+        confirmLabel="ОК"
+        onConfirm={() => setShowSecurityNotice(false)}
+        onCancel={() => setShowSecurityNotice(false)}
       />
 
       <ConfirmDialog
