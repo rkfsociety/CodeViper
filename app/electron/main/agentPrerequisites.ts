@@ -47,24 +47,27 @@ export async function checkProjectNodeDependencies(
 
 export async function checkAgentPrerequisites(
   ollamaUrl: string,
-  projectPath: string
+  projectPath: string,
+  skipOllamaCheck = false
 ): Promise<AgentPrerequisitesResult> {
   const issues: AgentPrerequisiteIssue[] = []
 
-  const online = await pingOllama(ollamaUrl)
-  if (!online) {
-    issues.push({ type: 'ollama_offline' })
-  } else {
-    try {
-      const installed = await fetchOllamaModels(ollamaUrl)
-      if (filterToolCallingModels(installed).length === 0) {
-        issues.push({
-          type: 'no_model',
-          suggestedModels: [...DEFAULT_SUGGESTED_MODELS]
-        })
-      }
-    } catch {
+  if (!skipOllamaCheck) {
+    const online = await pingOllama(ollamaUrl)
+    if (!online) {
       issues.push({ type: 'ollama_offline' })
+    } else {
+      try {
+        const installed = await fetchOllamaModels(ollamaUrl)
+        if (filterToolCallingModels(installed).length === 0) {
+          issues.push({
+            type: 'no_model',
+            suggestedModels: [...DEFAULT_SUGGESTED_MODELS]
+          })
+        }
+      } catch {
+        issues.push({ type: 'ollama_offline' })
+      }
     }
   }
 

@@ -347,7 +347,8 @@ ipcMain.handle(
     agentRunState = { chatId }
     activeAgentAbort = new AbortController()
 
-    const prerequisites = await checkAgentPrerequisites(settings.ollamaUrl, projectPath)
+    const skipOllama = (settings.modelProvider ?? 'ollama') !== 'ollama'
+    const prerequisites = await checkAgentPrerequisites(settings.ollamaUrl, projectPath, skipOllama)
     if (!prerequisites.ok) {
       stream(chatId, {
         type: 'error',
@@ -360,26 +361,31 @@ ipcMain.handle(
     let effectiveSettings = settings
 
     try {
-      const installed = await fetchOllamaModels(settings.ollamaUrl)
-      const toolInstalled = filterToolCallingModels(installed)
-      const useAuto = shouldUseAutoModel(settings.autoModel, toolInstalled.length)
+      const isCloudProvider = (settings.modelProvider ?? 'ollama') !== 'ollama'
 
-      if (useAuto) {
-        const selection = selectModelForTask(userMessage, toolInstalled, settings.model)
-        if (selection) {
-          const { unloaded } = await prepareOllamaModel(settings.ollamaUrl, selection.model)
-          effectiveSettings = { ...settings, model: selection.model }
-          stream(chatId, {
-            type: 'model_selected',
-            selectedModel: selection.model,
-            modelReason: selection.reason,
-            content: formatModelSwitchMessage(selection.model, selection.reason, unloaded)
-          })
-        } else if (!settings.model.trim() && toolInstalled[0]) {
+      let installed: Awaited<ReturnType<typeof fetchOllamaModels>> = []
+      if (!isCloudProvider) {
+        installed = await fetchOllamaModels(settings.ollamaUrl)
+        const toolInstalled = filterToolCallingModels(installed)
+        const useAuto = shouldUseAutoModel(settings.autoModel, toolInstalled.length)
+
+        if (useAuto) {
+          const selection = selectModelForTask(userMessage, toolInstalled, settings.model)
+          if (selection) {
+            const { unloaded } = await prepareOllamaModel(settings.ollamaUrl, selection.model)
+            effectiveSettings = { ...settings, model: selection.model }
+            stream(chatId, {
+              type: 'model_selected',
+              selectedModel: selection.model,
+              modelReason: selection.reason,
+              content: formatModelSwitchMessage(selection.model, selection.reason, unloaded)
+            })
+          } else if (!settings.model.trim() && toolInstalled[0]) {
+            effectiveSettings = { ...settings, model: toolInstalled[0].name }
+          }
+        } else if (!effectiveSettings.model.trim() && toolInstalled[0]) {
           effectiveSettings = { ...settings, model: toolInstalled[0].name }
         }
-      } else if (!effectiveSettings.model.trim() && toolInstalled[0]) {
-        effectiveSettings = { ...settings, model: toolInstalled[0].name }
       }
 
       if (!effectiveSettings.model.trim()) {
