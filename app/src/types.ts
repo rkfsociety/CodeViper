@@ -119,6 +119,8 @@ export interface AgentSettings {
   soundNotifications?: boolean
   /** Синхронизировать с Git при запуске (stash/reset); по умолчанию true */
   gitSyncOnStartup?: boolean
+  /** GitHub Personal Access Token для создания Gist (экспорт памяти и навыков) */
+  githubToken?: string
 }
 
 export interface AgentConfirmRequest {
@@ -307,6 +309,11 @@ export interface CodeViperAPI {
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
+  shareAsGist: (
+    token: string,
+    projectPath: string,
+    what: 'memory' | 'skills' | 'both'
+  ) => Promise<string>
   logFrontendError: (message: string, stack?: string) => void
 }
 

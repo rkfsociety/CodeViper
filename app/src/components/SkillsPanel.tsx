@@ -4,15 +4,18 @@ import { isBuiltinSkill } from '../types'
 
 interface Props {
   projectPath: string
+  githubToken?: string
   refreshKey?: number
 }
 
 const PAGE_SIZE = 10
 
-export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
+export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props) {
   const [skills, setSkills] = useState<AgentSkill[]>([])
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(PAGE_SIZE)
+  const [sharing, setSharing] = useState(false)
+  const [shareResult, setShareResult] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -36,6 +39,24 @@ export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
   async function remove(id: string) {
     await window.codeviper.deleteSkill(projectPath, id)
     await refresh()
+  }
+
+  async function share() {
+    if (!githubToken) {
+      setShareResult('⚠ Укажите GitHub Token в настройках (вкладка Поведение)')
+      return
+    }
+    setSharing(true)
+    setShareResult(null)
+    try {
+      const url = await window.codeviper.shareAsGist(githubToken, projectPath, 'skills')
+      await navigator.clipboard.writeText(url)
+      setShareResult(`✓ Скопировано: ${url}`)
+    } catch (e) {
+      setShareResult(`✕ Ошибка: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setSharing(false)
+    }
   }
 
   function renderSkill(skill: AgentSkill) {
@@ -65,7 +86,19 @@ export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
     <div className="skills-panel">
       <div className="memory-section-title">
         Навыки агента {loading ? '…' : `(${globalSkills.length})`}
+        <button
+          type="button"
+          className="btn share-btn"
+          onClick={share}
+          disabled={sharing || !globalSkills.length}
+          title={
+            githubToken ? 'Создать Gist и скопировать ссылку' : 'Нужен GitHub Token в настройках'
+          }
+        >
+          {sharing ? '…' : '⬆ Поделиться'}
+        </button>
       </div>
+      {shareResult && <div className="share-result">{shareResult}</div>}
 
       <div className="empty skills-hint">
         Глобальные навыки хранятся в %APPDATA%/CodeViper/ViperSkills.md — это поведение агента, не

@@ -36,6 +36,7 @@ import {
   updateChat
 } from './chats'
 import { loadSettings, saveSettings } from './settings'
+import { createGist, formatMemoriesAsMarkdown, formatSkillsAsMarkdown } from './gist'
 import { makeId } from '../../shared/makeId'
 import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
 import type {
@@ -182,6 +183,28 @@ ipcMain.handle('list-skills', async (_e, projectPath: string) => listSkills(proj
 
 ipcMain.handle('delete-skill', async (_e, projectPath: string, id: string) =>
   deleteSkill(projectPath, id)
+)
+
+ipcMain.handle(
+  'share-as-gist',
+  async (_e, token: string, projectPath: string, what: 'memory' | 'skills' | 'both') => {
+    const files: Record<string, string> = {}
+    const parts: string[] = []
+
+    if (what === 'memory' || what === 'both') {
+      const entries = await listMemories(projectPath)
+      files['codeviper-memory.md'] = formatMemoriesAsMarkdown(entries)
+      parts.push('память')
+    }
+    if (what === 'skills' || what === 'both') {
+      const skills = await listSkills(projectPath)
+      files['codeviper-skills.md'] = formatSkillsAsMarkdown(skills)
+      parts.push('навыки')
+    }
+
+    const description = `CodeViper: ${parts.join(' + ')}`
+    return createGist(token, files, description)
+  }
 )
 
 ipcMain.handle('get-chat-store', async () => getChatStore())

@@ -5,6 +5,7 @@ interface Props {
   projectPath: string
   selfLearning: boolean
   onSelfLearningChange: (value: boolean) => void
+  githubToken?: string
   refreshKey?: number
 }
 
@@ -22,11 +23,14 @@ export function MemoryPanel({
   projectPath,
   selfLearning,
   onSelfLearningChange,
+  githubToken,
   refreshKey = 0
 }: Props) {
   const [entries, setEntries] = useState<MemoryEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(PAGE_SIZE)
+  const [sharing, setSharing] = useState(false)
+  const [shareResult, setShareResult] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -47,6 +51,24 @@ export function MemoryPanel({
     await refresh()
   }
 
+  async function share() {
+    if (!githubToken) {
+      setShareResult('⚠ Укажите GitHub Token в настройках (вкладка Поведение)')
+      return
+    }
+    setSharing(true)
+    setShareResult(null)
+    try {
+      const url = await window.codeviper.shareAsGist(githubToken, projectPath, 'memory')
+      await navigator.clipboard.writeText(url)
+      setShareResult(`✓ Скопировано: ${url}`)
+    } catch (e) {
+      setShareResult(`✕ Ошибка: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setSharing(false)
+    }
+  }
+
   return (
     <div className="memory-panel">
       <label className="memory-toggle">
@@ -60,7 +82,19 @@ export function MemoryPanel({
 
       <div className="memory-section-title">
         Память агента {loading ? '…' : `(${entries.length})`}
+        <button
+          type="button"
+          className="btn share-btn"
+          onClick={share}
+          disabled={sharing || !entries.length}
+          title={
+            githubToken ? 'Создать Gist и скопировать ссылку' : 'Нужен GitHub Token в настройках'
+          }
+        >
+          {sharing ? '…' : '⬆ Поделиться'}
+        </button>
       </div>
+      {shareResult && <div className="share-result">{shareResult}</div>}
 
       {!entries.length && (
         <div className="empty">

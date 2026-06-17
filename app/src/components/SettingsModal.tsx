@@ -404,6 +404,23 @@ export function SettingsModal({
                   агента
                 </span>
               </label>
+
+              <label>
+                GitHub Token
+                <input
+                  type="password"
+                  placeholder="ghp_..."
+                  value={settings.githubToken ?? ''}
+                  onChange={(e) => onSettingsChange({ githubToken: e.target.value })}
+                />
+              </label>
+              <div className="settings-hint">
+                Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в Памяти и
+                Навыках. Создать:{' '}
+                <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
+                  github.com/settings/tokens
+                </a>
+              </div>
             </>
           )}
 
@@ -474,10 +491,15 @@ export function SettingsModal({
                 projectPath={chatProjectPath}
                 selfLearning={settings.selfLearning !== false}
                 onSelfLearningChange={onSelfLearningChange}
+                githubToken={settings.githubToken}
                 refreshKey={memoryRefreshKey}
               />
 
-              <SkillsPanel projectPath={chatProjectPath} refreshKey={skillsRefreshKey} />
+              <SkillsPanel
+                projectPath={chatProjectPath}
+                githubToken={settings.githubToken}
+                refreshKey={skillsRefreshKey}
+              />
             </>
           )}
         </div>
