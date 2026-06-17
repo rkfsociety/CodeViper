@@ -36,7 +36,7 @@ import { commitAndPushSelfEdits } from './selfCommit'
 import { agentLogger } from './agentLogger'
 import { compressContextMessages } from './contextSummarizer'
 import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
-import { DEEPSEEK_API_BASE_URL } from '../../shared/constants'
+import { DEEPSEEK_API_BASE_URL, DEEPSEEK_MODEL_DEFAULT } from '../../shared/constants'
 import { readNdjsonLines } from './ndjson'
 import { parseReflectionLearnings, addMemory } from './memory'
 import { createProjectToolHandlers } from './agentHandlersProject'
@@ -125,14 +125,17 @@ export class AgentRunner {
   ) {
     const providerType = this.settings.modelProvider || 'ollama'
     const providerBaseUrl =
-      providerType === 'deepseek'
-        ? DEEPSEEK_API_BASE_URL
-        : this.settings.ollamaUrl
+      providerType === 'deepseek' ? DEEPSEEK_API_BASE_URL : this.settings.ollamaUrl
+    // Если провайдер — DeepSeek, но модель выглядит как Ollama-модель — подставляем дефолт
+    const providerModel =
+      providerType === 'deepseek' && !/^deepseek/i.test(this.settings.model || '')
+        ? DEEPSEEK_MODEL_DEFAULT
+        : this.settings.model
     this.providerConfig = {
       type: providerType,
       baseUrl: providerBaseUrl,
       apiKey: this.settings.providerApiKey,
-      model: this.settings.model
+      model: providerModel
     }
     this.modelRuntime = new ModelRuntime(this.providerConfig)
   }

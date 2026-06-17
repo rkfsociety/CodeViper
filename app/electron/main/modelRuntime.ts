@@ -60,7 +60,9 @@ export class ModelRuntime {
         if (err instanceof DOMException && err.name === 'AbortError') throw err
         // Если уже получили данные — не делаем fallback (частичный ответ)
         if (hadChunk) throw err
-        // Иначе — пробуем локальную Ollama
+        // 4xx = ошибка конфигурации (неверный ключ, неверная модель) — сообщаем явно, без fallback
+        if (err instanceof Error && /API error [45]\d\d/.test(err.message)) throw err
+        // Иначе (сеть, таймаут, 5xx) — пробуем локальную Ollama
         const ollamaBaseUrl = this.config.baseUrl?.includes('ollama')
           ? this.config.baseUrl
           : 'http://127.0.0.1:11434'

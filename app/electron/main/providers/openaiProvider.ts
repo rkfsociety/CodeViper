@@ -73,7 +73,13 @@ export class OpenAIProvider implements ModelProvider {
     })
 
     if (!res.ok) {
-      throw new Error(`OpenAI API error: ${res.status}`)
+      const body = await res.text().catch(() => '')
+      let detail = body
+      try {
+        const parsed = JSON.parse(body) as { error?: { message?: string } }
+        if (parsed?.error?.message) detail = parsed.error.message
+      } catch { /* keep raw body */ }
+      throw new Error(`OpenAI API error ${res.status}: ${detail}`)
     }
 
     const reader = res.body?.getReader()

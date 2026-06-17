@@ -91,9 +91,12 @@ export function SettingsModal({
 
   function handleProviderChange(newProvider: 'ollama' | 'deepseek' | 'openai') {
     const patch: Partial<AgentSettings> = { modelProvider: newProvider }
-    // При переключении на DeepSeek — подставить дефолтный URL и модель
     if (newProvider === 'deepseek') {
       if (!settings.providerApiKey) patch.providerApiKey = ''
+      // Если текущая модель не deepseek-* — подставляем дефолтную
+      if (!/^deepseek/i.test(settings.model || '')) {
+        patch.model = DEEPSEEK_MODEL_DEFAULT
+      }
     }
     onSettingsChange(patch)
   }
