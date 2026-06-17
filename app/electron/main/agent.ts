@@ -58,7 +58,13 @@ function isAbortError(error: unknown): boolean {
 
 export function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
   if (typeof args === 'string') {
-    return JSON.parse(args) as Record<string, string>
+    try {
+      return JSON.parse(args) as Record<string, string>
+    } catch {
+      // Модель иногда возвращает строку-аргумент вместо JSON-объекта.
+      // Передаём как есть, чтобы обработчик мог вернуть внятную ошибку.
+      return { _raw: args }
+    }
   }
   return args
 }

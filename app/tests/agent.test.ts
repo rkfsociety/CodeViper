@@ -20,7 +20,13 @@ describe('parseToolArgs', () => {
     })
   })
 
-  it('бросает на невалидном JSON', () => {
-    expect(() => parseToolArgs('{битый')).toThrow()
+  it('при невалидном JSON возвращает { _raw } вместо краша', () => {
+    const result = parseToolArgs('{битый')
+    expect(result).toEqual({ _raw: '{битый' })
+  })
+
+  it('при пустой строке возвращает { _raw }', () => {
+    const result = parseToolArgs('')
+    expect(result).toEqual({ _raw: '' })
   })
 })
