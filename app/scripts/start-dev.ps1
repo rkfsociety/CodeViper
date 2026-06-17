@@ -106,7 +106,15 @@ function Sync-FromGitHub {
 }
 
 Write-Log "Launch from $root"
+
+# Запоминаем коммит ДО синхронизации, чтобы понять — изменился ли код
+$repo = Split-Path $root -Parent
+$commitBefore = try { (git -C $repo rev-parse HEAD 2>$null) } catch { $null }
+
 Sync-FromGitHub
+
+$commitAfter = try { (git -C $repo rev-parse HEAD 2>$null) } catch { $null }
+$codeChanged = ($commitBefore -ne $commitAfter) -and ($null -ne $commitAfter)
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   Show-Error "Node.js не найден.`nУстановите с https://nodejs.org и перезапустите."
@@ -114,7 +122,6 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 }
 
 function Get-DepsHash {
-  # Хэш package-lock.json (или package.json как запасной вариант) — отпечаток зависимостей.
   $lock = Join-Path $root 'package-lock.json'
   if (-not (Test-Path $lock)) { $lock = Join-Path $root 'package.json' }
   if (-not (Test-Path $lock)) { return $null }
@@ -136,6 +143,19 @@ if ($needInstall) {
   if ($currentHash) {
     try { $currentHash | Out-File -FilePath $stampFile -Encoding ascii -NoNewline } catch {}
   }
+}
+
+# Пересобираем, если код обновился из GitHub или out/ отсутствует
+$outDir = Join-Path $root 'out'
+$needBuild = $codeChanged -or (-not (Test-Path $outDir))
+
+if ($needBuild) {
+  Write-Log 'npm run build... (код обновился с GitHub или out/ отсутствует)'
+  if ((Invoke-Npm @('run', 'build')) -ne 0) {
+    Show-Error "npm run build не удался.`nЛог: $devLogFile`nПопробуйте: CodeViper.cmd console"
+    exit 1
+  }
+  Write-Log 'build успешен'
 }
 
 Write-Log 'npm run dev...'
