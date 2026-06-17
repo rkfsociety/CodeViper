@@ -6,9 +6,6 @@
 
 Задачи сгруппированы по теме, внутри каждой группы — от лёгких к сложным. Нумерация начинается с 1.
 
-### Безопасность
-
-
 ### Инструменты разработчика
 
 - [ ] **1. Документация API инструментов** — `docs/tools-api.md` из схем `AGENT_TOOLS`: аргументы, типы, примеры; нужна авторам плагинов
@@ -93,6 +90,9 @@
 
 - [x] **Ужесточить дефолты безопасности** — дефолт `permissionMode` `bypass`→`acceptEdits` (требует подтверждения для команд); `sandbox: true` в webPreferences; предупреждение при первом запуске; проверка на скрипты .ps1/.bat в dangerDetector
 - [x] **Санитизация путей в инструментах агента** — `assertInsideProject` в `agentHandlersProject.ts` проверяет, что `path`/`from`/`to` после `path.resolve` остаются внутри `projectPath`; при выходе за границы — `AgentError('readonly')`; покрыто тестами (write/create/move/traversal)
+- [x] **Ограничение доступа к ФС на чтение** — расширить guard санитизации путей на `read_file`, `grep_files`, `find_files`; вспомогательная `assertInsideProject(path, projectPath)` используется везде; 4 теста для read-операций
+- [x] **Шифрование API-ключей** — `safeStorage.encryptString` / `decryptString` из Electron; прозрачно для UI через IPC в `loadSettings` / `saveSettings`
+- [x] **ESLint + Prettier** — `eslint.config.js` (typescript-eslint + react-hooks), `.prettierrc`, `.prettierignore`, скрипты `lint`/`lint:fix`/`format` в `package.json`; npm install и форматирование кода
 - [x] **Базовые возможности** — стриминг в реальном времени, кнопка «Стоп», выбор проекта, дерево файлов в промпте, настройки, проверка зависимостей
 - [x] **Инструменты агента** — `create/edit/append/delete/move_file`, `undo_edit`, `git_status/diff/log`, `grep_files`, `find_files`; безопасные обёртки без shell-инъекций; режим «только чтение»
 - [x] **Управление моделями** — Ollama: каталог по RAM, автовыбор, скачивание/удаление из UI, `keep_alive` в VRAM; облачные API (DeepSeek, любой OpenAI-совместимый): абстракция `ModelProvider`, маскировка ключей, fallback; глубокое рассуждение (think-блок)
