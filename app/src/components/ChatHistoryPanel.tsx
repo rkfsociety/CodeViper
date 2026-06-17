@@ -192,6 +192,8 @@ export function ChatHistoryPanel({
           <button
             className={`btn chat-history-btn${chat.pinned ? ' active' : ''}`}
             title={chat.pinned ? 'Открепить' : 'Закрепить'}
+            aria-label={chat.pinned ? 'Открепить чат' : 'Закрепить чат'}
+            aria-pressed={chat.pinned ?? false}
             onClick={(e) => {
               e.stopPropagation()
               void window.codeviper.updateChat(chat.id, { pinned: !chat.pinned })
@@ -202,6 +204,7 @@ export function ChatHistoryPanel({
           <button
             className="btn chat-history-btn"
             title="Переименовать"
+            aria-label="Переименовать чат"
             onClick={(e) => {
               e.stopPropagation()
               setPrompt({ kind: 'rename-chat', chatId: chat.id, defaultValue: chat.title })
@@ -212,6 +215,7 @@ export function ChatHistoryPanel({
           <button
             className="btn chat-history-btn"
             title="Удалить"
+            aria-label="Удалить чат"
             onClick={(e) => {
               e.stopPropagation()
               setConfirm({ kind: 'delete-chat', chatId: chat.id, title: chat.title })
@@ -275,7 +279,7 @@ export function ChatHistoryPanel({
         )}
       </div>
 
-      <div className="chat-history-list">
+      <div className="chat-history-list" role="tree" aria-label="История чатов">
         {folders.map((folder) => {
           const chats = chatsByFolder.get(folder.id) ?? []
           const isCollapsed = collapsed[folder.id]
@@ -310,6 +314,7 @@ export function ChatHistoryPanel({
                 <button
                   className="btn chat-history-btn"
                   title={folder.projectPath ? `Проект: ${folder.projectPath}` : 'Привязать проект к папке'}
+                  aria-label={folder.projectPath ? `Проект папки: ${folder.projectPath}` : 'Привязать проект к папке'}
                   onClick={() => onUpdateFolderProject(folder.id)}
                 >
                   📂
@@ -317,6 +322,7 @@ export function ChatHistoryPanel({
                 <button
                   className="btn chat-history-btn"
                   title="Новый чат в папке"
+                  aria-label="Новый чат в папке"
                   disabled={chatBusy}
                   onClick={() => onCreateChat(folder.id)}
                 >
@@ -325,6 +331,7 @@ export function ChatHistoryPanel({
                 <button
                   className="btn chat-history-btn"
                   title="Удалить папку"
+                  aria-label="Удалить папку"
                   onClick={() =>
                     setConfirm({ kind: 'delete-folder', folderId: folder.id, name: folder.name })
                   }

@@ -42,7 +42,16 @@ export function useAgentStream({
 
   const lastAssistantContentRef = useRef('')
   const activeToolMessageIdRef = useRef<string | null>(null)
+  const activeToolNameRef = useRef<string | undefined>(undefined)
   const genStartRef = useRef<number | null>(null)
+
+  // Task 23: wrap mutable callbacks in refs so the single useEffect closure never goes stale
+  const appendMessageRef = useRef(appendMessage)
+  const upsertMessageRef = useRef(upsertMessage)
+  const setContextPreviewRef = useRef(setContextPreview)
+  appendMessageRef.current = appendMessage
+  upsertMessageRef.current = upsertMessage
+  setContextPreviewRef.current = setContextPreview
 
   const resetStreamState = useCallback(() => {
     setDraft('')
@@ -52,6 +61,7 @@ export function useAgentStream({
     setSummarizing(false)
     setGenerationMetrics(null)
     activeToolMessageIdRef.current = null
+    activeToolNameRef.current = undefined
     lastAssistantContentRef.current = ''
     genStartRef.current = null
   }, [])
@@ -87,7 +97,7 @@ export function useAgentStream({
         const cleaned = sanitizeAssistantContent(event.content ?? '')
         if (!cleaned || lastAssistantContentRef.current === cleaned) return
         lastAssistantContentRef.current = cleaned
-        appendMessage({
+        appendMessageRef.current({
           id: makeId(),
           role: 'assistant',
           content: cleaned,
@@ -103,9 +113,10 @@ export function useAgentStream({
         setDraftThinking('')
         setAgentPhase('tool')
         setActiveToolName(event.toolName)
+        activeToolNameRef.current = event.toolName
         const id = makeId()
         activeToolMessageIdRef.current = id
-        upsertMessage({
+        upsertMessageRef.current({
           id,
           role: 'tool',
           content: compactToolChatLine(event.toolName, undefined, 'start'),
@@ -117,9 +128,10 @@ export function useAgentStream({
       if (event.type === 'tool_end') {
         setAgentPhase('thinking')
         setActiveToolName(undefined)
+        activeToolNameRef.current = undefined
         const id = activeToolMessageIdRef.current ?? makeId()
         activeToolMessageIdRef.current = null
-        upsertMessage({
+        upsertMessageRef.current({
           id,
           role: 'tool',
           content: compactToolChatLine(event.toolName, event.toolOutput, 'end'),
@@ -130,16 +142,22 @@ export function useAgentStream({
       }
 
       if (event.type === 'error') {
-        appendMessage({
+        appendMessageRef.current({
           id: makeId(),
           role: 'system',
           content: event.content ?? '',
           timestamp: Date.now()
         })
+        // Task 24: error means the run is ending — continue the queue
+        const runId = runIdRef.current
+        if (doneRunIdRef.current !== runId) {
+          doneRunIdRef.current = runId
+          void processNextQueuedRunRef.current()
+        }
       }
 
       if (event.type === 'learning_saved') {
-        appendMessage({
+        appendMessageRef.current({
           id: makeId(),
           role: 'system',
           content: `🧠 Запомнено: ${event.content ?? ''}`,
@@ -149,7 +167,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'skill_saved') {
-        appendMessage({
+        appendMessageRef.current({
           id: makeId(),
           role: 'system',
           content: `🛠️ Навык сохранён: ${event.content ?? ''}${event.skillId ? ` (${event.skillId})` : ''}`,
@@ -159,7 +177,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'self_improve_plan') {
-        appendMessage({
+        appendMessageRef.current({
           id: makeId(),
           role: 'system',
           content: event.content ?? '',
@@ -173,7 +191,7 @@ export function useAgentStream({
           setRunModel(model)
           onActiveModelChangeRef.current?.(model)
         }
-        appendMessage({
+        appendMessageRef.current({
           id: makeId(),
           role: 'system',
           content: event.content ?? `🤖 Модель: ${model}`,
@@ -190,9 +208,9 @@ export function useAgentStream({
           setSummarizing(event.summarizing)
         }
         if (event.contextPreview) {
-          setContextPreview(event.contextPreview)
+          setContextPreviewRef.current(event.contextPreview)
         } else if (event.content) {
-          appendMessage({
+          appendMessageRef.current({
             id: makeId(),
             role: 'system',
             content: event.content,
@@ -205,12 +223,24 @@ export function useAgentStream({
         const runId = runIdRef.current
         if (doneRunIdRef.current === runId) return
         doneRunIdRef.current = runId
+        // Task 28: finalize incomplete tool_start without matching tool_end
+        if (activeToolMessageIdRef.current) {
+          const name = activeToolNameRef.current ?? ''
+          upsertMessageRef.current({
+            id: activeToolMessageIdRef.current,
+            role: 'tool',
+            content: compactToolChatLine(name, '⚠️ Прервано', 'end'),
+            toolName: name,
+            timestamp: Date.now()
+          })
+          activeToolMessageIdRef.current = null
+          activeToolNameRef.current = undefined
+        }
         setDraft('')
         setDraftThinking('')
         setAgentPhase('thinking')
         setActiveToolName(undefined)
         setSummarizing(false)
-        activeToolMessageIdRef.current = null
         genStartRef.current = null
         onAgentDoneRef?.current?.()
         void processNextQueuedRunRef.current()

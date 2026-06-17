@@ -74,7 +74,21 @@ export function isInsideProject(projectPath: string, targetPath: string): boolea
   return target === root || target.startsWith(root + sep)
 }
 
-export async function buildFileTree(dirPath: string, depth = 0, maxDepth = 3): Promise<FileNode[]> {
+const FILE_TREE_CACHE_TTL_MS = 8_000
+
+interface FileTreeCacheEntry {
+  nodes: FileNode[]
+  expiresAt: number
+}
+
+const fileTreeCache = new Map<string, FileTreeCacheEntry>()
+
+export function invalidateFileTreeCache(dirPath?: string): void {
+  if (dirPath) fileTreeCache.delete(dirPath)
+  else fileTreeCache.clear()
+}
+
+async function buildFileTreeRaw(dirPath: string, depth: number, maxDepth: number): Promise<FileNode[]> {
   if (depth > maxDepth) return []
 
   const entries = await readdir(dirPath, { withFileTypes: true })
@@ -91,10 +105,26 @@ export async function buildFileTree(dirPath: string, depth = 0, maxDepth = 3): P
     }
 
     if (entry.isDirectory()) {
-      node.children = await buildFileTree(fullPath, depth + 1, maxDepth)
+      node.children = await buildFileTreeRaw(fullPath, depth + 1, maxDepth)
     }
 
     nodes.push(node)
+  }
+
+  return nodes
+}
+
+export async function buildFileTree(dirPath: string, depth = 0, maxDepth = 3): Promise<FileNode[]> {
+  const cacheKey = `${dirPath}:${maxDepth}`
+  if (depth === 0) {
+    const cached = fileTreeCache.get(cacheKey)
+    if (cached && cached.expiresAt > Date.now()) return cached.nodes
+  }
+
+  const nodes = await buildFileTreeRaw(dirPath, depth, maxDepth)
+
+  if (depth === 0) {
+    fileTreeCache.set(cacheKey, { nodes, expiresAt: Date.now() + FILE_TREE_CACHE_TTL_MS })
   }
 
   return nodes

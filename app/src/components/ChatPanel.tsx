@@ -357,7 +357,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   const projectLocked = messages.length > 0
-  const visibleDraft = visibleAssistantContent(draft)
+
+  const rawDraft = visibleAssistantContent(draft)
+  // Task 27: suppress draft if last committed assistant message has identical content (race guard)
+  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant')
+  const visibleDraft =
+    rawDraft && lastAssistantMsg && visibleAssistantContent(lastAssistantMsg.content) === rawDraft
+      ? ''
+      : rawDraft
 
   const lastVisibleMessage = [...messages].reverse().find(shouldShowAssistantMessage)
   const awaitingClarification =
@@ -446,12 +453,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               )}
               <MessageCopyButton text={messageCopyText(message)} />
               {!busy && (
-                <button type="button" className={`btn message-pin-btn${pinnedMessageIds.has(message.id) ? ' active' : ''}`} title={pinnedMessageIds.has(message.id) ? 'Открепить' : 'Закрепить'} onClick={() => togglePinMessage(message.id)}>📌</button>
+                <button type="button" className={`btn message-pin-btn${pinnedMessageIds.has(message.id) ? ' active' : ''}`} title={pinnedMessageIds.has(message.id) ? 'Открепить' : 'Закрепить'} aria-label={pinnedMessageIds.has(message.id) ? 'Открепить сообщение' : 'Закрепить сообщение'} aria-pressed={pinnedMessageIds.has(message.id)} onClick={() => togglePinMessage(message.id)}>📌</button>
               )}
               {!busy && message.role === 'user' && (
                 <>
-                  <button type="button" className="btn message-action-btn" title="Повторить" onClick={() => void retryUserMessage(message)}>↺</button>
-                  <button type="button" className="btn message-action-btn" title="Изменить" onClick={() => editUserMessage(message)}>✎</button>
+                  <button type="button" className="btn message-action-btn" title="Повторить" aria-label="Повторить запрос" onClick={() => void retryUserMessage(message)}>↺</button>
+                  <button type="button" className="btn message-action-btn" title="Изменить" aria-label="Редактировать запрос" onClick={() => editUserMessage(message)}>✎</button>
                 </>
               )}
             </div>

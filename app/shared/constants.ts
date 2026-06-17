@@ -28,6 +28,10 @@ export const DEFAULT_COMMAND_TIMEOUT_SEC = 120
 export const COMMAND_TIMEOUT_SEC_MIN = 10
 export const COMMAND_TIMEOUT_SEC_MAX = 600
 
+// ── Агент: таймаут прогона ────────────────────────────────────────────────────
+/** Максимальное суммарное время одного прогона агента (мс). По истечении — ошибка таймаута. */
+export const AGENT_RUN_TIMEOUT_MS = 10 * 60 * 1000
+
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
 export const CONTEXT_PREVIEW_DEBOUNCE_MS = 600

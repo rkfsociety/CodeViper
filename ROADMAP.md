@@ -33,17 +33,17 @@
 
 ### 🟡 Уровень 2 — надёжность и устойчивость (несколько файлов, без новых подсистем)
 
-- [ ] **20. Обработка ошибок** — класс `AgentError` и единый механизм обработки
-- [ ] **21. Кэширование файлового дерева** — кэш на 5–10 секунд
-- [ ] **22. Доступность (расширить)** — ARIA-атрибуты и полноценное управление с клавиатуры по всему интерфейсу (фокус-trap модалок уже сделан)
-- [ ] **23. `useAgentStream`: замыкание на устаревшие `appendMessage`/`upsertMessage`** — `useEffect` с пустыми зависимостями захватывает функции из первого рендера; использовать ref на актуальные коллбэки
-- [ ] **24. `useAgentStream`: очередь зависает при `error`** — событие `error` не вызывает `processNextQueuedRun`; сбрасывать `agentRunning` и продолжать очередь
-- [ ] **25. `useAgentStream`: событие `done` может не прийти** — нужен гарантированный финализатор (`finally`/watchdog), иначе очередь стоит
-- [ ] **26. `useAgentStream`: нет таймаута на ответ агента** — если модель/Ollama зависла, подписка висит вечно; таймаут с авто-сбросом
-- [ ] **27. `useAgentStream`: дублирование сообщений при быстрых ответах** — гонка `token` → `assistant`: черновик не успевает очиститься
-- [ ] **28. `useAgentStream`: незавершённые тулзы** — `tool_start` без `tool_end` оставляет сообщение в состоянии `start` навсегда; помечать как прерванное
-- [ ] **29. `useMessageQueue`: очередь не продолжается после ошибок в `executeRun`** — сбой `checkAgentPrerequisites`/отсутствие модели/ошибка `runAgent` → следующие сообщения зависают
-- [ ] **30. `useMessageQueue`: `stopAgent` не гарантирует продолжение очереди** — если `done` не пришёл, очередь стоит
+- [x] **20. Обработка ошибок** — создан `shared/agentError.ts`: класс `AgentError` с кодами `timeout | no_model | prerequisites | run_failed | stream_lost | readonly`
+- [x] **21. Кэширование файлового дерева** — Map-кэш с TTL 8 с для `buildFileTree` в `services.ts`; `invalidateFileTreeCache()` для ручного сброса
+- [x] **22. Доступность (расширить)** — `aria-label` на всех icon-only кнопках в ChatHistoryPanel и ChatPanel; `role="tree"` на списке чатов; `aria-pressed` для toggle-кнопок
+- [x] **23. `useAgentStream`: замыкание на устаревшие коллбэки** — `appendMessage`, `upsertMessage`, `setContextPreview` обёрнуты в рефы; эффект всегда видит актуальные функции
+- [x] **24. `useAgentStream`: очередь зависает при `error`** — событие `error` теперь тоже вызывает `processNextQueuedRunRef` (с guard через `doneRunIdRef`)
+- [x] **25. `useAgentStream`: событие `done` может не прийти** — watchdog: 150 мс после `runAgent` resolve, затем проверка `doneRunIdRef` и принудительный `processNextQueuedRun`
+- [x] **26. `useAgentStream`: нет таймаута на ответ агента** — `Promise.race` с `AgentError('timeout')` через `AGENT_RUN_TIMEOUT_MS` (10 мин)
+- [x] **27. `useAgentStream`: дублирование сообщений при быстрых ответах** — `visibleDraft` подавляется, если последнее assistant-сообщение имеет идентичный контент
+- [x] **28. `useAgentStream`: незавершённые инструменты** — в обработчике `done`: если `activeToolMessageIdRef` не пуст — `upsertMessage` с `⚠️ Прервано`
+- [x] **29. `useMessageQueue`: очередь не продолжается после ошибок** — catch в `executeRun` вызывает `processNextQueuedRunRef`; вся ручная очистка стейта убрана
+- [x] **30. `useMessageQueue`: `stopAgent` не гарантирует продолжение очереди** — 250 мс задержка после `stopAgent()`, затем принудительный `processNextQueuedRun` если агент всё ещё числится запущенным
 - [ ] **31. `useMessageQueue`: гонка `stopAgent` ↔ `processNextQueuedRun`** — одновременное управление очередью → дубли/пропуски
 - [ ] **32. `useMessageQueue`: нет ограничения длины очереди** — десятки сообщений подряд → разрастание и утечка памяти
 - [ ] **33. `useMessageQueue`: нет повтора при временных сбоях** — упавший из-за сети `runAgent` не повторяется

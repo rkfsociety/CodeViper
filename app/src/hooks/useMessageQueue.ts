@@ -5,6 +5,8 @@ import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
 import { detectDanger } from '../../shared/dangerDetector'
 import type { DangerWarning } from '../../shared/dangerDetector'
 import type { AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
+import { AgentError } from '../../shared/agentError'
+import { AGENT_RUN_TIMEOUT_MS } from '../../shared/constants'
 
 export interface PrerequisiteBlock {
   issues: AgentPrerequisiteIssue[]
@@ -121,19 +123,34 @@ export function useMessageQueue({
     const idx = messagesRef.current.findIndex((item) => item.id === userMessageId)
     const history = idx >= 0 ? messagesRef.current.slice(0, idx) : messagesRef.current
 
+    // Task 26: hard timeout so a frozen model/Ollama doesn't hang forever
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new AgentError('Агент не ответил — превышено время ожидания', 'timeout')),
+        AGENT_RUN_TIMEOUT_MS
+      )
+    )
+
     try {
-      await window.codeviper.runAgent(currentSettings, project, chat, history, text)
+      await Promise.race([
+        window.codeviper.runAgent(currentSettings, project, chat, history, text),
+        timeoutPromise
+      ])
+      // Task 25: brief window for the 'done' stream event to be processed
+      await new Promise<void>((resolve) => setTimeout(resolve, 150))
+      if (doneRunIdRef.current !== runIdRef.current) {
+        // done event didn't arrive — recover the queue
+        void processNextQueuedRunRef.current()
+      }
     } catch (error) {
-      agentRunningRef.current = false
-      setAgentRunning(false)
-      syncBusyState(false, queueRef.current.length)
-      onRunStartRef.current()
+      // Task 29: catch (including timeout) must also continue the queue
       appendMessage({
         id: makeId(),
         role: 'system',
         content: error instanceof Error ? error.message : String(error),
         timestamp: Date.now()
       })
+      void processNextQueuedRunRef.current()
     }
   }
 
@@ -186,6 +203,11 @@ export function useMessageQueue({
     syncBusyState(agentRunningRef.current, 0)
     if (agentRunningRef.current) {
       await window.codeviper.stopAgent()
+      // Task 30: if done event doesn't arrive after stop, force queue continuation
+      await new Promise<void>((resolve) => setTimeout(resolve, 250))
+      if (agentRunningRef.current) {
+        void processNextQueuedRunRef.current()
+      }
     } else {
       agentRunningRef.current = false
       setAgentRunning(false)
