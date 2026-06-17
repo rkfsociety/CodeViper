@@ -9,15 +9,15 @@
 файлов без новых подсистем → 🟠 новая подсистема внутри приложения → 🔴 внешние
 сервисы / инфраструктура / сборка → ⚫ распределённая инфраструктура.
 
-### 🟢 Уровень 2а — очень лёгкие (1–2 файла)
+### 🟢 Уровень 2а — очень лёгкие (1–2 файла) ✅
 
-- [ ] **31. Хуки: нет проверки `chatId`/`projectPath` перед вызовами** — добавить guard-условия в начало каждой async-функции, которая обращается к `window.codeviper.*`; предотвращает вызовы с `null`/пустой строкой
-- [ ] **32. `useMessageQueue`: нет ограничения длины очереди** — добавить константу `MAX_QUEUE_SIZE = 50` и отбрасывать лишние сообщения с системным уведомлением; 3–5 строк в `submitMessage`
-- [ ] **33. Расширить `dangerDetector`** — добавить паттерны: изменение переменных окружения (`export`, `set`, `.env` перезапись), глобальная установка пакетов (`npm install -g`, `pip install`, `choco install`), `curl | bash`
-- [ ] **34. `useOllamaDownloadQueue`: ошибка `onRefresh` игнорируется** — обернуть вызов `onRefresh` в `try/catch`; при ошибке не удалять модель из очереди и показать сообщение
-- [ ] **35. Хуки: не везде отмена подписок/запросов при размонтировании** — проверить все `useEffect` с `window.codeviper.*`; там, где нет cleanup, добавить флаг `let active = true` по образцу `useContextPreview`
-- [ ] **36. `useMessageQueue`: рассинхрон `agentRunning`/`queueSize`** — заменить два параллельных источника истины (ref + useState) на один: `agentRunningRef` как единственный источник, `setAgentRunning` вызывается только рядом с его изменением
-- [ ] **37. Инвалидация кэша файлового дерева по событиям ФС** — в `services.ts` добавить `fs.watch` на корень проекта; при любом событии вызвать `invalidateFileTreeCache(dirPath)`; убирает протухший кэш без перезапуска
+- [x] **31. Хуки: нет проверки `chatId`/`projectPath` перед вызовами** — guard в начале `submitMessage` и `confirmDangerRun`; `executeRun` уже имел проверку
+- [x] **32. `useMessageQueue`: нет ограничения длины очереди** — константа `MAX_QUEUE_SIZE = 50` в `constants.ts`; при переполнении — системное сообщение, сообщение отбрасывается
+- [x] **33. Расширить `dangerDetector`** — добавлены паттерны: `curl | bash`, `npm install -g`, `pip install` (системный), `choco/winget/brew install`, изменение `PATH`/`HOME` и др. env-переменных, перезапись `.env`
+- [x] **34. `useOllamaDownloadQueue`: ошибка `onRefresh` игнорируется** — вызов обёрнут в `try/catch`; при ошибке логирует в консоль, модель всё равно помечается установленной
+- [x] **35. Хуки: не везде отмена при размонтировании** — добавлен `active` flag в `loadSettings` useEffect в App.tsx; все подписки (`onAgentStream`, `onOllamaPullProgress`, `onAgentConfirm`) уже возвращали unsubscribe
+- [x] **36. `useMessageQueue`: рассинхрон `agentRunning`** — введён хелпер `setRunning(value)`, который атомарно обновляет и `agentRunningRef.current`, и `setAgentRunning`; все разрозненные парные вызовы заменены
+- [x] **37. Инвалидация кэша файлового дерева по ФС** — `watchProjectForCacheInvalidation` с `fs.watch({ recursive: true })`; вызывается автоматически при первом `buildFileTree`; при любом изменении — `invalidateFileTreeCache(dirPath)`
 
 ### 🟡 Уровень 2б — несколько файлов, без новых подсистем
 

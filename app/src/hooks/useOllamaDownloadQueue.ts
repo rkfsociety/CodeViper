@@ -53,7 +53,11 @@ export function useOllamaDownloadQueue({
 
         try {
           await window.codeviper.pullOllamaModel(ollamaUrlRef.current, name)
-          await onRefresh()
+          try {
+            await onRefresh()
+          } catch (refreshErr) {
+            console.error('[useOllamaDownloadQueue] onRefresh failed:', refreshErr)
+          }
           onModelInstalled?.(name)
         } catch (err) {
           setError(err instanceof Error ? err.message : String(err))

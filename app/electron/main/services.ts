@@ -1,5 +1,5 @@
 import { access, appendFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'fs/promises'
-import { constants } from 'fs'
+import { constants, watch as fsWatch } from 'fs'
 import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
@@ -84,8 +84,27 @@ interface FileTreeCacheEntry {
 const fileTreeCache = new Map<string, FileTreeCacheEntry>()
 
 export function invalidateFileTreeCache(dirPath?: string): void {
-  if (dirPath) fileTreeCache.delete(dirPath)
-  else fileTreeCache.clear()
+  if (dirPath) {
+    for (const key of fileTreeCache.keys()) {
+      if (key.startsWith(dirPath)) fileTreeCache.delete(key)
+    }
+  } else {
+    fileTreeCache.clear()
+  }
+}
+
+const watchedDirs = new Set<string>()
+
+export function watchProjectForCacheInvalidation(dirPath: string): void {
+  if (watchedDirs.has(dirPath)) return
+  watchedDirs.add(dirPath)
+  try {
+    fsWatch(dirPath, { recursive: true }, () => {
+      invalidateFileTreeCache(dirPath)
+    })
+  } catch {
+    // fs.watch may fail on some network drives or permission-restricted paths
+  }
 }
 
 async function buildFileTreeRaw(dirPath: string, depth: number, maxDepth: number): Promise<FileNode[]> {
@@ -119,6 +138,7 @@ export async function buildFileTree(dirPath: string, depth = 0, maxDepth = 3): P
   if (depth === 0) {
     const cached = fileTreeCache.get(cacheKey)
     if (cached && cached.expiresAt > Date.now()) return cached.nodes
+    watchProjectForCacheInvalidation(dirPath)
   }
 
   const nodes = await buildFileTreeRaw(dirPath, depth, maxDepth)

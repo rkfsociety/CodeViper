@@ -103,10 +103,14 @@ export default function App() {
   })
 
   useEffect(() => {
+    let active = true
     void window.codeviper.loadSettings().then((saved) => {
-      setSettings(saved)
-      setSettingsReady(true)
+      if (active) {
+        setSettings(saved)
+        setSettingsReady(true)
+      }
     })
+    return () => { active = false }
   }, [])
 
   useEffect(() => {

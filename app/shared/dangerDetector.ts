@@ -80,6 +80,43 @@ const PATTERNS: DangerPattern[] = [
     level: 'warning',
     title: 'Удаление .env файла',
     description: 'Задача может удалить файл конфигурации с секретными ключами.'
+  },
+  {
+    pattern: /\bcurl\s+[^\n|&;]+\|\s*(sh|bash|zsh|powershell|pwsh)\b/i,
+    level: 'danger',
+    title: 'Выполнение скрипта из интернета',
+    description: '`curl | bash` запускает произвольный код с удалённого сервера без проверки содержимого.'
+  },
+  {
+    pattern: /\bnpm\s+(install|i)\s+(-g|--global)\b/i,
+    level: 'warning',
+    title: 'Глобальная установка npm-пакета',
+    description: 'Пакет устанавливается глобально и изменяет системное окружение.'
+  },
+  {
+    pattern: /\bpip\s+(install|install3)\b(?!.*--user)/i,
+    level: 'warning',
+    title: 'Системная установка Python-пакета',
+    description: 'Пакет устанавливается в системный Python без `--user`, что изменяет глобальное окружение.'
+  },
+  {
+    pattern: /\b(choco|winget|brew)\s+install\b/i,
+    level: 'warning',
+    title: 'Установка системного пакета',
+    description: 'Задача устанавливает программное обеспечение на уровне системы.'
+  },
+  {
+    pattern:
+      /\b(export|set|setx|Set-Item\s+Env:|[Ee]nv:)\b.{0,80}(PATH|HOME|APPDATA|USERPROFILE|PYTHONPATH|NODE_PATH)\b/i,
+    level: 'warning',
+    title: 'Изменение переменной окружения',
+    description: 'Задача меняет системную переменную окружения, что может повлиять на другие приложения.'
+  },
+  {
+    pattern: /\b(перезапис|overwrite|rewrite)\b.{0,60}\.env\b/i,
+    level: 'warning',
+    title: 'Перезапись .env файла',
+    description: 'Задача может перезаписать файл конфигурации с секретными ключами.'
   }
 ]
 

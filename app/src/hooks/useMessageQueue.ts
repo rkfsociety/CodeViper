@@ -6,7 +6,7 @@ import { detectDanger } from '../../shared/dangerDetector'
 import type { DangerWarning } from '../../shared/dangerDetector'
 import type { AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
 import { AgentError } from '../../shared/agentError'
-import { AGENT_RUN_TIMEOUT_MS } from '../../shared/constants'
+import { AGENT_RUN_TIMEOUT_MS, MAX_QUEUE_SIZE } from '../../shared/constants'
 
 export interface PrerequisiteBlock {
   issues: AgentPrerequisiteIssue[]
@@ -67,6 +67,11 @@ export function useMessageQueue({
     onBusyChange?.(busy)
   }, [busy, onBusyChange])
 
+  function setRunning(value: boolean) {
+    agentRunningRef.current = value
+    setAgentRunning(value)
+  }
+
   function syncBusyState(running: boolean, queued: number) {
     onBusyChange?.(running || queued > 0)
   }
@@ -77,8 +82,7 @@ export function useMessageQueue({
     const currentSettings = settingsRef.current
     if (!project || !chat) return
 
-    agentRunningRef.current = true
-    setAgentRunning(true)
+    setRunning(true)
     syncBusyState(true, queueRef.current.length)
 
     runIdRef.current += 1
@@ -90,8 +94,7 @@ export function useMessageQueue({
       project
     )
     if (!prereq.ok) {
-      agentRunningRef.current = false
-      setAgentRunning(false)
+      setRunning(false)
       syncBusyState(false, queueRef.current.length)
       onPrerequisiteIssueRef.current({
         issues: prereq.issues,
@@ -108,8 +111,7 @@ export function useMessageQueue({
     }
 
     if (!currentSettings.model.trim()) {
-      agentRunningRef.current = false
-      setAgentRunning(false)
+      setRunning(false)
       syncBusyState(false, queueRef.current.length)
       appendMessage({
         id: makeId(),
@@ -155,8 +157,7 @@ export function useMessageQueue({
   }
 
   async function processNextQueuedRun() {
-    agentRunningRef.current = false
-    setAgentRunning(false)
+    setRunning(false)
 
     const next = queueRef.current.shift()
     setQueueSize(queueRef.current.length)
@@ -172,12 +173,22 @@ export function useMessageQueue({
   processNextQueuedRunRef.current = processNextQueuedRun
 
   async function submitMessage(userMessageId: string, text: string) {
+    if (!chatIdRef.current || !projectPathRef.current) return
     const danger = detectDanger(text)
     if (danger) {
       onDangerWarningRef.current({ warning: danger, pendingRun: { userMessageId, text } })
       return
     }
     if (agentRunningRef.current) {
+      if (queueRef.current.length >= MAX_QUEUE_SIZE) {
+        appendMessage({
+          id: makeId(),
+          role: 'system',
+          content: `Очередь переполнена (максимум ${MAX_QUEUE_SIZE} сообщений). Дождитесь завершения текущих задач.`,
+          timestamp: Date.now()
+        })
+        return
+      }
       queueRef.current.push({ id: userMessageId, text })
       setQueueSize(queueRef.current.length)
       syncBusyState(true, queueRef.current.length)
@@ -187,6 +198,7 @@ export function useMessageQueue({
   }
 
   async function confirmDangerRun(userMessageId: string, text: string) {
+    if (!chatIdRef.current || !projectPathRef.current) return
     if (agentRunningRef.current) {
       queueRef.current.push({ id: userMessageId, text })
       setQueueSize(queueRef.current.length)
@@ -209,8 +221,7 @@ export function useMessageQueue({
         void processNextQueuedRunRef.current()
       }
     } else {
-      agentRunningRef.current = false
-      setAgentRunning(false)
+      setRunning(false)
       syncBusyState(false, 0)
     }
   }
@@ -218,8 +229,7 @@ export function useMessageQueue({
   function resetQueue() {
     queueRef.current = []
     setQueueSize(0)
-    agentRunningRef.current = false
-    setAgentRunning(false)
+    setRunning(false)
   }
 
   return {
