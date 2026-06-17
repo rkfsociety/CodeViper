@@ -65,6 +65,7 @@ export function ChatHistoryPanel({
 }: Props) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
+  const [tagFilter, setTagFilter] = useState('')
   const [draggingChatId, setDraggingChatId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<DropTarget | undefined>(undefined)
   const [prompt, setPrompt] = useState<PromptState | null>(null)
@@ -74,9 +75,19 @@ export function ChatHistoryPanel({
   const filteredChats = useMemo(() => {
     const chats = store?.chats ?? []
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return chats
-    return chats.filter((chat) => chatMatchesQuery(chat, query))
-  }, [store, searchQuery])
+    const tag = tagFilter.trim().toLowerCase()
+    let filtered = query ? chats.filter((chat) => chatMatchesQuery(chat, query)) : chats
+    if (tag) {
+      filtered = filtered.filter((chat) =>
+        chat.tags?.some((t) => t.toLowerCase().includes(tag))
+      )
+    }
+    return [...filtered].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
+      return 0
+    })
+  }, [store, searchQuery, tagFilter])
 
   const chatsByFolder = useMemo(() => {
     const map = new Map<string | null, SavedChat[]>()
@@ -153,19 +164,41 @@ export function ChatHistoryPanel({
     return (
       <div
         key={chat.id}
-        className={`chat-history-item ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''}`}
+        className={`chat-history-item ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${chat.pinned ? 'pinned' : ''}`}
         draggable={!chatBusy}
         onDragStart={(e) => handleDragStart(chat.id, e)}
         onDragEnd={handleDragEnd}
         onClick={() => !chatBusy && onSelectChat(chat.id)}
       >
         <div className="chat-history-item-main">
-          <div className="chat-history-title">{chat.title}</div>
+          <div className="chat-history-title">
+            {chat.pinned && <span className="chat-pin-icon">📌 </span>}
+            {chat.title}
+          </div>
           <div className="chat-history-meta">
             {formatProject(chat.projectPath)} · {formattedDates.get(chat.id)}
           </div>
+          {chat.tags && chat.tags.length > 0 && (
+            <div className="chat-tags">
+              {chat.tags.map((tag) => (
+                <span key={tag} className="chat-tag" onClick={(e) => { e.stopPropagation(); setTagFilter(tag) }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="chat-history-actions">
+          <button
+            className={`btn chat-history-btn${chat.pinned ? ' active' : ''}`}
+            title={chat.pinned ? 'Открепить' : 'Закрепить'}
+            onClick={(e) => {
+              e.stopPropagation()
+              void window.codeviper.updateChat(chat.id, { pinned: !chat.pinned })
+            }}
+          >
+            📌
+          </button>
           <button
             className="btn chat-history-btn"
             title="Переименовать"
@@ -234,6 +267,12 @@ export function ChatHistoryPanel({
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Поиск по названию или проекту…"
         />
+        {tagFilter && (
+          <div className="chat-tag-filter">
+            <span className="chat-tag">{tagFilter}</span>
+            <button type="button" className="btn chat-history-btn" onClick={() => setTagFilter('')}>✕</button>
+          </div>
+        )}
       </div>
 
       <div className="chat-history-list">

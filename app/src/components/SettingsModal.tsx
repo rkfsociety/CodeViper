@@ -346,6 +346,28 @@ export function SettingsModal({
             для долгих сборок или тестов (макс. {COMMAND_TIMEOUT_SEC_MAX} с).
           </div>
 
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={settings.readonlyMode === true}
+              onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
+            />
+            <span>
+              <strong>Режим только чтение</strong> — блокирует все инструменты записи (write_file, edit_file, run_command и др.); агент может только читать файлы и искать по коду
+            </span>
+          </label>
+
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={settings.soundNotifications === true}
+              onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
+            />
+            <span>
+              <strong>Звуковые уведомления</strong> — короткий сигнал при завершении задачи агента
+            </span>
+          </label>
+
             </>
           )}
 

@@ -25,6 +25,7 @@ export function useContextPreview(
       return
     }
 
+    let active = true
     const timer = window.setTimeout(async () => {
       setContextLoading(true)
       setContextError(null)
@@ -35,18 +36,22 @@ export function useContextPreview(
           input.trim(),
           model
         )
-        setContextPreview(preview)
+        if (active) setContextPreview(preview)
       } catch (err) {
+        if (!active) return
         const message = err instanceof Error ? err.message : String(err)
         console.error('[useContextPreview]', message)
         setContextPreview(null)
         setContextError(message)
       } finally {
-        setContextLoading(false)
+        if (active) setContextLoading(false)
       }
     }, CONTEXT_PREVIEW_DEBOUNCE_MS)
 
-    return () => window.clearTimeout(timer)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
   }, [chatId, projectPath, messages, input, model])
 
   return { contextPreview, contextLoading, contextError, setContextPreview }

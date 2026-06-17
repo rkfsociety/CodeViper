@@ -19,6 +19,8 @@ interface ChatIndexEntry {
   projectPath: string
   createdAt: string
   updatedAt: string
+  pinned?: boolean
+  tags?: string[]
 }
 
 interface ChatsIndex {
@@ -110,13 +112,20 @@ function indexEntryFromChat(chat: SavedChat): ChatIndexEntry {
     folderId: chat.folderId,
     projectPath: chat.projectPath,
     createdAt: chat.createdAt,
-    updatedAt: chat.updatedAt
+    updatedAt: chat.updatedAt,
+    ...(chat.pinned !== undefined ? { pinned: chat.pinned } : {}),
+    ...(chat.tags?.length ? { tags: chat.tags } : {})
   }
 }
 
 async function hydrateChat(entry: ChatIndexEntry): Promise<SavedChat> {
   const messages = await loadChatData(entry.id)
-  return { ...entry, messages }
+  return {
+    ...entry,
+    messages,
+    ...(entry.pinned !== undefined ? { pinned: entry.pinned } : {}),
+    ...(entry.tags?.length ? { tags: entry.tags } : {})
+  }
 }
 
 async function migrateLegacyStoreIfNeeded(): Promise<void> {
@@ -215,7 +224,7 @@ export async function createChat(folderId: string | null = null): Promise<SavedC
 
 export async function updateChat(
   id: string,
-  patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath'>>
+  patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
 ): Promise<SavedChat | null> {
   const index = await loadIndex()
   const entry = index.chats.find((item) => item.id === id)
@@ -224,6 +233,8 @@ export async function updateChat(
   if (patch.title !== undefined) entry.title = patch.title
   if (patch.folderId !== undefined) entry.folderId = patch.folderId
   if (patch.projectPath !== undefined) entry.projectPath = patch.projectPath
+  if (patch.pinned !== undefined) entry.pinned = patch.pinned
+  if (patch.tags !== undefined) entry.tags = patch.tags
   entry.updatedAt = new Date().toISOString()
 
   if (patch.messages !== undefined) {

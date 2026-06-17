@@ -17,6 +17,7 @@ export interface UseAgentStreamOptions {
   appendMessage: (message: ChatMessage) => void
   upsertMessage: (message: ChatMessage) => void
   setContextPreview: (preview: AgentContextPreview | null) => void
+  onAgentDoneRef?: MutableRefObject<(() => void) | undefined>
 }
 
 export function useAgentStream({
@@ -28,7 +29,8 @@ export function useAgentStream({
   processNextQueuedRunRef,
   appendMessage,
   upsertMessage,
-  setContextPreview
+  setContextPreview,
+  onAgentDoneRef
 }: UseAgentStreamOptions) {
   const [draft, setDraft] = useState('')
   const [draftThinking, setDraftThinking] = useState('')
@@ -40,6 +42,7 @@ export function useAgentStream({
 
   const lastAssistantContentRef = useRef('')
   const activeToolMessageIdRef = useRef<string | null>(null)
+  const genStartRef = useRef<number | null>(null)
 
   const resetStreamState = useCallback(() => {
     setDraft('')
@@ -50,6 +53,7 @@ export function useAgentStream({
     setGenerationMetrics(null)
     activeToolMessageIdRef.current = null
     lastAssistantContentRef.current = ''
+    genStartRef.current = null
   }, [])
 
   useEffect(() => {
@@ -58,20 +62,25 @@ export function useAgentStream({
 
       if (event.type === 'thinking') {
         setAgentPhase('thinking')
+        if (genStartRef.current === null) genStartRef.current = Date.now()
         setDraftThinking((prev) => prev + (event.content ?? ''))
       }
 
       if (event.type === 'token') {
         setAgentPhase('writing')
+        if (genStartRef.current === null) genStartRef.current = Date.now()
         setDraft((prev) => prev + (event.content ?? ''))
       }
 
       if (event.type === 'clear_draft') {
         setDraft('')
         setDraftThinking('')
+        genStartRef.current = null
       }
 
       if (event.type === 'assistant') {
+        const durationMs = genStartRef.current != null ? Date.now() - genStartRef.current : undefined
+        genStartRef.current = null
         setDraft('')
         setDraftThinking('')
         const thinking = event.thinking?.trim() || undefined
@@ -83,11 +92,13 @@ export function useAgentStream({
           role: 'assistant',
           content: cleaned,
           thinking,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          durationMs
         })
       }
 
       if (event.type === 'tool_start') {
+        genStartRef.current = null
         setDraft('')
         setDraftThinking('')
         setAgentPhase('tool')
@@ -200,6 +211,8 @@ export function useAgentStream({
         setActiveToolName(undefined)
         setSummarizing(false)
         activeToolMessageIdRef.current = null
+        genStartRef.current = null
+        onAgentDoneRef?.current?.()
         void processNextQueuedRunRef.current()
       }
     })

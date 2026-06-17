@@ -114,6 +114,21 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'undo_edit',
+      description:
+        'Отменить последнее изменение файла, сделанное через edit_file (восстановить снимок до правки). Работает только для последнего вызова edit_file для каждого файла.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Абсолютный путь к файлу, правку которого нужно отменить' }
+        },
+        required: ['path']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'append_file',
       description: 'Дописать текст в конец существующего файла (логи, строки в конец и т.п.)',
       parameters: {
@@ -636,6 +651,7 @@ export interface ToolArgs {
   write_file: { path: string; content: string }
   create_file: { path: string; content: string }
   edit_file: { path: string; old_string: string; new_string: string; replace_all?: string }
+  undo_edit: { path: string }
   append_file: { path: string; content: string }
   delete_file: { path: string }
   move_file: { from: string; to: string }

@@ -39,6 +39,7 @@ export default function App() {
   const [settingsReady, setSettingsReady] = useState(false)
   const [activeRunModel, setActiveRunModel] = useState('')
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
+  const [lightMode, setLightMode] = useState(false)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
   const chatPanelRef = useRef<ChatPanelHandle>(null)
@@ -110,6 +111,25 @@ export default function App() {
 
   useEffect(() => {
     return window.codeviper.onAgentConfirm((request) => setConfirmReq(request))
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('light-mode', lightMode)
+  }, [lightMode])
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === ',') {
+        e.preventDefault()
+        setSettingsOpen(true)
+      }
+      if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault()
+        chatPanelRef.current?.focusInput()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const resolveConfirm = useCallback((approved: boolean) => {
@@ -288,7 +308,14 @@ export default function App() {
           >
             Терминал
           </button>
-          <button className="btn" onClick={() => setSettingsOpen(true)}>
+          <button
+            className="btn"
+            title={lightMode ? 'Тёмная тема' : 'Светлая тема'}
+            onClick={() => setLightMode((v) => !v)}
+          >
+            {lightMode ? '🌙' : '☀️'}
+          </button>
+          <button className="btn" onClick={() => setSettingsOpen(true)} title="Настройки (Ctrl+,)">
             Настройки
           </button>
         </div>

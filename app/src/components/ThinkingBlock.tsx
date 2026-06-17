@@ -11,7 +11,7 @@ export function ThinkingBlock({ content, live = false }: Props) {
   if (!content.trim()) return null
 
   return (
-    <div className={`thinking-block${open ? ' open' : ''}`}>
+    <div className={`thinking-block${open ? ' open' : ''}${live ? ' live' : ''}`}>
       <button
         type="button"
         className="thinking-summary"

@@ -18,6 +18,8 @@ export interface ChatMessage {
   /** Рассуждения think-модели (показываются сворачиваемым блоком) */
   thinking?: string
   timestamp: number
+  /** Время генерации этого ответа (мс) */
+  durationMs?: number
 }
 
 export interface ChatFolder {
@@ -36,6 +38,10 @@ export interface SavedChat {
   messages: ChatMessage[]
   createdAt: string
   updatedAt: string
+  /** Закреплённый чат — всегда сверху в списке */
+  pinned?: boolean
+  /** Теги для фильтрации */
+  tags?: string[]
 }
 
 export interface ChatStore {
@@ -103,6 +109,10 @@ export interface AgentSettings {
   providerApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
   commandTimeoutSec?: number
+  /** Режим только чтение: блокирует все инструменты записи */
+  readonlyMode?: boolean
+  /** Звуковое уведомление при завершении задачи агента */
+  soundNotifications?: boolean
 }
 
 export interface AgentConfirmRequest {
@@ -275,7 +285,7 @@ export interface CodeViperAPI {
   createChat: (folderId?: string | null) => Promise<SavedChat>
   updateChat: (
     id: string,
-    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath'>>
+    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
   ) => Promise<SavedChat | null>
   deleteChat: (id: string) => Promise<void>
   createChatFolder: (name: string) => Promise<ChatFolder>

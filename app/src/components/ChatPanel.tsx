@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage } from '../types'
@@ -19,6 +19,7 @@ import { ConfirmDialog } from './ConfirmDialog'
 
 export interface ChatPanelHandle {
   insertPath: (path: string) => void
+  focusInput: () => void
 }
 
 interface Props {
@@ -78,6 +79,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
   const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
   const [contextModalOpen, setContextModalOpen] = useState(false)
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -93,6 +95,26 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
   const doneRunIdRef = useRef(-1)
+  const onAgentDoneRef = useRef<(() => void) | undefined>(undefined)
+
+  onAgentDoneRef.current = settings.soundNotifications
+    ? () => {
+        try {
+          const ctx = new AudioContext()
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+          osc.connect(gain)
+          gain.connect(ctx.destination)
+          osc.frequency.value = 880
+          gain.gain.setValueAtTime(0.25, ctx.currentTime)
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+          osc.start(ctx.currentTime)
+          osc.stop(ctx.currentTime + 0.4)
+        } catch {
+          // AudioContext может быть недоступен
+        }
+      }
+    : undefined
 
   messagesRef.current = messages
   chatIdRef.current = chatId
@@ -150,7 +172,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     processNextQueuedRunRef,
     appendMessage,
     upsertMessage,
-    setContextPreview
+    setContextPreview,
+    onAgentDoneRef
   })
 
   // ── Хук: очередь сообщений и запуск агента ───────────────────────────────
@@ -259,6 +282,33 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   // ── Ввод ─────────────────────────────────────────────────────────────────
+  async function retryUserMessage(message: ChatMessage) {
+    if (busy || !chatId || !projectPath) return
+    const msg: ChatMessage = { id: makeId(), role: 'user', content: message.content, timestamp: Date.now() }
+    appendMessage(msg)
+    await submitMessage(msg.id, message.content)
+  }
+
+  function editUserMessage(message: ChatMessage) {
+    const idx = messagesRef.current.findIndex((m) => m.id === message.id)
+    if (idx >= 0) commitMessages(messagesRef.current.slice(0, idx))
+    setInput(message.content)
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      const len = inputRef.current?.value.length ?? 0
+      inputRef.current?.setSelectionRange(len, len)
+    })
+  }
+
+  const togglePinMessage = useCallback((id: string) => {
+    setPinnedMessageIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
   function insertPrompt(text: string) {
     setInput((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
     requestAnimationFrame(() => {
@@ -268,7 +318,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     })
   }
 
-  useImperativeHandle(ref, () => ({ insertPath: (path: string) => insertPrompt(path) }))
+  useImperativeHandle(ref, () => ({
+    insertPath: (path: string) => insertPrompt(path),
+    focusInput: () => inputRef.current?.focus()
+  }))
 
   async function send() {
     const text = input.trim()
@@ -369,11 +422,38 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           <WelcomePanel onSelect={insertPrompt} />
         )}
 
+        {pinnedMessageIds.size > 0 && (
+          <div className="pinned-messages-section">
+            <div className="pinned-messages-title">📌 Закреплённые</div>
+            {messages.filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m)).map((message) => (
+              <div key={message.id} className={`message ${message.role} pinned`}>
+                <div className="message-header">
+                  <MessageRoleBadge role={message.role} toolName={message.toolName} />
+                  <button type="button" className="btn message-pin-btn active" title="Открепить" onClick={() => togglePinMessage(message.id)}>📌</button>
+                </div>
+                <MessageBody role={message.role} content={message.role === 'assistant' ? visibleAssistantContent(message.content) : message.content} />
+              </div>
+            ))}
+          </div>
+        )}
+
         {messages.filter(shouldShowAssistantMessage).map((message) => (
-          <div key={message.id} className={`message ${message.role}`}>
+          <div key={message.id} className={`message ${message.role}${pinnedMessageIds.has(message.id) ? ' pinned' : ''}`}>
             <div className="message-header">
               <MessageRoleBadge role={message.role} toolName={message.toolName} />
+              {message.role === 'assistant' && message.durationMs != null && (
+                <span className="message-duration" title="Время генерации">⏱ {(message.durationMs / 1000).toFixed(1)}s</span>
+              )}
               <MessageCopyButton text={messageCopyText(message)} />
+              {!busy && (
+                <button type="button" className={`btn message-pin-btn${pinnedMessageIds.has(message.id) ? ' active' : ''}`} title={pinnedMessageIds.has(message.id) ? 'Открепить' : 'Закрепить'} onClick={() => togglePinMessage(message.id)}>📌</button>
+              )}
+              {!busy && message.role === 'user' && (
+                <>
+                  <button type="button" className="btn message-action-btn" title="Повторить" onClick={() => void retryUserMessage(message)}>↺</button>
+                  <button type="button" className="btn message-action-btn" title="Изменить" onClick={() => editUserMessage(message)}>✎</button>
+                </>
+              )}
             </div>
             {message.role === 'assistant' && message.thinking && (
               <ThinkingBlock content={message.thinking} />

@@ -180,7 +180,7 @@ ipcMain.handle(
   async (
     _e,
     id: string,
-    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath'>>
+    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
   ) => updateChat(id, patch)
 )
 

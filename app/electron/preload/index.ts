@@ -101,7 +101,7 @@ const codeviper = {
 
   updateChat: (
     id: string,
-    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath'>>
+    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
   ) => ipcRenderer.invoke('update-chat', id, patch),
 
   deleteChat: (id: string) => ipcRenderer.invoke('delete-chat', id),

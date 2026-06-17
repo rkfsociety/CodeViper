@@ -708,7 +708,8 @@ export class AgentRunner {
         this.projectPath,
         this.settings.commandTimeoutSec != null
           ? this.settings.commandTimeoutSec * 1000
-          : undefined
+          : undefined,
+        { readonlyMode: this.settings.readonlyMode }
       ),
       ...createCodeViperToolHandlers(),
       ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),

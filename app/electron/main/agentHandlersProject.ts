@@ -1,3 +1,5 @@
+import { readFile, writeFile } from 'fs/promises'
+import { join } from 'path'
 import type { ToolHandlers } from './agentTools'
 import { formatFileTree } from './agentContext'
 import {
@@ -17,7 +19,22 @@ import { gitStatus, gitDiff, gitLog } from './gitTools'
 import { parseToolBool } from '../../shared/fileEdit'
 import { parseTreeDepth, formatCommandResult } from './agentHandlersUtils'
 
-export function createProjectToolHandlers(projectPath: string, commandTimeoutMs?: number): Partial<ToolHandlers> {
+const READONLY_ERROR = 'Режим только чтение: операции записи заблокированы'
+
+export function createProjectToolHandlers(
+  projectPath: string,
+  commandTimeoutMs?: number,
+  options?: { readonlyMode?: boolean }
+): Partial<ToolHandlers> {
+  const editSnapshots = new Map<string, string>()
+
+  function guardWrite<T extends object>(handler: (args: T) => Promise<string>) {
+    return async (args: T): Promise<string> => {
+      if (options?.readonlyMode) throw new Error(READONLY_ERROR)
+      return handler(args)
+    }
+  }
+
   return {
     list_directory: async (args) => {
       const target = args.path?.trim() || projectPath
@@ -52,17 +69,26 @@ export function createProjectToolHandlers(projectPath: string, commandTimeoutMs?
       return safeReadFilePartial(projectPath, args.path, offset, limit)
     },
 
-    write_file: async (args) => {
+    write_file: guardWrite(async (args) => {
       await safeWriteFile(projectPath, args.path, args.content)
       return `Файл записан: ${args.path}`
-    },
+    }),
 
-    create_file: async (args) => {
+    create_file: guardWrite(async (args) => {
       await safeCreateFile(projectPath, args.path, args.content)
       return `Файл создан: ${args.path}`
-    },
+    }),
 
-    edit_file: async (args) => {
+    edit_file: guardWrite(async (args) => {
+      if (!options?.readonlyMode) {
+        try {
+          const absPath = join(projectPath, args.path)
+          const before = await readFile(absPath, 'utf-8')
+          editSnapshots.set(absPath, before)
+        } catch {
+          // файл может не существовать или быть недоступен — просто не снимаем снимок
+        }
+      }
       const count = await safeEditFile(
         projectPath,
         args.path,
@@ -71,27 +97,36 @@ export function createProjectToolHandlers(projectPath: string, commandTimeoutMs?
         parseToolBool(args.replace_all)
       )
       return `Файл изменён: ${args.path} (замен: ${count})`
+    }),
+
+    undo_edit: async (args) => {
+      const absPath = join(projectPath, args.path)
+      const snapshot = editSnapshots.get(absPath)
+      if (!snapshot) throw new Error(`Нет снимка для файла: ${args.path}`)
+      await writeFile(absPath, snapshot, 'utf-8')
+      editSnapshots.delete(absPath)
+      return `Файл восстановлен: ${args.path}`
     },
 
-    append_file: async (args) => {
+    append_file: guardWrite(async (args) => {
       await safeAppendFile(projectPath, args.path, args.content)
       return `Добавлено в конец: ${args.path}`
-    },
+    }),
 
-    delete_file: async (args) => {
+    delete_file: guardWrite(async (args) => {
       await safeDeleteFile(projectPath, args.path)
       return `Файл удалён: ${args.path}`
-    },
+    }),
 
-    move_file: async (args) => {
+    move_file: guardWrite(async (args) => {
       await safeMoveFile(projectPath, args.from, args.to)
       return `Файл перемещён: ${args.from} → ${args.to}`
-    },
+    }),
 
-    run_command: async (args) => {
+    run_command: guardWrite(async (args) => {
       const result = await runCommand(projectPath, args.command, commandTimeoutMs)
       return formatCommandResult(result)
-    },
+    }),
 
     git_status: async (args) => gitStatus(projectPath, args.path),
 
