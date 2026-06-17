@@ -15,6 +15,7 @@ import { WelcomePanel } from './WelcomePanel'
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
 import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
+import { useAppStateSync } from '../hooks/useAppStateSync'
 import { ConfirmDialog } from './ConfirmDialog'
 
 export interface ChatPanelHandle {
@@ -183,6 +184,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     stopAgent,
     executeRun,
     resetQueue,
+    getQueueSnapshot,
     queueSize,
     agentRunning,
     busy
@@ -200,6 +202,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onPrerequisiteIssue: setPrerequisiteBlock,
     onDangerWarning: setDangerBlock
   })
+
+  // ── Автосохранение состояния для восстановления после краша ─────────────
+  useAppStateSync({ chatIdRef, projectPathRef, getQueueSnapshot })
 
   // ── Сброс при смене чата ─────────────────────────────────────────────────
   useEffect(() => {

@@ -3,6 +3,7 @@ import type {
   AgentConfirmRequest,
   AgentSettings,
   AgentStreamEvent,
+  AppState,
   ChatMessage,
   OllamaPullProgress,
   SavedChat
@@ -194,7 +195,13 @@ const codeviper = {
     ),
 
   logFrontendError: (message: string, stack?: string) =>
-    ipcRenderer.send('log-frontend-error', message, stack)
+    ipcRenderer.send('log-frontend-error', message, stack),
+
+  saveAppState: (state: AppState | null) =>
+    ipcRenderer.send('save-app-state', state),
+
+  getCrashRecovery: (): Promise<AppState | null> =>
+    withTimeout(ipcRenderer.invoke('get-crash-recovery'), IPC_TIMEOUT_MS, 'getCrashRecovery')
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)

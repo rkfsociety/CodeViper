@@ -267,12 +267,17 @@ export function useMessageQueue({
     doneRunIdRef.current = runIdRef.current
   }
 
+  function getQueueSnapshot(): Array<{ id: string; text: string }> {
+    return [...queueRef.current]
+  }
+
   return {
     submitMessage,
     confirmDangerRun,
     stopAgent,
     executeRun,
     resetQueue,
+    getQueueSnapshot,
     queueSize,
     agentRunning,
     agentRunningRef,

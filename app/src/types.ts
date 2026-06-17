@@ -247,6 +247,15 @@ export interface AgentRunState {
   chatId: string
 }
 
+/** Состояние приложения для восстановления после краша */
+export interface AppState {
+  activeChatId: string
+  projectPath: string
+  /** Сообщения, стоявшие в очереди в момент краша */
+  pendingMessages: Array<{ id: string; text: string }>
+  crashedAt: string
+}
+
 export interface TerminalResult {
   stdout: string
   stderr: string
@@ -315,6 +324,8 @@ export interface CodeViperAPI {
     what: 'memory' | 'skills' | 'both'
   ) => Promise<string>
   logFrontendError: (message: string, stack?: string) => void
+  saveAppState: (state: AppState | null) => void
+  getCrashRecovery: () => Promise<AppState | null>
 }
 
 declare global {

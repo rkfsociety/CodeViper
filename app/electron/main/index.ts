@@ -39,10 +39,12 @@ import { loadSettings, saveSettings } from './settings'
 import { createGist, formatMemoriesAsMarkdown, formatSkillsAsMarkdown } from './gist'
 import { makeId } from '../../shared/makeId'
 import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
+import { readAppState, writeAppState, clearAppState } from './appState'
 import type {
   AgentSettings,
   AgentStreamEvent,
   AgentStreamPayload,
+  AppState,
   ChatMessage,
   SavedChat
 } from '../../src/types'
@@ -122,6 +124,29 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+// При нормальном завершении удаляем файл состояния — при следующем запуске
+// его отсутствие означает штатный выход (не краш).
+app.on('before-quit', () => {
+  clearAppState().catch(() => {})
+})
+
+// Рендерер сохраняет состояние каждые 30 с; fire-and-forget.
+ipcMain.on('save-app-state', (_e, state: AppState | null) => {
+  if (!state) {
+    clearAppState().catch(() => {})
+  } else {
+    writeAppState(state).catch(() => {})
+  }
+})
+
+// Рендерер при старте проверяет наличие краш-файла.
+// После прочтения удаляем — чтобы следующий запуск был чистым.
+ipcMain.handle('get-crash-recovery', async () => {
+  const state = await readAppState()
+  if (state) await clearAppState()
+  return state
 })
 
 ipcMain.on('log-frontend-error', (_e, message: string, stack?: string) => {

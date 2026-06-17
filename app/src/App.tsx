@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AgentConfirmRequest,
   AgentSettings,
+  AppState,
   ChatMessage,
   ChatStore,
   OllamaModel
@@ -13,6 +14,7 @@ import { TerminalPanel } from './components/TerminalPanel'
 import { SettingsModal } from './components/SettingsModal'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
 import { DEFAULT_MAX_STEPS } from '../shared/constants'
@@ -49,6 +51,7 @@ export default function App() {
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const [lightMode, setLightMode] = useState(false)
   const [showSecurityNotice, setShowSecurityNotice] = useState(false)
+  const [crashRecovery, setCrashRecovery] = useState<AppState | null>(null)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
   const chatPanelRef = useRef<ChatPanelHandle>(null)
@@ -162,6 +165,13 @@ export default function App() {
     return window.codeviper.onAgentConfirm((request) => setConfirmReq(request))
   }, [])
 
+  // Проверяем наличие краш-снимка при старте (файл остался после аварийного завершения)
+  useEffect(() => {
+    void window.codeviper.getCrashRecovery().then((state) => {
+      if (state) setCrashRecovery(state)
+    })
+  }, [])
+
   useEffect(() => {
     document.documentElement.classList.toggle('light-mode', lightMode)
   }, [lightMode])
@@ -256,6 +266,16 @@ export default function App() {
     },
     [chatBusy, activeChatId, chatStore, flushCurrentChat, refreshChatStore]
   )
+
+  const handleCrashRestore = useCallback(async () => {
+    if (!crashRecovery) return
+    const id = crashRecovery.activeChatId
+    setCrashRecovery(null)
+    const store = chatStore ?? (await refreshChatStore())
+    if (store.chats.some((c) => c.id === id)) {
+      await selectChat(id)
+    }
+  }, [crashRecovery, chatStore, refreshChatStore, selectChat])
 
   const createChat = useCallback(
     async (folderId: string | null = null) => {
@@ -497,6 +517,17 @@ export default function App() {
         confirmLabel="Выполнить"
         onConfirm={() => resolveConfirm(true)}
         onCancel={() => resolveConfirm(false)}
+      />
+
+      <CrashRecoveryDialog
+        recovery={crashRecovery}
+        chatTitle={
+          crashRecovery
+            ? (chatStore?.chats.find((c) => c.id === crashRecovery.activeChatId)?.title ?? null)
+            : null
+        }
+        onRestore={() => void handleCrashRestore()}
+        onDismiss={() => setCrashRecovery(null)}
       />
     </div>
   )
