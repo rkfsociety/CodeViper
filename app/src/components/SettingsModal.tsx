@@ -289,137 +289,194 @@ export function SettingsModal({
 
           {tab === 'behavior' && (
             <>
-              <label>
-                Режим доступа
-                <select
-                  value={settings.permissionMode ?? 'bypass'}
-                  onChange={(e) =>
-                    onSettingsChange({ permissionMode: e.target.value as PermissionMode })
-                  }
-                >
-                  {PERMISSION_MODES.map((mode) => (
-                    <option key={mode} value={mode}>
-                      {PERMISSION_MODE_LABELS[mode]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="settings-hint">
-                <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
-                <strong>Принимать правки</strong> — файлы без вопросов, команды с подтверждением.{' '}
-                <strong>Без подтверждений</strong> — агент действует сам.
+              {/* ── Безопасность ── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Безопасность</div>
+                <label>
+                  Режим доступа
+                  <select
+                    value={settings.permissionMode ?? 'bypass'}
+                    onChange={(e) =>
+                      onSettingsChange({ permissionMode: e.target.value as PermissionMode })
+                    }
+                  >
+                    {PERMISSION_MODES.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {PERMISSION_MODE_LABELS[mode]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="settings-hint settings-hint-inline">
+                  <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
+                  <strong>Принимать правки</strong> — файлы без вопросов, команды с подтверждением.{' '}
+                  <strong>Без подтверждений</strong> — агент действует сам.
+                </div>
               </div>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.clarifyMode === true}
-                  onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
-                />
-                <span>
-                  <strong>Уточняющие вопросы</strong> — при неоднозначной задаче агент сначала
-                  задаёт вопросы, а потом приступает
-                </span>
-              </label>
+              {/* ── Поведение агента ── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Поведение агента</div>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.deepReasoning === true}
-                  onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
-                />
-                <span>
-                  <strong>Глубокое рассуждение</strong> — для think-моделей (qwen3, deepseek-r1,
-                  qwq) включает режим рассуждения, для остальных усиливает промпт. Точнее, но
-                  медленнее
-                </span>
-              </label>
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.clarifyMode === true}
+                    onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
+                  />
+                  <span className="toggle-track" aria-hidden="true">
+                    <span className="toggle-thumb" />
+                  </span>
+                  <span className="toggle-content">
+                    <span className="toggle-title">Уточняющие вопросы</span>
+                    <span className="toggle-desc">
+                      При неоднозначной задаче агент сначала задаёт вопросы, а потом приступает
+                    </span>
+                  </span>
+                </label>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.autoPushSelfEdits !== false}
-                  onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
-                />
-                <span>
-                  <strong>Автокоммит самоправок</strong> — когда агент меняет свой код, после задачи
-                  автоматически <code>git commit</code> + <code>push</code> на GitHub (чтобы правки
-                  не терялись при синхронизации на старте)
-                </span>
-              </label>
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.deepReasoning === true}
+                    onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
+                  />
+                  <span className="toggle-track" aria-hidden="true">
+                    <span className="toggle-thumb" />
+                  </span>
+                  <span className="toggle-content">
+                    <span className="toggle-title">Глубокое рассуждение</span>
+                    <span className="toggle-desc">
+                      Для think-моделей (qwen3, deepseek-r1, qwq) включает режим рассуждения, для
+                      остальных усиливает промпт. Точнее, но медленнее
+                    </span>
+                  </span>
+                </label>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.gitSyncOnStartup !== false}
-                  onChange={(e) => onSettingsChange({ gitSyncOnStartup: e.target.checked })}
-                />
-                <span>
-                  <strong>Git-синхронизация при запуске</strong> — при включении CodeViper
-                  автоматически выполняет <code>git stash</code> + <code>git reset --hard</code> для
-                  синхронизации с GitHub
-                </span>
-              </label>
-
-              <label>
-                Таймаут команд (сек)
-                <input
-                  type="number"
-                  min={COMMAND_TIMEOUT_SEC_MIN}
-                  max={COMMAND_TIMEOUT_SEC_MAX}
-                  value={settings.commandTimeoutSec ?? DEFAULT_COMMAND_TIMEOUT_SEC}
-                  onChange={(e) =>
-                    onSettingsChange({
-                      commandTimeoutSec: Number(e.target.value) || DEFAULT_COMMAND_TIMEOUT_SEC
-                    })
-                  }
-                />
-              </label>
-              <div className="settings-hint">
-                Максимальное время выполнения одной команды агентом. По умолчанию 120 с. Увеличьте
-                для долгих сборок или тестов (макс. {COMMAND_TIMEOUT_SEC_MAX} с).
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.readonlyMode === true}
+                    onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
+                  />
+                  <span className="toggle-track" aria-hidden="true">
+                    <span className="toggle-thumb" />
+                  </span>
+                  <span className="toggle-content">
+                    <span className="toggle-title">Только чтение</span>
+                    <span className="toggle-desc">
+                      Блокирует все инструменты записи; агент может только читать файлы и искать по
+                      коду
+                    </span>
+                  </span>
+                </label>
               </div>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.readonlyMode === true}
-                  onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
-                />
-                <span>
-                  <strong>Режим только чтение</strong> — блокирует все инструменты записи
-                  (write_file, edit_file, run_command и др.); агент может только читать файлы и
-                  искать по коду
-                </span>
-              </label>
+              {/* ── Автоматизация ── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Автоматизация</div>
 
-              <label className="settings-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.soundNotifications === true}
-                  onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
-                />
-                <span>
-                  <strong>Звуковые уведомления</strong> — короткий сигнал при завершении задачи
-                  агента
-                </span>
-              </label>
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.autoPushSelfEdits !== false}
+                    onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
+                  />
+                  <span className="toggle-track" aria-hidden="true">
+                    <span className="toggle-thumb" />
+                  </span>
+                  <span className="toggle-content">
+                    <span className="toggle-title">Автокоммит самоправок</span>
+                    <span className="toggle-desc">
+                      После правки кода агентом — автоматически git commit + push на GitHub
+                    </span>
+                  </span>
+                </label>
 
-              <label>
-                GitHub Token
-                <input
-                  type="password"
-                  placeholder="ghp_..."
-                  value={settings.githubToken ?? ''}
-                  onChange={(e) => onSettingsChange({ githubToken: e.target.value })}
-                />
-              </label>
-              <div className="settings-hint">
-                Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в Памяти и
-                Навыках. Создать:{' '}
-                <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
-                  github.com/settings/tokens
-                </a>
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.gitSyncOnStartup !== false}
+                    onChange={(e) => onSettingsChange({ gitSyncOnStartup: e.target.checked })}
+                  />
+                  <span className="toggle-track" aria-hidden="true">
+                    <span className="toggle-thumb" />
+                  </span>
+                  <span className="toggle-content">
+                    <span className="toggle-title">Git-синхронизация при запуске</span>
+                    <span className="toggle-desc">
+                      При запуске CodeViper автоматически синхронизируется с GitHub (git stash + git
+                      reset --hard)
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              {/* ── Производительность ── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Производительность</div>
+
+                <div className="settings-row">
+                  <div className="settings-row-content">
+                    <span className="toggle-title">Таймаут команд</span>
+                    <span className="toggle-desc">
+                      Макс. время одной команды агента (по умолч. 120 с, макс.{' '}
+                      {COMMAND_TIMEOUT_SEC_MAX} с)
+                    </span>
+                  </div>
+                  <div className="settings-row-right">
+                    <input
+                      type="number"
+                      min={COMMAND_TIMEOUT_SEC_MIN}
+                      max={COMMAND_TIMEOUT_SEC_MAX}
+                      value={settings.commandTimeoutSec ?? DEFAULT_COMMAND_TIMEOUT_SEC}
+                      onChange={(e) =>
+                        onSettingsChange({
+                          commandTimeoutSec: Number(e.target.value) || DEFAULT_COMMAND_TIMEOUT_SEC
+                        })
+                      }
+                    />
+                    <span className="settings-unit">сек</span>
+                  </div>
+                </div>
+
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.soundNotifications === true}
+                    onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
+                  />
+                  <span className="toggle-track" aria-hidden="true">
+                    <span className="toggle-thumb" />
+                  </span>
+                  <span className="toggle-content">
+                    <span className="toggle-title">Звуковые уведомления</span>
+                    <span className="toggle-desc">
+                      Короткий сигнал при завершении задачи агента
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              {/* ── Интеграции ── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Интеграции</div>
+                <label>
+                  GitHub Token
+                  <input
+                    type="password"
+                    placeholder="ghp_..."
+                    value={settings.githubToken ?? ''}
+                    onChange={(e) => onSettingsChange({ githubToken: e.target.value })}
+                  />
+                </label>
+                <div className="settings-hint settings-hint-inline">
+                  Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в Памяти
+                  и Навыках. Создать:{' '}
+                  <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
+                    github.com/settings/tokens
+                  </a>
+                </div>
               </div>
             </>
           )}

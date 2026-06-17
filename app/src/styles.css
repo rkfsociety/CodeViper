@@ -1178,17 +1178,141 @@ button {
   border: 1px solid var(--border);
 }
 
+/* ── Toggle switch ────────────────────────────────────────────────── */
 .settings-toggle {
   display: flex;
-  gap: 10px;
   align-items: flex-start;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.45;
+  gap: 12px;
+  padding: 8px 0;
+  cursor: pointer;
+  user-select: none;
 }
 
-.settings-toggle input {
-  margin-top: 3px;
+.settings-toggle input[type='checkbox'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--bg-element);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.18s, border-color 0.18s;
+  margin-top: 1px;
+}
+
+.settings-toggle input:checked + .toggle-track {
+  background: #238636;
+  border-color: #2ea043;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #8b949e;
+  transition: transform 0.18s, background 0.18s;
+}
+
+.settings-toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(16px);
+  background: #ffffff;
+}
+
+.toggle-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toggle-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.toggle-desc {
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+/* ── Settings sections ────────────────────────────────────────────── */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-section + .settings-section {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(48, 54, 61, 0.6);
+}
+
+.settings-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+/* ── Inline row: label + number input + unit ─────────────────────── */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.settings-row-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settings-row-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.settings-row-right input[type='number'] {
+  width: 72px;
+  text-align: center;
+}
+
+.settings-unit {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.settings-hint-inline {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle-track,
+  .toggle-thumb {
+    transition: none;
+  }
 }
 
 .model-custom {
