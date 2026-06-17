@@ -11,7 +11,10 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "highlight.js": "^11.11.1",
@@ -22,12 +25,19 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@types/eslint__js": "^8.42.3",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
     "@vitejs/plugin-react": "^4.5.0",
+    "eslint": "^9.20.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "electron": "^36.3.2",
     "electron-vite": "^3.1.0",
+    "prettier": "^3.4.2",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^4.1.8"
