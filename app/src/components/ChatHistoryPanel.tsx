@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { ChatStore, SavedChat } from '../types'
 import { PromptDialog } from './PromptDialog'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -88,55 +88,63 @@ export function ChatHistoryPanel({
     return map
   }, [filteredChats])
 
-  const folders = store?.folders ?? []
-  const rootChats = chatsByFolder.get(null) ?? []
+  const folders = useMemo(() => store?.folders ?? [], [store])
+  const rootChats = useMemo(() => chatsByFolder.get(null) ?? [], [chatsByFolder])
 
-  function toggleFolder(folderId: string) {
+  const formattedDates = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const chat of store?.chats ?? []) {
+      map.set(chat.id, formatDate(chat.updatedAt))
+    }
+    return map
+  }, [store?.chats])
+
+  const toggleFolder = useCallback((folderId: string) => {
     setCollapsed((prev) => ({ ...prev, [folderId]: !prev[folderId] }))
-  }
+  }, [])
 
-  function handleDragStart(chatId: string, e: React.DragEvent) {
+  const handleDragStart = useCallback((chatId: string, e: React.DragEvent) => {
     if (chatBusy) return
     e.dataTransfer.setData('text/plain', chatId)
     e.dataTransfer.effectAllowed = 'move'
     setDraggingChatId(chatId)
-  }
+  }, [chatBusy])
 
-  function handleDragEnd() {
+  const handleDragEnd = useCallback(() => {
     setDraggingChatId(null)
     setDropTarget(undefined)
-  }
+  }, [])
 
-  function handleDragOver(target: DropTarget, e: React.DragEvent) {
+  const handleDragOver = useCallback((target: DropTarget, e: React.DragEvent) => {
     if (!draggingChatId) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     setDropTarget(target)
-  }
+  }, [draggingChatId])
 
-  function handleDrop(target: DropTarget, e: React.DragEvent) {
+  const handleDrop = useCallback((target: DropTarget, e: React.DragEvent) => {
     e.preventDefault()
     const chatId = e.dataTransfer.getData('text/plain') || draggingChatId
     if (!chatId) return
     const folderId = target === 'root' ? null : target
     onMoveChat(chatId, folderId)
     handleDragEnd()
-  }
+  }, [draggingChatId, onMoveChat, handleDragEnd])
 
-  function handlePromptConfirm(value: string) {
+  const handlePromptConfirm = useCallback((value: string) => {
     if (!prompt) return
     if (prompt.kind === 'create-folder') onCreateFolder(value)
     if (prompt.kind === 'rename-folder') onRenameFolder(prompt.folderId, value)
     if (prompt.kind === 'rename-chat') onRenameChat(prompt.chatId, value)
     setPrompt(null)
-  }
+  }, [prompt, onCreateFolder, onRenameFolder, onRenameChat])
 
-  function handleConfirmAction() {
+  const handleConfirmAction = useCallback(() => {
     if (!confirm) return
     if (confirm.kind === 'delete-chat') onDeleteChat(confirm.chatId)
     if (confirm.kind === 'delete-folder') onDeleteFolder(confirm.folderId)
     setConfirm(null)
-  }
+  }, [confirm, onDeleteChat, onDeleteFolder])
 
   function renderChat(chat: SavedChat) {
     const isActive = chat.id === activeChatId
@@ -154,7 +162,7 @@ export function ChatHistoryPanel({
         <div className="chat-history-item-main">
           <div className="chat-history-title">{chat.title}</div>
           <div className="chat-history-meta">
-            {formatProject(chat.projectPath)} · {formatDate(chat.updatedAt)}
+            {formatProject(chat.projectPath)} · {formattedDates.get(chat.id)}
           </div>
         </div>
         <div className="chat-history-actions">
@@ -183,6 +191,10 @@ export function ChatHistoryPanel({
     )
   }
 
+  const dropZoneClass = useCallback((target: DropTarget): string => {
+    return dropTarget === target ? 'drop-target' : ''
+  }, [dropTarget])
+
   function renderChatList(chats: SavedChat[]) {
     const shown = chats.slice(0, chatLimit)
     return (
@@ -199,10 +211,6 @@ export function ChatHistoryPanel({
         )}
       </>
     )
-  }
-
-  function dropZoneClass(target: DropTarget): string {
-    return dropTarget === target ? 'drop-target' : ''
   }
 
   return (

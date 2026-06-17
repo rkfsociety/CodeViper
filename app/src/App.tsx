@@ -112,11 +112,11 @@ export default function App() {
     return window.codeviper.onAgentConfirm((request) => setConfirmReq(request))
   }, [])
 
-  function resolveConfirm(approved: boolean) {
+  const resolveConfirm = useCallback((approved: boolean) => {
     if (!confirmReq) return
     window.codeviper.respondAgentConfirm(confirmReq.id, approved)
     setConfirmReq(null)
-  }
+  }, [confirmReq])
 
   useEffect(() => {
     if (!settingsReady) return
@@ -158,15 +158,15 @@ export default function App() {
     }
   }, [flushCurrentChat])
 
-  async function pickProjectForActiveChat() {
+  const pickProjectForActiveChat = useCallback(async () => {
     if (!activeChatId || chatBusy || messages.length > 0) return
     const folder = await window.codeviper.selectProjectFolder()
     if (!folder) return
     await window.codeviper.updateChat(activeChatId, { projectPath: folder })
     await refreshChatStore()
-  }
+  }, [activeChatId, chatBusy, messages.length, refreshChatStore])
 
-  async function selectChat(id: string) {
+  const selectChat = useCallback(async (id: string) => {
     if (chatBusy) return
     if (id === activeChatId) return
 
@@ -180,24 +180,24 @@ export default function App() {
     setMessages(chat.messages)
     await window.codeviper.setActiveChat(id)
     setChatStore(await window.codeviper.getChatStore())
-  }
+  }, [chatBusy, activeChatId, chatStore, flushCurrentChat, refreshChatStore])
 
-  async function createChat(folderId: string | null = null) {
+  const createChat = useCallback(async (folderId: string | null = null) => {
     await flushCurrentChat()
 
     const chat = await window.codeviper.createChat(folderId)
     await refreshChatStore()
     setActiveChatId(chat.id)
     setMessages([])
-  }
+  }, [flushCurrentChat, refreshChatStore])
 
-  async function createFolder(name: string) {
+  const createFolder = useCallback(async (name: string) => {
     if (!name.trim()) return
     await window.codeviper.createChatFolder(name.trim())
     await refreshChatStore()
-  }
+  }, [refreshChatStore])
 
-  async function deleteChat(id: string) {
+  const deleteChat = useCallback(async (id: string) => {
     if (chatBusy) return
     await window.codeviper.deleteChat(id)
     const store = await refreshChatStore()
@@ -207,34 +207,34 @@ export default function App() {
       setMessages(next?.messages ?? [])
       await window.codeviper.setActiveChat(next?.id ?? null)
     }
-  }
+  }, [chatBusy, activeChatId, refreshChatStore])
 
-  async function renameChat(id: string, title: string) {
+  const renameChat = useCallback(async (id: string, title: string) => {
     await window.codeviper.updateChat(id, { title })
     await refreshChatStore()
-  }
+  }, [refreshChatStore])
 
-  async function renameFolder(id: string, name: string) {
+  const renameFolder = useCallback(async (id: string, name: string) => {
     await window.codeviper.renameChatFolder(id, name)
     await refreshChatStore()
-  }
+  }, [refreshChatStore])
 
-  async function updateFolderProject(id: string) {
+  const updateFolderProject = useCallback(async (id: string) => {
     const folder = await window.codeviper.selectProjectFolder()
     if (!folder) return
     await window.codeviper.updateChatFolder(id, { projectPath: folder })
     await refreshChatStore()
-  }
+  }, [refreshChatStore])
 
-  async function deleteFolder(id: string) {
+  const deleteFolder = useCallback(async (id: string) => {
     await window.codeviper.deleteChatFolder(id)
     await refreshChatStore()
-  }
+  }, [refreshChatStore])
 
-  async function moveChat(chatId: string, folderId: string | null) {
+  const moveChat = useCallback(async (chatId: string, folderId: string | null) => {
     await window.codeviper.moveChatToFolder(chatId, folderId)
     await refreshChatStore()
-  }
+  }, [refreshChatStore])
 
   return (
     <div className="app">
