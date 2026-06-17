@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import type { ToolHandlers } from './agentTools'
+import { AgentError } from '../../shared/agentError'
 import { formatFileTree } from './agentContext'
 import {
   safeReadFilePartial,
@@ -27,6 +28,17 @@ export function createProjectToolHandlers(
   options?: { readonlyMode?: boolean }
 ): Partial<ToolHandlers> {
   const editSnapshots = new Map<string, string>()
+
+  // Проверяет, что путь (относительный или абсолютный) после resolve остаётся
+  // внутри projectPath. Защита от выхода за границы проекта (path traversal).
+  function assertInsideProject(rawPath: string | undefined, label = 'путь'): void {
+    if (!rawPath || !rawPath.trim()) {
+      throw new AgentError(`Не указан ${label}`, 'readonly')
+    }
+    if (!isInsideProject(projectPath, resolve(projectPath, rawPath))) {
+      throw new AgentError(`Доступ запрещён: ${label} вне проекта — ${rawPath}`, 'readonly')
+    }
+  }
 
   function guardWrite<T extends object>(handler: (args: T) => Promise<string>) {
     return async (args: T): Promise<string> => {
@@ -70,16 +82,19 @@ export function createProjectToolHandlers(
     },
 
     write_file: guardWrite(async (args) => {
+      assertInsideProject(args.path)
       await safeWriteFile(projectPath, args.path, args.content)
       return `Файл записан: ${args.path}`
     }),
 
     create_file: guardWrite(async (args) => {
+      assertInsideProject(args.path)
       await safeCreateFile(projectPath, args.path, args.content)
       return `Файл создан: ${args.path}`
     }),
 
     edit_file: guardWrite(async (args) => {
+      assertInsideProject(args.path)
       if (!options?.readonlyMode) {
         try {
           const absPath = join(projectPath, args.path)
@@ -100,6 +115,7 @@ export function createProjectToolHandlers(
     }),
 
     undo_edit: async (args) => {
+      assertInsideProject(args.path)
       const absPath = join(projectPath, args.path)
       const snapshot = editSnapshots.get(absPath)
       if (!snapshot) throw new Error(`Нет снимка для файла: ${args.path}`)
@@ -109,16 +125,20 @@ export function createProjectToolHandlers(
     },
 
     append_file: guardWrite(async (args) => {
+      assertInsideProject(args.path)
       await safeAppendFile(projectPath, args.path, args.content)
       return `Добавлено в конец: ${args.path}`
     }),
 
     delete_file: guardWrite(async (args) => {
+      assertInsideProject(args.path)
       await safeDeleteFile(projectPath, args.path)
       return `Файл удалён: ${args.path}`
     }),
 
     move_file: guardWrite(async (args) => {
+      assertInsideProject(args.from, 'исходный путь')
+      assertInsideProject(args.to, 'целевой путь')
       await safeMoveFile(projectPath, args.from, args.to)
       return `Файл перемещён: ${args.from} → ${args.to}`
     }),
