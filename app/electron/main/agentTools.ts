@@ -653,6 +653,36 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'create_codeviper_branch',
+      description:
+        'Создать ветку agent/<name> для правок своего кода. Переключает репозиторий на новую ветку. Имя санитизируется автоматически.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Короткое имя ветки, напр. fix-crash-recovery или add-dark-theme'
+          }
+        },
+        required: ['name']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'push_codeviper_branch',
+      description:
+        'Запушить текущую ветку agent/... на GitHub (git push --set-upstream origin). Только для веток agent/*, не для master.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'create_ollama_model',
       description:
         'Создать производную модель Ollama из файла примеров (Modelfile + MESSAGE). Не GPU fine-tuning.',
@@ -741,6 +771,8 @@ export interface ToolArgs {
   delete_codeviper_file: { path: string }
   move_codeviper_file: { from: string; to: string }
   run_codeviper_command: { command: string }
+  create_codeviper_branch: { name: string }
+  push_codeviper_branch: Record<string, never>
   preview_ollama_modelfile: {
     data_path: string
     base_model: string

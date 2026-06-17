@@ -144,12 +144,16 @@ export function buildSelfEditContext(): string {
 - edit_codeviper_file — точечная замена old_string → new_string
 - append_codeviper_file — дописать в конец существующего файла
 - run_codeviper_command — команды в корне app/ (npm test, npm run typecheck, npm run build)
+- create_codeviper_branch <name> — создать ветку agent/<name> вместо коммита в master
+- push_codeviper_branch — запушить ветку agent/... на GitHub
 
 Навыки (instructions без пересборки): create_skill / update_skill — всегда глобальные, %APPDATA%/CodeViper/ViperSkills.md.
 
 Типичный workflow «улучши себя»:
 1. list_codeviper_directory + read_codeviper_file — изучить agent.ts, skills.ts, shared/
-2. create_skill — если достаточно инструкции; иначе write_codeviper_file — правка кода
-3. run_codeviper_command: npm run typecheck && npm test
-4. Кратко сообщить, что изменено; для main process нужен перезапуск приложения`
+2. create_codeviper_branch fix-<тема> — создать ветку для изменений
+3. create_skill — если достаточно инструкции; иначе write_codeviper_file — правка кода
+4. run_codeviper_command: npm run typecheck && npm test
+5. commit_and_push_self_edits — закоммитить; затем push_codeviper_branch — запушить
+6. Кратко сообщить, что изменено; для main process нужен перезапуск приложения`
 }
