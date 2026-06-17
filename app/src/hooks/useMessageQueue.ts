@@ -50,6 +50,7 @@ export function useMessageQueue({
 }: UseMessageQueueOptions) {
   const queueRef = useRef<Array<{ id: string; text: string }>>([])
   const agentRunningRef = useRef(false)
+  const stoppingRef = useRef(false) // Task 40: guards stopAgent ↔ processNextQueuedRun race
   const onRunStartRef = useRef(onRunStart)
   const onPrerequisiteIssueRef = useRef(onPrerequisiteIssue)
   const onDangerWarningRef = useRef(onDangerWarning)
@@ -125,39 +126,64 @@ export function useMessageQueue({
     const idx = messagesRef.current.findIndex((item) => item.id === userMessageId)
     const history = idx >= 0 ? messagesRef.current.slice(0, idx) : messagesRef.current
 
-    // Task 26: hard timeout so a frozen model/Ollama doesn't hang forever
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new AgentError('Агент не ответил — превышено время ожидания', 'timeout')),
-        AGENT_RUN_TIMEOUT_MS
-      )
-    )
+    // Task 42: one retry on transient network errors
+    const isNetworkError = (err: unknown) =>
+      err instanceof Error &&
+      !(err instanceof AgentError) &&
+      (err.message.includes('fetch failed') ||
+        err.message.includes('ECONNREFUSED') ||
+        err.message.includes('network'))
 
-    try {
-      await Promise.race([
-        window.codeviper.runAgent(currentSettings, project, chat, history, text),
-        timeoutPromise
-      ])
-      // Task 25: brief window for the 'done' stream event to be processed
-      await new Promise<void>((resolve) => setTimeout(resolve, 150))
-      if (doneRunIdRef.current !== runIdRef.current) {
-        // done event didn't arrive — recover the queue
-        void processNextQueuedRunRef.current()
-      }
-    } catch (error) {
-      // Task 29: catch (including timeout) must also continue the queue
-      appendMessage({
-        id: makeId(),
-        role: 'system',
-        content: error instanceof Error ? error.message : String(error),
-        timestamp: Date.now()
+    for (let attempt = 0; attempt <= 1; attempt++) {
+      let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new AgentError('Агент не ответил — превышено время ожидания', 'timeout')),
+          AGENT_RUN_TIMEOUT_MS
+        )
       })
-      void processNextQueuedRunRef.current()
+
+      try {
+        await Promise.race([
+          window.codeviper.runAgent(currentSettings, project, chat, history, text),
+          timeoutPromise
+        ])
+        clearTimeout(timeoutHandle)
+        // Brief window for the 'done' stream event to be processed
+        await new Promise<void>((resolve) => setTimeout(resolve, 150))
+        if (doneRunIdRef.current !== runIdRef.current) {
+          void processNextQueuedRunRef.current()
+        }
+        return
+      } catch (error) {
+        clearTimeout(timeoutHandle)
+        if (attempt === 0 && isNetworkError(error)) {
+          appendMessage({
+            id: makeId(),
+            role: 'system',
+            content: 'Сбой сети, повторяю через 2 с…',
+            timestamp: Date.now()
+          })
+          await new Promise<void>((r) => setTimeout(r, 2000))
+          continue
+        }
+        appendMessage({
+          id: makeId(),
+          role: 'system',
+          content: error instanceof Error ? error.message : String(error),
+          timestamp: Date.now()
+        })
+        void processNextQueuedRunRef.current()
+        return
+      }
     }
   }
 
   async function processNextQueuedRun() {
     setRunning(false)
+
+    // Task 40: stopAgent is in progress — don't start next run
+    if (stoppingRef.current) return
 
     const next = queueRef.current.shift()
     setQueueSize(queueRef.current.length)
@@ -214,11 +240,17 @@ export function useMessageQueue({
     setQueueSize(0)
     syncBusyState(agentRunningRef.current, 0)
     if (agentRunningRef.current) {
-      await window.codeviper.stopAgent()
-      // Task 30: if done event doesn't arrive after stop, force queue continuation
-      await new Promise<void>((resolve) => setTimeout(resolve, 250))
-      if (agentRunningRef.current) {
-        void processNextQueuedRunRef.current()
+      stoppingRef.current = true // Task 40: block processNextQueuedRun during stop
+      try {
+        await window.codeviper.stopAgent()
+        // If done event doesn't arrive after stop, force queue continuation
+        await new Promise<void>((resolve) => setTimeout(resolve, 250))
+        if (agentRunningRef.current) {
+          stoppingRef.current = false
+          void processNextQueuedRunRef.current()
+        }
+      } finally {
+        stoppingRef.current = false
       }
     } else {
       setRunning(false)
@@ -230,6 +262,9 @@ export function useMessageQueue({
     queueRef.current = []
     setQueueSize(0)
     setRunning(false)
+    // Task 41: mark the current run as stale so stream events from it are ignored
+    runIdRef.current += 1
+    doneRunIdRef.current = runIdRef.current
   }
 
   return {

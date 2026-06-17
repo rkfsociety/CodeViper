@@ -15,6 +15,10 @@ interface Options {
   onModelInstalled?: (modelName: string) => void
 }
 
+const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000
+const MAX_RETRIES = 3
+const RETRY_DELAYS_MS = [1_000, 3_000, 9_000]
+
 export function useOllamaDownloadQueue({
   ollamaUrl,
   ollamaOnline,
@@ -30,6 +34,8 @@ export function useOllamaDownloadQueue({
   const queueRef = useRef<string[]>([])
   const processingRef = useRef(false)
   const ollamaUrlRef = useRef(ollamaUrl)
+  // Task 39: track all enqueued/in-progress models to avoid stale installedModels check
+  const enqueuedSetRef = useRef<Set<string>>(new Set())
   ollamaUrlRef.current = ollamaUrl
 
   useEffect(() => {
@@ -51,18 +57,48 @@ export function useOllamaDownloadQueue({
         setProgress(null)
         setError('')
 
-        try {
-          await window.codeviper.pullOllamaModel(ollamaUrlRef.current, name)
+        // Task 38 + 43 + 44: try with timeout and exponential-backoff retries
+        let succeeded = false
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          if (attempt > 0) {
+            await new Promise<void>((r) => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]))
+          }
+
+          let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutHandle = setTimeout(
+              () => reject(new Error('Загрузка модели превысила время ожидания (10 мин)')),
+              DOWNLOAD_TIMEOUT_MS
+            )
+          })
+
+          try {
+            await Promise.race([
+              window.codeviper.pullOllamaModel(ollamaUrlRef.current, name),
+              timeoutPromise
+            ])
+            clearTimeout(timeoutHandle)
+            succeeded = true
+            break
+          } catch (err) {
+            clearTimeout(timeoutHandle)
+            if (attempt === MAX_RETRIES) {
+              setError(err instanceof Error ? err.message : String(err))
+            }
+          }
+        }
+
+        if (succeeded) {
           try {
             await onRefresh()
           } catch (refreshErr) {
             console.error('[useOllamaDownloadQueue] onRefresh failed:', refreshErr)
           }
           onModelInstalled?.(name)
-        } catch (err) {
-          setError(err instanceof Error ? err.message : String(err))
         }
 
+        // Task 39: release from the enqueued set regardless of outcome
+        enqueuedSetRef.current.delete(name)
         queueRef.current = queueRef.current.slice(1)
         syncQueue()
       }
@@ -78,18 +114,21 @@ export function useOllamaDownloadQueue({
       const trimmed = modelName.trim()
       if (!trimmed || !ollamaOnline) return
       if (isRecommendedModelInstalled(trimmed, installedModels)) return
-      if (queueRef.current.includes(trimmed) || pulling === trimmed) return
+      // Task 39: check Set instead of stale installedModels / queueRef state
+      if (enqueuedSetRef.current.has(trimmed)) return
 
+      enqueuedSetRef.current.add(trimmed)
       queueRef.current.push(trimmed)
       syncQueue()
       void processQueue()
     },
-    [ollamaOnline, installedModels, pulling, processQueue, syncQueue]
+    [ollamaOnline, installedModels, processQueue, syncQueue]
   )
 
   const removeFromQueue = useCallback(
     (modelName: string) => {
       if (pulling === modelName) return
+      enqueuedSetRef.current.delete(modelName)
       queueRef.current = queueRef.current.filter((name) => name !== modelName)
       syncQueue()
     },
