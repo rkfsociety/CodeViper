@@ -31,9 +31,18 @@ export function createProjectToolHandlers(
 
   // Проверяет, что путь (относительный или абсолютный) после resolve остаётся
   // внутри projectPath. Защита от выхода за границы проекта (path traversal).
-  function assertInsideProject(rawPath: string | undefined, label = 'путь'): void {
+  // Если требуется обязательный путь, pass allowEmpty=false (дефолт).
+  function assertInsideProject(
+    rawPath: string | undefined,
+    label = 'путь',
+    options?: { allowEmpty?: boolean }
+  ): void {
+    const allowEmpty = options?.allowEmpty ?? false
     if (!rawPath || !rawPath.trim()) {
-      throw new AgentError(`Не указан ${label}`, 'readonly')
+      if (!allowEmpty) {
+        throw new AgentError(`Не указан ${label}`, 'readonly')
+      }
+      return
     }
     if (!isInsideProject(projectPath, resolve(projectPath, rawPath))) {
       throw new AgentError(`Доступ запрещён: ${label} вне проекта — ${rawPath}`, 'readonly')
@@ -49,33 +58,26 @@ export function createProjectToolHandlers(
 
   return {
     list_directory: async (args) => {
+      assertInsideProject(args.path, 'папка', { allowEmpty: true })
       const target = args.path?.trim() || projectPath
-      if (!isInsideProject(projectPath, target)) {
-        throw new Error('Доступ запрещён: папка вне проекта')
-      }
       const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
       return formatFileTree(tree) || '(пусто)'
     },
 
     grep_files: async (args) => {
-      const subpath = args.path?.trim()
-      if (subpath && !isInsideProject(projectPath, subpath)) {
-        throw new Error('Доступ запрещён: path вне проекта')
-      }
-      const result = await grepInTree(projectPath, args.query, { subpath })
+      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      const result = await grepInTree(projectPath, args.query, { subpath: args.path?.trim() })
       return formatGrepResults(projectPath, args.query, result)
     },
 
     find_files: async (args) => {
-      const subpath = args.path?.trim()
-      if (subpath && !isInsideProject(projectPath, subpath)) {
-        throw new Error('Доступ запрещён: path вне проекта')
-      }
-      const result = await findFilesInTree(projectPath, args.pattern, { subpath })
+      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      const result = await findFilesInTree(projectPath, args.pattern, { subpath: args.path?.trim() })
       return formatFindResults(projectPath, args.pattern, result)
     },
 
     read_file: async (args) => {
+      assertInsideProject(args.path, 'файл')
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
       return safeReadFilePartial(projectPath, args.path, offset, limit)

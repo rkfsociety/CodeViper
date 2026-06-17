@@ -45,4 +45,37 @@ describe('createProjectToolHandlers — санитизация путей', () =
     expect(result).toContain('создан')
     expect(readFileSync(target, 'utf-8')).toBe('hello')
   })
+
+  it('блокирует read_file за пределами проекта', async () => {
+    const handlers = createProjectToolHandlers(projectDir)
+    const outside = join(projectDir, '..', 'secret.txt')
+    await expect(
+      handlers.read_file!({ path: outside })
+    ).rejects.toMatchObject({ code: 'readonly' })
+  })
+
+  it('блокирует grep_files за пределами проекта', async () => {
+    const handlers = createProjectToolHandlers(projectDir)
+    const outside = join(projectDir, '..', 'secret')
+    await expect(
+      handlers.grep_files!({ path: outside, query: 'test' })
+    ).rejects.toMatchObject({ code: 'readonly' })
+  })
+
+  it('блокирует find_files за пределами проекта', async () => {
+    const handlers = createProjectToolHandlers(projectDir)
+    const outside = join(projectDir, '..', 'secret')
+    await expect(
+      handlers.find_files!({ path: outside, pattern: '*.txt' })
+    ).rejects.toMatchObject({ code: 'readonly' })
+  })
+
+  it('разрешает read/grep/find с пустым path (везде в проекте)', async () => {
+    const handlers = createProjectToolHandlers(projectDir)
+    const file = join(projectDir, 'test.txt')
+    await handlers.create_file!({ path: file, content: 'hello world' })
+    // Не должны кидать ошибку при пустом path
+    const result = await handlers.read_file!({ path: file })
+    expect(result).toContain('hello world')
+  })
 })
