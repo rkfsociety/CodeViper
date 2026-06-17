@@ -4,6 +4,7 @@ import { CONTEXT_SUMMARIZE_THRESHOLD } from '../../shared/constants'
 interface Props {
   preview: AgentContextPreview | null
   loading?: boolean
+  error?: string | null
   onOpen: () => void
 }
 
@@ -18,8 +19,8 @@ function usageClass(percent: number): string {
   return 'context-bar-stat'
 }
 
-export function AgentContextBar({ preview, loading, onOpen }: Props) {
-  if (!preview && !loading) return null
+export function AgentContextBar({ preview, loading, error, onOpen }: Props) {
+  if (!preview && !loading && !error) return null
 
   return (
     <div className="context-bar">
@@ -28,6 +29,8 @@ export function AgentContextBar({ preview, loading, onOpen }: Props) {
         <span className="context-bar-label">Контекст</span>
         {loading ? (
           <span className="context-bar-stat">обновление…</span>
+        ) : error ? (
+          <span className="context-bar-stat danger" title={error}>ошибка превью</span>
         ) : preview ? (
           <span className={usageClass(preview.contextUsagePercent)}>
             {preview.contextUsagePercent}% · ~{preview.estimatedTokens.toLocaleString('ru-RU')} tok ·{' '}

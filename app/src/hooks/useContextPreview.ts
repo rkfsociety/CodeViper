@@ -11,19 +11,23 @@ export function useContextPreview(
 ): {
   contextPreview: AgentContextPreview | null
   contextLoading: boolean
+  contextError: string | null
   setContextPreview: React.Dispatch<React.SetStateAction<AgentContextPreview | null>>
 } {
   const [contextPreview, setContextPreview] = useState<AgentContextPreview | null>(null)
   const [contextLoading, setContextLoading] = useState(false)
+  const [contextError, setContextError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!chatId || !model || !input.trim()) {
       setContextPreview(null)
+      setContextError(null)
       return
     }
 
     const timer = window.setTimeout(async () => {
       setContextLoading(true)
+      setContextError(null)
       try {
         const preview = await window.codeviper.previewAgentContext(
           projectPath,
@@ -32,8 +36,11 @@ export function useContextPreview(
           model
         )
         setContextPreview(preview)
-      } catch {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error('[useContextPreview]', message)
         setContextPreview(null)
+        setContextError(message)
       } finally {
         setContextLoading(false)
       }
@@ -42,5 +49,5 @@ export function useContextPreview(
     return () => window.clearTimeout(timer)
   }, [chatId, projectPath, messages, input, model])
 
-  return { contextPreview, contextLoading, setContextPreview }
+  return { contextPreview, contextLoading, contextError, setContextPreview }
 }

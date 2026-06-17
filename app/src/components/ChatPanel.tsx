@@ -123,7 +123,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   // ── Хук: контекст-превью (debounce 350 ms) ──────────────────────────────
-  const { contextPreview, contextLoading, setContextPreview } = useContextPreview(
+  const { contextPreview, contextLoading, contextError, setContextPreview } = useContextPreview(
     chatId,
     projectPath,
     messages,
@@ -334,6 +334,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         <AgentContextBar
           preview={contextPreview}
           loading={contextLoading}
+          error={contextError}
           onOpen={() => setContextModalOpen(true)}
         />
       )}
