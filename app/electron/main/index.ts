@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { existsSync } from 'fs'
+import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { AgentRunner, deleteOllamaModel, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
 import { checkAgentPrerequisites } from './agentPrerequisites'
@@ -114,6 +115,16 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+ipcMain.on('log-frontend-error', (_e, message: string, stack?: string) => {
+  const logsDir = join(app.getPath('userData'), 'logs')
+  const date = new Date().toISOString().slice(0, 10)
+  const filePath = join(logsDir, `frontend-${date}.ndjson`)
+  const line = JSON.stringify({ ts: new Date().toISOString(), message, stack }) + '\n'
+  mkdir(logsDir, { recursive: true })
+    .then(() => appendFile(filePath, line, 'utf8'))
+    .catch(() => {})
 })
 
 ipcMain.handle('select-project-folder', async () => {

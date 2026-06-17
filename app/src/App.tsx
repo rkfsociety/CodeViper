@@ -10,6 +10,7 @@ import { ConfirmDialog } from './components/ConfirmDialog'
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
 import { DEFAULT_MAX_STEPS } from '../shared/constants'
+import { makeId } from '../shared/makeId'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -101,6 +102,35 @@ export default function App() {
       setSettings((prev) => ({ ...prev, model: prev.model || modelName }))
     }
   })
+
+  useEffect(() => {
+    const appendSystemMessage = (content: string) => {
+      if (!activeChatIdRef.current) return
+      setMessages((prev) => [
+        ...prev,
+        { id: makeId(), role: 'system' as const, content, timestamp: Date.now() }
+      ])
+    }
+
+    const handleError = (event: ErrorEvent) => {
+      window.codeviper.logFrontendError(event.message, (event.error as Error | null)?.stack)
+      appendSystemMessage(`Ошибка: ${event.message}`)
+    }
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const msg = event.reason instanceof Error ? event.reason.message : String(event.reason)
+      const stack = event.reason instanceof Error ? event.reason.stack : undefined
+      window.codeviper.logFrontendError(msg, stack)
+      appendSystemMessage(`Необработанная ошибка: ${msg}`)
+    }
+
+    window.addEventListener('error', handleError)
+    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    return () => {
+      window.removeEventListener('error', handleError)
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+    }
+  }, [])
 
   useEffect(() => {
     let active = true

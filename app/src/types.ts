@@ -296,6 +296,7 @@ export interface CodeViperAPI {
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
+  logFrontendError: (message: string, stack?: string) => void
 }
 
 declare global {

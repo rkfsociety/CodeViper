@@ -7,6 +7,9 @@ import type {
   OllamaPullProgress,
   SavedChat
 } from '../../src/types'
+import { withTimeout } from '../../shared/withTimeout'
+
+const IPC_TIMEOUT_MS = 30_000
 
 const agentStreamListeners = new Set<(event: AgentStreamEvent) => void>()
 let agentStreamBridgeReady = false
@@ -23,23 +26,26 @@ function ensureAgentStreamBridge(): void {
 
 const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
-    ipcRenderer.invoke('select-project-folder'),
+    withTimeout(ipcRenderer.invoke('select-project-folder'), IPC_TIMEOUT_MS, 'selectProjectFolder'),
 
   readFile: (projectPath: string, filePath: string) =>
-    ipcRenderer.invoke('read-file', projectPath, filePath),
+    withTimeout(ipcRenderer.invoke('read-file', projectPath, filePath), IPC_TIMEOUT_MS, 'readFile'),
 
   writeFile: (projectPath: string, filePath: string, content: string) =>
-    ipcRenderer.invoke('write-file', projectPath, filePath, content),
+    withTimeout(ipcRenderer.invoke('write-file', projectPath, filePath, content), IPC_TIMEOUT_MS, 'writeFile'),
 
-  listOllamaModels: (url?: string) => ipcRenderer.invoke('list-ollama-models', url),
+  listOllamaModels: (url?: string) =>
+    withTimeout(ipcRenderer.invoke('list-ollama-models', url), IPC_TIMEOUT_MS, 'listOllamaModels'),
 
-  checkOllama: (url?: string) => ipcRenderer.invoke('check-ollama', url),
+  checkOllama: (url?: string) =>
+    withTimeout(ipcRenderer.invoke('check-ollama', url), IPC_TIMEOUT_MS, 'checkOllama'),
 
+  // pullOllamaModel защищён 10-мин таймаутом в useOllamaDownloadQueue
   pullOllamaModel: (url: string, model: string) =>
     ipcRenderer.invoke('pull-ollama-model', url, model),
 
   deleteOllamaModel: (url: string, model: string) =>
-    ipcRenderer.invoke('delete-ollama-model', url, model),
+    withTimeout(ipcRenderer.invoke('delete-ollama-model', url, model), IPC_TIMEOUT_MS, 'deleteOllamaModel'),
 
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => {
     const handler = (_: unknown, progress: OllamaPullProgress) => callback(progress)
@@ -47,6 +53,7 @@ const codeviper = {
     return () => ipcRenderer.removeListener('ollama-pull-progress', handler)
   },
 
+  // runAgent защищён 10-мин таймаутом в useMessageQueue
   runAgent: (
     settings: AgentSettings,
     projectPath: string,
@@ -55,23 +62,35 @@ const codeviper = {
     userMessage: string
   ) => ipcRenderer.invoke('run-agent', settings, projectPath, chatId, messages, userMessage),
 
-  getAgentRunState: () => ipcRenderer.invoke('get-agent-run-state'),
+  getAgentRunState: () =>
+    withTimeout(ipcRenderer.invoke('get-agent-run-state'), IPC_TIMEOUT_MS, 'getAgentRunState'),
 
-  stopAgent: () => ipcRenderer.invoke('stop-agent'),
+  stopAgent: () =>
+    withTimeout(ipcRenderer.invoke('stop-agent'), IPC_TIMEOUT_MS, 'stopAgent'),
 
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],
     userMessage: string,
     model: string
-  ) => ipcRenderer.invoke('preview-agent-context', projectPath, messages, userMessage, model),
+  ) => withTimeout(
+    ipcRenderer.invoke('preview-agent-context', projectPath, messages, userMessage, model),
+    IPC_TIMEOUT_MS,
+    'previewAgentContext'
+  ),
 
   checkAgentPrerequisites: (ollamaUrl: string, projectPath: string) =>
-    ipcRenderer.invoke('check-agent-prerequisites', ollamaUrl, projectPath),
+    withTimeout(
+      ipcRenderer.invoke('check-agent-prerequisites', ollamaUrl, projectPath),
+      IPC_TIMEOUT_MS,
+      'checkAgentPrerequisites'
+    ),
 
-  loadSettings: () => ipcRenderer.invoke('load-settings'),
+  loadSettings: () =>
+    withTimeout(ipcRenderer.invoke('load-settings'), IPC_TIMEOUT_MS, 'loadSettings'),
 
-  saveSettings: (settings: AgentSettings) => ipcRenderer.invoke('save-settings', settings),
+  saveSettings: (settings: AgentSettings) =>
+    withTimeout(ipcRenderer.invoke('save-settings', settings), IPC_TIMEOUT_MS, 'saveSettings'),
 
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => {
     ensureAgentStreamBridge()
@@ -82,44 +101,51 @@ const codeviper = {
   },
 
   runTerminalCommand: (cwd: string, command: string) =>
-    ipcRenderer.invoke('run-terminal-command', cwd, command),
+    withTimeout(ipcRenderer.invoke('run-terminal-command', cwd, command), IPC_TIMEOUT_MS, 'runTerminalCommand'),
 
-  listMemories: (projectPath: string) => ipcRenderer.invoke('list-memories', projectPath),
+  listMemories: (projectPath: string) =>
+    withTimeout(ipcRenderer.invoke('list-memories', projectPath), IPC_TIMEOUT_MS, 'listMemories'),
 
   deleteMemory: (projectPath: string, id: string) =>
-    ipcRenderer.invoke('delete-memory', projectPath, id),
+    withTimeout(ipcRenderer.invoke('delete-memory', projectPath, id), IPC_TIMEOUT_MS, 'deleteMemory'),
 
-  listSkills: (projectPath: string) => ipcRenderer.invoke('list-skills', projectPath),
+  listSkills: (projectPath: string) =>
+    withTimeout(ipcRenderer.invoke('list-skills', projectPath), IPC_TIMEOUT_MS, 'listSkills'),
 
   deleteSkill: (projectPath: string, id: string) =>
-    ipcRenderer.invoke('delete-skill', projectPath, id),
+    withTimeout(ipcRenderer.invoke('delete-skill', projectPath, id), IPC_TIMEOUT_MS, 'deleteSkill'),
 
-  getChatStore: () => ipcRenderer.invoke('get-chat-store'),
+  getChatStore: () =>
+    withTimeout(ipcRenderer.invoke('get-chat-store'), IPC_TIMEOUT_MS, 'getChatStore'),
 
   createChat: (folderId?: string | null) =>
-    ipcRenderer.invoke('create-chat', folderId ?? null),
+    withTimeout(ipcRenderer.invoke('create-chat', folderId ?? null), IPC_TIMEOUT_MS, 'createChat'),
 
   updateChat: (
     id: string,
     patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
-  ) => ipcRenderer.invoke('update-chat', id, patch),
+  ) => withTimeout(ipcRenderer.invoke('update-chat', id, patch), IPC_TIMEOUT_MS, 'updateChat'),
 
-  deleteChat: (id: string) => ipcRenderer.invoke('delete-chat', id),
+  deleteChat: (id: string) =>
+    withTimeout(ipcRenderer.invoke('delete-chat', id), IPC_TIMEOUT_MS, 'deleteChat'),
 
-  createChatFolder: (name: string) => ipcRenderer.invoke('create-chat-folder', name),
+  createChatFolder: (name: string) =>
+    withTimeout(ipcRenderer.invoke('create-chat-folder', name), IPC_TIMEOUT_MS, 'createChatFolder'),
 
   renameChatFolder: (id: string, name: string) =>
-    ipcRenderer.invoke('rename-chat-folder', id, name),
+    withTimeout(ipcRenderer.invoke('rename-chat-folder', id, name), IPC_TIMEOUT_MS, 'renameChatFolder'),
 
   updateChatFolder: (id: string, patch: Partial<{ name: string; projectPath: string }>) =>
-    ipcRenderer.invoke('update-chat-folder', id, patch),
+    withTimeout(ipcRenderer.invoke('update-chat-folder', id, patch), IPC_TIMEOUT_MS, 'updateChatFolder'),
 
-  deleteChatFolder: (id: string) => ipcRenderer.invoke('delete-chat-folder', id),
+  deleteChatFolder: (id: string) =>
+    withTimeout(ipcRenderer.invoke('delete-chat-folder', id), IPC_TIMEOUT_MS, 'deleteChatFolder'),
 
-  setActiveChat: (id: string | null) => ipcRenderer.invoke('set-active-chat', id),
+  setActiveChat: (id: string | null) =>
+    withTimeout(ipcRenderer.invoke('set-active-chat', id), IPC_TIMEOUT_MS, 'setActiveChat'),
 
   moveChatToFolder: (chatId: string, folderId: string | null) =>
-    ipcRenderer.invoke('move-chat-to-folder', chatId, folderId),
+    withTimeout(ipcRenderer.invoke('move-chat-to-folder', chatId, folderId), IPC_TIMEOUT_MS, 'moveChatToFolder'),
 
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => {
     const handler = (_: unknown, request: AgentConfirmRequest) => callback(request)
@@ -128,7 +154,10 @@ const codeviper = {
   },
 
   respondAgentConfirm: (id: string, approved: boolean) =>
-    ipcRenderer.send('agent-confirm-response', id, approved)
+    ipcRenderer.send('agent-confirm-response', id, approved),
+
+  logFrontendError: (message: string, stack?: string) =>
+    ipcRenderer.send('log-frontend-error', message, stack)
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)
