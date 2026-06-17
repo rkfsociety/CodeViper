@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, safeStorage } from 'electron'
 import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
@@ -78,6 +78,30 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
   }
 }
 
+// Расшифровать API-ключ (хранится в виде base64-кодированного буфера)
+function decryptApiKey(encrypted?: string): string {
+  if (!encrypted) return ''
+  try {
+    const buffer = Buffer.from(encrypted, 'base64')
+    return safeStorage.decryptString(buffer)
+  } catch {
+    // Если расшифровка не удаётся (напр. ключ с другой машины), вернуть пусто
+    return ''
+  }
+}
+
+// Зашифровать API-ключ и вернуть base64-кодированный буфер
+function encryptApiKey(plaintext: string): string {
+  if (!plaintext) return ''
+  try {
+    const buffer = safeStorage.encryptString(plaintext)
+    return buffer.toString('base64')
+  } catch {
+    // Если шифрование не удаётся, сохранить в открытом виде (пользователь нужен)
+    return plaintext
+  }
+}
+
 export async function loadSettings(): Promise<PersistedSettings> {
   const path = storePath()
   if (!existsSync(path)) return { ...DEFAULT_SETTINGS }
@@ -85,6 +109,10 @@ export async function loadSettings(): Promise<PersistedSettings> {
   try {
     const raw = await readFile(path, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<PersistedSettings>
+    // Расшифровать API-ключ перед возвратом
+    if (parsed.providerApiKey) {
+      parsed.providerApiKey = decryptApiKey(parsed.providerApiKey)
+    }
     return normalize(parsed)
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -93,6 +121,12 @@ export async function loadSettings(): Promise<PersistedSettings> {
 
 export async function saveSettings(settings: AgentSettings): Promise<PersistedSettings> {
   const normalized = normalize(settings)
-  await writeJsonAtomic(storePath(), normalized)
+  // Зашифровать API-ключ перед сохранением
+  const toSave = {
+    ...normalized,
+    providerApiKey: encryptApiKey(normalized.providerApiKey)
+  }
+  await writeJsonAtomic(storePath(), toSave)
+  // Вернуть с расшифрованным ключом
   return normalized
 }
