@@ -74,8 +74,8 @@ export function AgentContextModal({ open, preview, onClose }: Props) {
             <div className="context-modal-meta">
               {preview.model || 'модель не выбрана'} · {preview.contextUsagePercent}% /{' '}
               {preview.contextLimitTokens.toLocaleString('ru-RU')} tok · ~
-              {preview.estimatedTokens.toLocaleString('ru-RU')} tok · {formatChars(preview.totalChars)}{' '}
-              симв. · {preview.toolCount} инструментов
+              {preview.estimatedTokens.toLocaleString('ru-RU')} tok ·{' '}
+              {formatChars(preview.totalChars)} симв. · {preview.toolCount} инструментов
               {preview.historySummarized && (
                 <span className="context-warning"> · история суммаризирована</span>
               )}
@@ -128,7 +128,9 @@ export function AgentContextModal({ open, preview, onClose }: Props) {
             <div className="context-content-header">
               <div>
                 <div className="context-content-title">{active.title}</div>
-                {active.subtitle && <div className="context-content-subtitle">{active.subtitle}</div>}
+                {active.subtitle && (
+                  <div className="context-content-subtitle">{active.subtitle}</div>
+                )}
               </div>
               <MessageCopyButton text={active.content} />
             </div>

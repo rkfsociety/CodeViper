@@ -58,7 +58,9 @@ export async function computeEmbedding(text: string, ollamaUrl: string): Promise
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0, normA = 0, normB = 0
+  let dot = 0,
+    normA = 0,
+    normB = 0
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i]
     normA += a[i] * a[i]
@@ -78,7 +80,8 @@ export async function upsertEmbedding(
   const vec = await computeEmbedding(text, ollamaUrl)
   if (!vec) return
 
-  const path = scope === 'project' && projectPath ? projectIndexPath(projectPath) : globalIndexPath()
+  const path =
+    scope === 'project' && projectPath ? projectIndexPath(projectPath) : globalIndexPath()
   const index = await loadIndex(path)
   index.entries[id] = vec
   await saveIndex(path, index)

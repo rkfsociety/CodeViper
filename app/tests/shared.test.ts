@@ -52,7 +52,9 @@ describe('toolCalls', () => {
   })
 
   it('sanitizeAssistantContent убирает json-вызов и оставляет текст', () => {
-    expect(sanitizeAssistantContent('```json\n{"name":"read_file","arguments":{"path":"x"}}\n```')).toBe('')
+    expect(
+      sanitizeAssistantContent('```json\n{"name":"read_file","arguments":{"path":"x"}}\n```')
+    ).toBe('')
     expect(sanitizeAssistantContent('обычный ответ')).toBe('обычный ответ')
   })
 
@@ -152,9 +154,9 @@ describe('actionVerification', () => {
   })
 
   it('shouldRetryForMissingTools требует повтор при заявлении без инструментов', () => {
-    expect(
-      shouldRetryForMissingTools('добавь кнопку', 'Я добавил кнопку', new Set(), false)
-    ).toBe(true)
+    expect(shouldRetryForMissingTools('добавь кнопку', 'Я добавил кнопку', new Set(), false)).toBe(
+      true
+    )
     expect(
       shouldRetryForMissingTools('добавь кнопку', 'Готово', new Set(['write_file']), true)
     ).toBe(false)
@@ -204,7 +206,9 @@ describe('skillMatching', () => {
     const skill = makeSkill()
     expect(shouldApplySkill(skill, 'todo список задач', false)).toBe(true)
     expect(shouldApplySkill(skill, 'todo', true)).toBe(false)
-    expect(shouldApplySkill(makeSkill({ scope: 'project' }), 'todo список задач', false)).toBe(false)
+    expect(shouldApplySkill(makeSkill({ scope: 'project' }), 'todo список задач', false)).toBe(
+      false
+    )
   })
 
   it('truncateSkillInstructions обрезает длинный текст', () => {

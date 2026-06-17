@@ -208,12 +208,14 @@ export function buildSelfImprovementContinueNudge(plan: SelfImprovementItem[]): 
   const blocked = plan.filter((item) => item.blocked).length
   const next = pending[0]
 
-  const blocked_info = blocked > 0 ? `\n⚠️ Заблокировано ${blocked} пунктов (не переоформляй их).` : ''
+  const blocked_info =
+    blocked > 0 ? `\n⚠️ Заблокировано ${blocked} пунктов (не переоформляй их).` : ''
 
   if (!next) {
-    const summary = blocked > 0
-      ? `${done} пункта выполнены${blocked_info}. Кратко подведи итог и заверши.`
-      : 'Все пункты плана выполнены. Кратко подведи итог и заверши.'
+    const summary =
+      blocked > 0
+        ? `${done} пункта выполнены${blocked_info}. Кратко подведи итог и заверши.`
+        : 'Все пункты плана выполнены. Кратко подведи итог и заверши.'
     return summary
   }
 

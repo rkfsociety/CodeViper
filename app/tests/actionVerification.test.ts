@@ -46,22 +46,14 @@ describe('actionVerification', () => {
   })
 
   it('требует проверку без mutating tools', () => {
-    expect(
-      needsToolVerification(
-        'Создай skill для todo',
-        'Готово. Skill создан.',
-        new Set()
-      )
-    ).toBe(true)
+    expect(needsToolVerification('Создай skill для todo', 'Готово. Skill создан.', new Set())).toBe(
+      true
+    )
   })
 
   it('не требует проверку если инструмент уже вызывался', () => {
     expect(
-      needsToolVerification(
-        'Создай skill для todo',
-        'Skill создан.',
-        new Set(['create_skill'])
-      )
+      needsToolVerification('Создай skill для todo', 'Skill создан.', new Set(['create_skill']))
     ).toBe(false)
   })
 
@@ -69,13 +61,6 @@ describe('actionVerification', () => {
     const message = 'Изучи код и начни улучшать себя'
     expect(taskLikelyNeedsMutation(message)).toBe(true)
     expect(taskLikelyNeedsTools(message)).toBe(true)
-    expect(
-      shouldRetryForMissingTools(
-        message,
-        'A'.repeat(120),
-        new Set(),
-        true
-      )
-    ).toBe(true)
+    expect(shouldRetryForMissingTools(message, 'A'.repeat(120), new Set(), true)).toBe(true)
   })
 })

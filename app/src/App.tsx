@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AgentConfirmRequest, AgentSettings, ChatMessage, ChatStore, OllamaModel } from './types'
+import type {
+  AgentConfirmRequest,
+  AgentSettings,
+  ChatMessage,
+  ChatStore,
+  OllamaModel
+} from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
@@ -87,7 +93,7 @@ export default function App() {
         model:
           prev.model && names.includes(prev.model) && isToolCallingModel(prev.model)
             ? prev.model
-            : names[0] ?? ''
+            : (names[0] ?? '')
       }))
     } else {
       setModels([])
@@ -146,7 +152,9 @@ export default function App() {
         }
       }
     })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [])
 
   useEffect(() => {
@@ -172,11 +180,14 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const resolveConfirm = useCallback((approved: boolean) => {
-    if (!confirmReq) return
-    window.codeviper.respondAgentConfirm(confirmReq.id, approved)
-    setConfirmReq(null)
-  }, [confirmReq])
+  const resolveConfirm = useCallback(
+    (approved: boolean) => {
+      if (!confirmReq) return
+      window.codeviper.respondAgentConfirm(confirmReq.id, approved)
+      setConfirmReq(null)
+    },
+    [confirmReq]
+  )
 
   useEffect(() => {
     if (!settingsReady) return
@@ -226,75 +237,102 @@ export default function App() {
     await refreshChatStore()
   }, [activeChatId, chatBusy, messages.length, refreshChatStore])
 
-  const selectChat = useCallback(async (id: string) => {
-    if (chatBusy) return
-    if (id === activeChatId) return
+  const selectChat = useCallback(
+    async (id: string) => {
+      if (chatBusy) return
+      if (id === activeChatId) return
 
-    await flushCurrentChat()
+      await flushCurrentChat()
 
-    const store = chatStore ?? (await refreshChatStore())
-    const chat = store.chats.find((item) => item.id === id)
-    if (!chat) return
+      const store = chatStore ?? (await refreshChatStore())
+      const chat = store.chats.find((item) => item.id === id)
+      if (!chat) return
 
-    setActiveChatId(id)
-    setMessages(chat.messages)
-    await window.codeviper.setActiveChat(id)
-    setChatStore(await window.codeviper.getChatStore())
-  }, [chatBusy, activeChatId, chatStore, flushCurrentChat, refreshChatStore])
+      setActiveChatId(id)
+      setMessages(chat.messages)
+      await window.codeviper.setActiveChat(id)
+      setChatStore(await window.codeviper.getChatStore())
+    },
+    [chatBusy, activeChatId, chatStore, flushCurrentChat, refreshChatStore]
+  )
 
-  const createChat = useCallback(async (folderId: string | null = null) => {
-    await flushCurrentChat()
+  const createChat = useCallback(
+    async (folderId: string | null = null) => {
+      await flushCurrentChat()
 
-    const chat = await window.codeviper.createChat(folderId)
-    await refreshChatStore()
-    setActiveChatId(chat.id)
-    setMessages([])
-  }, [flushCurrentChat, refreshChatStore])
+      const chat = await window.codeviper.createChat(folderId)
+      await refreshChatStore()
+      setActiveChatId(chat.id)
+      setMessages([])
+    },
+    [flushCurrentChat, refreshChatStore]
+  )
 
-  const createFolder = useCallback(async (name: string) => {
-    if (!name.trim()) return
-    await window.codeviper.createChatFolder(name.trim())
-    await refreshChatStore()
-  }, [refreshChatStore])
+  const createFolder = useCallback(
+    async (name: string) => {
+      if (!name.trim()) return
+      await window.codeviper.createChatFolder(name.trim())
+      await refreshChatStore()
+    },
+    [refreshChatStore]
+  )
 
-  const deleteChat = useCallback(async (id: string) => {
-    if (chatBusy) return
-    await window.codeviper.deleteChat(id)
-    const store = await refreshChatStore()
-    if (activeChatId === id) {
-      const next = store.chats[0]
-      setActiveChatId(next?.id ?? null)
-      setMessages(next?.messages ?? [])
-      await window.codeviper.setActiveChat(next?.id ?? null)
-    }
-  }, [chatBusy, activeChatId, refreshChatStore])
+  const deleteChat = useCallback(
+    async (id: string) => {
+      if (chatBusy) return
+      await window.codeviper.deleteChat(id)
+      const store = await refreshChatStore()
+      if (activeChatId === id) {
+        const next = store.chats[0]
+        setActiveChatId(next?.id ?? null)
+        setMessages(next?.messages ?? [])
+        await window.codeviper.setActiveChat(next?.id ?? null)
+      }
+    },
+    [chatBusy, activeChatId, refreshChatStore]
+  )
 
-  const renameChat = useCallback(async (id: string, title: string) => {
-    await window.codeviper.updateChat(id, { title })
-    await refreshChatStore()
-  }, [refreshChatStore])
+  const renameChat = useCallback(
+    async (id: string, title: string) => {
+      await window.codeviper.updateChat(id, { title })
+      await refreshChatStore()
+    },
+    [refreshChatStore]
+  )
 
-  const renameFolder = useCallback(async (id: string, name: string) => {
-    await window.codeviper.renameChatFolder(id, name)
-    await refreshChatStore()
-  }, [refreshChatStore])
+  const renameFolder = useCallback(
+    async (id: string, name: string) => {
+      await window.codeviper.renameChatFolder(id, name)
+      await refreshChatStore()
+    },
+    [refreshChatStore]
+  )
 
-  const updateFolderProject = useCallback(async (id: string) => {
-    const folder = await window.codeviper.selectProjectFolder()
-    if (!folder) return
-    await window.codeviper.updateChatFolder(id, { projectPath: folder })
-    await refreshChatStore()
-  }, [refreshChatStore])
+  const updateFolderProject = useCallback(
+    async (id: string) => {
+      const folder = await window.codeviper.selectProjectFolder()
+      if (!folder) return
+      await window.codeviper.updateChatFolder(id, { projectPath: folder })
+      await refreshChatStore()
+    },
+    [refreshChatStore]
+  )
 
-  const deleteFolder = useCallback(async (id: string) => {
-    await window.codeviper.deleteChatFolder(id)
-    await refreshChatStore()
-  }, [refreshChatStore])
+  const deleteFolder = useCallback(
+    async (id: string) => {
+      await window.codeviper.deleteChatFolder(id)
+      await refreshChatStore()
+    },
+    [refreshChatStore]
+  )
 
-  const moveChat = useCallback(async (chatId: string, folderId: string | null) => {
-    await window.codeviper.moveChatToFolder(chatId, folderId)
-    await refreshChatStore()
-  }, [refreshChatStore])
+  const moveChat = useCallback(
+    async (chatId: string, folderId: string | null) => {
+      await window.codeviper.moveChatToFolder(chatId, folderId)
+      await refreshChatStore()
+    },
+    [refreshChatStore]
+  )
 
   return (
     <div className="app">
@@ -333,9 +371,7 @@ export default function App() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
-        <div className="topbar-path">
-          {activeChat?.title ?? 'Новый чат'}
-        </div>
+        <div className="topbar-path">{activeChat?.title ?? 'Новый чат'}</div>
         <div className="topbar-actions">
           <button className="btn" onClick={refreshOllama}>
             Обновить Ollama
@@ -435,9 +471,7 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
         onRefreshOllama={refreshOllama}
-        onSelfLearningChange={(selfLearning) =>
-          setSettings((prev) => ({ ...prev, selfLearning }))
-        }
+        onSelfLearningChange={(selfLearning) => setSettings((prev) => ({ ...prev, selfLearning }))}
       />
 
       <ConfirmDialog

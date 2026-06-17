@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react'
 import type { AgentSettings, OllamaModel, PermissionMode } from '../types'
 import {
-  DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX,
-  DEFAULT_MAX_RUNS_PER_HOUR, MAX_RUNS_PER_HOUR_MIN, MAX_RUNS_PER_HOUR_MAX,
-  DEFAULT_COMMAND_TIMEOUT_SEC, COMMAND_TIMEOUT_SEC_MIN, COMMAND_TIMEOUT_SEC_MAX,
-  DEEPSEEK_API_BASE_URL, DEEPSEEK_MODEL_DEFAULT
+  DEFAULT_MAX_STEPS,
+  MAX_STEPS_MIN,
+  MAX_STEPS_MAX,
+  DEFAULT_MAX_RUNS_PER_HOUR,
+  MAX_RUNS_PER_HOUR_MIN,
+  MAX_RUNS_PER_HOUR_MAX,
+  DEFAULT_COMMAND_TIMEOUT_SEC,
+  COMMAND_TIMEOUT_SEC_MIN,
+  COMMAND_TIMEOUT_SEC_MAX,
+  DEEPSEEK_API_BASE_URL,
+  DEEPSEEK_MODEL_DEFAULT
 } from '../../shared/constants'
 import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
 import { ModelPanel } from './ModelPanel'
@@ -128,327 +135,344 @@ export function SettingsModal({
         <div className="modal-body settings">
           {tab === 'model' && (
             <>
-          {/* ── Провайдер моделей ── */}
-          <label>
-            Провайдер моделей
-            <select
-              value={provider}
-              onChange={(e) => handleProviderChange(e.target.value as 'ollama' | 'deepseek' | 'openai')}
-            >
-              <option value="ollama">Ollama (локально)</option>
-              <option value="deepseek">DeepSeek API</option>
-              <option value="openai">OpenAI-совместимый API</option>
-            </select>
-          </label>
-
-          {provider === 'ollama' && (
-            <label>
-              Ollama URL
-              <input
-                value={settings.ollamaUrl}
-                onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
-                onBlur={() => void onRefreshOllama()}
-              />
-            </label>
-          )}
-
-          {provider === 'deepseek' && (
-            <>
-              <div className="settings-hint">
-                Используется <strong>DeepSeek API</strong> — OpenAI-совместимый облачный API.
-                Базовый URL: <code>{DEEPSEEK_API_BASE_URL}</code>, модель по умолчанию: <code>{DEEPSEEK_MODEL_DEFAULT}</code>.
-              </div>
+              {/* ── Провайдер моделей ── */}
               <label>
-                DeepSeek API ключ
-                <div className="settings-api-key-row">
-                  <input
-                    type={apiKeyVisible ? 'text' : 'password'}
-                    placeholder="sk-..."
-                    value={settings.providerApiKey ?? ''}
-                    onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
-                    autoComplete="off"
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    onClick={() => setApiKeyVisible((v) => !v)}
-                    title={apiKeyVisible ? 'Скрыть' : 'Показать'}
-                  >
-                    {apiKeyVisible ? '🙈' : '👁'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    onClick={() => void handlePing()}
-                    disabled={pingState === 'checking' || !settings.providerApiKey}
-                    title="Проверить подключение"
-                  >
-                    {pingState === 'checking' ? '⏳' : pingState === 'ok' ? '✅' : pingState === 'fail' ? '❌' : '🔌'}
-                  </button>
-                </div>
+                Провайдер моделей
+                <select
+                  value={provider}
+                  onChange={(e) =>
+                    handleProviderChange(e.target.value as 'ollama' | 'deepseek' | 'openai')
+                  }
+                >
+                  <option value="ollama">Ollama (локально)</option>
+                  <option value="deepseek">DeepSeek API</option>
+                  <option value="openai">OpenAI-совместимый API</option>
+                </select>
               </label>
-            </>
-          )}
 
-          {provider === 'openai' && (
-            <>
-              <label>
-                API базовый URL
+              {provider === 'ollama' && (
+                <label>
+                  Ollama URL
+                  <input
+                    value={settings.ollamaUrl}
+                    onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                    onBlur={() => void onRefreshOllama()}
+                  />
+                </label>
+              )}
+
+              {provider === 'deepseek' && (
+                <>
+                  <div className="settings-hint">
+                    Используется <strong>DeepSeek API</strong> — OpenAI-совместимый облачный API.
+                    Базовый URL: <code>{DEEPSEEK_API_BASE_URL}</code>, модель по умолчанию:{' '}
+                    <code>{DEEPSEEK_MODEL_DEFAULT}</code>.
+                  </div>
+                  <label>
+                    DeepSeek API ключ
+                    <div className="settings-api-key-row">
+                      <input
+                        type={apiKeyVisible ? 'text' : 'password'}
+                        placeholder="sk-..."
+                        value={settings.providerApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => setApiKeyVisible((v) => !v)}
+                        title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                      >
+                        {apiKeyVisible ? '🙈' : '👁'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => void handlePing()}
+                        disabled={pingState === 'checking' || !settings.providerApiKey}
+                        title="Проверить подключение"
+                      >
+                        {pingState === 'checking'
+                          ? '⏳'
+                          : pingState === 'ok'
+                            ? '✅'
+                            : pingState === 'fail'
+                              ? '❌'
+                              : '🔌'}
+                      </button>
+                    </div>
+                  </label>
+                </>
+              )}
+
+              {provider === 'openai' && (
+                <>
+                  <label>
+                    API базовый URL
+                    <input
+                      placeholder="https://api.openai.com/v1"
+                      value={settings.ollamaUrl}
+                      onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                    />
+                  </label>
+                  <label>
+                    API ключ
+                    <div className="settings-api-key-row">
+                      <input
+                        type={apiKeyVisible ? 'text' : 'password'}
+                        placeholder="sk-..."
+                        value={settings.providerApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => setApiKeyVisible((v) => !v)}
+                        title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                      >
+                        {apiKeyVisible ? '🙈' : '👁'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => void handlePing()}
+                        disabled={pingState === 'checking'}
+                        title="Проверить подключение"
+                      >
+                        {pingState === 'checking'
+                          ? '⏳'
+                          : pingState === 'ok'
+                            ? '✅'
+                            : pingState === 'fail'
+                              ? '❌'
+                              : '🔌'}
+                      </button>
+                    </div>
+                  </label>
+                </>
+              )}
+
+              <label className="settings-toggle">
                 <input
-                  placeholder="https://api.openai.com/v1"
-                  value={settings.ollamaUrl}
-                  onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                  type="checkbox"
+                  checked={settings.autoModel !== false}
+                  onChange={(e) => onSettingsChange({ autoModel: e.target.checked })}
                 />
+                <span>
+                  <strong>Автовыбор модели</strong> — подбирать модель под задачу, выгружать другие
+                  из RAM (если установлено несколько)
+                </span>
               </label>
+
               <label>
-                API ключ
-                <div className="settings-api-key-row">
-                  <input
-                    type={apiKeyVisible ? 'text' : 'password'}
-                    placeholder="sk-..."
-                    value={settings.providerApiKey ?? ''}
-                    onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
-                    autoComplete="off"
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    onClick={() => setApiKeyVisible((v) => !v)}
-                    title={apiKeyVisible ? 'Скрыть' : 'Показать'}
-                  >
-                    {apiKeyVisible ? '🙈' : '👁'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    onClick={() => void handlePing()}
-                    disabled={pingState === 'checking'}
-                    title="Проверить подключение"
-                  >
-                    {pingState === 'checking' ? '⏳' : pingState === 'ok' ? '✅' : pingState === 'fail' ? '❌' : '🔌'}
-                  </button>
-                </div>
+                Модель для суммаризации
+                <select
+                  value={settings.summarizeModel ?? ''}
+                  onChange={(e) => onSettingsChange({ summarizeModel: e.target.value })}
+                >
+                  <option value="">Авто — самая лёгкая установленная</option>
+                  {models.map((model) => (
+                    <option key={model.name} value={model.name}>
+                      {model.name}
+                    </option>
+                  ))}
+                </select>
               </label>
-            </>
-          )}
-
-          <label className="settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.autoModel !== false}
-              onChange={(e) => onSettingsChange({ autoModel: e.target.checked })}
-            />
-            <span>
-              <strong>Автовыбор модели</strong> — подбирать модель под задачу, выгружать
-              другие из RAM (если установлено несколько)
-            </span>
-          </label>
-
-          <label>
-            Модель для суммаризации
-            <select
-              value={settings.summarizeModel ?? ''}
-              onChange={(e) => onSettingsChange({ summarizeModel: e.target.value })}
-            >
-              <option value="">Авто — самая лёгкая установленная</option>
-              {models.map((model) => (
-                <option key={model.name} value={model.name}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="settings-hint">
-            Сжатие длинной истории чата при ~85% лимита контекста. По умолчанию берётся самая
-            лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
-          </div>
-
+              <div className="settings-hint">
+                Сжатие длинной истории чата при ~85% лимита контекста. По умолчанию берётся самая
+                лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
+              </div>
             </>
           )}
 
           {tab === 'behavior' && (
             <>
-          <label>
-            Режим доступа
-            <select
-              value={settings.permissionMode ?? 'bypass'}
-              onChange={(e) =>
-                onSettingsChange({ permissionMode: e.target.value as PermissionMode })
-              }
-            >
-              {PERMISSION_MODES.map((mode) => (
-                <option key={mode} value={mode}>
-                  {PERMISSION_MODE_LABELS[mode]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="settings-hint">
-            <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
-            <strong>Принимать правки</strong> — файлы без вопросов, команды с подтверждением.{' '}
-            <strong>Без подтверждений</strong> — агент действует сам.
-          </div>
+              <label>
+                Режим доступа
+                <select
+                  value={settings.permissionMode ?? 'bypass'}
+                  onChange={(e) =>
+                    onSettingsChange({ permissionMode: e.target.value as PermissionMode })
+                  }
+                >
+                  {PERMISSION_MODES.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {PERMISSION_MODE_LABELS[mode]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="settings-hint">
+                <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
+                <strong>Принимать правки</strong> — файлы без вопросов, команды с подтверждением.{' '}
+                <strong>Без подтверждений</strong> — агент действует сам.
+              </div>
 
-          <label className="settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.clarifyMode === true}
-              onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
-            />
-            <span>
-              <strong>Уточняющие вопросы</strong> — при неоднозначной задаче агент сначала
-              задаёт вопросы, а потом приступает
-            </span>
-          </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.clarifyMode === true}
+                  onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
+                />
+                <span>
+                  <strong>Уточняющие вопросы</strong> — при неоднозначной задаче агент сначала
+                  задаёт вопросы, а потом приступает
+                </span>
+              </label>
 
-          <label className="settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.deepReasoning === true}
-              onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
-            />
-            <span>
-              <strong>Глубокое рассуждение</strong> — для think-моделей (qwen3, deepseek-r1,
-              qwq) включает режим рассуждения, для остальных усиливает промпт. Точнее, но
-              медленнее
-            </span>
-          </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.deepReasoning === true}
+                  onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
+                />
+                <span>
+                  <strong>Глубокое рассуждение</strong> — для think-моделей (qwen3, deepseek-r1,
+                  qwq) включает режим рассуждения, для остальных усиливает промпт. Точнее, но
+                  медленнее
+                </span>
+              </label>
 
-          <label className="settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.autoPushSelfEdits !== false}
-              onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
-            />
-            <span>
-              <strong>Автокоммит самоправок</strong> — когда агент меняет свой код, после
-              задачи автоматически <code>git commit</code> + <code>push</code> на GitHub
-              (чтобы правки не терялись при синхронизации на старте)
-            </span>
-          </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.autoPushSelfEdits !== false}
+                  onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
+                />
+                <span>
+                  <strong>Автокоммит самоправок</strong> — когда агент меняет свой код, после задачи
+                  автоматически <code>git commit</code> + <code>push</code> на GitHub (чтобы правки
+                  не терялись при синхронизации на старте)
+                </span>
+              </label>
 
-          <label>
-            Таймаут команд (сек)
-            <input
-              type="number"
-              min={COMMAND_TIMEOUT_SEC_MIN}
-              max={COMMAND_TIMEOUT_SEC_MAX}
-              value={settings.commandTimeoutSec ?? DEFAULT_COMMAND_TIMEOUT_SEC}
-              onChange={(e) =>
-                onSettingsChange({
-                  commandTimeoutSec: Number(e.target.value) || DEFAULT_COMMAND_TIMEOUT_SEC
-                })
-              }
-            />
-          </label>
-          <div className="settings-hint">
-            Максимальное время выполнения одной команды агентом. По умолчанию 120 с. Увеличьте
-            для долгих сборок или тестов (макс. {COMMAND_TIMEOUT_SEC_MAX} с).
-          </div>
+              <label>
+                Таймаут команд (сек)
+                <input
+                  type="number"
+                  min={COMMAND_TIMEOUT_SEC_MIN}
+                  max={COMMAND_TIMEOUT_SEC_MAX}
+                  value={settings.commandTimeoutSec ?? DEFAULT_COMMAND_TIMEOUT_SEC}
+                  onChange={(e) =>
+                    onSettingsChange({
+                      commandTimeoutSec: Number(e.target.value) || DEFAULT_COMMAND_TIMEOUT_SEC
+                    })
+                  }
+                />
+              </label>
+              <div className="settings-hint">
+                Максимальное время выполнения одной команды агентом. По умолчанию 120 с. Увеличьте
+                для долгих сборок или тестов (макс. {COMMAND_TIMEOUT_SEC_MAX} с).
+              </div>
 
-          <label className="settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.readonlyMode === true}
-              onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
-            />
-            <span>
-              <strong>Режим только чтение</strong> — блокирует все инструменты записи (write_file, edit_file, run_command и др.); агент может только читать файлы и искать по коду
-            </span>
-          </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.readonlyMode === true}
+                  onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
+                />
+                <span>
+                  <strong>Режим только чтение</strong> — блокирует все инструменты записи
+                  (write_file, edit_file, run_command и др.); агент может только читать файлы и
+                  искать по коду
+                </span>
+              </label>
 
-          <label className="settings-toggle">
-            <input
-              type="checkbox"
-              checked={settings.soundNotifications === true}
-              onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
-            />
-            <span>
-              <strong>Звуковые уведомления</strong> — короткий сигнал при завершении задачи агента
-            </span>
-          </label>
-
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.soundNotifications === true}
+                  onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
+                />
+                <span>
+                  <strong>Звуковые уведомления</strong> — короткий сигнал при завершении задачи
+                  агента
+                </span>
+              </label>
             </>
           )}
 
           {tab === 'model' && (
             <>
-          {provider === 'ollama' ? (
-            <ModelPanel
-              ollamaUrl={settings.ollamaUrl}
-              ollamaOnline={ollamaOnline}
-              models={models}
-              selectedModel={settings.model}
-              autoModel={settings.autoModel !== false}
-              downloadQueue={{
-                pulling: downloadQueue.pulling,
-                queued: downloadQueue.queued,
-                progress: downloadQueue.progress,
-                error: downloadQueue.error,
-                percent: downloadQueue.percent,
-                onEnqueue: downloadQueue.enqueue,
-                onRemoveFromQueue: downloadQueue.removeFromQueue,
-                onClearError: downloadQueue.clearError
-              }}
-              onModelChange={(model) => onSettingsChange({ model })}
-              onRefresh={onRefreshOllama}
-            />
-          ) : (
-            <CloudModelSelector
-              provider={provider}
-              model={settings.model}
-              defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
-              onChange={(model) => onSettingsChange({ model })}
-            />
-          )}
+              {provider === 'ollama' ? (
+                <ModelPanel
+                  ollamaUrl={settings.ollamaUrl}
+                  ollamaOnline={ollamaOnline}
+                  models={models}
+                  selectedModel={settings.model}
+                  autoModel={settings.autoModel !== false}
+                  downloadQueue={{
+                    pulling: downloadQueue.pulling,
+                    queued: downloadQueue.queued,
+                    progress: downloadQueue.progress,
+                    error: downloadQueue.error,
+                    percent: downloadQueue.percent,
+                    onEnqueue: downloadQueue.enqueue,
+                    onRemoveFromQueue: downloadQueue.removeFromQueue,
+                    onClearError: downloadQueue.clearError
+                  }}
+                  onModelChange={(model) => onSettingsChange({ model })}
+                  onRefresh={onRefreshOllama}
+                />
+              ) : (
+                <CloudModelSelector
+                  provider={provider}
+                  model={settings.model}
+                  defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
+                  onChange={(model) => onSettingsChange({ model })}
+                />
+              )}
 
-          <label>
-            Макс. шагов агента
-            <input
-              type="number"
-              min={MAX_STEPS_MIN}
-              max={MAX_STEPS_MAX}
-              value={settings.maxSteps}
-              onChange={(e) =>
-                onSettingsChange({ maxSteps: Number(e.target.value) || DEFAULT_MAX_STEPS })
-              }
-            />
-          </label>
+              <label>
+                Макс. шагов агента
+                <input
+                  type="number"
+                  min={MAX_STEPS_MIN}
+                  max={MAX_STEPS_MAX}
+                  value={settings.maxSteps}
+                  onChange={(e) =>
+                    onSettingsChange({ maxSteps: Number(e.target.value) || DEFAULT_MAX_STEPS })
+                  }
+                />
+              </label>
 
-          <label>
-            Макс. прогонов в час
-            <input
-              type="number"
-              min={MAX_RUNS_PER_HOUR_MIN}
-              max={MAX_RUNS_PER_HOUR_MAX}
-              value={settings.maxRunsPerHour ?? DEFAULT_MAX_RUNS_PER_HOUR}
-              onChange={(e) =>
-                onSettingsChange({ maxRunsPerHour: Number(e.target.value) || DEFAULT_MAX_RUNS_PER_HOUR })
-              }
-            />
-          </label>
-
+              <label>
+                Макс. прогонов в час
+                <input
+                  type="number"
+                  min={MAX_RUNS_PER_HOUR_MIN}
+                  max={MAX_RUNS_PER_HOUR_MAX}
+                  value={settings.maxRunsPerHour ?? DEFAULT_MAX_RUNS_PER_HOUR}
+                  onChange={(e) =>
+                    onSettingsChange({
+                      maxRunsPerHour: Number(e.target.value) || DEFAULT_MAX_RUNS_PER_HOUR
+                    })
+                  }
+                />
+              </label>
             </>
           )}
 
           {tab === 'memory' && (
             <>
-          <MemoryPanel
-            projectPath={chatProjectPath}
-            selfLearning={settings.selfLearning !== false}
-            onSelfLearningChange={onSelfLearningChange}
-            refreshKey={memoryRefreshKey}
-          />
+              <MemoryPanel
+                projectPath={chatProjectPath}
+                selfLearning={settings.selfLearning !== false}
+                onSelfLearningChange={onSelfLearningChange}
+                refreshKey={memoryRefreshKey}
+              />
 
-          <SkillsPanel projectPath={chatProjectPath} refreshKey={skillsRefreshKey} />
+              <SkillsPanel projectPath={chatProjectPath} refreshKey={skillsRefreshKey} />
             </>
           )}
         </div>
 
         {!ollamaOnline && (
           <div className="hint">
-            Ollama не отвечает. Установи с <strong>ollama.com</strong>, запусти приложение Ollama
-            и нажми «Обновить Ollama» в верхней панели.
+            Ollama не отвечает. Установи с <strong>ollama.com</strong>, запусти приложение Ollama и
+            нажми «Обновить Ollama» в верхней панели.
           </div>
         )}
 

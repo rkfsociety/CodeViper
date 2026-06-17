@@ -75,9 +75,9 @@ describe('contextSummarizer', () => {
     })
 
     expect(result.summarized).toBe(true)
-    expect(result.messages.some((message) => message.content.includes('Сводка предыдущего контекста'))).toBe(
-      true
-    )
+    expect(
+      result.messages.some((message) => message.content.includes('Сводка предыдущего контекста'))
+    ).toBe(true)
     expect(result.usagePercent).toBeLessThan(95)
   })
 

@@ -1,11 +1,11 @@
-import type {
-  AgentSettings,
-  AgentStreamPayload,
-  ChatMessage
-} from '../../src/types'
+import type { AgentSettings, AgentStreamPayload, ChatMessage } from '../../src/types'
 import { assertPullableToolModel } from '../../shared/recommendedModels'
 import { escalateModel } from '../../shared/modelRouter'
-import { extractEmbeddedToolCalls, sanitizeAssistantContent, isRefusalResponse } from '../../shared/toolCalls'
+import {
+  extractEmbeddedToolCalls,
+  sanitizeAssistantContent,
+  isRefusalResponse
+} from '../../shared/toolCalls'
 import {
   MUTATING_TOOLS,
   shouldRetryForMissingTools,
@@ -68,11 +68,21 @@ const OLLAMA_KEEP_ALIVE = '30m'
 
 // Read-only инструменты — безопасно запускать параллельно (Promise.all).
 const PARALLEL_SAFE_TOOLS = new Set([
-  'read_file', 'grep_files', 'find_files', 'list_directory',
-  'read_codeviper_file', 'grep_codeviper_files', 'find_codeviper_files', 'list_codeviper_directory',
-  'git_status', 'git_diff', 'git_log',
+  'read_file',
+  'grep_files',
+  'find_files',
+  'list_directory',
+  'read_codeviper_file',
+  'grep_codeviper_files',
+  'find_codeviper_files',
+  'list_codeviper_directory',
+  'git_status',
+  'git_diff',
+  'git_log',
   'search_memory',
-  'list_skills', 'read_skill', 'read_skill_data',
+  'list_skills',
+  'read_skill',
+  'read_skill_data',
   'get_self_improvement_plan',
   'preview_ollama_modelfile'
 ])
@@ -241,9 +251,10 @@ export class AgentRunner {
           model: this.settings.model,
           duration_ms: Date.now() - stepStartMs,
           tokens: response.metrics?.evalCount,
-          toks_per_sec: response.metrics?.tokensPerSec != null
-            ? Math.round(response.metrics.tokensPerSec * 10) / 10
-            : undefined,
+          toks_per_sec:
+            response.metrics?.tokensPerSec != null
+              ? Math.round(response.metrics.tokensPerSec * 10) / 10
+              : undefined,
           has_tools: (response.message?.tool_calls?.length ?? 0) > 0,
           has_thinking: !!response.message?.thinking
         })
@@ -271,7 +282,11 @@ export class AgentRunner {
 
             if (this.selfImprovementPlan.isComplete()) {
               if (assistantText && !adoptedPlan) {
-                this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
+                this.emit({
+                  type: 'assistant',
+                  content: assistantText,
+                  thinking: assistantThinking
+                })
               }
               if (plan) this.emitSelfImprovementPlan(plan)
               if (this.settings.selfLearning !== false) {
@@ -299,7 +314,11 @@ export class AgentRunner {
               }
 
               if (assistantText && !adoptedPlan) {
-                this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
+                this.emit({
+                  type: 'assistant',
+                  content: assistantText,
+                  thinking: assistantThinking
+                })
               }
               this.emitSelfImprovementPlan(plan)
               const nextItem = plan.find((item) => !item.done && !item.blocked)
@@ -323,7 +342,11 @@ export class AgentRunner {
                 return
               }
               if (assistantText && !adoptedPlan && !parsePlanFromAssistantText(assistantText)) {
-                this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
+                this.emit({
+                  type: 'assistant',
+                  content: assistantText,
+                  thinking: assistantThinking
+                })
               }
               messages.push({ role: 'user', content: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE })
               requireToolNext = true
@@ -367,12 +390,7 @@ export class AgentRunner {
           const mutationTask = taskLikelyNeedsMutation(userMessage)
           const noMutatingToolsYet = mutatingToolsUsed.size === 0
           const shouldRetryWithTools =
-            shouldRetryForMissingTools(
-              userMessage,
-              assistantText,
-              mutatingToolsUsed,
-              usedTools
-            ) &&
+            shouldRetryForMissingTools(userMessage, assistantText, mutatingToolsUsed, usedTools) &&
             verificationRetries < MAX_VERIFICATION_RETRIES
 
           if (shouldRetryWithTools) {
@@ -394,7 +412,11 @@ export class AgentRunner {
             continue
           }
 
-          if (mutationTask && noMutatingToolsYet && verificationRetries >= MAX_VERIFICATION_RETRIES) {
+          if (
+            mutationTask &&
+            noMutatingToolsYet &&
+            verificationRetries >= MAX_VERIFICATION_RETRIES
+          ) {
             if (assistantText) {
               messages.pop()
             }
@@ -403,7 +425,6 @@ export class AgentRunner {
             this.emit({ type: 'done' })
             return
           }
-
 
           if (assistantText) {
             this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
@@ -435,7 +456,11 @@ export class AgentRunner {
           }))
 
           for (const { name, args } of parsedCalls) {
-            this.emit({ type: 'tool_start', toolName: name, toolInput: JSON.stringify(args, null, 2) })
+            this.emit({
+              type: 'tool_start',
+              toolName: name,
+              toolInput: JSON.stringify(args, null, 2)
+            })
           }
 
           const results = await Promise.all(
@@ -482,7 +507,10 @@ export class AgentRunner {
             this.emit({ type: 'tool_start', toolName: name, toolInput })
 
             // Подтверждение мутирующих действий согласно режиму доступа.
-            if (this.confirm && toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)) {
+            if (
+              this.confirm &&
+              toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)
+            ) {
               const approved = await this.confirm(name, toolInput)
               this.throwIfAborted()
               if (!approved) {
@@ -611,10 +639,12 @@ export class AgentRunner {
     let evalDurationNs: number | undefined
 
     // Конвертируем OllamaMessage в ChatMessage (фильтруем tool сообщения)
-    const chatMessages = messages.filter((msg) => msg.role !== 'tool').map((msg) => ({
-      role: msg.role as 'user' | 'assistant' | 'system',
-      content: msg.content
-    }))
+    const chatMessages = messages
+      .filter((msg) => msg.role !== 'tool')
+      .map((msg) => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
+        content: msg.content
+      }))
 
     // Трансформируем AGENT_TOOLS в формат провайдеров (name + description + input_schema)
     const toolsForProvider = AGENT_TOOLS.map((tool) => ({
@@ -714,9 +744,8 @@ export class AgentRunner {
       ...createCodeViperToolHandlers(),
       ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
       ...createSkillsToolHandlers(this.projectPath, this.emit),
-      ...createSelfImprovementToolHandlers(
-        this.selfImprovementPlan,
-        (items) => this.emitSelfImprovementPlan(items)
+      ...createSelfImprovementToolHandlers(this.selfImprovementPlan, (items) =>
+        this.emitSelfImprovementPlan(items)
       ),
       ...createModelToolHandlers(this.projectPath, this.settings, this.signal)
     } as ToolHandlers
@@ -743,7 +772,8 @@ export class AgentRunner {
     } else if (placement === 'partial') {
       this.emit({
         type: 'context',
-        content: '⚙️ Модель размещена частично в GPU и RAM — для скорости можно выбрать модель меньшего размера.'
+        content:
+          '⚙️ Модель размещена частично в GPU и RAM — для скорости можно выбрать модель меньшего размера.'
       })
     }
   }

@@ -14,7 +14,10 @@ vi.mock('../electron/main/agent', () => ({
   fetchOllamaModels: vi.fn(async () => [{ name: 'qwen2.5-coder:7b', size: 1, modifiedAt: '' }])
 }))
 
-import { checkProjectNodeDependencies, checkAgentPrerequisites } from '../electron/main/agentPrerequisites'
+import {
+  checkProjectNodeDependencies,
+  checkAgentPrerequisites
+} from '../electron/main/agentPrerequisites'
 
 beforeEach(() => {
   rmSync(TMP, { recursive: true, force: true })

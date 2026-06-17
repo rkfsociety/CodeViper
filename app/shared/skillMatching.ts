@@ -41,7 +41,10 @@ export function shouldApplySkill(skill: AgentSkill, query: string, isBuiltin: bo
   return scoreSkill(skill, query) >= SKILL_APPLY_THRESHOLD
 }
 
-export function truncateSkillInstructions(text: string, max = MAX_SKILL_INSTRUCTIONS_CHARS): string {
+export function truncateSkillInstructions(
+  text: string,
+  max = MAX_SKILL_INSTRUCTIONS_CHARS
+): string {
   if (text.length <= max) return text
   return `${text.slice(0, max)}\n… (инструкция обрезана, read_skill для полного текста)`
 }
@@ -50,8 +53,7 @@ export function formatAppliedSkillsBlock(skills: AgentSkill[]): string {
   if (!skills.length) return ''
 
   const blocks = skills.map(
-    (skill) =>
-      `### ${skill.id} · ${skill.name}\n${truncateSkillInstructions(skill.instructions)}`
+    (skill) => `### ${skill.id} · ${skill.name}\n${truncateSkillInstructions(skill.instructions)}`
   )
 
   return (

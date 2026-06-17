@@ -27,10 +27,7 @@ export function SkillsPanel({ projectPath, refreshKey = 0 }: Props) {
     refresh()
   }, [refresh, refreshKey])
 
-  const globalSkills = useMemo(
-    () => skills.filter((skill) => skill.scope === 'global'),
-    [skills]
-  )
+  const globalSkills = useMemo(() => skills.filter((skill) => skill.scope === 'global'), [skills])
   const legacyProjectSkills = useMemo(
     () => skills.filter((skill) => skill.scope === 'project'),
     [skills]

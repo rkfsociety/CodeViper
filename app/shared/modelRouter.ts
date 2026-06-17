@@ -34,7 +34,10 @@ const RAM_TIER_RANK: Record<RamTier, number> = {
 const AVOID_MODEL_PATTERNS = [/\bllama2\b/i, /^mistral:7b$/i, /^mistral:latest$/i]
 
 export function normalizeModelName(name: string): string {
-  return name.trim().toLowerCase().replace(/:latest$/, '')
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/:latest$/, '')
 }
 
 export function modelsMatch(a: string, b: string): boolean {
@@ -181,13 +184,11 @@ export function selectModelForTask(
   const targetRank = RAM_TIER_RANK[targetTier]
 
   // Для сложных задач отсекаем слишком слабые модели
-  const minParams =
-    task.difficulty >= 75 ? 14 :
-    task.difficulty >= 60 ? 7 :
-    0
-  const candidates = minParams > 0
-    ? usable.filter((item) => inferParamBillions(item.name, item.size) >= minParams)
-    : usable
+  const minParams = task.difficulty >= 75 ? 14 : task.difficulty >= 60 ? 7 : 0
+  const candidates =
+    minParams > 0
+      ? usable.filter((item) => inferParamBillions(item.name, item.size) >= minParams)
+      : usable
   const pool = candidates.length > 0 ? candidates : usable
 
   const scored: ScoredCandidate[] = pool.map((item) => {
@@ -263,10 +264,7 @@ export function selectLightestModelForSummarization(
   fallbackModel: string
 ): string {
   const usable = installed.filter(
-    (item) =>
-      item.name.trim() &&
-      !isAvoidedModel(item.name) &&
-      !EMBED_MODEL_PATTERN.test(item.name)
+    (item) => item.name.trim() && !isAvoidedModel(item.name) && !EMBED_MODEL_PATTERN.test(item.name)
   )
   if (!usable.length) return fallbackModel.trim()
 

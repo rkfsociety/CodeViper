@@ -1,10 +1,24 @@
-import { access, appendFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'fs/promises'
+import {
+  access,
+  appendFile,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  stat,
+  unlink,
+  writeFile
+} from 'fs/promises'
 import { constants, watch as fsWatch } from 'fs'
 import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
-import { FILE_SIZE_LIMIT_BYTES, READ_DEFAULT_LINE_LIMIT, DEFAULT_COMMAND_TIMEOUT_SEC } from '../../shared/constants'
+import {
+  FILE_SIZE_LIMIT_BYTES,
+  READ_DEFAULT_LINE_LIMIT,
+  DEFAULT_COMMAND_TIMEOUT_SEC
+} from '../../shared/constants'
 
 const COMMAND_TIMEOUT_MS = DEFAULT_COMMAND_TIMEOUT_SEC * 1000
 const MAX_COMMAND_LEN = 4096
@@ -107,7 +121,11 @@ export function watchProjectForCacheInvalidation(dirPath: string): void {
   }
 }
 
-async function buildFileTreeRaw(dirPath: string, depth: number, maxDepth: number): Promise<FileNode[]> {
+async function buildFileTreeRaw(
+  dirPath: string,
+  depth: number,
+  maxDepth: number
+): Promise<FileNode[]> {
   if (depth > maxDepth) return []
 
   const entries = await readdir(dirPath, { withFileTypes: true })
@@ -193,9 +211,7 @@ export async function safeReadFilePartial(
 
   const header = `[Файл: ${filePath} | строки ${from + 1}–${to} из ${totalLines}]`
   const footer =
-    remaining > 0
-      ? `\n[Ещё ${remaining} строк. Читай дальше: offset=${to}]`
-      : `\n[Конец файла]`
+    remaining > 0 ? `\n[Ещё ${remaining} строк. Читай дальше: offset=${to}]` : `\n[Конец файла]`
 
   return `${header}\n${chunk}${footer}`
 }

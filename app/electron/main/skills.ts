@@ -4,11 +4,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import { BUILTIN_SKILL_IDS, isBuiltinSkill } from '../../shared/builtinSkills'
-import {
-  formatAppliedSkillsBlock,
-  scoreSkill,
-  shouldApplySkill
-} from '../../shared/skillMatching'
+import { formatAppliedSkillsBlock, scoreSkill, shouldApplySkill } from '../../shared/skillMatching'
 import type { AgentSkill, MemoryScope, SkillsStore } from '../../src/types'
 
 export const SKILLS_FILENAME = 'ViperSkills.md'
@@ -171,7 +167,9 @@ function legacyStorePath(scope: MemoryScope, projectPath: string): string {
 }
 
 function dataDir(scope: MemoryScope, projectPath: string): string {
-  return scope === 'project' && projectPath ? projectSkillDataDir(projectPath) : globalSkillDataDir()
+  return scope === 'project' && projectPath
+    ? projectSkillDataDir(projectPath)
+    : globalSkillDataDir()
 }
 
 function skillDataPath(scope: MemoryScope, projectPath: string, skillId: string): string {
@@ -202,7 +200,12 @@ export async function getSkill(
         : [
             { md: globalSkillsPath(), legacy: legacyGlobalSkillsPath() },
             ...(projectPath
-              ? [{ md: projectSkillsPath(projectPath), legacy: legacyProjectSkillsPath(projectPath) }]
+              ? [
+                  {
+                    md: projectSkillsPath(projectPath),
+                    legacy: legacyProjectSkillsPath(projectPath)
+                  }
+                ]
               : [])
           ]
 

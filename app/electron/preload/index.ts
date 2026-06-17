@@ -32,7 +32,11 @@ const codeviper = {
     withTimeout(ipcRenderer.invoke('read-file', projectPath, filePath), IPC_TIMEOUT_MS, 'readFile'),
 
   writeFile: (projectPath: string, filePath: string, content: string) =>
-    withTimeout(ipcRenderer.invoke('write-file', projectPath, filePath, content), IPC_TIMEOUT_MS, 'writeFile'),
+    withTimeout(
+      ipcRenderer.invoke('write-file', projectPath, filePath, content),
+      IPC_TIMEOUT_MS,
+      'writeFile'
+    ),
 
   listOllamaModels: (url?: string) =>
     withTimeout(ipcRenderer.invoke('list-ollama-models', url), IPC_TIMEOUT_MS, 'listOllamaModels'),
@@ -45,7 +49,11 @@ const codeviper = {
     ipcRenderer.invoke('pull-ollama-model', url, model),
 
   deleteOllamaModel: (url: string, model: string) =>
-    withTimeout(ipcRenderer.invoke('delete-ollama-model', url, model), IPC_TIMEOUT_MS, 'deleteOllamaModel'),
+    withTimeout(
+      ipcRenderer.invoke('delete-ollama-model', url, model),
+      IPC_TIMEOUT_MS,
+      'deleteOllamaModel'
+    ),
 
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => {
     const handler = (_: unknown, progress: OllamaPullProgress) => callback(progress)
@@ -65,19 +73,19 @@ const codeviper = {
   getAgentRunState: () =>
     withTimeout(ipcRenderer.invoke('get-agent-run-state'), IPC_TIMEOUT_MS, 'getAgentRunState'),
 
-  stopAgent: () =>
-    withTimeout(ipcRenderer.invoke('stop-agent'), IPC_TIMEOUT_MS, 'stopAgent'),
+  stopAgent: () => withTimeout(ipcRenderer.invoke('stop-agent'), IPC_TIMEOUT_MS, 'stopAgent'),
 
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],
     userMessage: string,
     model: string
-  ) => withTimeout(
-    ipcRenderer.invoke('preview-agent-context', projectPath, messages, userMessage, model),
-    IPC_TIMEOUT_MS,
-    'previewAgentContext'
-  ),
+  ) =>
+    withTimeout(
+      ipcRenderer.invoke('preview-agent-context', projectPath, messages, userMessage, model),
+      IPC_TIMEOUT_MS,
+      'previewAgentContext'
+    ),
 
   checkAgentPrerequisites: (ollamaUrl: string, projectPath: string) =>
     withTimeout(
@@ -101,13 +109,21 @@ const codeviper = {
   },
 
   runTerminalCommand: (cwd: string, command: string) =>
-    withTimeout(ipcRenderer.invoke('run-terminal-command', cwd, command), IPC_TIMEOUT_MS, 'runTerminalCommand'),
+    withTimeout(
+      ipcRenderer.invoke('run-terminal-command', cwd, command),
+      IPC_TIMEOUT_MS,
+      'runTerminalCommand'
+    ),
 
   listMemories: (projectPath: string) =>
     withTimeout(ipcRenderer.invoke('list-memories', projectPath), IPC_TIMEOUT_MS, 'listMemories'),
 
   deleteMemory: (projectPath: string, id: string) =>
-    withTimeout(ipcRenderer.invoke('delete-memory', projectPath, id), IPC_TIMEOUT_MS, 'deleteMemory'),
+    withTimeout(
+      ipcRenderer.invoke('delete-memory', projectPath, id),
+      IPC_TIMEOUT_MS,
+      'deleteMemory'
+    ),
 
   listSkills: (projectPath: string) =>
     withTimeout(ipcRenderer.invoke('list-skills', projectPath), IPC_TIMEOUT_MS, 'listSkills'),
@@ -123,7 +139,9 @@ const codeviper = {
 
   updateChat: (
     id: string,
-    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
+    patch: Partial<
+      Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+    >
   ) => withTimeout(ipcRenderer.invoke('update-chat', id, patch), IPC_TIMEOUT_MS, 'updateChat'),
 
   deleteChat: (id: string) =>
@@ -133,10 +151,18 @@ const codeviper = {
     withTimeout(ipcRenderer.invoke('create-chat-folder', name), IPC_TIMEOUT_MS, 'createChatFolder'),
 
   renameChatFolder: (id: string, name: string) =>
-    withTimeout(ipcRenderer.invoke('rename-chat-folder', id, name), IPC_TIMEOUT_MS, 'renameChatFolder'),
+    withTimeout(
+      ipcRenderer.invoke('rename-chat-folder', id, name),
+      IPC_TIMEOUT_MS,
+      'renameChatFolder'
+    ),
 
   updateChatFolder: (id: string, patch: Partial<{ name: string; projectPath: string }>) =>
-    withTimeout(ipcRenderer.invoke('update-chat-folder', id, patch), IPC_TIMEOUT_MS, 'updateChatFolder'),
+    withTimeout(
+      ipcRenderer.invoke('update-chat-folder', id, patch),
+      IPC_TIMEOUT_MS,
+      'updateChatFolder'
+    ),
 
   deleteChatFolder: (id: string) =>
     withTimeout(ipcRenderer.invoke('delete-chat-folder', id), IPC_TIMEOUT_MS, 'deleteChatFolder'),
@@ -145,7 +171,11 @@ const codeviper = {
     withTimeout(ipcRenderer.invoke('set-active-chat', id), IPC_TIMEOUT_MS, 'setActiveChat'),
 
   moveChatToFolder: (chatId: string, folderId: string | null) =>
-    withTimeout(ipcRenderer.invoke('move-chat-to-folder', chatId, folderId), IPC_TIMEOUT_MS, 'moveChatToFolder'),
+    withTimeout(
+      ipcRenderer.invoke('move-chat-to-folder', chatId, folderId),
+      IPC_TIMEOUT_MS,
+      'moveChatToFolder'
+    ),
 
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => {
     const handler = (_: unknown, request: AgentConfirmRequest) => callback(request)

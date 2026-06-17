@@ -141,7 +141,10 @@ export function groupRecommendedModelsByTier(
 }
 
 export function normalizeModelTag(name: string): string {
-  return name.trim().toLowerCase().replace(/:latest$/, '')
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/:latest$/, '')
 }
 
 export function modelsMatchTag(a: string, b: string): boolean {

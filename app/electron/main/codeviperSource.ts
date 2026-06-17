@@ -25,8 +25,7 @@ const BLOCKED_SELF_PARTS = new Set([
 
 function hasSourceMarkers(root: string): boolean {
   return (
-    existsSync(join(root, 'package.json')) &&
-    existsSync(join(root, 'electron', 'main', 'agent.ts'))
+    existsSync(join(root, 'package.json')) && existsSync(join(root, 'electron', 'main', 'agent.ts'))
   )
 }
 
@@ -121,7 +120,9 @@ export async function deleteCodeViperFile(filePath: string): Promise<void> {
 export async function moveCodeViperFile(fromPath: string, toPath: string): Promise<void> {
   const root = assertCodeViperPath(fromPath)
   if (!isAllowedSelfPath(root, toPath)) {
-    throw new Error('Доступ запрещён: целевой путь вне исходников CodeViper или в исключённой папке')
+    throw new Error(
+      'Доступ запрещён: целевой путь вне исходников CodeViper или в исключённой папке'
+    )
   }
   await safeMoveFile(root, fromPath, toPath)
 }

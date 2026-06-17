@@ -1,4 +1,10 @@
-import type { ModelProvider, ChatOptions, ChatChunk, LoadedModel, ModelPlacement } from '../../../shared/modelProvider'
+import type {
+  ModelProvider,
+  ChatOptions,
+  ChatChunk,
+  LoadedModel,
+  ModelPlacement
+} from '../../../shared/modelProvider'
 
 export class OpenAIProvider implements ModelProvider {
   constructor(

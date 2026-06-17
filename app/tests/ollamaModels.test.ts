@@ -13,10 +13,7 @@ describe('parseTrainingData', () => {
   })
 
   it('парсит JSONL', () => {
-    const raw = [
-      '{"user":"a","assistant":"b"}',
-      '{"input":"c","output":"d"}'
-    ].join('\n')
+    const raw = ['{"user":"a","assistant":"b"}', '{"input":"c","output":"d"}'].join('\n')
     expect(parseTrainingData(raw)).toHaveLength(2)
   })
 

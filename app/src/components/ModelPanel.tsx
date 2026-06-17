@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import type { OllamaModel, OllamaPullProgress, RecommendedModel } from '../types'
-import { filterToolCallingModels, groupRecommendedModelsByTier, isRecommendedModelInstalled } from '../types'
+import {
+  filterToolCallingModels,
+  groupRecommendedModelsByTier,
+  isRecommendedModelInstalled
+} from '../types'
 import { ConfirmDialog } from './ConfirmDialog'
 
 interface DownloadQueueProps {
@@ -137,9 +141,7 @@ export function ModelPanel({
           <div className="model-pull-title">
             {pulling ? `Скачивание ${pulling}…` : 'Очередь скачивания'}
           </div>
-          {pulling && (
-            <div className="model-pull-text">{progress?.status ?? 'Подключение…'}</div>
-          )}
+          {pulling && <div className="model-pull-text">{progress?.status ?? 'Подключение…'}</div>}
           {percent != null && pulling && (
             <>
               <div className="progress-bar">
@@ -278,7 +280,11 @@ export function ModelPanel({
       <ConfirmDialog
         open={!!confirmDelete}
         title="Удалить модель"
-        message={confirmDelete ? `Удалить модель ${confirmDelete} с диска? Скачать заново можно из каталога.` : ''}
+        message={
+          confirmDelete
+            ? `Удалить модель ${confirmDelete} с диска? Скачать заново можно из каталога.`
+            : ''
+        }
         confirmLabel="Удалить"
         danger
         onConfirm={() => {

@@ -79,9 +79,7 @@ export function MemoryPanel({
               </button>
             </div>
             <div className="memory-content">{entry.content}</div>
-            {entry.tags.length > 0 && (
-              <div className="memory-tags">{entry.tags.join(' · ')}</div>
-            )}
+            {entry.tags.length > 0 && <div className="memory-tags">{entry.tags.join(' · ')}</div>}
           </div>
         ))}
       </div>

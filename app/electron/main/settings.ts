@@ -5,8 +5,12 @@ import { join } from 'path'
 import type { AgentSettings } from '../../src/types'
 import { normalizePermissionMode, type PermissionMode } from '../../shared/permissions'
 import {
-  DEFAULT_MAX_STEPS, MAX_STEPS_MIN, MAX_STEPS_MAX,
-  DEFAULT_MAX_RUNS_PER_HOUR, MAX_RUNS_PER_HOUR_MIN, MAX_RUNS_PER_HOUR_MAX,
+  DEFAULT_MAX_STEPS,
+  MAX_STEPS_MIN,
+  MAX_STEPS_MAX,
+  DEFAULT_MAX_RUNS_PER_HOUR,
+  MAX_RUNS_PER_HOUR_MIN,
+  MAX_RUNS_PER_HOUR_MAX,
   DEFAULT_MODEL_PROVIDER
 } from '../../shared/constants'
 import { writeJsonAtomic } from './fsUtil'
@@ -55,11 +59,15 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ollamaUrl: settings.ollamaUrl?.trim() || DEFAULT_SETTINGS.ollamaUrl,
     model: settings.model?.trim() ?? '',
     maxSteps:
-      typeof settings.maxSteps === 'number' && settings.maxSteps >= MAX_STEPS_MIN && settings.maxSteps <= MAX_STEPS_MAX
+      typeof settings.maxSteps === 'number' &&
+      settings.maxSteps >= MAX_STEPS_MIN &&
+      settings.maxSteps <= MAX_STEPS_MAX
         ? settings.maxSteps
         : DEFAULT_SETTINGS.maxSteps,
     maxRunsPerHour:
-      typeof settings.maxRunsPerHour === 'number' && settings.maxRunsPerHour >= MAX_RUNS_PER_HOUR_MIN && settings.maxRunsPerHour <= MAX_RUNS_PER_HOUR_MAX
+      typeof settings.maxRunsPerHour === 'number' &&
+      settings.maxRunsPerHour >= MAX_RUNS_PER_HOUR_MIN &&
+      settings.maxRunsPerHour <= MAX_RUNS_PER_HOUR_MAX
         ? settings.maxRunsPerHour
         : DEFAULT_SETTINGS.maxRunsPerHour,
     selfLearning: settings.selfLearning !== false,
@@ -73,7 +81,10 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     deepReasoning: settings.deepReasoning === true,
     autoPushSelfEdits: settings.autoPushSelfEdits !== false,
     summarizeModel: settings.summarizeModel?.trim() ?? '',
-    modelProvider: (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as 'ollama' | 'deepseek' | 'openai',
+    modelProvider: (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as
+      | 'ollama'
+      | 'deepseek'
+      | 'openai',
     providerApiKey: settings.providerApiKey?.trim() ?? ''
   }
 }

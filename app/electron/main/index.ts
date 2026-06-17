@@ -2,13 +2,23 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { existsSync } from 'fs'
 import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
-import { AgentRunner, deleteOllamaModel, fetchOllamaModels, pingOllama, pullOllamaModel } from './agent'
+import {
+  AgentRunner,
+  deleteOllamaModel,
+  fetchOllamaModels,
+  pingOllama,
+  pullOllamaModel
+} from './agent'
 import { checkAgentPrerequisites } from './agentPrerequisites'
 import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
 import { filterToolCallingModels } from '../../shared/recommendedModels'
 import { buildAgentContextPreview } from './agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel } from './modelRuntime'
-import { selectModelForTask, shouldUseAutoModel, resolveSummarizeModel } from '../../shared/modelRouter'
+import {
+  selectModelForTask,
+  shouldUseAutoModel,
+  resolveSummarizeModel
+} from '../../shared/modelRouter'
 import { safeReadFile, safeWriteFile, runCommand } from './services'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
@@ -27,11 +37,7 @@ import {
 } from './chats'
 import { loadSettings, saveSettings } from './settings'
 import { makeId } from '../../shared/makeId'
-import {
-  loadWindowState,
-  trackWindowState,
-  windowOptionsFromState
-} from './windowState'
+import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -131,7 +137,7 @@ ipcMain.handle('select-project-folder', async () => {
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openDirectory']
   })
-  return result.canceled ? null : result.filePaths[0] ?? null
+  return result.canceled ? null : (result.filePaths[0] ?? null)
 })
 
 ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>
@@ -142,9 +148,7 @@ ipcMain.handle('write-file', async (_e, projectPath: string, filePath: string, c
   safeWriteFile(projectPath, filePath, content)
 )
 
-ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') =>
-  pingOllama(url)
-)
+ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') => pingOllama(url))
 
 ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') =>
   fetchOllamaModels(url)
@@ -182,16 +186,16 @@ ipcMain.handle('delete-skill', async (_e, projectPath: string, id: string) =>
 
 ipcMain.handle('get-chat-store', async () => getChatStore())
 
-ipcMain.handle('create-chat', async (_e, folderId?: string | null) =>
-  createChat(folderId ?? null)
-)
+ipcMain.handle('create-chat', async (_e, folderId?: string | null) => createChat(folderId ?? null))
 
 ipcMain.handle(
   'update-chat',
   async (
     _e,
     id: string,
-    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
+    patch: Partial<
+      Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+    >
   ) => updateChat(id, patch)
 )
 
@@ -250,13 +254,8 @@ function makeConfirmFn(
 
 ipcMain.handle(
   'preview-agent-context',
-  async (
-    _e,
-    projectPath: string,
-    history: ChatMessage[],
-    userMessage: string,
-    model: string
-  ) => buildAgentContextPreview(projectPath, history, userMessage, model)
+  async (_e, projectPath: string, history: ChatMessage[], userMessage: string, model: string) =>
+    buildAgentContextPreview(projectPath, history, userMessage, model)
 )
 
 ipcMain.handle('load-settings', async () => loadSettings())

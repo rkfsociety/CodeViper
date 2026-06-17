@@ -19,9 +19,10 @@ describe('createProjectToolHandlers — санитизация путей', () =
   it('блокирует write_file за пределами проекта (AgentError readonly)', async () => {
     const handlers = createProjectToolHandlers(projectDir)
     const outside = join(projectDir, '..', 'escape.txt')
-    await expect(
-      handlers.write_file!({ path: outside, content: 'x' })
-    ).rejects.toMatchObject({ name: 'AgentError', code: 'readonly' })
+    await expect(handlers.write_file!({ path: outside, content: 'x' })).rejects.toMatchObject({
+      name: 'AgentError',
+      code: 'readonly'
+    })
   })
 
   it('блокирует traversal через ../ в относительном пути', async () => {
@@ -49,25 +50,23 @@ describe('createProjectToolHandlers — санитизация путей', () =
   it('блокирует read_file за пределами проекта', async () => {
     const handlers = createProjectToolHandlers(projectDir)
     const outside = join(projectDir, '..', 'secret.txt')
-    await expect(
-      handlers.read_file!({ path: outside })
-    ).rejects.toMatchObject({ code: 'readonly' })
+    await expect(handlers.read_file!({ path: outside })).rejects.toMatchObject({ code: 'readonly' })
   })
 
   it('блокирует grep_files за пределами проекта', async () => {
     const handlers = createProjectToolHandlers(projectDir)
     const outside = join(projectDir, '..', 'secret')
-    await expect(
-      handlers.grep_files!({ path: outside, query: 'test' })
-    ).rejects.toMatchObject({ code: 'readonly' })
+    await expect(handlers.grep_files!({ path: outside, query: 'test' })).rejects.toMatchObject({
+      code: 'readonly'
+    })
   })
 
   it('блокирует find_files за пределами проекта', async () => {
     const handlers = createProjectToolHandlers(projectDir)
     const outside = join(projectDir, '..', 'secret')
-    await expect(
-      handlers.find_files!({ path: outside, pattern: '*.txt' })
-    ).rejects.toMatchObject({ code: 'readonly' })
+    await expect(handlers.find_files!({ path: outside, pattern: '*.txt' })).rejects.toMatchObject({
+      code: 'readonly'
+    })
   })
 
   it('разрешает read/grep/find с пустым path (везде в проекте)', async () => {

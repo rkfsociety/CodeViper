@@ -259,7 +259,12 @@ export async function deleteMemory(
         : [
             { md: globalMemoryPath(), legacy: legacyGlobalMemoryPath() },
             ...(projectPath
-              ? [{ md: projectMemoryPath(projectPath), legacy: legacyProjectMemoryPath(projectPath) }]
+              ? [
+                  {
+                    md: projectMemoryPath(projectPath),
+                    legacy: legacyProjectMemoryPath(projectPath)
+                  }
+                ]
               : [])
           ]
 

@@ -191,7 +191,12 @@ export interface PrepareAgentContextOptions {
   summarizeModel?: string
 }
 
-function section(id: string, title: string, content: string, subtitle?: string): AgentContextSection {
+function section(
+  id: string,
+  title: string,
+  content: string,
+  subtitle?: string
+): AgentContextSection {
   return {
     id,
     title,
@@ -244,7 +249,7 @@ export async function buildAgentContextPreview(
 
   // Для think-моделей рассуждение включается нативно (think:true), промпт не нужен.
   const cotReasoning = !!options.deepReasoning && !isThinkingModel(model)
-  let systemContent = buildSystemPrompt(
+  const systemContent = buildSystemPrompt(
     projectPath,
     memorySkillsContext,
     projectTreeText,
@@ -310,18 +315,33 @@ export async function buildAgentContextPreview(
 
   if (memorySkillsContext.trim()) {
     sections.push(
-      section('memory-skills', 'ViperMemory и навыки', memorySkillsContext, 'Релевантные записи и skills')
+      section(
+        'memory-skills',
+        'ViperMemory и навыки',
+        memorySkillsContext,
+        'Релевантные записи и skills'
+      )
     )
   }
 
   if (selfImproveMode) {
     sections.push(
-      section('self-improve', 'Автономное самоулучшение', SELF_IMPROVEMENT_MODE_PROMPT, 'До выполнения всех пунктов')
+      section(
+        'self-improve',
+        'Автономное самоулучшение',
+        SELF_IMPROVEMENT_MODE_PROMPT,
+        'До выполнения всех пунктов'
+      )
     )
   }
 
   sections.push(
-    section('tools', `Инструменты (${AGENT_TOOLS.length})`, toolsContent, 'Схема function calling для Ollama')
+    section(
+      'tools',
+      `Инструменты (${AGENT_TOOLS.length})`,
+      toolsContent,
+      'Схема function calling для Ollama'
+    )
   )
 
   const messages = ollamaMessages.map(messagePreview)

@@ -4,7 +4,11 @@ import type { AgentPrerequisitesResult } from '../shared/agentPrerequisites'
 import type { GenerationMetrics } from '../shared/generationMetrics'
 import type { PermissionMode } from '../shared/permissions'
 
-export type { AgentPrerequisiteIssue, AgentPrerequisitesResult, PackageManager } from '../shared/agentPrerequisites'
+export type {
+  AgentPrerequisiteIssue,
+  AgentPrerequisitesResult,
+  PackageManager
+} from '../shared/agentPrerequisites'
 export type { PermissionMode } from '../shared/permissions'
 export { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../shared/permissions'
 export { isThinkingModel } from '../shared/reasoning'
@@ -285,12 +289,17 @@ export interface CodeViperAPI {
   createChat: (folderId?: string | null) => Promise<SavedChat>
   updateChat: (
     id: string,
-    patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
+    patch: Partial<
+      Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+    >
   ) => Promise<SavedChat | null>
   deleteChat: (id: string) => Promise<void>
   createChatFolder: (name: string) => Promise<ChatFolder>
   renameChatFolder: (id: string, name: string) => Promise<void>
-  updateChatFolder: (id: string, patch: Partial<Pick<ChatFolder, 'name' | 'projectPath'>>) => Promise<void>
+  updateChatFolder: (
+    id: string,
+    patch: Partial<Pick<ChatFolder, 'name' | 'projectPath'>>
+  ) => Promise<void>
   deleteChatFolder: (id: string) => Promise<void>
   setActiveChat: (id: string | null) => Promise<void>
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>

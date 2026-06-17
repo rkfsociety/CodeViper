@@ -4,67 +4,67 @@
   line-height: 1.5;
 
   /* ── Фоны ─────────────────────────────────────────────────────────────── */
-  --bg-base:        #0d1117;
-  --bg-surface:     #161b22;
-  --bg-overlay:     #1c2128;
-  --bg-element:     #21262d;
-  --bg-deep:        #0f1419;
-  --bg-msg-user:    #132033;
-  --bg-msg-asst:    #122117;
-  --bg-msg-tool:    #1a1608;
-  --bg-msg-system:  #16101f;
+  --bg-base: #0d1117;
+  --bg-surface: #161b22;
+  --bg-overlay: #1c2128;
+  --bg-element: #21262d;
+  --bg-deep: #0f1419;
+  --bg-msg-user: #132033;
+  --bg-msg-asst: #122117;
+  --bg-msg-tool: #1a1608;
+  --bg-msg-system: #16101f;
 
   /* ── Границы ─────────────────────────────────────────────────────────── */
-  --border:         #30363d;
-  --border-hover:   #484f58;
-  --border-subtle:  #21262d;
+  --border: #30363d;
+  --border-hover: #484f58;
+  --border-subtle: #21262d;
 
   /* ── Текст ───────────────────────────────────────────────────────────── */
-  --text-primary:   #e6edf3;
+  --text-primary: #e6edf3;
   --text-secondary: #c9d1d9;
-  --text-tertiary:  #adbac7;
-  --text-muted:     #aab4bf;
-  --text-faint:     #8b949e;
-  --text-tool:      #b6c2cf;
+  --text-tertiary: #adbac7;
+  --text-muted: #aab4bf;
+  --text-faint: #8b949e;
+  --text-tool: #b6c2cf;
 
   /* ── Синий ───────────────────────────────────────────────────────────── */
-  --blue:           var(--blue);
-  --blue-light:     var(--blue-light);
-  --blue-bright:    var(--blue-bright);
-  --blue-deep:      var(--blue-deep);
+  --blue: var(--blue);
+  --blue-light: var(--blue-light);
+  --blue-bright: var(--blue-bright);
+  --blue-deep: var(--blue-deep);
 
   /* ── Зелёный ─────────────────────────────────────────────────────────── */
-  --green-light:    var(--green-light);
-  --green:          var(--green);
-  --green-medium:   var(--green-medium);
-  --green-dark:     var(--green-dark);
+  --green-light: var(--green-light);
+  --green: var(--green);
+  --green-medium: var(--green-medium);
+  --green-dark: var(--green-dark);
 
   /* ── Жёлтый / предупреждение ─────────────────────────────────────────── */
-  --yellow:         var(--yellow);
-  --yellow-light:   var(--yellow-light);
-  --yellow-bright:  var(--yellow-bright);
-  --yellow-prereq:  var(--yellow-prereq);
+  --yellow: var(--yellow);
+  --yellow-light: var(--yellow-light);
+  --yellow-bright: var(--yellow-bright);
+  --yellow-prereq: var(--yellow-prereq);
 
   /* ── Красный / ошибка ────────────────────────────────────────────────── */
-  --red:            var(--red);
-  --red-light:      var(--red-light);
-  --red-bg:         var(--red-bg);
-  --red-bg-hover:   var(--red-bg-hover);
-  --red-bg-dark:    var(--red-bg-dark);
+  --red: var(--red);
+  --red-light: var(--red-light);
+  --red-bg: var(--red-bg);
+  --red-bg-hover: var(--red-bg-hover);
+  --red-bg-dark: var(--red-bg-dark);
 
   /* ── Фиолетовый ──────────────────────────────────────────────────────── */
-  --purple:         var(--purple);
-  --purple-light:   var(--purple-light);
-  --purple-medium:  var(--purple-medium);
-  --purple-bright:  var(--purple-bright);
-  --purple-bg:      var(--purple-bg);
+  --purple: var(--purple);
+  --purple-light: var(--purple-light);
+  --purple-medium: var(--purple-medium);
+  --purple-bright: var(--purple-bright);
+  --purple-bg: var(--purple-bg);
 
   /* ── Радиусы ─────────────────────────────────────────────────────────── */
-  --radius-xs:  4px;
-  --radius-sm:  6px;
-  --radius:     8px;
-  --radius-md:  10px;
-  --radius-lg:  12px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
   --radius-pill: 999px;
 
   background: var(--bg-base);
@@ -264,7 +264,9 @@ button {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .settings-tab:hover {
@@ -391,7 +393,6 @@ button {
   min-height: 120px;
 }
 
-
 .panel-header {
   padding: 10px 12px;
   font-size: 12px;
@@ -460,8 +461,14 @@ button {
 }
 
 @keyframes clarify-fadein {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .clarify-banner-icon {
@@ -846,11 +853,19 @@ button {
   animation: agent-pulse-ring 1.6s ease-in-out infinite;
 }
 
-.agent-status-bar.phase-writing .agent-status-pulse { background: var(--blue-light); }
-.agent-status-bar.phase-writing .agent-status-pulse::after { background: var(--blue-light); }
+.agent-status-bar.phase-writing .agent-status-pulse {
+  background: var(--blue-light);
+}
+.agent-status-bar.phase-writing .agent-status-pulse::after {
+  background: var(--blue-light);
+}
 
-.agent-status-bar.phase-tool .agent-status-pulse { background: var(--yellow); }
-.agent-status-bar.phase-tool .agent-status-pulse::after { background: var(--yellow); }
+.agent-status-bar.phase-tool .agent-status-pulse {
+  background: var(--yellow);
+}
+.agent-status-bar.phase-tool .agent-status-pulse::after {
+  background: var(--yellow);
+}
 
 .agent-status-label {
   font-size: 13px;
@@ -884,22 +899,43 @@ button {
   animation-duration: 1.8s;
 }
 
-.agent-status-bar.summarizing .agent-status-pulse { background: var(--purple-light); }
-.agent-status-bar.summarizing .agent-status-pulse::after { background: var(--purple-light); }
+.agent-status-bar.summarizing .agent-status-pulse {
+  background: var(--purple-light);
+}
+.agent-status-bar.summarizing .agent-status-pulse::after {
+  background: var(--purple-light);
+}
 
 .agent-status-bar.summarizing .agent-status-fill {
-  background: linear-gradient(90deg, transparent, var(--purple-light), var(--purple-medium), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--purple-light),
+    var(--purple-medium),
+    transparent
+  );
   animation-duration: 1.2s;
 }
 
 @keyframes agent-pulse-dot {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
 }
 
 @keyframes agent-pulse-ring {
-  0% { transform: scale(0.5); opacity: 0.5; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 @keyframes agent-bar-slide {
@@ -1792,7 +1828,10 @@ button.topbar-pill.topbar-download-error {
   border: 1px solid var(--border);
   background: var(--bg-surface);
   color: inherit;
-  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.1s;
 }
 
 .welcome-card:hover {
@@ -1913,7 +1952,9 @@ button.topbar-pill.topbar-download-error {
 }
 
 .btn.primary {
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--bg-base) 20%, transparent), 0 0 0 0 transparent;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--bg-base) 20%, transparent),
+    0 0 0 0 transparent;
 }
 
 .btn.primary:hover:not(:disabled) {
@@ -2120,8 +2161,13 @@ button.topbar-pill.topbar-download-error {
 
 /* Task 8: animated live thinking indicator */
 @keyframes thinking-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
 }
 
 .thinking-block.live .thinking-summary {

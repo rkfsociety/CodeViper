@@ -53,7 +53,12 @@ export function AgentPrerequisitesBanner({
 
       <div className="agent-prerequisites-actions">
         {nodeIssue && (
-          <button type="button" className="btn primary" disabled={installing} onClick={onInstallNodeDeps}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={installing}
+            onClick={onInstallNodeDeps}
+          >
             {installing ? 'Установка…' : `Установить (${nodeIssue.installCommand})`}
           </button>
         )}

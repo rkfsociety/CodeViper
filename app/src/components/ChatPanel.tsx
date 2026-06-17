@@ -284,7 +284,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   // ── Ввод ─────────────────────────────────────────────────────────────────
   async function retryUserMessage(message: ChatMessage) {
     if (busy || !chatId || !projectPath) return
-    const msg: ChatMessage = { id: makeId(), role: 'user', content: message.content, timestamp: Date.now() }
+    const msg: ChatMessage = {
+      id: makeId(),
+      role: 'user',
+      content: message.content,
+      timestamp: Date.now()
+    }
     appendMessage(msg)
     await submitMessage(msg.id, message.content)
   }
@@ -419,9 +424,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       />
 
       <div className="chat-messages">
-        {!chatId && (
-          <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>
-        )}
+        {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
         {chatId && !projectPath && !messages.length && !draft && (
           <div className="empty">Выбери папку с кодом — кнопка «Выбрать проект» выше.</div>
         )}
@@ -432,33 +435,81 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         {pinnedMessageIds.size > 0 && (
           <div className="pinned-messages-section">
             <div className="pinned-messages-title">📌 Закреплённые</div>
-            {messages.filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m)).map((message) => (
-              <div key={message.id} className={`message ${message.role} pinned`}>
-                <div className="message-header">
-                  <MessageRoleBadge role={message.role} toolName={message.toolName} />
-                  <button type="button" className="btn message-pin-btn active" title="Открепить" onClick={() => togglePinMessage(message.id)}>📌</button>
+            {messages
+              .filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m))
+              .map((message) => (
+                <div key={message.id} className={`message ${message.role} pinned`}>
+                  <div className="message-header">
+                    <MessageRoleBadge role={message.role} toolName={message.toolName} />
+                    <button
+                      type="button"
+                      className="btn message-pin-btn active"
+                      title="Открепить"
+                      onClick={() => togglePinMessage(message.id)}
+                    >
+                      📌
+                    </button>
+                  </div>
+                  <MessageBody
+                    role={message.role}
+                    content={
+                      message.role === 'assistant'
+                        ? visibleAssistantContent(message.content)
+                        : message.content
+                    }
+                  />
                 </div>
-                <MessageBody role={message.role} content={message.role === 'assistant' ? visibleAssistantContent(message.content) : message.content} />
-              </div>
-            ))}
+              ))}
           </div>
         )}
 
         {messages.filter(shouldShowAssistantMessage).map((message) => (
-          <div key={message.id} className={`message ${message.role}${pinnedMessageIds.has(message.id) ? ' pinned' : ''}`}>
+          <div
+            key={message.id}
+            className={`message ${message.role}${pinnedMessageIds.has(message.id) ? ' pinned' : ''}`}
+          >
             <div className="message-header">
               <MessageRoleBadge role={message.role} toolName={message.toolName} />
               {message.role === 'assistant' && message.durationMs != null && (
-                <span className="message-duration" title="Время генерации">⏱ {(message.durationMs / 1000).toFixed(1)}s</span>
+                <span className="message-duration" title="Время генерации">
+                  ⏱ {(message.durationMs / 1000).toFixed(1)}s
+                </span>
               )}
               <MessageCopyButton text={messageCopyText(message)} />
               {!busy && (
-                <button type="button" className={`btn message-pin-btn${pinnedMessageIds.has(message.id) ? ' active' : ''}`} title={pinnedMessageIds.has(message.id) ? 'Открепить' : 'Закрепить'} aria-label={pinnedMessageIds.has(message.id) ? 'Открепить сообщение' : 'Закрепить сообщение'} aria-pressed={pinnedMessageIds.has(message.id)} onClick={() => togglePinMessage(message.id)}>📌</button>
+                <button
+                  type="button"
+                  className={`btn message-pin-btn${pinnedMessageIds.has(message.id) ? ' active' : ''}`}
+                  title={pinnedMessageIds.has(message.id) ? 'Открепить' : 'Закрепить'}
+                  aria-label={
+                    pinnedMessageIds.has(message.id) ? 'Открепить сообщение' : 'Закрепить сообщение'
+                  }
+                  aria-pressed={pinnedMessageIds.has(message.id)}
+                  onClick={() => togglePinMessage(message.id)}
+                >
+                  📌
+                </button>
               )}
               {!busy && message.role === 'user' && (
                 <>
-                  <button type="button" className="btn message-action-btn" title="Повторить" aria-label="Повторить запрос" onClick={() => void retryUserMessage(message)}>↺</button>
-                  <button type="button" className="btn message-action-btn" title="Изменить" aria-label="Редактировать запрос" onClick={() => editUserMessage(message)}>✎</button>
+                  <button
+                    type="button"
+                    className="btn message-action-btn"
+                    title="Повторить"
+                    aria-label="Повторить запрос"
+                    onClick={() => void retryUserMessage(message)}
+                  >
+                    ↺
+                  </button>
+                  <button
+                    type="button"
+                    className="btn message-action-btn"
+                    title="Изменить"
+                    aria-label="Редактировать запрос"
+                    onClick={() => editUserMessage(message)}
+                  >
+                    ✎
+                  </button>
                 </>
               )}
             </div>

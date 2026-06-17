@@ -22,8 +22,6 @@ describe('deleteOllamaModel', () => {
   })
 
   it('бросает ошибку при пустом имени', async () => {
-    await expect(deleteOllamaModel('http://127.0.0.1:11434', '  ')).rejects.toThrow(
-      /имя модели/
-    )
+    await expect(deleteOllamaModel('http://127.0.0.1:11434', '  ')).rejects.toThrow(/имя модели/)
   })
 })

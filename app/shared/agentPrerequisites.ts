@@ -16,10 +16,10 @@ export const DEFAULT_SUGGESTED_MODELS = [
   'qwen2.5-coder:3b'
 ] as const
 
-export function detectPackageManager(files: {
-  pnpmLock: boolean
-  yarnLock: boolean
-}): { packageManager: PackageManager; installCommand: string } {
+export function detectPackageManager(files: { pnpmLock: boolean; yarnLock: boolean }): {
+  packageManager: PackageManager
+  installCommand: string
+} {
   if (files.pnpmLock) {
     return { packageManager: 'pnpm', installCommand: 'pnpm install' }
   }

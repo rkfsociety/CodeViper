@@ -20,7 +20,9 @@ export function applySearchReplace(
 
   const count = content.split(oldString).length - 1
   if (count === 0) {
-    throw new FileEditError('old_string не найден в файле — прочитайте файл и скопируйте точный фрагмент')
+    throw new FileEditError(
+      'old_string не найден в файле — прочитайте файл и скопируйте точный фрагмент'
+    )
   }
   if (!replaceAll && count > 1) {
     throw new FileEditError(

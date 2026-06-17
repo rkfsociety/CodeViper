@@ -23,7 +23,8 @@ export interface ContextCompressionResult {
 
 function countPayloadChars(messages: OllamaMessage[], toolsJsonChars: number): number {
   return (
-    messages.reduce((sum, message) => sum + estimateMessageChars(message.content), 0) + toolsJsonChars
+    messages.reduce((sum, message) => sum + estimateMessageChars(message.content), 0) +
+    toolsJsonChars
   )
 }
 
@@ -68,7 +69,9 @@ function dropOldestNonSystem(messages: OllamaMessage[], count: number): OllamaMe
 
   const system = messages[0]?.role === 'system' ? messages[0] : null
   const rest = system ? messages.slice(1) : messages
-  const nextRest = rest.slice(Math.min(count, Math.max(0, rest.length - MIN_RECENT_CONTEXT_MESSAGES)))
+  const nextRest = rest.slice(
+    Math.min(count, Math.max(0, rest.length - MIN_RECENT_CONTEXT_MESSAGES))
+  )
 
   return system ? [system, ...nextRest] : nextRest
 }

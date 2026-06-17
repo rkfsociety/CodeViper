@@ -78,9 +78,7 @@ export function ChatHistoryPanel({
     const tag = tagFilter.trim().toLowerCase()
     let filtered = query ? chats.filter((chat) => chatMatchesQuery(chat, query)) : chats
     if (tag) {
-      filtered = filtered.filter((chat) =>
-        chat.tags?.some((t) => t.toLowerCase().includes(tag))
-      )
+      filtered = filtered.filter((chat) => chat.tags?.some((t) => t.toLowerCase().includes(tag)))
     }
     return [...filtered].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1
@@ -114,41 +112,53 @@ export function ChatHistoryPanel({
     setCollapsed((prev) => ({ ...prev, [folderId]: !prev[folderId] }))
   }, [])
 
-  const handleDragStart = useCallback((chatId: string, e: React.DragEvent) => {
-    if (chatBusy) return
-    e.dataTransfer.setData('text/plain', chatId)
-    e.dataTransfer.effectAllowed = 'move'
-    setDraggingChatId(chatId)
-  }, [chatBusy])
+  const handleDragStart = useCallback(
+    (chatId: string, e: React.DragEvent) => {
+      if (chatBusy) return
+      e.dataTransfer.setData('text/plain', chatId)
+      e.dataTransfer.effectAllowed = 'move'
+      setDraggingChatId(chatId)
+    },
+    [chatBusy]
+  )
 
   const handleDragEnd = useCallback(() => {
     setDraggingChatId(null)
     setDropTarget(undefined)
   }, [])
 
-  const handleDragOver = useCallback((target: DropTarget, e: React.DragEvent) => {
-    if (!draggingChatId) return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setDropTarget(target)
-  }, [draggingChatId])
+  const handleDragOver = useCallback(
+    (target: DropTarget, e: React.DragEvent) => {
+      if (!draggingChatId) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      setDropTarget(target)
+    },
+    [draggingChatId]
+  )
 
-  const handleDrop = useCallback((target: DropTarget, e: React.DragEvent) => {
-    e.preventDefault()
-    const chatId = e.dataTransfer.getData('text/plain') || draggingChatId
-    if (!chatId) return
-    const folderId = target === 'root' ? null : target
-    onMoveChat(chatId, folderId)
-    handleDragEnd()
-  }, [draggingChatId, onMoveChat, handleDragEnd])
+  const handleDrop = useCallback(
+    (target: DropTarget, e: React.DragEvent) => {
+      e.preventDefault()
+      const chatId = e.dataTransfer.getData('text/plain') || draggingChatId
+      if (!chatId) return
+      const folderId = target === 'root' ? null : target
+      onMoveChat(chatId, folderId)
+      handleDragEnd()
+    },
+    [draggingChatId, onMoveChat, handleDragEnd]
+  )
 
-  const handlePromptConfirm = useCallback((value: string) => {
-    if (!prompt) return
-    if (prompt.kind === 'create-folder') onCreateFolder(value)
-    if (prompt.kind === 'rename-folder') onRenameFolder(prompt.folderId, value)
-    if (prompt.kind === 'rename-chat') onRenameChat(prompt.chatId, value)
-    setPrompt(null)
-  }, [prompt, onCreateFolder, onRenameFolder, onRenameChat])
+  const handlePromptConfirm = useCallback(
+    (value: string) => {
+      if (!prompt) return
+      if (prompt.kind === 'create-folder') onCreateFolder(value)
+      if (prompt.kind === 'rename-folder') onRenameFolder(prompt.folderId, value)
+      if (prompt.kind === 'rename-chat') onRenameChat(prompt.chatId, value)
+      setPrompt(null)
+    },
+    [prompt, onCreateFolder, onRenameFolder, onRenameChat]
+  )
 
   const handleConfirmAction = useCallback(() => {
     if (!confirm) return
@@ -181,7 +191,14 @@ export function ChatHistoryPanel({
           {chat.tags && chat.tags.length > 0 && (
             <div className="chat-tags">
               {chat.tags.map((tag) => (
-                <span key={tag} className="chat-tag" onClick={(e) => { e.stopPropagation(); setTagFilter(tag) }}>
+                <span
+                  key={tag}
+                  className="chat-tag"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setTagFilter(tag)
+                  }}
+                >
                   {tag}
                 </span>
               ))}
@@ -228,9 +245,12 @@ export function ChatHistoryPanel({
     )
   }
 
-  const dropZoneClass = useCallback((target: DropTarget): string => {
-    return dropTarget === target ? 'drop-target' : ''
-  }, [dropTarget])
+  const dropZoneClass = useCallback(
+    (target: DropTarget): string => {
+      return dropTarget === target ? 'drop-target' : ''
+    },
+    [dropTarget]
+  )
 
   function renderChatList(chats: SavedChat[]) {
     const shown = chats.slice(0, chatLimit)
@@ -274,7 +294,9 @@ export function ChatHistoryPanel({
         {tagFilter && (
           <div className="chat-tag-filter">
             <span className="chat-tag">{tagFilter}</span>
-            <button type="button" className="btn chat-history-btn" onClick={() => setTagFilter('')}>✕</button>
+            <button type="button" className="btn chat-history-btn" onClick={() => setTagFilter('')}>
+              ✕
+            </button>
           </div>
         )}
       </div>
@@ -292,14 +314,21 @@ export function ChatHistoryPanel({
                 onDragLeave={() => setDropTarget(undefined)}
                 onDrop={(e) => handleDrop(folder.id, e)}
               >
-                <button className="chat-history-folder-toggle" onClick={() => toggleFolder(folder.id)}>
+                <button
+                  className="chat-history-folder-toggle"
+                  onClick={() => toggleFolder(folder.id)}
+                >
                   {isCollapsed ? '▶' : '▼'}
                 </button>
                 <span className="chat-history-folder-label">
                   <span
                     className="chat-history-folder-name"
                     onDoubleClick={() =>
-                      setPrompt({ kind: 'rename-folder', folderId: folder.id, defaultValue: folder.name })
+                      setPrompt({
+                        kind: 'rename-folder',
+                        folderId: folder.id,
+                        defaultValue: folder.name
+                      })
                     }
                   >
                     📁 {folder.name}
@@ -313,8 +342,16 @@ export function ChatHistoryPanel({
                 <span className="chat-history-folder-count">{chats.length}</span>
                 <button
                   className="btn chat-history-btn"
-                  title={folder.projectPath ? `Проект: ${folder.projectPath}` : 'Привязать проект к папке'}
-                  aria-label={folder.projectPath ? `Проект папки: ${folder.projectPath}` : 'Привязать проект к папке'}
+                  title={
+                    folder.projectPath
+                      ? `Проект: ${folder.projectPath}`
+                      : 'Привязать проект к папке'
+                  }
+                  aria-label={
+                    folder.projectPath
+                      ? `Проект папки: ${folder.projectPath}`
+                      : 'Привязать проект к папке'
+                  }
                   onClick={() => onUpdateFolderProject(folder.id)}
                 >
                   📂
@@ -367,7 +404,9 @@ export function ChatHistoryPanel({
 
         {!filteredChats.length && (
           <div className="empty">
-            {searchQuery.trim() ? 'Ничего не найдено.' : 'Нет чатов. Создай первый — кнопка «+ Чат».'}
+            {searchQuery.trim()
+              ? 'Ничего не найдено.'
+              : 'Нет чатов. Создай первый — кнопка «+ Чат».'}
           </div>
         )}
       </div>

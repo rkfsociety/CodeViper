@@ -216,7 +216,7 @@ const REFUSAL_PATTERNS: RegExp[] = [
   /напрямую\s+из\s+чата/i,
   /у\s+меня\s+нет\s+(?:доступа|возможности|способности)/i,
   /as\s+an?\s+(?:ai|language\s+model|llm|assistant)/i,
-  /i\s+(?:can't|cannot|am\s+unable\s+to)\s+(?:access|read|view|browse|open|execute|directly)/i,
+  /i\s+(?:can't|cannot|am\s+unable\s+to)\s+(?:access|read|view|browse|open|execute|directly)/i
 ]
 
 /** Модель утверждает что не может работать с файлами/инструментами — нужна эскалация. */

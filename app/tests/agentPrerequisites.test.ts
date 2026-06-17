@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  detectPackageManager,
-  formatPrerequisitesMessage
-} from '../shared/agentPrerequisites'
+import { detectPackageManager, formatPrerequisitesMessage } from '../shared/agentPrerequisites'
 
 describe('agentPrerequisites', () => {
   it('detectPackageManager выбирает pnpm/yarn/npm', () => {

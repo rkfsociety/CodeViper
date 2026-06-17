@@ -140,7 +140,9 @@ describe('file operations', () => {
       await safeDeleteFile(dir, path)
       expect(existsSync(path)).toBe(false)
       await expect(safeDeleteFile(dir, path)).rejects.toThrow(/не найден/)
-      await expect(safeDeleteFile(dir, join(tmpdir(), 'outside.txt'))).rejects.toThrow(/вне проекта/)
+      await expect(safeDeleteFile(dir, join(tmpdir(), 'outside.txt'))).rejects.toThrow(
+        /вне проекта/
+      )
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

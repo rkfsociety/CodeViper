@@ -5,9 +5,7 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../electron/main/services', () => ({
-  buildFileTree: async () => [
-    { name: 'src', path: '/p/src', isDirectory: true, children: [] }
-  ]
+  buildFileTree: async () => [{ name: 'src', path: '/p/src', isDirectory: true, children: [] }]
 }))
 
 vi.mock('../electron/main/memory', () => ({
@@ -22,10 +20,7 @@ vi.mock('../electron/main/codeviperSource', () => ({
   buildSelfEditContext: () => '# Исходники CodeViper\nКорень: /app'
 }))
 
-import {
-  buildAgentContextPreview,
-  estimateTokens
-} from '../electron/main/agentContext'
+import { buildAgentContextPreview, estimateTokens } from '../electron/main/agentContext'
 import type { ChatMessage } from '../src/types'
 
 describe('estimateTokens', () => {
@@ -45,7 +40,12 @@ describe('buildAgentContextPreview', () => {
       }
     ]
 
-    const preview = await buildAgentContextPreview('/project', history, 'Новая задача', 'qwen2.5-coder:7b')
+    const preview = await buildAgentContextPreview(
+      '/project',
+      history,
+      'Новая задача',
+      'qwen2.5-coder:7b'
+    )
 
     expect(preview.model).toBe('qwen2.5-coder:7b')
     expect(preview.sections.length).toBeGreaterThanOrEqual(4)

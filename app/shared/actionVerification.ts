@@ -76,7 +76,10 @@ export function claimsActionCompleted(assistantText: string): boolean {
   const text = assistantText.trim()
   if (!text) return false
 
-  if (/созда(?:ю|ем|ет)/i.test(text) && !/(?:создал|создан|создана|создано)(?=\s|[.!?]|$)/i.test(text)) {
+  if (
+    /созда(?:ю|ем|ет)/i.test(text) &&
+    !/(?:создал|создан|создана|создано)(?=\s|[.!?]|$)/i.test(text)
+  ) {
     return false
   }
 

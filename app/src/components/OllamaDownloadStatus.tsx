@@ -9,13 +9,7 @@ interface Props {
   onOpenSettings: () => void
 }
 
-export function OllamaDownloadStatus({
-  pulling,
-  queued,
-  progress,
-  error,
-  onOpenSettings
-}: Props) {
+export function OllamaDownloadStatus({ pulling, queued, progress, error, onOpenSettings }: Props) {
   if (!pulling && queued.length === 0 && !error) return null
 
   const percent = pullPercent(progress ?? null)

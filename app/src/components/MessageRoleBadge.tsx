@@ -1,9 +1,6 @@
 import type { AgentRole } from '../types'
 
-const ROLE_META: Record<
-  AgentRole,
-  { label: string; icon: string; tone: string }
-> = {
+const ROLE_META: Record<AgentRole, { label: string; icon: string; tone: string }> = {
   user: { label: 'Вы', icon: '👤', tone: 'user' },
   assistant: { label: 'CodeViper', icon: '🐍', tone: 'assistant' },
   tool: { label: 'Инструмент', icon: '⚙', tone: 'tool' },

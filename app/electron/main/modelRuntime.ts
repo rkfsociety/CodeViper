@@ -1,4 +1,11 @@
-import type { ModelProvider, ProviderConfig, ChatOptions, ChatChunk, LoadedModel, ModelPlacement } from '../../shared/modelProvider'
+import type {
+  ModelProvider,
+  ProviderConfig,
+  ChatOptions,
+  ChatChunk,
+  LoadedModel,
+  ModelPlacement
+} from '../../shared/modelProvider'
 import { OllamaProvider } from './providers/ollamaProvider'
 import { OpenAIProvider } from './providers/openaiProvider'
 
@@ -58,7 +65,10 @@ export class ModelRuntime {
           ? this.config.baseUrl
           : 'http://127.0.0.1:11434'
         const fallback = new OllamaProvider(ollamaBaseUrl)
-        yield { content: '⚠️ Облачный API недоступен, переключаюсь на локальную Ollama...\n', model: 'fallback' }
+        yield {
+          content: '⚠️ Облачный API недоступен, переключаюсь на локальную Ollama...\n',
+          model: 'fallback'
+        }
         yield* fallback.chat(options)
         return
       }

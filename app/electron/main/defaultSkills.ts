@@ -17,16 +17,7 @@ const VIPER_AGENT_CORE_SKILL = {
   id: VIPER_AGENT_CORE_SKILL_ID,
   name: 'Viper Agent Core',
   description: 'Полный набор инструментов и workflow агента (как Cursor Agent)',
-  triggers: [
-    'агент',
-    'задача',
-    'сделай',
-    'реализуй',
-    'исправь',
-    'помоги',
-    'codeviper',
-    'cursor'
-  ],
+  triggers: ['агент', 'задача', 'сделай', 'реализуй', 'исправь', 'помоги', 'codeviper', 'cursor'],
   scope: 'global' as const,
   instructions: `# Viper Agent Core
 

@@ -69,9 +69,7 @@ export function createSkillsToolHandlers(
 
     write_skill_data: async (args) => {
       const ok = await writeSkillData(projectPath, args.skill_id, args.content)
-      return ok
-        ? `Данные навыка записаны: ${args.skill_id}`
-        : `Навык не найден: ${args.skill_id}`
+      return ok ? `Данные навыка записаны: ${args.skill_id}` : `Навык не найден: ${args.skill_id}`
     }
   }
 }

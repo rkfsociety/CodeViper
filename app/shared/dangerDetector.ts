@@ -41,8 +41,7 @@ const PATTERNS: DangerPattern[] = [
     description: 'Команда `rm -rf` безвозвратно удаляет файлы и папки.'
   },
   {
-    pattern:
-      /\b(форматир|format)\b.{0,60}\b(диск|раздел|drive|disk|partition|volume)\b/i,
+    pattern: /\b(форматир|format)\b.{0,60}\b(диск|раздел|drive|disk|partition|volume)\b/i,
     level: 'danger',
     title: 'Форматирование диска',
     description: 'Задача похожа на форматирование диска или раздела.'
@@ -55,8 +54,7 @@ const PATTERNS: DangerPattern[] = [
     description: 'Задача может перезаписать большое количество файлов.'
   },
   {
-    pattern:
-      /\b(замени|заменить|replace)\b.{0,60}\b(во всех|everywhere|all files?|every file)\b/i,
+    pattern: /\b(замени|заменить|replace)\b.{0,60}\b(во всех|everywhere|all files?|every file)\b/i,
     level: 'warning',
     title: 'Замена во всех файлах',
     description: 'Задача затрагивает изменения во всех файлах проекта.'
@@ -75,8 +73,7 @@ const PATTERNS: DangerPattern[] = [
     description: 'Задача может привести к полной очистке базы данных.'
   },
   {
-    pattern:
-      /\b(удали|удалить|remove|delete)\b.{0,60}\.env\b/i,
+    pattern: /\b(удали|удалить|remove|delete)\b.{0,60}\.env\b/i,
     level: 'warning',
     title: 'Удаление .env файла',
     description: 'Задача может удалить файл конфигурации с секретными ключами.'
@@ -85,7 +82,8 @@ const PATTERNS: DangerPattern[] = [
     pattern: /\bcurl\s+[^\n|&;]+\|\s*(sh|bash|zsh|powershell|pwsh)\b/i,
     level: 'danger',
     title: 'Выполнение скрипта из интернета',
-    description: '`curl | bash` запускает произвольный код с удалённого сервера без проверки содержимого.'
+    description:
+      '`curl | bash` запускает произвольный код с удалённого сервера без проверки содержимого.'
   },
   {
     pattern: /\bnpm\s+(install|i)\s+(-g|--global)\b/i,
@@ -97,7 +95,8 @@ const PATTERNS: DangerPattern[] = [
     pattern: /\bpip\s+(install|install3)\b(?!.*--user)/i,
     level: 'warning',
     title: 'Системная установка Python-пакета',
-    description: 'Пакет устанавливается в системный Python без `--user`, что изменяет глобальное окружение.'
+    description:
+      'Пакет устанавливается в системный Python без `--user`, что изменяет глобальное окружение.'
   },
   {
     pattern: /\b(choco|winget|brew)\s+install\b/i,
@@ -110,7 +109,8 @@ const PATTERNS: DangerPattern[] = [
       /\b(export|set|setx|Set-Item\s+Env:|[Ee]nv:)\b.{0,80}(PATH|HOME|APPDATA|USERPROFILE|PYTHONPATH|NODE_PATH)\b/i,
     level: 'warning',
     title: 'Изменение переменной окружения',
-    description: 'Задача меняет системную переменную окружения, что может повлиять на другие приложения.'
+    description:
+      'Задача меняет системную переменную окружения, что может повлиять на другие приложения.'
   },
   {
     pattern: /\b(перезапис|overwrite|rewrite)\b.{0,60}\.env\b/i,

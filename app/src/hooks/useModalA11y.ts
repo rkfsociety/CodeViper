@@ -39,9 +39,9 @@ export function useModalA11y<T extends HTMLElement = HTMLDivElement>(open: boole
       const node = containerRef.current
       if (!node) return
 
-      const focusables = Array.from(
-        node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      ).filter((el) => el.offsetParent !== null || el === document.activeElement)
+      const focusables = Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement
+      )
       if (focusables.length === 0) {
         e.preventDefault()
         return

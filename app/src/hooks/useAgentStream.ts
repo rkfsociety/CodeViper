@@ -89,7 +89,8 @@ export function useAgentStream({
       }
 
       if (event.type === 'assistant') {
-        const durationMs = genStartRef.current != null ? Date.now() - genStartRef.current : undefined
+        const durationMs =
+          genStartRef.current != null ? Date.now() - genStartRef.current : undefined
         genStartRef.current = null
         setDraft('')
         setDraftThinking('')

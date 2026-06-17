@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { analyzeTask, selectModelForTask, selectLightestModelForSummarization, resolveSummarizeModel } from '../shared/modelRouter'
+import {
+  analyzeTask,
+  selectModelForTask,
+  selectLightestModelForSummarization,
+  resolveSummarizeModel
+} from '../shared/modelRouter'
 
 const INSTALLED = [
   { name: 'qwen2.5-coder:3b', size: 2e9 },
@@ -51,9 +56,7 @@ describe('modelRouter', () => {
       'qwen2.5-coder:3b'
     )
     expect(resolveSummarizeModel(INSTALLED, 'qwen2.5-coder:14b', '')).toBe('qwen2.5-coder:3b')
-    expect(resolveSummarizeModel(INSTALLED, 'qwen2.5-coder:14b', 'llama3.1:8b')).toBe(
-      'llama3.1:8b'
-    )
+    expect(resolveSummarizeModel(INSTALLED, 'qwen2.5-coder:14b', 'llama3.1:8b')).toBe('llama3.1:8b')
   })
 
   it('selectLightestModelForSummarization пропускает embed-модели', () => {

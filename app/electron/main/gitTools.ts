@@ -134,15 +134,7 @@ export async function gitLog(
   const limit = parseLogLimit(options.limit)
   const args = parseToolBool(options.oneline)
     ? ['log', '-n', String(limit), '--oneline', '--', pathspec]
-    : [
-        'log',
-        '-n',
-        String(limit),
-        '--date=short',
-        '--pretty=format:%h %ad %an %s',
-        '--',
-        pathspec
-      ]
+    : ['log', '-n', String(limit), '--date=short', '--pretty=format:%h %ad %an %s', '--', pathspec]
 
   const result = await runGit(projectPath, args)
   return formatGitResult(result)

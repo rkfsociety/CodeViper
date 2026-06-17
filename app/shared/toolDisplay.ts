@@ -113,8 +113,6 @@ export function compactToolChatLine(
     case 'get_self_improvement_plan':
       return `✓ ${firstLine(body) || label}`
     default:
-      return body.trim()
-        ? `✓ ${label} — ${firstLine(body)}`
-        : `✓ ${label}`
+      return body.trim() ? `✓ ${label} — ${firstLine(body)}` : `✓ ${label}`
   }
 }

@@ -57,7 +57,10 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
 
   const commit = await runGit(source, ['commit', '-m', message, '--', '.'])
   if (commit.code !== 0) {
-    return { ok: false, message: `git commit не удался: ${(commit.stderr || commit.stdout).trim()}` }
+    return {
+      ok: false,
+      message: `git commit не удался: ${(commit.stderr || commit.stdout).trim()}`
+    }
   }
 
   const push = await runGit(source, ['push'])

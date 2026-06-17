@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "codeviper",
   "version": "0.1.0",
   "description": "Локальный AI-агент с GUI — чат, файлы и терминал через Ollama",

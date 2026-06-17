@@ -51,7 +51,8 @@ function emptyIndex(): ChatsIndex {
 }
 
 export function trimChatMessages(messages: ChatMessage[]): ChatMessage[] {
-  let trimmed = messages.length > MAX_MESSAGES_PER_CHAT ? messages.slice(-MAX_MESSAGES_PER_CHAT) : [...messages]
+  let trimmed =
+    messages.length > MAX_MESSAGES_PER_CHAT ? messages.slice(-MAX_MESSAGES_PER_CHAT) : [...messages]
 
   while (trimmed.length > 20 && JSON.stringify(trimmed).length > MAX_CHAT_JSON_CHARS) {
     trimmed = trimmed.slice(1)
@@ -224,7 +225,9 @@ export async function createChat(folderId: string | null = null): Promise<SavedC
 
 export async function updateChat(
   id: string,
-  patch: Partial<Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>>
+  patch: Partial<
+    Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+  >
 ): Promise<SavedChat | null> {
   const index = await loadIndex()
   const entry = index.chats.find((item) => item.id === id)
@@ -314,4 +317,3 @@ export async function moveChatToFolder(chatId: string, folderId: string | null):
   chat.updatedAt = new Date().toISOString()
   await saveIndex(index)
 }
-

@@ -72,7 +72,9 @@ export function createProjectToolHandlers(
 
     find_files: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
-      const result = await findFilesInTree(projectPath, args.pattern, { subpath: args.path?.trim() })
+      const result = await findFilesInTree(projectPath, args.pattern, {
+        subpath: args.path?.trim()
+      })
       return formatFindResults(projectPath, args.pattern, result)
     },
 

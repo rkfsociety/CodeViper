@@ -3,9 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('electron', () => ({
   app: { getPath: () => process.cwd() + '/.vitest-tmp/window' },
   screen: {
-    getAllDisplays: () => [
-      { workArea: { x: 0, y: 0, width: 1920, height: 1080 } }
-    ]
+    getAllDisplays: () => [{ workArea: { x: 0, y: 0, width: 1920, height: 1080 } }]
   }
 }))
 
@@ -47,17 +45,13 @@ describe('normalizeWindowState', () => {
 describe('isWindowStateOnScreen', () => {
   it('true для окна внутри экрана', () => {
     expect(
-      isWindowStateOnScreen(
-        normalizeWindowState({ width: 1000, height: 700, x: 100, y: 100 })
-      )
+      isWindowStateOnScreen(normalizeWindowState({ width: 1000, height: 700, x: 100, y: 100 }))
     ).toBe(true)
   })
 
   it('false для окна полностью вне экрана', () => {
     expect(
-      isWindowStateOnScreen(
-        normalizeWindowState({ width: 1000, height: 700, x: 5000, y: 5000 })
-      )
+      isWindowStateOnScreen(normalizeWindowState({ width: 1000, height: 700, x: 5000, y: 5000 }))
     ).toBe(false)
   })
 })

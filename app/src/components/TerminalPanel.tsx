@@ -8,7 +8,9 @@ interface Props {
 
 export function TerminalPanel({ projectPath, embedded = false }: Props) {
   const [command, setCommand] = useState('')
-  const [output, setOutput] = useState<string>('CodeViper Terminal — команды выполняются в корне проекта.\n')
+  const [output, setOutput] = useState<string>(
+    'CodeViper Terminal — команды выполняются в корне проекта.\n'
+  )
 
   const segments = useMemo(() => parseAnsi(output), [output])
 
@@ -17,11 +19,7 @@ export function TerminalPanel({ projectPath, embedded = false }: Props) {
     setOutput((prev) => `${prev}\n> ${command}\n`)
 
     const result = await window.codeviper.runTerminalCommand(projectPath, command)
-    const chunk = [
-      result.stdout,
-      result.stderr,
-      `exit code: ${result.exitCode}`
-    ]
+    const chunk = [result.stdout, result.stderr, `exit code: ${result.exitCode}`]
       .filter(Boolean)
       .join('\n')
 

@@ -49,7 +49,6 @@ const BG_COLORS: Record<number, string> = {
   47: '#30363d'
 }
 
-// eslint-disable-next-line no-control-regex
 const ANSI_PATTERN = new RegExp(String.fromCharCode(27) + '\\[([0-9;]*)m', 'g')
 
 function applyCodes(style: AnsiStyle, codes: number[]): AnsiStyle {

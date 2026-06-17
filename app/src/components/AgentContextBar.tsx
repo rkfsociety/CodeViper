@@ -24,17 +24,24 @@ export function AgentContextBar({ preview, loading, error, onOpen }: Props) {
 
   return (
     <div className="context-bar">
-      <button type="button" className="context-bar-open" onClick={onOpen} disabled={loading || !preview}>
+      <button
+        type="button"
+        className="context-bar-open"
+        onClick={onOpen}
+        disabled={loading || !preview}
+      >
         <span className="context-bar-icon">◎</span>
         <span className="context-bar-label">Контекст</span>
         {loading ? (
           <span className="context-bar-stat">обновление…</span>
         ) : error ? (
-          <span className="context-bar-stat danger" title={error}>ошибка превью</span>
+          <span className="context-bar-stat danger" title={error}>
+            ошибка превью
+          </span>
         ) : preview ? (
           <span className={usageClass(preview.contextUsagePercent)}>
-            {preview.contextUsagePercent}% · ~{preview.estimatedTokens.toLocaleString('ru-RU')} tok ·{' '}
-            {formatChars(preview.totalChars)}
+            {preview.contextUsagePercent}% · ~{preview.estimatedTokens.toLocaleString('ru-RU')} tok
+            · {formatChars(preview.totalChars)}
           </span>
         ) : null}
       </button>

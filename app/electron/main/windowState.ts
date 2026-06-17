@@ -133,7 +133,9 @@ export function trackWindowState(win: BrowserWindow): void {
   })
 }
 
-export function windowOptionsFromState(state: WindowState): Electron.BrowserWindowConstructorOptions {
+export function windowOptionsFromState(
+  state: WindowState
+): Electron.BrowserWindowConstructorOptions {
   const options: Electron.BrowserWindowConstructorOptions = {
     width: state.width,
     height: state.height,

@@ -1,4 +1,10 @@
-import type { ModelProvider, ChatOptions, ChatChunk, LoadedModel, ModelPlacement } from '../../../shared/modelProvider'
+import type {
+  ModelProvider,
+  ChatOptions,
+  ChatChunk,
+  LoadedModel,
+  ModelPlacement
+} from '../../../shared/modelProvider'
 import { modelsMatch } from '../../../shared/modelRouter'
 
 export class OllamaProvider implements ModelProvider {
@@ -6,7 +12,9 @@ export class OllamaProvider implements ModelProvider {
 
   async ping(signal?: AbortSignal): Promise<boolean> {
     try {
-      const res = await fetch(`${this.baseUrl}/api/tags`, { signal: signal || AbortSignal.timeout(5_000) })
+      const res = await fetch(`${this.baseUrl}/api/tags`, {
+        signal: signal || AbortSignal.timeout(5_000)
+      })
       return res.ok
     } catch {
       return false
@@ -112,7 +120,9 @@ export class OllamaProvider implements ModelProvider {
 
   async getModelPlacement(model: string, signal?: AbortSignal): Promise<ModelPlacement> {
     try {
-      const res = await fetch(`${this.baseUrl}/api/ps`, { signal: signal || AbortSignal.timeout(5_000) })
+      const res = await fetch(`${this.baseUrl}/api/ps`, {
+        signal: signal || AbortSignal.timeout(5_000)
+      })
       if (!res.ok) return 'unknown'
 
       const data = (await res.json()) as {
