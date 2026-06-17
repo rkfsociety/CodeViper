@@ -28,7 +28,8 @@ const DEFAULT_SETTINGS: AgentSettings = {
   clarifyMode: false,
   deepReasoning: false,
   autoPushSelfEdits: true,
-  summarizeModel: ''
+  summarizeModel: '',
+  gitSyncOnStartup: true
 }
 
 export default function App() {

@@ -348,6 +348,19 @@ export function SettingsModal({
                 </span>
               </label>
 
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={settings.gitSyncOnStartup !== false}
+                  onChange={(e) => onSettingsChange({ gitSyncOnStartup: e.target.checked })}
+                />
+                <span>
+                  <strong>Git-синхронизация при запуске</strong> — при включении CodeViper
+                  автоматически выполняет <code>git stash</code> + <code>git reset --hard</code> для
+                  синхронизации с GitHub
+                </span>
+              </label>
+
               <label>
                 Таймаут команд (сек)
                 <input

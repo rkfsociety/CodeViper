@@ -39,6 +39,20 @@ function Test-ElectronWindow {
 
 function Sync-FromGitHub {
   # Синхронизация с GitHub при запуске: версия на GitHub имеет приоритет.
+  # Проверяем флаг gitSyncOnStartup из config.json
+  $configPath = Join-Path $env:LOCALAPPDATA 'CodeViper\config.json'
+  if (Test-Path $configPath) {
+    try {
+      $config = Get-Content -Path $configPath -Raw | ConvertFrom-Json
+      if ($config.gitSyncOnStartup -eq $false) {
+        Write-Log 'git-синхронизация отключена в настройках'
+        return
+      }
+    } catch {
+      Write-Log "не удалось прочитать config.json: $($_.Exception.Message)"
+    }
+  }
+
   $repo = Split-Path $root -Parent
   if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Log 'git не найден — синхронизация пропущена'

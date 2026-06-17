@@ -117,6 +117,8 @@ export interface AgentSettings {
   readonlyMode?: boolean
   /** Звуковое уведомление при завершении задачи агента */
   soundNotifications?: boolean
+  /** Синхронизировать с Git при запуске (stash/reset); по умолчанию true */
+  gitSyncOnStartup?: boolean
 }
 
 export interface AgentConfirmRequest {
