@@ -1888,10 +1888,132 @@ button {
   border-color: color-mix(in srgb, var(--blue) 33%, transparent);
   color: var(--blue-light);
   background: var(--bg-msg-user);
-  max-width: 120px;
+  white-space: nowrap;
+}
+
+/* ── Model picker dropdown ────────────────────────────────────────── */
+.model-picker {
+  position: relative;
+}
+
+.model-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--blue) 33%, transparent);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--blue-light);
+  background: var(--bg-msg-user);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.model-picker-btn:hover,
+.model-picker-btn.open {
+  border-color: color-mix(in srgb, var(--blue) 60%, transparent);
+  background: color-mix(in srgb, var(--bg-msg-user) 80%, var(--blue) 20%);
+}
+
+.model-picker-auto {
+  font-weight: 700;
+  color: var(--blue-light);
+}
+
+.model-picker-current {
+  color: var(--text-muted);
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-picker-chevron {
+  font-size: 9px;
+  color: var(--text-faint);
+  margin-left: 1px;
+}
+
+.model-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  max-width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 300;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.model-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  color: var(--text-secondary);
+  font-size: 12px;
+  transition: background 0.12s;
+}
+
+.model-picker-item:hover {
+  background: var(--bg-element);
+  color: var(--text-primary);
+}
+
+.model-picker-item.active {
+  color: var(--text-primary);
+}
+
+.model-picker-item-name {
+  flex: 1;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.model-picker-item-desc {
+  font-size: 11px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.model-picker-item-tag {
+  font-size: 10px;
+  color: var(--text-faint);
+  background: var(--bg-element);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.model-picker-check {
+  color: #238636;
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.model-picker-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 6px;
 }
 
 button.topbar-pill.topbar-download {

@@ -17,7 +17,7 @@ import { ConfirmDialog } from './components/ConfirmDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
-import { DEFAULT_MAX_STEPS } from '../shared/constants'
+import { DEFAULT_MAX_STEPS, DEEPSEEK_MODEL_DEFAULT } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 
 const DEFAULT_SETTINGS: AgentSettings = {
@@ -52,6 +52,8 @@ export default function App() {
   const [lightMode, setLightMode] = useState(false)
   const [showSecurityNotice, setShowSecurityNotice] = useState(false)
   const [crashRecovery, setCrashRecovery] = useState<AppState | null>(null)
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false)
+  const modelDropdownRef = useRef<HTMLDivElement>(null)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
   const chatPanelRef = useRef<ChatPanelHandle>(null)
@@ -190,6 +192,17 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  useEffect(() => {
+    if (!modelDropdownOpen) return
+    function handleOutsideClick(e: MouseEvent) {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
+        setModelDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [modelDropdownOpen])
 
   const resolveConfirm = useCallback(
     (approved: boolean) => {
@@ -369,21 +382,77 @@ export default function App() {
           <span className={`topbar-pill ${ollamaOnline ? 'online' : 'offline'}`}>
             {ollamaOnline ? 'Ollama' : 'Ollama offline'}
           </span>
-          {settings.model && (
-            <span
-              className="topbar-pill model"
-              title={
-                settings.autoModel !== false
-                  ? `Авто · сейчас: ${activeRunModel || settings.model}`
-                  : settings.model
-              }
+          <div className="model-picker" ref={modelDropdownRef}>
+            <button
+              className={`topbar-pill model model-picker-btn${modelDropdownOpen ? ' open' : ''}`}
+              onClick={() => setModelDropdownOpen((v) => !v)}
+              title="Выбрать модель"
             >
-              {settings.autoModel !== false ? 'Auto · ' : ''}
-              {(activeRunModel || settings.model).includes(':')
-                ? (activeRunModel || settings.model).split(':')[0]
-                : activeRunModel || settings.model}
-            </span>
-          )}
+              {settings.autoModel !== false ? (
+                <>
+                  <span className="model-picker-auto">Авто</span>
+                  {(activeRunModel || settings.model) && (
+                    <span className="model-picker-current">
+                      {(activeRunModel || settings.model).split(':')[0]}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="model-picker-current">
+                  {(settings.model || '').split(':')[0] || 'Модель'}
+                </span>
+              )}
+              <span className="model-picker-chevron">▾</span>
+            </button>
+
+            {modelDropdownOpen && (
+              <div className="model-picker-dropdown" role="listbox">
+                {/* Авто */}
+                <button
+                  className={`model-picker-item${settings.autoModel !== false ? ' active' : ''}`}
+                  role="option"
+                  aria-selected={settings.autoModel !== false}
+                  onClick={() => {
+                    setSettings((prev) => ({ ...prev, autoModel: true }))
+                    setModelDropdownOpen(false)
+                  }}
+                >
+                  <span className="model-picker-item-name">Авто</span>
+                  <span className="model-picker-item-desc">Лучшая доступная модель</span>
+                  {settings.autoModel !== false && <span className="model-picker-check">✓</span>}
+                </button>
+
+                {/* Разделитель */}
+                {models.length > 0 && <div className="model-picker-sep" />}
+
+                {/* Список моделей провайдера */}
+                {(settings.modelProvider === 'deepseek'
+                  ? [DEEPSEEK_MODEL_DEFAULT, 'deepseek-reasoner']
+                  : models.map((m) => m.name)
+                ).map((name) => {
+                  const isActive = settings.autoModel === false && settings.model === name
+                  const shortName = name.split(':')[0]
+                  const tag = name.includes(':') ? name.split(':')[1] : undefined
+                  return (
+                    <button
+                      key={name}
+                      className={`model-picker-item${isActive ? ' active' : ''}`}
+                      role="option"
+                      aria-selected={isActive}
+                      onClick={() => {
+                        setSettings((prev) => ({ ...prev, model: name, autoModel: false }))
+                        setModelDropdownOpen(false)
+                      }}
+                    >
+                      <span className="model-picker-item-name">{shortName}</span>
+                      {tag && <span className="model-picker-item-tag">{tag}</span>}
+                      {isActive && <span className="model-picker-check">✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
           <OllamaDownloadStatus
             pulling={downloadQueue.pulling}
             queued={downloadQueue.queued}
