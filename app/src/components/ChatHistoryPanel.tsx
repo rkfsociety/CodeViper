@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ChatFolder, ChatStore, SavedChat } from '../types'
 import { PromptDialog } from './PromptDialog'
 import { ConfirmDialog } from './ConfirmDialog'
+import styles from './ChatHistoryPanel.module.css'
 
 interface Props {
   store: ChatStore | null
@@ -209,26 +210,26 @@ export function ChatHistoryPanel({
     return (
       <div
         key={chat.id}
-        className={`chat-history-item ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${chat.pinned ? 'pinned' : ''}`}
+        className={`${styles.item} ${isActive ? styles.active : ''} ${isDragging ? styles.dragging : ''} ${chat.pinned ? styles.pinned : ''}`}
         draggable={!chatBusy}
         onDragStart={(e) => handleDragStart(chat.id, e)}
         onDragEnd={handleDragEnd}
         onClick={() => !chatBusy && onSelectChat(chat.id)}
       >
-        <div className="chat-history-item-main">
-          <div className="chat-history-title">
-            {chat.pinned && <span className="chat-pin-icon">📌 </span>}
+        <div className={styles.itemMain}>
+          <div className={styles.title}>
+            {chat.pinned && <span className={styles.pinIcon}>📌 </span>}
             {chat.title}
           </div>
-          <div className="chat-history-meta">
+          <div className={styles.meta}>
             {formatProject(chat.projectPath)} · {formattedDates.get(chat.id)}
           </div>
           {chat.tags && chat.tags.length > 0 && (
-            <div className="chat-tags">
+            <div className={styles.tags}>
               {chat.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="chat-tag"
+                  className={styles.tag}
                   onClick={(e) => {
                     e.stopPropagation()
                     setTagFilter(tag)
@@ -240,9 +241,9 @@ export function ChatHistoryPanel({
             </div>
           )}
         </div>
-        <div className="chat-history-actions">
+        <div className={styles.actions}>
           <button
-            className={`btn chat-history-btn${chat.pinned ? ' active' : ''}`}
+            className={`btn ${styles.historyBtn}${chat.pinned ? ' active' : ''}`}
             title={chat.pinned ? 'Открепить' : 'Закрепить'}
             aria-label={chat.pinned ? 'Открепить чат' : 'Закрепить чат'}
             aria-pressed={chat.pinned ?? false}
@@ -254,7 +255,7 @@ export function ChatHistoryPanel({
             📌
           </button>
           <button
-            className="btn chat-history-btn"
+            className={`btn ${styles.historyBtn}`}
             title="Переименовать"
             aria-label="Переименовать чат"
             onClick={(e) => {
@@ -265,7 +266,7 @@ export function ChatHistoryPanel({
             ✎
           </button>
           <button
-            className="btn chat-history-btn"
+            className={`btn ${styles.historyBtn}`}
             title="Удалить"
             aria-label="Удалить чат"
             onClick={(e) => {
@@ -285,17 +286,17 @@ export function ChatHistoryPanel({
     const chats = chatsByFolder.get(folder.id) ?? []
     return (
       <div
-        className={`chat-history-folder-head ${dropTarget === folder.id ? 'drop-target' : ''}`}
+        className={`${styles.folderHead} ${dropTarget === folder.id ? styles.dropTarget : ''}`}
         onDragOver={(e) => handleDragOver(folder.id, e)}
         onDragLeave={() => setDropTarget(undefined)}
         onDrop={(e) => handleDrop(folder.id, e)}
       >
-        <button className="chat-history-folder-toggle" onClick={() => toggleFolder(folder.id)}>
+        <button className={styles.folderToggle} onClick={() => toggleFolder(folder.id)}>
           {isCollapsed ? '▶' : '▼'}
         </button>
         <span className="chat-history-folder-label">
           <span
-            className="chat-history-folder-name"
+            className={styles.folderName}
             onDoubleClick={() =>
               setPrompt({
                 kind: 'rename-folder',
@@ -312,9 +313,9 @@ export function ChatHistoryPanel({
             </span>
           )}
         </span>
-        <span className="chat-history-folder-count">{chats.length}</span>
+        <span className={styles.folderCount}>{chats.length}</span>
         <button
-          className="btn chat-history-btn"
+          className={`btn ${styles.historyBtn}`}
           title={folder.projectPath ? `Проект: ${folder.projectPath}` : 'Привязать проект к папке'}
           aria-label={
             folder.projectPath ? `Проект папки: ${folder.projectPath}` : 'Привязать проект к папке'
@@ -324,7 +325,7 @@ export function ChatHistoryPanel({
           📂
         </button>
         <button
-          className="btn chat-history-btn"
+          className={`btn ${styles.historyBtn}`}
           title="Новый чат в папке"
           aria-label="Новый чат в папке"
           disabled={chatBusy}
@@ -333,7 +334,7 @@ export function ChatHistoryPanel({
           +
         </button>
         <button
-          className="btn chat-history-btn"
+          className={`btn ${styles.historyBtn}`}
           title="Удалить папку"
           aria-label="Удалить папку"
           onClick={() =>
@@ -347,8 +348,8 @@ export function ChatHistoryPanel({
   }
 
   return (
-    <div className="chat-history">
-      <div className="chat-history-toolbar">
+    <div className={styles.panel}>
+      <div className={styles.toolbar}>
         <button className="btn primary" onClick={() => onCreateChat(null)} disabled={chatBusy}>
           + Чат
         </button>
@@ -360,7 +361,7 @@ export function ChatHistoryPanel({
         </button>
       </div>
 
-      <div className="chat-history-search">
+      <div className={styles.search}>
         <input
           type="search"
           value={searchQuery}
@@ -368,16 +369,20 @@ export function ChatHistoryPanel({
           placeholder="Поиск по названию или проекту…"
         />
         {tagFilter && (
-          <div className="chat-tag-filter">
-            <span className="chat-tag">{tagFilter}</span>
-            <button type="button" className="btn chat-history-btn" onClick={() => setTagFilter('')}>
+          <div className={styles.tagFilter}>
+            <span className={styles.tag}>{tagFilter}</span>
+            <button
+              type="button"
+              className={`btn ${styles.historyBtn}`}
+              onClick={() => setTagFilter('')}
+            >
               ✕
             </button>
           </div>
         )}
       </div>
 
-      <div ref={listRef} className="chat-history-list" role="tree" aria-label="История чатов">
+      <div ref={listRef} className={styles.list} role="tree" aria-label="История чатов">
         {filteredChats.length === 0 && (
           <div className="empty">
             {searchQuery.trim()
@@ -410,7 +415,7 @@ export function ChatHistoryPanel({
 
                   {item.kind === 'folder-chat' && (
                     <div
-                      className={dropTarget === item.folderId ? 'drop-target' : ''}
+                      className={dropTarget === item.folderId ? styles.dropTarget : ''}
                       onDragOver={(e) => handleDragOver(item.folderId, e)}
                       onDragLeave={() => setDropTarget(undefined)}
                       onDrop={(e) => handleDrop(item.folderId, e)}
@@ -421,7 +426,7 @@ export function ChatHistoryPanel({
 
                   {item.kind === 'root-head' && (
                     <div
-                      className={`chat-history-section-title${dropTarget === 'root' ? ' drop-target' : ''}`}
+                      className={`${styles.sectionTitle}${dropTarget === 'root' ? ' ' + styles.dropTarget : ''}`}
                       onDragOver={(e) => handleDragOver('root', e)}
                       onDragLeave={() => setDropTarget(undefined)}
                       onDrop={(e) => handleDrop('root', e)}
@@ -432,7 +437,7 @@ export function ChatHistoryPanel({
 
                   {item.kind === 'root-chat' && (
                     <div
-                      className={dropTarget === 'root' ? 'drop-target' : ''}
+                      className={dropTarget === 'root' ? styles.dropTarget : ''}
                       onDragOver={(e) => handleDragOver('root', e)}
                       onDragLeave={() => setDropTarget(undefined)}
                       onDrop={(e) => handleDrop('root', e)}

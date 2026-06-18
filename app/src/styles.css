@@ -1552,151 +1552,7 @@ button {
   border-left: 3px solid var(--green-light);
 }
 
-.chat-history {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-}
-
-.chat-history-toolbar {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.chat-history-search {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.chat-history-search input {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  padding: 8px 10px;
-  font-size: 13px;
-}
-
-.chat-history-list {
-  flex: 1;
-  overflow: auto;
-  padding: 8px;
-}
-
-.chat-history-folder-head {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.chat-history-folder-toggle {
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  padding: 0 4px;
-  cursor: pointer;
-}
-
-.chat-history-folder-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chat-history-folder-count {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.chat-history-folder-chats {
-  display: grid;
-  gap: 4px;
-  padding-left: 8px;
-}
-
-.chat-history-section-title {
-  font-size: 12px;
-  color: var(--text-muted);
-  padding: 4px 6px;
-}
-
-.chat-history-item {
-  display: grid;
-  gap: 6px;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-base);
-  cursor: grab;
-}
-
-.chat-history-item.dragging {
-  opacity: 0.45;
-}
-
-.chat-history-folder-head.drop-target,
-.chat-history-folder-chats.drop-target,
-.chat-history-section.drop-target {
-  outline: 2px solid var(--blue-bright);
-  outline-offset: 2px;
-  border-radius: 8px;
-  background: rgba(56, 139, 253, 0.18);
-  box-shadow: inset 0 0 0 9999px rgba(56, 139, 253, 0.06);
-}
-
-.chat-history-item:hover {
-  border-color: var(--border-hover);
-}
-
-.chat-history-item.active {
-  border-color: var(--green-dark);
-  background: var(--bg-surface);
-}
-
-.chat-history-title {
-  font-size: 13px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chat-history-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.chat-history-actions {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.chat-history-actions select {
-  flex: 1;
-  min-width: 0;
-  font-size: 11px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-}
-
-.chat-history-btn {
-  padding: 2px 8px;
-  min-width: auto;
-  font-size: 12px;
-}
+/* История чатов вынесена в ChatHistoryPanel.module.css */
 
 .context-bar {
   display: flex;
@@ -2245,7 +2101,6 @@ button.topbar-pill.topbar-download-error {
 .terminal-input input,
 .chat-input textarea,
 .message,
-.chat-history-item,
 .model-card,
 .topbar-pill {
   transition:
@@ -2338,15 +2193,6 @@ button.topbar-pill.topbar-download-error {
 
 .message.assistant.draft {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--green-dark) 20%, transparent);
-}
-
-/* Элементы истории чатов — аккуратный hover/active */
-.chat-history-item:hover {
-  background: #1c2230;
-}
-
-.chat-history-item.active {
-  box-shadow: inset 2px 0 0 var(--green-medium);
 }
 
 /* Модалки — глубина и плавное появление */
@@ -2472,11 +2318,6 @@ button.topbar-pill.topbar-download-error {
 }
 
 /* Task 7: missing layout class for chat item main area */
-.chat-history-item-main {
-  flex: 1;
-  min-width: 0;
-}
-
 /* Task 8: animated live thinking indicator */
 @keyframes thinking-pulse {
   0%,
@@ -2512,16 +2353,6 @@ button.topbar-pill.topbar-download-error {
   opacity: 1;
 }
 
-/* Task 12: pinned chat indicator */
-.chat-history-item.pinned {
-  border-left: 3px solid var(--green-dark);
-}
-
-.chat-pin-icon {
-  font-size: 10px;
-  vertical-align: middle;
-}
-
 /* Task 13: pinned messages section */
 .pinned-messages-section {
   border: 1px solid var(--border);
@@ -2548,36 +2379,6 @@ button.topbar-pill.topbar-download-error {
 .message:hover .message-pin-btn,
 .message-pin-btn.active {
   opacity: 1;
-}
-
-/* Task 14: chat tags */
-.chat-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 3px;
-}
-
-.chat-tag {
-  display: inline-block;
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 10px;
-  background: var(--bg-element);
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.chat-tag:hover {
-  background: var(--border-hover);
-}
-
-.chat-tag-filter {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
 }
 
 /* Task 19: light mode theme */
