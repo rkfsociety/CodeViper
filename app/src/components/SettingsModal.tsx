@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { AgentSettings, OllamaModel, PermissionMode } from '../types'
+import type { AgentSettings, GitSyncStrategy, OllamaModel, PermissionMode } from '../types'
+import { GIT_SYNC_STRATEGIES, GIT_SYNC_STRATEGY_LABELS } from '../types'
 import {
   DEFAULT_MAX_STEPS,
   MAX_STEPS_MIN,
@@ -409,11 +410,40 @@ export function SettingsModal({
                   <span className={styles.content}>
                     <span className={styles.title}>Git-синхронизация при запуске</span>
                     <span className={styles.desc}>
-                      При запуске CodeViper автоматически синхронизируется с GitHub (git stash + git
-                      reset --hard)
+                      При запуске CodeViper автоматически подтягивает обновления с GitHub
                     </span>
                   </span>
                 </label>
+
+                {settings.gitSyncOnStartup !== false && (
+                  <>
+                    <label>
+                      Стратегия синхронизации
+                      <select
+                        value={settings.gitSyncStrategy ?? 'stash'}
+                        onChange={(e) =>
+                          onSettingsChange({ gitSyncStrategy: e.target.value as GitSyncStrategy })
+                        }
+                      >
+                        {GIT_SYNC_STRATEGIES.map((strategy) => (
+                          <option key={strategy} value={strategy}>
+                            {GIT_SYNC_STRATEGY_LABELS[strategy]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className={`settings-hint ${styles.hintInline}`}>
+                      <strong>Stash + reset</strong> — локальные правки прячутся в{' '}
+                      <code>git stash</code>, затем <code>reset --hard</code> на версию GitHub
+                      (приоритет у GitHub). <strong>Rebase</strong> — локальные коммиты переносятся
+                      поверх версии GitHub. <strong>Fast-forward only</strong> — обновление только
+                      если нет расхождений; иначе остаётся локальная версия (ничего не теряется).
+                      <br />
+                      При незакоммиченных изменениях лаунчер покажет предупреждение и спросит
+                      подтверждение перед синхронизацией.
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* ── Производительность ── */}

@@ -2,7 +2,8 @@ import { app, safeStorage } from 'electron'
 import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
-import type { AgentSettings } from '../../src/types'
+import type { AgentSettings, GitSyncStrategy } from '../../src/types'
+import { GIT_SYNC_STRATEGIES } from '../../src/types'
 import { normalizePermissionMode, type PermissionMode } from '../../shared/permissions'
 import {
   DEFAULT_MAX_STEPS,
@@ -30,6 +31,8 @@ export interface PersistedSettings {
   summarizeModel: string
   modelProvider: 'ollama' | 'deepseek' | 'openai'
   providerApiKey: string
+  gitSyncOnStartup: boolean
+  gitSyncStrategy: GitSyncStrategy
 }
 
 function storePath(): string {
@@ -50,7 +53,9 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   autoPushSelfEdits: true,
   summarizeModel: '',
   modelProvider: DEFAULT_MODEL_PROVIDER,
-  providerApiKey: ''
+  providerApiKey: '',
+  gitSyncOnStartup: true,
+  gitSyncStrategy: 'stash'
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -85,7 +90,11 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
       | 'ollama'
       | 'deepseek'
       | 'openai',
-    providerApiKey: settings.providerApiKey?.trim() ?? ''
+    providerApiKey: settings.providerApiKey?.trim() ?? '',
+    gitSyncOnStartup: settings.gitSyncOnStartup !== false,
+    gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
+      ? (settings.gitSyncStrategy as GitSyncStrategy)
+      : DEFAULT_SETTINGS.gitSyncStrategy
   }
 }
 
@@ -138,6 +147,29 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     providerApiKey: encryptApiKey(normalized.providerApiKey)
   }
   await writeJsonAtomic(storePath(), toSave)
+  // Продублировать настройки git-sync в config.json для лаунчера (start-dev.ps1).
+  await writeLauncherConfig(normalized)
   // Вернуть с расшифрованным ключом
   return normalized
+}
+
+// Лаунчер (start-dev.ps1) запускается ДО Electron и читает настройки git-sync
+// из %LOCALAPPDATA%\CodeViper\config.json. Дублируем туда нужные поля при сохранении.
+function launcherConfigPath(): string | null {
+  const localAppData = process.env.LOCALAPPDATA
+  if (!localAppData) return null
+  return join(localAppData, 'CodeViper', 'config.json')
+}
+
+async function writeLauncherConfig(settings: PersistedSettings): Promise<void> {
+  const path = launcherConfigPath()
+  if (!path) return
+  try {
+    await writeJsonAtomic(path, {
+      gitSyncOnStartup: settings.gitSyncOnStartup,
+      gitSyncStrategy: settings.gitSyncStrategy
+    })
+  } catch {
+    // Лаунчер-конфиг не критичен — при ошибке записи просто используется дефолт.
+  }
 }

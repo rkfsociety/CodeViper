@@ -36,7 +36,8 @@ const DEFAULT_SETTINGS: AgentSettings = {
   deepReasoning: false,
   autoPushSelfEdits: true,
   summarizeModel: '',
-  gitSyncOnStartup: true
+  gitSyncOnStartup: true,
+  gitSyncStrategy: 'stash'
 }
 
 export default function App() {

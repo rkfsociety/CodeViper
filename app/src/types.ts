@@ -119,8 +119,20 @@ export interface AgentSettings {
   soundNotifications?: boolean
   /** Синхронизировать с Git при запуске (stash/reset); по умолчанию true */
   gitSyncOnStartup?: boolean
+  /** Стратегия git-синхронизации при запуске; по умолчанию 'stash' */
+  gitSyncStrategy?: GitSyncStrategy
   /** GitHub Personal Access Token для создания Gist (экспорт памяти и навыков) */
   githubToken?: string
+}
+
+export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'
+
+export const GIT_SYNC_STRATEGIES: GitSyncStrategy[] = ['stash', 'rebase', 'ff-only']
+
+export const GIT_SYNC_STRATEGY_LABELS: Record<GitSyncStrategy, string> = {
+  stash: 'Stash + reset (приоритет GitHub)',
+  rebase: 'Rebase (наложить локальные коммиты)',
+  'ff-only': 'Fast-forward only (безопасно)'
 }
 
 export interface AgentConfirmRequest {

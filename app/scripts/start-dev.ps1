@@ -21,6 +21,14 @@ function Show-Error([string]$Message) {
   [System.Windows.Forms.MessageBox]::Show($Message, 'CodeViper', 'OK', 'Error') | Out-Null
 }
 
+# Диалог Да/Нет; возвращает $true если пользователь выбрал «Да».
+function Confirm-Action([string]$Message) {
+  Add-Type -AssemblyName System.Windows.Forms
+  $result = [System.Windows.Forms.MessageBox]::Show(
+    $Message, 'CodeViper', 'YesNo', 'Warning')
+  return ($result -eq [System.Windows.Forms.DialogResult]::Yes)
+}
+
 function Invoke-Npm([string[]]$NpmArgs) {
   $argLine = ($NpmArgs -join ' ')
   $proc = Start-Process -FilePath 'cmd.exe' `
@@ -38,8 +46,9 @@ function Test-ElectronWindow {
 }
 
 function Sync-FromGitHub {
-  # Синхронизация с GitHub при запуске: версия на GitHub имеет приоритет.
-  # Проверяем флаг gitSyncOnStartup из config.json
+  # Синхронизация с GitHub при запуске. Стратегия и вкл/выкл — из config.json,
+  # который дублируется приложением при сохранении настроек.
+  $strategy = 'stash'
   $configPath = Join-Path $env:LOCALAPPDATA 'CodeViper\config.json'
   if (Test-Path $configPath) {
     try {
@@ -48,10 +57,12 @@ function Sync-FromGitHub {
         Write-Log 'git-синхронизация отключена в настройках'
         return
       }
+      if ($config.gitSyncStrategy) { $strategy = [string]$config.gitSyncStrategy }
     } catch {
       Write-Log "не удалось прочитать config.json: $($_.Exception.Message)"
     }
   }
+  Write-Log "стратегия git-sync: $strategy"
 
   $repo = Split-Path $root -Parent
   if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -89,15 +100,65 @@ function Sync-FromGitHub {
       return
     }
 
-    # Сохраняем локальные правки в stash (на случай восстановления), затем приоритет GitHub.
+    # Предупреждение при незакоммиченных изменениях: даём пользователю отменить
+    # синхронизацию и запуститься на локальной версии.
     $dirty = (git status --porcelain 2>$null)
     if ($dirty) {
-      git stash push -u -m "codeviper-autostash $(Get-Date -Format s)" 2>$null | Out-Null
-      Write-Log 'локальные изменения сохранены в git stash (приоритет у GitHub)'
+      $count = ($dirty -split "`n" | Where-Object { $_.Trim() }).Count
+      $msg = "Обнаружены незакоммиченные изменения ($count файл(ов)).`n`n" +
+        "Стратегия синхронизации: $strategy.`n" +
+        "Синхронизация с GitHub может затронуть эти изменения.`n`n" +
+        "Продолжить синхронизацию?`n(Нет — запустить на локальной версии без синхронизации)"
+      if (-not (Confirm-Action $msg)) {
+        Write-Log 'синхронизация отменена пользователем (есть незакоммиченные изменения)'
+        return
+      }
     }
 
-    git reset --hard "origin/$branch" 2>$null | Out-Null
-    Write-Log "синхронизировано с GitHub: $branch -> $remote"
+    switch ($strategy) {
+      'ff-only' {
+        # Только fast-forward: если ветки разошлись — обновление не происходит,
+        # локальная версия и правки сохраняются.
+        git merge --ff-only "origin/$branch" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+          Write-Log "fast-forward до origin/$branch выполнен"
+        } else {
+          Write-Log 'fast-forward невозможен (расхождение веток) — оставлена локальная версия'
+        }
+      }
+      'rebase' {
+        # Переносим локальные коммиты поверх версии GitHub. Грязное дерево прячем в stash.
+        $stashed = $false
+        if ($dirty) {
+          git stash push -u -m "codeviper-autostash $(Get-Date -Format s)" 2>$null | Out-Null
+          $stashed = $true
+          Write-Log 'локальные изменения сохранены в git stash перед rebase'
+        }
+        git rebase "origin/$branch" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+          Write-Log "rebase поверх origin/$branch выполнен"
+          if ($stashed) {
+            git stash pop 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              Write-Log 'конфликт при git stash pop — изменения остались в stash'
+            }
+          }
+        } else {
+          git rebase --abort 2>$null | Out-Null
+          Write-Log 'rebase не удался (конфликты) — откат, оставлена локальная версия'
+          if ($stashed) { git stash pop 2>$null | Out-Null }
+        }
+      }
+      default {
+        # stash + reset --hard: приоритет у GitHub, локальные правки — в stash.
+        if ($dirty) {
+          git stash push -u -m "codeviper-autostash $(Get-Date -Format s)" 2>$null | Out-Null
+          Write-Log 'локальные изменения сохранены в git stash (приоритет у GitHub)'
+        }
+        git reset --hard "origin/$branch" 2>$null | Out-Null
+        Write-Log "синхронизировано с GitHub (reset --hard): $branch -> $remote"
+      }
+    }
   } catch {
     Write-Log "синхронизация пропущена: $($_.Exception.Message)"
   } finally {
