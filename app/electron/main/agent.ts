@@ -10,6 +10,7 @@ import {
   MUTATING_TOOLS,
   shouldRetryForMissingTools,
   taskLikelyNeedsMutation,
+  taskLikelyNeedsTools,
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
@@ -427,11 +428,11 @@ export class AgentRunner {
             continue
           }
 
-          if (
-            mutationTask &&
-            noMutatingToolsYet &&
-            verificationRetries >= MAX_VERIFICATION_RETRIES
-          ) {
+          // Задача требовала инструментов, но после всех повторов модель так и не
+          // вызвала ни одного (касается и мутаций, и read-обзоров) — сообщаем явно.
+          const toolTaskUnfulfilled =
+            taskLikelyNeedsTools(userMessage) && (mutationTask ? noMutatingToolsYet : !usedTools)
+          if (toolTaskUnfulfilled && verificationRetries >= MAX_VERIFICATION_RETRIES) {
             if (assistantText) {
               messages.pop()
             }
@@ -443,6 +444,13 @@ export class AgentRunner {
 
           if (assistantText) {
             this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
+          } else if (!autonomousSelfImprove) {
+            // Модель вернула пустой ответ и не вызвала инструменты — не молчим.
+            this.emit({
+              type: 'error',
+              content:
+                'Модель вернула пустой ответ и не вызвала инструменты. Выбери модель с поддержкой function calling (например deepseek-chat или qwen2.5-coder) или переформулируй задачу.'
+            })
           }
           if (this.settings.selfLearning !== false) {
             await this.reflectAndLearn(messages, userMessage, mutatingToolsUsed.size > 0)
