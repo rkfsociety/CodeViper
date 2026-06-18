@@ -1,0 +1,116 @@
+/* Общие стили подсистемы «Память и навыки» — используются MemoryPanel и SkillsPanel */
+
+.panel {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.sectionTitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shareBtn {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.shareBtn:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.shareResult {
+  font-size: 12px;
+  color: var(--text-muted);
+  word-break: break-all;
+  padding: 4px 0;
+}
+
+.list {
+  max-height: 220px;
+  overflow: auto;
+}
+
+.item {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-base);
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg-element);
+  color: var(--green-light);
+}
+
+.scope {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.builtinBadge {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--blue-bright);
+  letter-spacing: 0.03em;
+  text-transform: lowercase;
+}
+
+.delete {
+  margin-left: auto;
+  padding: 2px 8px;
+  min-width: auto;
+}
+
+.content {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tags {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.skillsPanel {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.skillsHint {
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+.skillBadge {
+  background: #1f3d5c;
+  color: var(--blue-light);
+}

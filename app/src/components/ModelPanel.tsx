@@ -6,6 +6,7 @@ import {
   isRecommendedModelInstalled
 } from '../types'
 import { ConfirmDialog } from './ConfirmDialog'
+import styles from './ModelPanel.module.css'
 
 interface DownloadQueueProps {
   pulling: string | null
@@ -112,7 +113,7 @@ export function ModelPanel({
   }
 
   return (
-    <div className="model-panel">
+    <div className={styles.panel}>
       <label>
         {autoModel ? 'Модель по умолчанию (fallback)' : 'Активная модель'}
         <select
@@ -130,30 +131,30 @@ export function ModelPanel({
       </label>
 
       {autoModel && toolModels.length > 1 && (
-        <div className="model-auto-hint">
+        <div className={styles.autoHint}>
           Перед каждым запросом агент сам выберет модель с tool calling по сложности задачи и
           выгрузит лишние из памяти Ollama.
         </div>
       )}
 
       {(pulling || queued.length > 0) && (
-        <div className="model-pull-status">
-          <div className="model-pull-title">
+        <div className={styles.pullStatus}>
+          <div className={styles.pullTitle}>
             {pulling ? `Скачивание ${pulling}…` : 'Очередь скачивания'}
           </div>
-          {pulling && <div className="model-pull-text">{progress?.status ?? 'Подключение…'}</div>}
+          {pulling && <div className={styles.pullText}>{progress?.status ?? 'Подключение…'}</div>}
           {percent != null && pulling && (
             <>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${percent}%` }} />
+              <div className={styles.progressBar}>
+                <div className={styles.progressFill} style={{ width: `${percent}%` }} />
               </div>
-              <div className="model-pull-text">{percent}%</div>
+              <div className={styles.pullText}>{percent}%</div>
             </>
           )}
           {queued.length > 0 && (
-            <div className="model-queue-list">
+            <div className={styles.queueList}>
               {queued.map((name, index) => (
-                <div key={name} className="model-queue-item">
+                <div key={name} className={styles.queueItem}>
                   <span>
                     {index + 1}. {name}
                     {pulling === name ? ' — сейчас' : ''}
@@ -161,7 +162,7 @@ export function ModelPanel({
                   {pulling !== name && (
                     <button
                       type="button"
-                      className="btn model-queue-remove"
+                      className={`btn ${styles.queueRemove}`}
                       onClick={() => onRemoveFromQueue(name)}
                     >
                       убрать
@@ -171,7 +172,7 @@ export function ModelPanel({
               ))}
             </div>
           )}
-          <div className="model-auto-hint">
+          <div className={styles.autoHint}>
             Можно закрыть настройки — скачивание продолжится в фоне. Статус — в верхней панели.
           </div>
         </div>
@@ -179,16 +180,16 @@ export function ModelPanel({
 
       {toolModels.length > 0 && (
         <>
-          <div className="model-section-title">Установленные модели (tool calling)</div>
-          <div className="model-installed-list">
+          <div className={styles.sectionTitle}>Установленные модели (tool calling)</div>
+          <div className={styles.installedList}>
             {toolModels.map((model) => (
-              <div key={model.name} className="model-installed-row">
-                <div className="model-installed-info">
+              <div key={model.name} className={styles.installedRow}>
+                <div className={styles.installedInfo}>
                   <strong>{model.name}</strong>
-                  <span className="model-installed-size">{formatBytes(model.size)}</span>
+                  <span className={styles.installedSize}>{formatBytes(model.size)}</span>
                 </div>
                 <button
-                  className="btn model-delete-btn"
+                  className={`btn ${styles.deleteBtn}`}
                   disabled={!ollamaOnline || !!pulling || !!deleting}
                   onClick={() => requestRemoveModel(model.name)}
                 >
@@ -202,21 +203,24 @@ export function ModelPanel({
 
       {unsupportedModels.length > 0 && (
         <>
-          <div className="model-section-title model-section-warn">
+          <div className={`${styles.sectionTitle} ${styles.sectionWarn}`}>
             Без tool calling — агент не использует ({unsupportedModels.length})
           </div>
-          <div className="model-auto-hint">
+          <div className={styles.autoHint}>
             Эти модели установлены в Ollama, но не подходят для агента. Удалите или не используйте.
           </div>
-          <div className="model-installed-list">
+          <div className={styles.installedList}>
             {unsupportedModels.map((model) => (
-              <div key={model.name} className="model-installed-row model-installed-unsupported">
-                <div className="model-installed-info">
+              <div
+                key={model.name}
+                className={`${styles.installedRow} ${styles.installedUnsupported}`}
+              >
+                <div className={styles.installedInfo}>
                   <strong>{model.name}</strong>
-                  <span className="model-installed-size">{formatBytes(model.size)}</span>
+                  <span className={styles.installedSize}>{formatBytes(model.size)}</span>
                 </div>
                 <button
-                  className="btn model-delete-btn"
+                  className={`btn ${styles.deleteBtn}`}
                   disabled={!ollamaOnline || !!pulling || !!deleting}
                   onClick={() => requestRemoveModel(model.name)}
                 >
@@ -228,41 +232,39 @@ export function ModelPanel({
         </>
       )}
 
-      {error && <div className="model-error">{error}</div>}
-      {actionError && <div className="model-error">{actionError}</div>}
+      {error && <div className={styles.error}>{error}</div>}
+      {actionError && <div className={styles.error}>{actionError}</div>}
 
-      <div className="model-section-title">
+      <div className={styles.sectionTitle}>
         Каталог моделей с tool calling — выберите по объёму RAM
       </div>
-      <div className="model-auto-hint">
+      <div className={styles.autoHint}>
         Нажмите «В очередь» на нескольких моделях — скачаются по порядку. Окно настроек можно
         закрыть.
       </div>
 
-      {catalogEmpty && (
-        <div className="empty model-catalog-empty">Все модели каталога уже установлены.</div>
-      )}
+      {catalogEmpty && <div className="empty">Все модели каталога уже установлены.</div>}
 
       {downloadableTierGroups.map(({ tier, models: tierModels }) => (
-        <div key={tier.id} className="model-tier-group">
-          <div className="model-tier-title">{tier.label}</div>
-          <div className="model-cards">
+        <div key={tier.id} className={styles.tierGroup}>
+          <div className={styles.tierTitle}>{tier.label}</div>
+          <div className={styles.cards}>
             {tierModels.map((model) => {
               const inQueue = queuedSet.has(model.name)
               const isPulling = pulling === model.name
               return (
                 <div
                   key={model.name}
-                  className={`model-card${model.featured ? ' model-card-featured' : ''}`}
+                  className={`${styles.card}${model.featured ? ' ' + styles.cardFeatured : ''}`}
                 >
-                  <div className="model-card-head">
+                  <div className={styles.cardHead}>
                     <strong>
                       {model.featured ? '★ ' : ''}
                       {model.name}
                     </strong>
-                    <span className="model-ram">{model.ramHint}</span>
+                    <span className={styles.ram}>{model.ramHint}</span>
                   </div>
-                  <div className="model-card-desc">{model.description}</div>
+                  <div className={styles.cardDesc}>{model.description}</div>
                   <button
                     className="btn"
                     disabled={!ollamaOnline || isPulling || inQueue}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { MemoryEntry } from '../types'
+import styles from './MemorySkills.module.css'
 
 interface Props {
   projectPath: string
@@ -76,8 +77,8 @@ export function MemoryPanel({
   }
 
   return (
-    <div className="memory-panel">
-      <label className="memory-toggle">
+    <div className={styles.panel}>
+      <label className={styles.toggle}>
         <input
           type="checkbox"
           checked={selfLearning}
@@ -86,11 +87,11 @@ export function MemoryPanel({
         Самообучение после задач
       </label>
 
-      <div className="memory-section-title">
+      <div className={styles.sectionTitle}>
         Память агента {loading ? '…' : `(${entries.length})`}
         <button
           type="button"
-          className="btn share-btn"
+          className={`btn ${styles.shareBtn}`}
           onClick={share}
           disabled={sharing || !entries.length}
           title={
@@ -100,7 +101,7 @@ export function MemoryPanel({
           {sharing ? '…' : '⬆ Поделиться'}
         </button>
       </div>
-      {shareResult && <div className="share-result">{shareResult}</div>}
+      {shareResult && <div className={styles.shareResult}>{shareResult}</div>}
 
       {!entries.length && (
         <div className="empty">
@@ -108,7 +109,7 @@ export function MemoryPanel({
         </div>
       )}
 
-      <div ref={listRef} className="memory-list">
+      <div ref={listRef} className={styles.list}>
         <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const entry = entries[virtualRow.index]
@@ -126,17 +127,17 @@ export function MemoryPanel({
                   paddingBottom: 8
                 }}
               >
-                <div className="memory-item">
-                  <div className="memory-item-head">
-                    <span className="memory-badge">{CATEGORY_LABELS[entry.category]}</span>
-                    <span className="memory-scope">{entry.scope}</span>
-                    <button className="btn memory-delete" onClick={() => remove(entry.id)}>
+                <div className={styles.item}>
+                  <div className={styles.itemHead}>
+                    <span className={styles.badge}>{CATEGORY_LABELS[entry.category]}</span>
+                    <span className={styles.scope}>{entry.scope}</span>
+                    <button className={`btn ${styles.delete}`} onClick={() => remove(entry.id)}>
                       ✕
                     </button>
                   </div>
-                  <div className="memory-content">{entry.content}</div>
+                  <div className={styles.content}>{entry.content}</div>
                   {entry.tags.length > 0 && (
-                    <div className="memory-tags">{entry.tags.join(' · ')}</div>
+                    <div className={styles.tags}>{entry.tags.join(' · ')}</div>
                   )}
                 </div>
               </div>

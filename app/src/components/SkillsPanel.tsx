@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { AgentSkill } from '../types'
 import { isBuiltinSkill } from '../types'
+import styles from './MemorySkills.module.css'
 
 interface Props {
   projectPath: string
@@ -68,32 +69,32 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
   function renderSkillContent(skill: AgentSkill) {
     const builtin = isBuiltinSkill(skill.id)
     return (
-      <div className="memory-item skill-item">
-        <div className="memory-item-head">
-          <span className="memory-badge skill-badge">{skill.name}</span>
+      <div className={styles.item}>
+        <div className={styles.itemHead}>
+          <span className={`${styles.badge} ${styles.skillBadge}`}>{skill.name}</span>
           {builtin ? (
-            <span className="memory-scope skill-builtin-badge">системный</span>
+            <span className={`${styles.scope} ${styles.builtinBadge}`}>системный</span>
           ) : (
-            <button className="btn memory-delete" onClick={() => remove(skill.id)}>
+            <button className={`btn ${styles.delete}`} onClick={() => remove(skill.id)}>
               ✕
             </button>
           )}
         </div>
-        <div className="memory-content">{skill.description || skill.id}</div>
+        <div className={styles.content}>{skill.description || skill.id}</div>
         {skill.triggers.length > 0 && (
-          <div className="memory-tags">{skill.triggers.join(' · ')}</div>
+          <div className={styles.tags}>{skill.triggers.join(' · ')}</div>
         )}
       </div>
     )
   }
 
   return (
-    <div className="skills-panel">
-      <div className="memory-section-title">
+    <div className={styles.skillsPanel}>
+      <div className={styles.sectionTitle}>
         Навыки агента {loading ? '…' : `(${globalSkills.length})`}
         <button
           type="button"
-          className="btn share-btn"
+          className={`btn ${styles.shareBtn}`}
           onClick={share}
           disabled={sharing || !globalSkills.length}
           title={
@@ -103,9 +104,9 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
           {sharing ? '…' : '⬆ Поделиться'}
         </button>
       </div>
-      {shareResult && <div className="share-result">{shareResult}</div>}
+      {shareResult && <div className={styles.shareResult}>{shareResult}</div>}
 
-      <div className="empty skills-hint">
+      <div className={`empty ${styles.skillsHint}`}>
         Глобальные навыки хранятся в %APPDATA%/CodeViper/ViperSkills.md — это поведение агента, не
         файлы проекта. При совпадении триггеров с запросом инструкции подставляются автоматически.
         Скажи: «сделай skill для todo» или «улучши себя».
@@ -115,7 +116,7 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
         <div className="empty">Пока нет навыков — попроси агента создать.</div>
       )}
 
-      <div ref={listRef} className="memory-list">
+      <div ref={listRef} className={styles.list}>
         <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const skill = globalSkills[virtualRow.index]
@@ -142,13 +143,13 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
 
       {legacyProjectSkills.length > 0 && (
         <>
-          <div className="memory-section-title memory-section-sub">
+          <div className={styles.sectionTitle}>
             Устаревшие project-навыки ({legacyProjectSkills.length})
           </div>
-          <div className="empty skills-hint">
+          <div className={`empty ${styles.skillsHint}`}>
             Раньше навыки могли сохраняться в .codeviper проекта. Новые создаются только глобально.
           </div>
-          <div className="memory-list">
+          <div className={styles.list}>
             {legacyProjectSkills.map((skill) => (
               <div key={skill.id} style={{ paddingBottom: 8 }}>
                 {renderSkillContent(skill)}

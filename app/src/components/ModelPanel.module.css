@@ -1,0 +1,181 @@
+.panel {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.tierGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.tierTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-bright);
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+}
+
+.cards {
+  display: grid;
+  gap: 8px;
+}
+
+.cardFeatured {
+  border-color: color-mix(in srgb, var(--blue) 40%, transparent);
+  background: linear-gradient(180deg, var(--bg-base) 0%, var(--bg-surface) 100%);
+}
+
+.card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-base);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.ram {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cardDesc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.installedList {
+  display: grid;
+  gap: 6px;
+}
+
+.installedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-base);
+}
+
+.installedUnsupported {
+  border-color: #6e400033;
+  background: #1c1210;
+}
+
+.installedInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.installedInfo strong {
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.installedSize {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.deleteBtn {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.sectionWarn {
+  color: var(--yellow);
+}
+
+.queueList {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.queueRemove {
+  padding: 2px 8px;
+  min-width: auto;
+  font-size: 11px;
+}
+
+.autoHint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+
+.pullStatus {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.pullTitle {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pullText {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.progressBar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-element);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--green-dark);
+  transition: width 0.2s ease;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--red);
+}
