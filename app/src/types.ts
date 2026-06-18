@@ -84,6 +84,13 @@ export interface OllamaModel {
   name: string
   size: number
   modifiedAt: string
+  // Информация о совместимости с системой (добавляется на сервере)
+  sizeGB?: number
+  contextLength?: number
+  parameterSize?: string
+  isSupported?: boolean
+  reason?: string
+  recommendedFor?: string
 }
 
 export interface OllamaPullProgress {
