@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { ChatFolder, ChatStore, SavedChat } from '../types'
+import type { ChatFolder, ChatStore, ImportResult, SavedChat } from '../types'
 import { PromptDialog } from './PromptDialog'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './ChatHistoryPanel.module.css'
@@ -18,6 +18,7 @@ interface Props {
   onRenameFolder: (id: string, name: string) => void
   onUpdateFolderProject: (id: string) => void
   onMoveChat: (chatId: string, folderId: string | null) => void
+  onStoreChange?: () => void
 }
 
 type DropTarget = string | null | 'root'
@@ -48,6 +49,57 @@ function formatDate(iso: string): string {
   return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
 }
 
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+function chatsToMarkdown(chats: SavedChat[]): string {
+  const ROLE_LABEL: Record<string, string> = {
+    user: 'Вы',
+    assistant: 'CodeViper',
+    tool: 'Инструмент',
+    system: 'Система'
+  }
+  const parts: string[] = [`# История чатов CodeViper\n`]
+  for (const chat of chats) {
+    parts.push(`## ${chat.title}`)
+    parts.push(`*Проект: ${chat.projectPath || 'не указан'} · ${chat.updatedAt.slice(0, 10)}*\n`)
+    for (const msg of chat.messages) {
+      const label = ROLE_LABEL[msg.role] ?? msg.role
+      parts.push(`**${label}:**\n\n${msg.content}\n`)
+    }
+    parts.push('---\n')
+  }
+  return parts.join('\n')
+}
+
+function validateImportPayload(raw: unknown): SavedChat[] {
+  if (!raw || typeof raw !== 'object') throw new Error('Неверный формат файла')
+  const obj = raw as Record<string, unknown>
+
+  let list: unknown[] = []
+  if (Array.isArray(obj)) {
+    list = obj
+  } else if (Array.isArray(obj['chats'])) {
+    list = obj['chats'] as unknown[]
+  } else {
+    throw new Error('Файл должен содержать массив чатов или объект с полем "chats"')
+  }
+
+  return list.filter((item): item is SavedChat => {
+    if (!item || typeof item !== 'object') return false
+    const c = item as Record<string, unknown>
+    return (
+      typeof c['id'] === 'string' && typeof c['title'] === 'string' && Array.isArray(c['messages'])
+    )
+  })
+}
+
 function chatMatchesQuery(chat: SavedChat, query: string): boolean {
   const haystack = [chat.title, chat.projectPath, formatProject(chat.projectPath)]
     .join(' ')
@@ -67,7 +119,8 @@ export function ChatHistoryPanel({
   onRenameChat,
   onRenameFolder,
   onUpdateFolderProject,
-  onMoveChat
+  onMoveChat,
+  onStoreChange
 }: Props) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
@@ -76,7 +129,60 @@ export function ChatHistoryPanel({
   const [dropTarget, setDropTarget] = useState<DropTarget | undefined>(undefined)
   const [prompt, setPrompt] = useState<PromptState | null>(null)
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
+  const [ioMenuOpen, setIoMenuOpen] = useState(false)
+  const [ioStatus, setIoStatus] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  const handleExportJson = useCallback(async () => {
+    setIoMenuOpen(false)
+    try {
+      const chatStore = await window.codeviper.exportChats()
+      const json = JSON.stringify(chatStore, null, 2)
+      downloadBlob(new Blob([json], { type: 'application/json' }), 'codeviper-chats.json')
+    } catch (e) {
+      setIoStatus(`Ошибка экспорта: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+
+  const handleExportMarkdown = useCallback(async () => {
+    setIoMenuOpen(false)
+    try {
+      const chatStore = await window.codeviper.exportChats()
+      const md = chatsToMarkdown(chatStore.chats)
+      downloadBlob(new Blob([md], { type: 'text/markdown' }), 'codeviper-chats.md')
+    } catch (e) {
+      setIoStatus(`Ошибка экспорта: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+
+  const handleImportClick = useCallback(() => {
+    setIoMenuOpen(false)
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleImportFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      e.target.value = ''
+      try {
+        const text = await file.text()
+        const raw: unknown = JSON.parse(text)
+        const chats = validateImportPayload(raw)
+        if (chats.length === 0) {
+          setIoStatus('Файл не содержит подходящих чатов')
+          return
+        }
+        const result: ImportResult = await window.codeviper.importChats(chats)
+        setIoStatus(`Импорт: добавлено ${result.added}, пропущено ${result.skipped}`)
+        if (result.added > 0) onStoreChange?.()
+      } catch (err) {
+        setIoStatus(`Ошибка импорта: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    },
+    [onStoreChange]
+  )
 
   const filteredChats = useMemo(() => {
     const chats = store?.chats ?? []
@@ -359,7 +465,50 @@ export function ChatHistoryPanel({
         >
           + Папка
         </button>
+        <div className={styles.ioMenuWrap}>
+          <button
+            className="btn"
+            title="Экспорт / Импорт"
+            aria-label="Экспорт и импорт чатов"
+            onClick={() => setIoMenuOpen((v) => !v)}
+          >
+            ⇅
+          </button>
+          {ioMenuOpen && (
+            <div className={styles.ioMenu} role="menu">
+              <button role="menuitem" onClick={() => void handleExportJson()}>
+                Экспорт JSON
+              </button>
+              <button role="menuitem" onClick={() => void handleExportMarkdown()}>
+                Экспорт Markdown
+              </button>
+              <button role="menuitem" onClick={handleImportClick}>
+                Импорт JSON
+              </button>
+            </div>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          style={{ display: 'none' }}
+          onChange={(e) => void handleImportFile(e)}
+        />
       </div>
+
+      {ioStatus && (
+        <div className={styles.ioStatus}>
+          {ioStatus}
+          <button
+            type="button"
+            className={`btn ${styles.historyBtn}`}
+            onClick={() => setIoStatus(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className={styles.search}>
         <input

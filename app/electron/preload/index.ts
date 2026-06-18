@@ -188,6 +188,12 @@ const codeviper = {
       'moveChatToFolder'
     ),
 
+  exportChats: () =>
+    withTimeout(ipcRenderer.invoke('export-chats'), IPC_TIMEOUT_MS * 3, 'exportChats'),
+
+  importChats: (chats: unknown[]) =>
+    withTimeout(ipcRenderer.invoke('import-chats', chats), IPC_TIMEOUT_MS * 3, 'importChats'),
+
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => {
     const handler = (_: unknown, request: AgentConfirmRequest) => callback(request)
     ipcRenderer.on('agent-confirm', handler)

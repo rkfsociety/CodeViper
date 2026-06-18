@@ -28,7 +28,9 @@ import {
   createFolder,
   deleteChat,
   deleteFolder,
+  exportChats,
   getChatStore,
+  importChats,
   moveChatToFolder,
   renameFolder,
   updateFolder,
@@ -282,6 +284,10 @@ ipcMain.handle('set-active-chat', async (_e, id: string | null) => setActiveChat
 ipcMain.handle('move-chat-to-folder', async (_e, chatId: string, folderId: string | null) =>
   moveChatToFolder(chatId, folderId)
 )
+
+ipcMain.handle('export-chats', async () => exportChats())
+
+ipcMain.handle('import-chats', async (_e, chats: SavedChat[]) => importChats(chats))
 
 ipcMain.handle('get-agent-run-state', async () => agentRunState)
 

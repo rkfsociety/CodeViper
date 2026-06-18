@@ -345,3 +345,46 @@ export async function moveChatToFolder(chatId: string, folderId: string | null):
   chat.updatedAt = new Date().toISOString()
   await saveIndex(index)
 }
+
+export interface ImportResult {
+  added: number
+  skipped: number
+}
+
+export async function exportChats(): Promise<ChatStore> {
+  return getChatStore()
+}
+
+export async function importChats(incoming: SavedChat[]): Promise<ImportResult> {
+  const index = await loadIndex()
+  const existingIds = new Set(index.chats.map((c) => c.id))
+
+  let added = 0
+  let skipped = 0
+
+  await mkdir(join(chatsRoot(), 'data'), { recursive: true })
+
+  for (const chat of incoming) {
+    if (!chat.id || typeof chat.id !== 'string') {
+      skipped++
+      continue
+    }
+    if (existingIds.has(chat.id)) {
+      skipped++
+      continue
+    }
+
+    const messages = trimChatMessages(Array.isArray(chat.messages) ? chat.messages : [])
+    await saveChatData(chat.id, messages, null)
+    index.chats.push(indexEntryFromChat({ ...chat, messages }))
+    existingIds.add(chat.id)
+    added++
+  }
+
+  if (added > 0) {
+    enforceChatLimit(index)
+    await saveIndex(index)
+  }
+
+  return { added, skipped }
+}

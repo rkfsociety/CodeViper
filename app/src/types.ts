@@ -68,6 +68,11 @@ export interface ChatStore {
   activeChatId: string | null
 }
 
+export interface ImportResult {
+  added: number
+  skipped: number
+}
+
 export interface FileNode {
   name: string
   path: string
@@ -383,6 +388,8 @@ export interface CodeViperAPI {
   deleteChatFolder: (id: string) => Promise<void>
   setActiveChat: (id: string | null) => Promise<void>
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
+  exportChats: () => Promise<ChatStore>
+  importChats: (chats: SavedChat[]) => Promise<ImportResult>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
   shareAsGist: (

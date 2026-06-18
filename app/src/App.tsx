@@ -562,6 +562,7 @@ export default function App() {
             onUpdateFolderProject={updateFolderProject}
             onDeleteFolder={deleteFolder}
             onMoveChat={moveChat}
+            onStoreChange={() => void refreshChatStore()}
           />
         </section>
 
