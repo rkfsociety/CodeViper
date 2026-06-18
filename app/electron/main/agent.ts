@@ -639,10 +639,29 @@ export class AgentRunner {
           )
 
           // Добавляем результаты в сообщения в правильном порядке
+          const isCloudProviderElse = this.providerConfig.type !== 'ollama'
           for (const { call, output, name } of toolResults) {
+            // Для облачных API обрезаем длинные результаты (grep/find часто возвращают много)
+            let trimmedOutput = output
+            const MAX_CLOUD_RESULT_CHARS = 2000
+            if (isCloudProviderElse && output.length > MAX_CLOUD_RESULT_CHARS) {
+              const lines = output.split('\n')
+              const truncatedLines = lines.slice(0, 50) // макс 50 строк
+              const chars = truncatedLines.join('\n')
+              if (chars.length > MAX_CLOUD_RESULT_CHARS) {
+                trimmedOutput =
+                  chars.slice(0, MAX_CLOUD_RESULT_CHARS) +
+                  `\n... (выходные данные обрезаны, всего ${lines.length} строк)`
+              } else {
+                trimmedOutput =
+                  chars +
+                  (lines.length > 50 ? `\n... (показано первых 50 из ${lines.length} строк)` : '')
+              }
+            }
+
             const msg: OllamaMessage = {
               role: 'tool',
-              content: `Инструмент ${name}:\n${output}`
+              content: `Инструмент ${name}:\n${trimmedOutput}`
             }
             if (call.id) msg.tool_call_id = call.id
             messages.push(msg)
@@ -799,10 +818,28 @@ export class AgentRunner {
           for (const tc of msg.tool_calls) assistantCallIds.add(tc.id)
         }
       }
-      filteredMessages = pass1.filter(
+      let pass2 = pass1.filter(
         (msg) =>
           !(msg.role === 'tool' && msg.tool_call_id && !assistantCallIds.has(msg.tool_call_id))
       )
+
+      // Для облачных API обрезаем историю до последних ~20 сообщений экономии токенов
+      // История >20 сообщений редко содержит полезный контекст, но стоит много токенов
+      const MAX_CLOUD_MESSAGES = 20
+      if (pass2.length > MAX_CLOUD_MESSAGES) {
+        // Сохраняем всегда первое user-сообщение (исходный запрос) + последние сообщения
+        const firstUserMsg = pass2.findIndex((m) => m.role === 'user')
+        if (firstUserMsg >= 0) {
+          pass2 = [
+            pass2[firstUserMsg],
+            ...pass2.slice(Math.max(firstUserMsg + 1, pass2.length - MAX_CLOUD_MESSAGES + 1))
+          ]
+        } else {
+          pass2 = pass2.slice(-MAX_CLOUD_MESSAGES)
+        }
+      }
+
+      filteredMessages = pass2
     } else {
       filteredMessages = messages.filter((msg) => msg.role !== 'tool')
     }

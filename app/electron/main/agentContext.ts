@@ -236,7 +236,10 @@ export async function buildAgentContextPreview(
   }
 
   // Для think-моделей рассуждение включается нативно (think:true), промпт не нужен.
-  const cotReasoning = !!options.deepReasoning && !isThinkingModel(model)
+  // Для облачных провайдеров (DeepSeek, OpenAI) глубокое рассуждение уже встроено,
+  // дополнительный промпт только тратит токены (~500 токенов на CoT).
+  const isCloudProvider = options.providerConfig?.type && options.providerConfig.type !== 'ollama'
+  const cotReasoning = !!options.deepReasoning && !isThinkingModel(model) && !isCloudProvider
   const systemContent = buildSystemPrompt(
     projectPath,
     memorySkillsContext,
