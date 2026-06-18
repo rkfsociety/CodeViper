@@ -537,48 +537,10 @@ button {
   margin-bottom: 6px;
 }
 
-.message-role-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  background: var(--bg-element);
-}
-
-.message-role-icon {
-  font-size: 12px;
+.role-icon {
+  font-size: 16px;
   line-height: 1;
-}
-
-.message-role-text {
-  text-transform: none;
-  color: var(--text-secondary);
-}
-
-.message-role-badge.tone-user {
-  border-color: color-mix(in srgb, var(--blue) 33%, transparent);
-  background: var(--bg-msg-user);
-}
-
-.message-role-badge.tone-assistant {
-  border-color: color-mix(in srgb, var(--green-dark) 33%, transparent);
-  background: var(--bg-msg-asst);
-}
-
-.message-role-badge.tone-tool {
-  border-color: color-mix(in srgb, var(--yellow) 33%, transparent);
-  background: var(--bg-msg-tool);
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 10px;
-}
-
-.message-role-badge.tone-system {
-  border-color: color-mix(in srgb, var(--purple) 33%, transparent);
-  background: var(--bg-msg-system);
+  cursor: default;
 }
 
 .message pre,
@@ -1864,6 +1826,38 @@ button.topbar-pill.topbar-download-error {
   .topbar-actions {
     gap: 6px;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Hint-блоки (глобальный класс, не CSS-модуль)
+   ══════════════════════════════════════════════════════════════════════════ */
+.hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--blue-bright) 8%, var(--bg-base));
+  border: 1px solid color-mix(in srgb, var(--blue-bright) 20%, var(--bg-element));
+  border-left: 3px solid var(--blue-bright);
+  border-radius: 8px;
+  padding: 10px 12px 10px 14px;
+}
+
+.hint::before {
+  content: '💡 ';
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.hint strong {
+  color: var(--text-primary);
+}
+
+.hint code {
+  font-size: 11px;
+  background: #2d333b;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--yellow-light);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

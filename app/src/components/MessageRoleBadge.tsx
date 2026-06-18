@@ -1,10 +1,10 @@
 import type { AgentRole } from '../types'
 
-const ROLE_META: Record<AgentRole, { label: string; icon: string; tone: string }> = {
-  user: { label: 'Вы', icon: '👤', tone: 'user' },
-  assistant: { label: 'CodeViper', icon: '🐍', tone: 'assistant' },
-  tool: { label: 'Инструмент', icon: '⚙', tone: 'tool' },
-  system: { label: 'Система', icon: 'ℹ', tone: 'system' }
+const ROLE_ICONS: Record<AgentRole, string> = {
+  user: '🧑‍💻',
+  assistant: '🤖',
+  tool: '⚙️',
+  system: 'ℹ️'
 }
 
 interface Props {
@@ -13,15 +13,12 @@ interface Props {
 }
 
 export function MessageRoleBadge({ role, toolName }: Props) {
-  const meta = ROLE_META[role]
-  const label = role === 'tool' && toolName ? toolName : meta.label
+  const icon = ROLE_ICONS[role]
+  const title = role === 'tool' && toolName ? toolName : role
 
   return (
-    <div className={`message-role-badge tone-${meta.tone}`} title={label}>
-      <span className="message-role-icon" aria-hidden="true">
-        {meta.icon}
-      </span>
-      <span className="message-role-text">{label}</span>
-    </div>
+    <span className="role-icon" title={title} aria-label={title}>
+      {icon}
+    </span>
   )
 }

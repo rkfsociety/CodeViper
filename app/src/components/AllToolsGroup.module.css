@@ -1,0 +1,137 @@
+.container {
+  margin: 4px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-msg-tool);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-tool);
+  font-size: 12px;
+  font-weight: 600;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.header:hover {
+  background: color-mix(in srgb, var(--yellow) 8%, transparent);
+}
+
+.headerIcon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.headerCount {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.headerChevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: transform 0.2s ease;
+}
+
+.headerChevronOpen {
+  composes: headerChevron;
+}
+
+.toolList {
+  border-top: 1px solid color-mix(in srgb, var(--yellow) 20%, transparent);
+  padding: 4px 0;
+}
+
+.toolItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+}
+
+.toolItem:last-child {
+  border-bottom: none;
+}
+
+.toolName {
+  flex-shrink: 0;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--blue-light);
+  min-width: 100px;
+  padding: 1px 0;
+}
+
+.toolArgs {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  word-break: break-all;
+  overflow: hidden;
+  padding: 1px 0;
+}
+
+.toolStatus {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-overlay);
+  color: var(--text-muted);
+  margin-left: auto;
+  line-height: 1.5;
+}
+
+.toolStatusOk {
+  color: var(--green-light);
+}
+
+.toolStatusError {
+  color: var(--red);
+}
+
+.toolStatusRunning {
+  color: var(--yellow);
+}
+
+.resultBlock {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow: auto;
+  width: 100%;
+}
+
+.resultLabel {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

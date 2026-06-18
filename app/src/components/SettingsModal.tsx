@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import styles from './SettingsModal.module.css'
 import type { AgentSettings, GitSyncStrategy, OllamaModel, PermissionMode } from '../types'
 import { GIT_SYNC_STRATEGIES, GIT_SYNC_STRATEGY_LABELS } from '../types'
 import {
@@ -21,7 +22,6 @@ import { SkillsPanel } from './SkillsPanel'
 import { CloudModelSelector } from './CloudModelSelector'
 import { useModalA11y } from '../hooks/useModalA11y'
 import type { useOllamaDownloadQueue } from '../hooks/useOllamaDownloadQueue'
-import styles from './SettingsModal.module.css'
 
 type DownloadQueue = ReturnType<typeof useOllamaDownloadQueue>
 
@@ -168,7 +168,7 @@ export function SettingsModal({
 
               {provider === 'deepseek' && (
                 <>
-                  <div className="settings-hint">
+                  <div className={styles.hint}>
                     Используется <strong>DeepSeek API</strong> — OpenAI-совместимый облачный API.
                     Базовый URL: <code>{DEEPSEEK_API_BASE_URL}</code>, модель по умолчанию:{' '}
                     <code>{DEEPSEEK_MODEL_DEFAULT}</code>.
@@ -285,7 +285,7 @@ export function SettingsModal({
                   ))}
                 </select>
               </label>
-              <div className="settings-hint">
+              <div className={styles.hint}>
                 Сжатие длинной истории чата при ~85% лимита контекста. По умолчанию берётся самая
                 лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
               </div>
@@ -312,7 +312,7 @@ export function SettingsModal({
                     ))}
                   </select>
                 </label>
-                <div className={`settings-hint ${styles.hintInline}`}>
+                <div className={`${styles.hint} ${styles.hintInline}`}>
                   <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
                   <strong>Принимать правки</strong> — файлы без вопросов, команды с подтверждением.{' '}
                   <strong>Без подтверждений</strong> — агент действует сам.
@@ -432,7 +432,7 @@ export function SettingsModal({
                         ))}
                       </select>
                     </label>
-                    <div className={`settings-hint ${styles.hintInline}`}>
+                    <div className={`${styles.hint} ${styles.hintInline}`}>
                       <strong>Stash + reset</strong> — локальные правки прячутся в{' '}
                       <code>git stash</code>, затем <code>reset --hard</code> на версию GitHub
                       (приоритет у GitHub). <strong>Rebase</strong> — локальные коммиты переносятся
@@ -504,7 +504,7 @@ export function SettingsModal({
                     onChange={(e) => onSettingsChange({ githubToken: e.target.value })}
                   />
                 </label>
-                <div className={`settings-hint ${styles.hintInline}`}>
+                <div className={`${styles.hint} ${styles.hintInline}`}>
                   Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в Памяти
                   и Навыках. Создать:{' '}
                   <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">

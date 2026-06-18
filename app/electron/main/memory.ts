@@ -180,9 +180,11 @@ export async function listMemories(projectPath: string): Promise<MemoryEntry[]> 
     ? await loadStore(projectMemoryPath(projectPath), legacyProjectMemoryPath(projectPath))
     : emptyStore()
 
-  return [...global.entries, ...project.entries].sort((a, b) =>
-    b.lastUsedAt.localeCompare(a.lastUsedAt)
-  )
+  return [...global.entries, ...project.entries].sort((a, b) => {
+    const dateCmp = b.lastUsedAt.localeCompare(a.lastUsedAt)
+    if (dateCmp !== 0) return dateCmp
+    return b.createdAt.localeCompare(a.createdAt)
+  })
 }
 
 export async function addMemory(

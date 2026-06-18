@@ -29,6 +29,7 @@ import { ThinkingBlock } from './ThinkingBlock'
 import { InterruptedDraftBanner } from './InterruptedDraftBanner'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
+import { AllToolsGroup } from './AllToolsGroup'
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
 import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
@@ -76,76 +77,43 @@ function shouldShowAssistantMessage(message: ChatMessage): boolean {
   return visibleAssistantContent(message.content).length > 0
 }
 
-// Группа одинаковых подряд идущих tool-вызовов — сворачивается в один блок.
+// Все подряд идущие tool-вызовы сворачиваются в один блок.
 type DisplayItem =
   | { kind: 'message'; message: ChatMessage }
-  | { kind: 'tool-group'; toolName: string; items: ChatMessage[]; key: string }
+  | { kind: 'all-tools'; items: ChatMessage[]; key: string }
 
 function groupToolMessages(messages: ChatMessage[]): DisplayItem[] {
   const result: DisplayItem[] = []
-  let i = 0
-  while (i < messages.length) {
-    const msg = messages[i]
+  let pendingTools: ChatMessage[] = []
+
+  function flushTools() {
+    if (pendingTools.length > 0) {
+      const key = `tools-${pendingTools[0].id}`
+      result.push({ kind: 'all-tools', items: pendingTools, key })
+      pendingTools = []
+    }
+  }
+
+  for (const msg of messages) {
     if (msg.role === 'tool') {
-      const name = msg.toolName ?? ''
-      const group: ChatMessage[] = [msg]
-      while (
-        i + 1 < messages.length &&
-        messages[i + 1].role === 'tool' &&
-        (messages[i + 1].toolName ?? '') === name
-      ) {
-        i++
-        group.push(messages[i])
-      }
-      if (group.length === 1) {
-        result.push({ kind: 'message', message: msg })
-      } else {
-        result.push({ kind: 'tool-group', toolName: name, items: group, key: msg.id })
-      }
+      pendingTools.push(msg)
     } else {
+      // Сбрасываем накопленные tool-сообщения перед любым не-tool сообщением
+      // (assistant, user, system), чтобы они не «прилипали» к следующей группе
+      if (pendingTools.length > 0) {
+        flushTools()
+      }
       result.push({ kind: 'message', message: msg })
     }
-    i++
   }
+
+  // Оставшиеся tool-сообщения в конце
+  flushTools()
+
   return result
 }
 
-function ToolCallGroup({ toolName, items }: { toolName: string; items: ChatMessage[] }) {
-  const [open, setOpen] = useState(false)
-  const done = items.every((m) => !m.content.startsWith('▶'))
-  const statusIcon = done ? '✓' : '▶'
-  const label = toolName || 'Инструмент'
-  return (
-    <div className="message tool tool-group">
-      <button
-        type="button"
-        className="tool-group-header"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <span className="message-role-badge tone-tool">
-          <span className="message-role-icon" aria-hidden="true">
-            ⚙
-          </span>
-          <span className="message-role-text">{label}</span>
-        </span>
-        <span className="tool-group-meta">
-          {statusIcon} ×{items.length}
-        </span>
-        <span className="tool-group-chevron">{open ? '▲' : '▼'}</span>
-      </button>
-      {open && (
-        <div className="tool-group-list">
-          {items.map((m) => (
-            <pre key={m.id} className="message-plain tool-group-item">
-              {m.content}
-            </pre>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+// AllToolsBlock заменён на AllToolsGroup (см. ./AllToolsGroup.tsx)
 
 function messageCopyText(message: ChatMessage): string {
   if (message.role === 'assistant') return visibleAssistantContent(message.content)
@@ -654,8 +622,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         )}
 
         {groupToolMessages(messages.filter(shouldShowAssistantMessage)).map((item) =>
-          item.kind === 'tool-group' ? (
-            <ToolCallGroup key={item.key} toolName={item.toolName} items={item.items} />
+          item.kind === 'all-tools' ? (
+            <AllToolsGroup key={item.key} items={item.items} />
           ) : (
             <div
               key={item.message.id}
