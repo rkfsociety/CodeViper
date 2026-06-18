@@ -146,6 +146,7 @@ export function buildSelfEditContext(): string {
 - run_codeviper_command — команды в корне app/ (npm test, npm run typecheck, npm run build)
 - create_codeviper_branch <name> — создать ветку agent/<name> вместо коммита в master
 - push_codeviper_branch — запушить ветку agent/... на GitHub
+- create_codeviper_pr — создать Pull Request из ветки agent/* (gh pr create); PR не мержится автоматически
 
 Навыки (instructions без пересборки): create_skill / update_skill — всегда глобальные, %APPDATA%/CodeViper/ViperSkills.md.
 
@@ -154,6 +155,7 @@ export function buildSelfEditContext(): string {
 2. create_codeviper_branch fix-<тема> — создать ветку для изменений
 3. create_skill — если достаточно инструкции; иначе write_codeviper_file — правка кода
 4. run_codeviper_command: npm run typecheck && npm test
-5. commit_and_push_self_edits — закоммитить; затем push_codeviper_branch — запушить
-6. Кратко сообщить, что изменено; для main process нужен перезапуск приложения`
+5. commit_and_push_self_edits — закоммитить изменения
+6. create_codeviper_pr — открыть PR на ревью (ветка пушится автоматически; PR не мержится сам)
+7. Кратко сообщить, что изменено; для main process нужен перезапуск приложения`
 }

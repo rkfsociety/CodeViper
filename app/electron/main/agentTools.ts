@@ -683,6 +683,21 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'create_codeviper_pr',
+      description:
+        'Создать Pull Request из текущей ветки agent/* на GitHub через gh CLI. Сначала пушит ветку, затем gh pr create. PR НЕ мержится автоматически — требуется ручная проверка. Только для веток agent/*.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Заголовок PR (необязательно)' },
+          body: { type: 'string', description: 'Описание PR в Markdown (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'create_ollama_model',
       description:
         'Создать производную модель Ollama из файла примеров (Modelfile + MESSAGE). Не GPU fine-tuning.',
@@ -773,6 +788,7 @@ export interface ToolArgs {
   run_codeviper_command: { command: string }
   create_codeviper_branch: { name: string }
   push_codeviper_branch: Record<string, never>
+  create_codeviper_pr: { title?: string; body?: string }
   preview_ollama_modelfile: {
     data_path: string
     base_model: string

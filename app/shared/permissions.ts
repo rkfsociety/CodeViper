@@ -15,7 +15,9 @@ export const PERMISSION_MODE_LABELS: Record<PermissionMode, string> = {
 const CONFIRM_IN_ACCEPT_EDITS = new Set<string>([
   'run_command',
   'run_codeviper_command',
-  'create_ollama_model'
+  'create_ollama_model',
+  // Создание PR — внешнее действие (публикация на GitHub), подтверждаем всегда кроме bypass.
+  'create_codeviper_pr'
 ])
 
 export function normalizePermissionMode(value: unknown): PermissionMode {

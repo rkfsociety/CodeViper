@@ -11,7 +11,7 @@ import {
   writeCodeViperFile,
   isAllowedSelfPath
 } from './codeviperSource'
-import { createCodeViperBranch, pushCodeViperBranch } from './selfCommit'
+import { createCodeViperBranch, pushCodeViperBranch, createCodeViperPr } from './selfCommit'
 import { buildFileTree } from './services'
 import { formatFileTree } from './agentContext'
 import { grepInTree, formatGrepResults, findFilesInTree, formatFindResults } from './fileSearch'
@@ -104,6 +104,12 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
 
     push_codeviper_branch: async (_args) => {
       const result = await pushCodeViperBranch()
+      if (!result.ok) throw new Error(result.message)
+      return result.message
+    },
+
+    create_codeviper_pr: async (args) => {
+      const result = await createCodeViperPr(args.title, args.body)
       if (!result.ok) throw new Error(result.message)
       return result.message
     }
