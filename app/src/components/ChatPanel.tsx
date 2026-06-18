@@ -182,6 +182,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
 
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const atBottomRef = useRef(true)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesRef = useRef(messages)
   const chatIdRef = useRef(chatId)
@@ -337,8 +339,21 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onRunStatsChange?.(runStats)
   }, [runStats, onRunStatsChange])
 
+  // Следим за тем, находится ли пользователь внизу чата
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => {
+      atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    if (atBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages, draft, queueSize])
 
   useEffect(() => {
@@ -484,6 +499,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     }
     appendMessage(userMessage)
     setInput('')
+    atBottomRef.current = true
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     await submitMessage(userMessage.id, text)
   }
 
@@ -594,7 +611,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onClose={() => setContextModalOpen(false)}
       />
 
-      <div className={styles.messages}>
+      <div className={styles.messages} ref={scrollRef}>
         {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
         {chatId && !projectPath && !messages.length && !draft && (
           <div className="empty">Выбери папку с кодом — кнопка «Выбрать проект» выше.</div>
