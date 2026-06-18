@@ -28,13 +28,12 @@ const SettingsModal = lazy(() =>
 )
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
-import { DEFAULT_MAX_STEPS, DEEPSEEK_API_BASE_URL } from '../shared/constants'
+import { DEEPSEEK_API_BASE_URL } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
   model: '',
-  maxSteps: DEFAULT_MAX_STEPS,
   selfLearning: true,
   autoModel: true,
   permissionMode: 'acceptEdits',

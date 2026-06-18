@@ -74,11 +74,6 @@ function recordRun(): void {
   while (runTimestamps.length > 0 && runTimestamps[0] < cutoff) runTimestamps.shift()
 }
 
-function runsInLastHour(): number {
-  const cutoff = Date.now() - HOUR_MS
-  return runTimestamps.filter((t) => t >= cutoff).length
-}
-
 function appIconPath(): string | undefined {
   const candidates = [
     join(__dirname, '../../resources/icon.png'),
@@ -366,16 +361,6 @@ ipcMain.handle(
       throw new Error('Агент уже выполняет задачу. Дождитесь завершения текущего запроса.')
     }
 
-    const maxRuns = settings.maxRunsPerHour ?? 20
-    const currentRuns = runsInLastHour()
-    if (currentRuns >= maxRuns) {
-      stream(chatId, {
-        type: 'error',
-        content: `Достигнут лимит прогонов агента: ${maxRuns} за последний час (сейчас: ${currentRuns}). Подождите или увеличьте лимит в настройках.`
-      })
-      stream(chatId, { type: 'done' })
-      return
-    }
     recordRun()
 
     agentRunState = { chatId }

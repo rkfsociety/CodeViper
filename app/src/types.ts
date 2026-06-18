@@ -116,9 +116,6 @@ export {
 export interface AgentSettings {
   ollamaUrl: string
   model: string
-  maxSteps: number
-  /** Максимальное количество прогонов агента за последний час */
-  maxRunsPerHour?: number
   selfLearning?: boolean
   /** Автовыбор модели под задачу и выгрузка других из RAM */
   autoModel?: boolean

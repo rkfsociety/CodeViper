@@ -3,9 +3,6 @@ import styles from './SettingsModal.module.css'
 import type { AgentSettings, GitSyncStrategy, OllamaModel, PermissionMode } from '../types'
 import { GIT_SYNC_STRATEGIES, GIT_SYNC_STRATEGY_LABELS } from '../types'
 import {
-  DEFAULT_MAX_RUNS_PER_HOUR,
-  MAX_RUNS_PER_HOUR_MIN,
-  MAX_RUNS_PER_HOUR_MAX,
   DEFAULT_COMMAND_TIMEOUT_SEC,
   COMMAND_TIMEOUT_SEC_MIN,
   COMMAND_TIMEOUT_SEC_MAX,
@@ -542,21 +539,6 @@ export function SettingsModal({
                   onChange={(model) => onSettingsChange({ model })}
                 />
               )}
-
-              <label>
-                Макс. прогонов в час
-                <input
-                  type="number"
-                  min={MAX_RUNS_PER_HOUR_MIN}
-                  max={MAX_RUNS_PER_HOUR_MAX}
-                  value={settings.maxRunsPerHour ?? DEFAULT_MAX_RUNS_PER_HOUR}
-                  onChange={(e) =>
-                    onSettingsChange({
-                      maxRunsPerHour: Number(e.target.value) || DEFAULT_MAX_RUNS_PER_HOUR
-                    })
-                  }
-                />
-              </label>
             </>
           )}
 

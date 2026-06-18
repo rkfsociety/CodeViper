@@ -18,7 +18,6 @@ import { prepareAgentRunContext, type OllamaMessage } from './agentContext'
 import { AGENT_TOOLS, type ToolHandlers, type ToolName } from './agentTools'
 import {
   isSelfImprovementTask,
-  selfImprovementStepLimit,
   parsePlanFromAssistantText,
   syncPlanFromChecklist,
   formatPlanSummary,
@@ -198,9 +197,6 @@ export class AgentRunner {
     })
 
     const autonomousSelfImprove = isSelfImprovementTask(userMessage)
-    const stepLimit = autonomousSelfImprove
-      ? selfImprovementStepLimit(this.settings.maxSteps)
-      : this.settings.maxSteps
 
     if (autonomousSelfImprove) {
       this.selfImprovementPlan.reset()
@@ -260,8 +256,10 @@ export class AgentRunner {
     const toolCallCounts = new Map<string, number>()
 
     try {
-      for (let step = 0; step < stepLimit; step++) {
+      let step = 0
+      while (true) {
         this.throwIfAborted()
+        step++
 
         const stepStartMs = Date.now()
         let response
@@ -712,20 +710,6 @@ export class AgentRunner {
           }
         }
       }
-
-      const pendingPlan = this.selfImprovementPlan.get()
-      const pendingNote =
-        autonomousSelfImprove && pendingPlan && this.selfImprovementPlan.hasPending()
-          ? `\nНевыполнено пунктов: ${pendingPlan.filter((item) => !item.done).length}.`
-          : ''
-
-      // Если вышли из цикла не по лимиту шагов (вывод был раньше), просто выходим
-      // Лимит шагов намного выше, циклы ловятся через MAX_CONSECUTIVE_SAME_TOOL/MAX_SAME_TOOL_TOTAL
-      this.emit({
-        type: 'error',
-        content: `Превышена максимальная глубина задачи (${stepLimit} шагов).${pendingNote} Пересмотрите задачу.`
-      })
-      this.emit({ type: 'done' })
     } catch (error) {
       if (isAbortError(error)) {
         this.handleAbort()
