@@ -100,9 +100,12 @@ export default function App() {
   const refreshOllama = useCallback(async () => {
     const provider = settings.modelProvider
 
+    // Ollama статус проверяем всегда — он виден в хидере независимо от провайдера
+    const online = await window.codeviper.checkOllama(settings.ollamaUrl)
+    setOllamaOnline(online)
+
     if (provider === 'deepseek') {
-      // Для облачного провайдера: пинговать Ollama не нужно, загружаем список моделей с API
-      setOllamaOnline(false)
+      // Для облачного провайдера: загружаем список моделей с API DeepSeek
       try {
         const list = await window.codeviper.listProviderModels({
           type: 'deepseek',
@@ -116,9 +119,6 @@ export default function App() {
       }
       return
     }
-
-    const online = await window.codeviper.checkOllama(settings.ollamaUrl)
-    setOllamaOnline(online)
 
     if (online) {
       const list = await window.codeviper.listOllamaModels(settings.ollamaUrl)
