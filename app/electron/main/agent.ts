@@ -651,23 +651,26 @@ export class AgentRunner {
           // Добавляем результаты в сообщения в правильном порядке
           const isCloudProviderElse = this.providerConfig.type !== 'ollama'
           for (const { call, output, name } of toolResults) {
-            // Защита от циклов: отслеживаем повторения инструментов
-            if (name === lastToolName) {
+            // Защита от циклов: отслеживаем повторения инструментов с одинаковыми аргументами
+            const toolSignature = `${name}:${JSON.stringify(call.function.arguments)}`
+
+            if (toolSignature === lastToolName) {
               consecutiveSameToolCount++
             } else {
               consecutiveSameToolCount = 1
-              lastToolName = name
+              lastToolName = toolSignature
             }
 
-            // Счётчик всех вызовов инструмента
+            // Счётчик всех вызовов инструмента (по названию, независимо от аргументов)
             const totalCount = (toolCallCounts.get(name) ?? 0) + 1
             toolCallCounts.set(name, totalCount)
 
-            // Проверяем лимиты на повторения
+            // Проверяем лимит на одинаковые подряд идущие вызовы (с точными теми же аргументами)
             if (consecutiveSameToolCount > MAX_CONSECUTIVE_SAME_TOOL) {
+              const argsStr = JSON.stringify(call.function.arguments)
               this.emit({
                 type: 'error',
-                content: `⚠️ Обнаружен цикл: инструмент "${name}" вызывается ${consecutiveSameToolCount} раз подряд. Остановка для исправления задачи.`
+                content: `⚠️ Обнаружен цикл: инструмент "${name}" вызывается ${consecutiveSameToolCount} раз подряд с одинаковыми аргументами: ${argsStr}. Остановка для исправления задачи.`
               })
               this.emit({ type: 'done' })
               return
