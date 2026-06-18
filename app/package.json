@@ -16,7 +16,17 @@
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write .",
-    "bump": "npx tsx ../scripts/bump-version.ts"
+    "bump": "npx tsx ../scripts/bump-version.ts",
+    "prepare": "cd .. && husky app/.husky || true"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,json,md,css}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "highlight.js": "^11.11.1",
@@ -35,10 +45,12 @@
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
     "@vitejs/plugin-react": "^4.5.0",
-    "eslint": "^9.20.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
     "electron": "^36.3.2",
     "electron-vite": "^3.1.0",
+    "eslint": "^9.20.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.4.2",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",

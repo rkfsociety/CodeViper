@@ -46,6 +46,8 @@ export default [
         HTMLInputElement: 'readonly',
         HTMLTextAreaElement: 'readonly',
         KeyboardEvent: 'readonly',
+        MouseEvent: 'readonly',
+        Node: 'readonly',
         AudioContext: 'readonly',
         requestAnimationFrame: 'readonly',
         cancelAnimationFrame: 'readonly',
