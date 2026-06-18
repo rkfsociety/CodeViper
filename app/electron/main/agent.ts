@@ -690,6 +690,20 @@ export class AgentRunner {
   private async chat(messages: OllamaMessage[], options?: { requireTool?: boolean }) {
     this.throwIfAborted()
 
+    // Для Ollama: убедиться, что модель загружена (не делаем pull для cloud-провайдеров)
+    if (this.providerConfig.type === 'ollama') {
+      try {
+        await this.modelRuntime.ensureModelLoaded(this.settings.model, this.signal)
+      } catch (err) {
+        // Ошибка загрузки неблокирующая — Ollama может загрузить при запросе
+        void agentLogger.write({
+          event: 'model_load_error',
+          model: this.settings.model,
+          error: String(err)
+        })
+      }
+    }
+
     let compressionNotified = false
     const compression = await compressContextMessages({
       messages,

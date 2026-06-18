@@ -174,4 +174,25 @@ export class OllamaProvider implements ModelProvider {
 
     return { unloaded }
   }
+
+  async ensureModelLoaded(model: string, signal?: AbortSignal): Promise<void> {
+    // Проверяем, загружена ли модель
+    const loaded = await this.listModels()
+    if (loaded.some((item) => modelsMatch(item.name, model))) {
+      return // модель уже загружена
+    }
+
+    // Загружаем модель через pull
+    const url = this.baseUrl.replace(/\/$/, '')
+    const res = await fetch(`${url}/api/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: model, stream: false }),
+      signal: signal || AbortSignal.timeout(10 * 60 * 1000) // 10 минут таймаут для загрузки
+    })
+
+    if (!res.ok) {
+      throw new Error(`Failed to pull model ${model}: ${res.status}`)
+    }
+  }
 }

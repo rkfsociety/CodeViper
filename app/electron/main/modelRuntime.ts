@@ -89,6 +89,12 @@ export class ModelRuntime {
   async prepareModel(model: string): Promise<{ unloaded: string[] }> {
     return this.provider.prepareModel?.(model) ?? { unloaded: [] }
   }
+
+  async ensureModelLoaded(model: string, signal?: AbortSignal): Promise<void> {
+    if (this.provider instanceof OllamaProvider) {
+      await this.provider.ensureModelLoaded(model, signal)
+    }
+  }
 }
 
 // Экспортируем для обратной совместимости
