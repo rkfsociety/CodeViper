@@ -721,16 +721,34 @@ export class AgentRunner {
 
     const isCloudProvider = this.providerConfig.type !== 'ollama'
 
-    // Для cloud-провайдеров передаём все сообщения включая tool-результаты;
-    // для Ollama фильтруем — модель использует embedded JSON и не ждёт role:tool.
-    const chatMessages = messages
-      .filter((msg) => isCloudProvider || msg.role !== 'tool')
-      .map((msg) => ({
-        role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
-        content: msg.content,
-        ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
-        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
-      }))
+    // Строим массив сообщений для провайдера.
+    // Для Ollama: фильтруем ВСЕ role:tool (Ollama использует embedded JSON).
+    // Для cloud: включаем tool-результаты только из текущего прогона (с tool_call_id);
+    // история tool-сообщений без tool_call_id вызывает 400 в DeepSeek/OpenAI.
+    // Дополнительно: assistant-сообщения с tool_calls без следующего tool-результата
+    // тоже нарушают протокол → убираем их через look-ahead.
+    let filteredMessages = messages
+    if (isCloudProvider) {
+      // Собираем ID вызовов, для которых есть tool-результат
+      const coveredIds = new Set(messages.filter((m) => m.tool_call_id).map((m) => m.tool_call_id!))
+      filteredMessages = messages.filter((msg) => {
+        if (msg.role === 'tool') return !!msg.tool_call_id
+        if (msg.role === 'assistant' && msg.tool_calls?.length) {
+          // Оставляем только если ВСЕ tool_calls этого сообщения покрыты результатами
+          return msg.tool_calls.every((tc) => coveredIds.has(tc.id))
+        }
+        return true
+      })
+    } else {
+      filteredMessages = messages.filter((msg) => msg.role !== 'tool')
+    }
+
+    const chatMessages = filteredMessages.map((msg) => ({
+      role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
+      content: msg.content,
+      ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
+      ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
+    }))
 
     // Трансформируем AGENT_TOOLS в формат провайдеров (name + description + input_schema)
     const toolsForProvider = AGENT_TOOLS.map((tool) => ({
