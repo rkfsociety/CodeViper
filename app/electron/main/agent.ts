@@ -74,7 +74,9 @@ export function parseToolArgs(args: Record<string, string> | string): Record<str
 }
 
 // Держим модель «тёплой» в видеопамяти между сообщениями — быстрее ответы.
-const OLLAMA_KEEP_ALIVE = '30m'
+// Время, которое модель остаётся в памяти после использования.
+// На системах с малым RAM используйте '1m' (1 минута) или '30s' (30 секунд)
+const OLLAMA_KEEP_ALIVE = '5m'
 
 // Read-only инструменты — безопасно запускать параллельно (Promise.all).
 const PARALLEL_SAFE_TOOLS = new Set([
@@ -664,6 +666,15 @@ export class AgentRunner {
       }
       throw error
     } finally {
+      // Для Ollama: выгрузить модель сразу после завершения, чтобы освободить память
+      if (this.providerConfig.type === 'ollama') {
+        try {
+          await this.modelRuntime.unloadModel(this.settings.model)
+        } catch {
+          // выгрузка необязательна
+        }
+      }
+
       void agentLogger.write({
         event: 'run_end',
         model: this.settings.model,
