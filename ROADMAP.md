@@ -8,7 +8,7 @@
 
 ### UI и производительность
 
-- [ ] **1. Изоляция стилей** — поэтапный перевод `styles.css` (>2000 строк) на CSS-модули: начать с ChatPanel, ChatHistoryPanel, SettingsModal
+- [ ] **1. Изоляция стилей (продолжение)** — перевести остальные компоненты на CSS-модули по образцу ChatHistoryPanel/SettingsModal/ChatPanel: ModelPanel, MemoryPanel, SkillsPanel, TerminalPanel, диалоги; общие классы дизайн-системы (`btn`, `modal`, `settings`, `message`) оставить глобальными
 
 ### Новые функции агента и чатов
 
@@ -94,6 +94,7 @@
 - [x] **Надёжность очередей** — `AgentError` с кодами ошибок, таймаут прогона/загрузки (10 мин), watchdog, stale-closure fix, продолжение очереди после ошибок, `enqueuedSetRef`, `stoppingRef`, retry с backoff, `resetQueue` инвалидация, `MAX_QUEUE_SIZE=50`, `fs.watch` кэш, расширен `dangerDetector`
 - [x] **CI + pre-commit хуки** — `husky` + `lint-staged` (`eslint --fix` + `prettier --write` на staged файлах); шаг `Lint` в GitHub Actions между `Typecheck` и `Unit tests`
 - [x] **Семантическое версионирование** — `scripts/bump-version.ts` (patch/minor/major); автогенерация `CHANGELOG.md` из git log с группировкой feat/fix/other; скрипт `npm run bump` в `package.json`; создаёт git-тег `v<версия>`
+- [x] **Изоляция стилей (первая фаза)** — `ChatHistoryPanel`, `SettingsModal` и `ChatPanel` переведены на CSS-модули (`*.module.css`); из глобального `styles.css` вынесены приватные классы компонентов, общие классы дизайн-системы (`btn`, `modal`, `settings`, `message`) остались глобальными; добавлена ambient-декларация `*.module.css` в `env.d.ts`
 - [x] **Индикатор прогресса длительных операций** — общий IPC-канал `progress-event {label, percent}`; main пушит прогресс во время работы агента, рендерер подписывается; `grep_files`/`find_files` шлют процент по числу просмотренных файлов, `run_command` — индикатор без процента; отображается в статус-баре (заполняющаяся полоса при известном проценте)
 - [x] **Виртуализация длинных списков** — `@tanstack/react-virtual` для истории чатов (плоский виртуальный список с папками и DnD), памяти и навыков; «Показать ещё» удалён
 - [x] **Ленивая загрузка тяжёлых модулей** — `React.lazy` + `Suspense` для `MessageBody` (ReactMarkdown + highlight.js), `SettingsModal`, `TerminalPanel`; основной бандл: 1478 КБ → 699 КБ

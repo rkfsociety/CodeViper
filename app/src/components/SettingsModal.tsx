@@ -20,6 +20,7 @@ import { SkillsPanel } from './SkillsPanel'
 import { CloudModelSelector } from './CloudModelSelector'
 import { useModalA11y } from '../hooks/useModalA11y'
 import type { useOllamaDownloadQueue } from '../hooks/useOllamaDownloadQueue'
+import styles from './SettingsModal.module.css'
 
 type DownloadQueue = ReturnType<typeof useOllamaDownloadQueue>
 
@@ -107,7 +108,7 @@ export function SettingsModal({
     <div className="modal-backdrop" onClick={onClose}>
       <div
         ref={modalRef}
-        className="modal settings-modal"
+        className={`modal ${styles.settingsModal}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
@@ -120,14 +121,14 @@ export function SettingsModal({
           </button>
         </div>
 
-        <div className="settings-tabs" role="tablist">
+        <div className={styles.tabs} role="tablist">
           {SETTINGS_TABS.map((item) => (
             <button
               key={item.id}
               type="button"
               role="tab"
               aria-selected={tab === item.id}
-              className={`settings-tab${tab === item.id ? ' active' : ''}`}
+              className={`${styles.tab}${tab === item.id ? ' ' + styles.active : ''}`}
               onClick={() => setTab(item.id)}
             >
               {item.label}
@@ -257,7 +258,7 @@ export function SettingsModal({
                 </>
               )}
 
-              <label className="settings-toggle">
+              <label className={styles.toggle}>
                 <input
                   type="checkbox"
                   checked={settings.autoModel !== false}
@@ -293,8 +294,8 @@ export function SettingsModal({
           {tab === 'behavior' && (
             <>
               {/* ── Безопасность ── */}
-              <div className="settings-section">
-                <div className="settings-section-label">Безопасность</div>
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Безопасность</div>
                 <label>
                   Режим доступа
                   <select
@@ -310,7 +311,7 @@ export function SettingsModal({
                     ))}
                   </select>
                 </label>
-                <div className="settings-hint settings-hint-inline">
+                <div className={`settings-hint ${styles.hintInline}`}>
                   <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
                   <strong>Принимать правки</strong> — файлы без вопросов, команды с подтверждением.{' '}
                   <strong>Без подтверждений</strong> — агент действует сам.
@@ -318,56 +319,56 @@ export function SettingsModal({
               </div>
 
               {/* ── Поведение агента ── */}
-              <div className="settings-section">
-                <div className="settings-section-label">Поведение агента</div>
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Поведение агента</div>
 
-                <label className="settings-toggle">
+                <label className={styles.toggle}>
                   <input
                     type="checkbox"
                     checked={settings.clarifyMode === true}
                     onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
                   />
-                  <span className="toggle-track" aria-hidden="true">
-                    <span className="toggle-thumb" />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
                   </span>
-                  <span className="toggle-content">
-                    <span className="toggle-title">Уточняющие вопросы</span>
-                    <span className="toggle-desc">
+                  <span className={styles.content}>
+                    <span className={styles.title}>Уточняющие вопросы</span>
+                    <span className={styles.desc}>
                       При неоднозначной задаче агент сначала задаёт вопросы, а потом приступает
                     </span>
                   </span>
                 </label>
 
-                <label className="settings-toggle">
+                <label className={styles.toggle}>
                   <input
                     type="checkbox"
                     checked={settings.deepReasoning === true}
                     onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
                   />
-                  <span className="toggle-track" aria-hidden="true">
-                    <span className="toggle-thumb" />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
                   </span>
-                  <span className="toggle-content">
-                    <span className="toggle-title">Глубокое рассуждение</span>
-                    <span className="toggle-desc">
+                  <span className={styles.content}>
+                    <span className={styles.title}>Глубокое рассуждение</span>
+                    <span className={styles.desc}>
                       Для think-моделей (qwen3, deepseek-r1, qwq) включает режим рассуждения, для
                       остальных усиливает промпт. Точнее, но медленнее
                     </span>
                   </span>
                 </label>
 
-                <label className="settings-toggle">
+                <label className={styles.toggle}>
                   <input
                     type="checkbox"
                     checked={settings.readonlyMode === true}
                     onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
                   />
-                  <span className="toggle-track" aria-hidden="true">
-                    <span className="toggle-thumb" />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
                   </span>
-                  <span className="toggle-content">
-                    <span className="toggle-title">Только чтение</span>
-                    <span className="toggle-desc">
+                  <span className={styles.content}>
+                    <span className={styles.title}>Только чтение</span>
+                    <span className={styles.desc}>
                       Блокирует все инструменты записи; агент может только читать файлы и искать по
                       коду
                     </span>
@@ -376,38 +377,38 @@ export function SettingsModal({
               </div>
 
               {/* ── Автоматизация ── */}
-              <div className="settings-section">
-                <div className="settings-section-label">Автоматизация</div>
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Автоматизация</div>
 
-                <label className="settings-toggle">
+                <label className={styles.toggle}>
                   <input
                     type="checkbox"
                     checked={settings.autoPushSelfEdits !== false}
                     onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
                   />
-                  <span className="toggle-track" aria-hidden="true">
-                    <span className="toggle-thumb" />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
                   </span>
-                  <span className="toggle-content">
-                    <span className="toggle-title">Автокоммит самоправок</span>
-                    <span className="toggle-desc">
+                  <span className={styles.content}>
+                    <span className={styles.title}>Автокоммит самоправок</span>
+                    <span className={styles.desc}>
                       После правки кода агентом — автоматически git commit + push на GitHub
                     </span>
                   </span>
                 </label>
 
-                <label className="settings-toggle">
+                <label className={styles.toggle}>
                   <input
                     type="checkbox"
                     checked={settings.gitSyncOnStartup !== false}
                     onChange={(e) => onSettingsChange({ gitSyncOnStartup: e.target.checked })}
                   />
-                  <span className="toggle-track" aria-hidden="true">
-                    <span className="toggle-thumb" />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
                   </span>
-                  <span className="toggle-content">
-                    <span className="toggle-title">Git-синхронизация при запуске</span>
-                    <span className="toggle-desc">
+                  <span className={styles.content}>
+                    <span className={styles.title}>Git-синхронизация при запуске</span>
+                    <span className={styles.desc}>
                       При запуске CodeViper автоматически синхронизируется с GitHub (git stash + git
                       reset --hard)
                     </span>
@@ -416,18 +417,18 @@ export function SettingsModal({
               </div>
 
               {/* ── Производительность ── */}
-              <div className="settings-section">
-                <div className="settings-section-label">Производительность</div>
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Производительность</div>
 
-                <div className="settings-row">
-                  <div className="settings-row-content">
-                    <span className="toggle-title">Таймаут команд</span>
-                    <span className="toggle-desc">
+                <div className={styles.row}>
+                  <div className={styles.rowContent}>
+                    <span className={styles.title}>Таймаут команд</span>
+                    <span className={styles.desc}>
                       Макс. время одной команды агента (по умолч. 120 с, макс.{' '}
                       {COMMAND_TIMEOUT_SEC_MAX} с)
                     </span>
                   </div>
-                  <div className="settings-row-right">
+                  <div className={styles.rowRight}>
                     <input
                       type="number"
                       min={COMMAND_TIMEOUT_SEC_MIN}
@@ -439,22 +440,22 @@ export function SettingsModal({
                         })
                       }
                     />
-                    <span className="settings-unit">сек</span>
+                    <span className={styles.unit}>сек</span>
                   </div>
                 </div>
 
-                <label className="settings-toggle">
+                <label className={styles.toggle}>
                   <input
                     type="checkbox"
                     checked={settings.soundNotifications === true}
                     onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
                   />
-                  <span className="toggle-track" aria-hidden="true">
-                    <span className="toggle-thumb" />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
                   </span>
-                  <span className="toggle-content">
-                    <span className="toggle-title">Звуковые уведомления</span>
-                    <span className="toggle-desc">
+                  <span className={styles.content}>
+                    <span className={styles.title}>Звуковые уведомления</span>
+                    <span className={styles.desc}>
                       Короткий сигнал при завершении задачи агента
                     </span>
                   </span>
@@ -462,8 +463,8 @@ export function SettingsModal({
               </div>
 
               {/* ── Интеграции ── */}
-              <div className="settings-section">
-                <div className="settings-section-label">Интеграции</div>
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Интеграции</div>
                 <label>
                   GitHub Token
                   <input
@@ -473,7 +474,7 @@ export function SettingsModal({
                     onChange={(e) => onSettingsChange({ githubToken: e.target.value })}
                   />
                 </label>
-                <div className="settings-hint settings-hint-inline">
+                <div className={`settings-hint ${styles.hintInline}`}>
                   Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в Памяти
                   и Навыках. Создать:{' '}
                   <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
@@ -571,10 +572,10 @@ export function SettingsModal({
           </div>
         )}
 
-        <div className="settings-about">
-          <span className="settings-about-version">CodeViper v{__APP_VERSION__}</span>
+        <div className={styles.about}>
+          <span className={styles.aboutVersion}>CodeViper v{__APP_VERSION__}</span>
           <a
-            className="settings-about-link"
+            className={styles.aboutLink}
             href="https://github.com/rkfsociety/CodeViper/issues"
             target="_blank"
             rel="noreferrer"
@@ -582,7 +583,7 @@ export function SettingsModal({
             Сообщить об ошибке
           </a>
           <a
-            className="settings-about-link"
+            className={styles.aboutLink}
             href="https://github.com/rkfsociety/CodeViper"
             target="_blank"
             rel="noreferrer"

@@ -12,6 +12,7 @@ import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage, ProgressInfo, SystemStats } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
+import styles from './ChatPanel.module.css'
 import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
@@ -412,12 +413,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     lastVisibleMessage?.role === 'assistant'
 
   return (
-    <div className="chat-main">
+    <div className={styles.main}>
       {chatId && (
-        <div className="chat-project-bar">
-          <div className="chat-project-info" title={projectPath || undefined}>
-            <span className="chat-project-label">📁 {formatProjectLabel(projectPath)}</span>
-            {projectPath && <span className="chat-project-path">{projectPath}</span>}
+        <div className={styles.projectBar}>
+          <div className={styles.projectInfo} title={projectPath || undefined}>
+            <span className={styles.projectLabel}>📁 {formatProjectLabel(projectPath)}</span>
+            {projectPath && <span className={styles.projectPath}>{projectPath}</span>}
           </div>
           {!projectLocked && (
             <button type="button" className="btn" onClick={onPickProject} disabled={busy}>
@@ -455,7 +456,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onClose={() => setContextModalOpen(false)}
       />
 
-      <div className="chat-messages">
+      <div className={styles.messages}>
         {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
         {chatId && !projectPath && !messages.length && !draft && (
           <div className="empty">Выбери папку с кодом — кнопка «Выбрать проект» выше.</div>
@@ -582,13 +583,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       </div>
 
       {awaitingClarification && (
-        <div className="clarify-banner" role="status">
-          <span className="clarify-banner-icon">💬</span>
+        <div className={styles.clarifyBanner} role="status">
+          <span className={styles.clarifyIcon}>💬</span>
           <span>Агент ждёт ответа на уточнение</span>
         </div>
       )}
 
-      <div className="chat-input">
+      <div className={styles.input}>
         {busy && (
           <AgentStatusBar
             phase={agentPhase}
@@ -612,7 +613,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           placeholder="Например: добавь валидацию email в форму регистрации"
           disabled={!chatId}
         />
-        <div className="chat-input-actions">
+        <div className={styles.inputActions}>
           <span className="empty">
             {!chatId
               ? 'Сначала создай чат слева'
@@ -624,7 +625,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                     : 'Enter — в очередь, Shift+Enter — новая строка'
                   : 'Enter — отправить, Shift+Enter — новая строка'}
           </span>
-          <div className="chat-input-buttons">
+          <div className={styles.inputButtons}>
             {(agentRunning || queueSize > 0) && (
               <button type="button" className="btn danger" onClick={() => void stopAgent()}>
                 Стоп

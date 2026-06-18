@@ -1,0 +1,126 @@
+.main {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  min-height: 0;
+}
+
+:global(.panel-main) .main {
+  min-height: 0;
+  flex: 1;
+}
+
+.messages {
+  overflow: auto;
+  padding: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+.projectBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.projectInfo {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.projectLabel {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.projectPath {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clarifyBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 0;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--blue) 33%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #0d1b2a 0%, var(--bg-base) 100%);
+  font-size: 13px;
+  color: var(--blue-light);
+  animation: clarify-fadein 0.2s ease;
+}
+
+@keyframes clarify-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clarifyIcon {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.input {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.input textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.input textarea:focus {
+  outline: none;
+  border-color: var(--blue-bright);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue-bright) 27%, transparent);
+}
+
+.inputActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.inputButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .inputActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+}
