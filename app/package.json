@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "bump": "npx tsx ../scripts/bump-version.ts"
   },
   "dependencies": {
     "highlight.js": "^11.11.1",
