@@ -254,7 +254,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
     const prereq = await window.codeviper.checkAgentPrerequisites(
       settingsRef.current.ollamaUrl,
-      projectPathRef.current
+      projectPathRef.current,
+      (settingsRef.current.modelProvider ?? 'ollama') !== 'ollama'
     )
     if (!prereq.ok) {
       setPrerequisiteBlock({ issues: prereq.issues, pendingRun, installing: false })

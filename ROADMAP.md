@@ -60,6 +60,7 @@
 
 ## ✅ Сделано
 
+- [x] **Работа без Ollama при облачном провайдере** — предстартовая проверка зависимостей (`checkAgentPrerequisites`) в renderer пропускает проверку Ollama, если выбран облачный провайдер (`modelProvider !== 'ollama'`); флаг `skipOllamaCheck` проброшен через preload и IPC; раньше при выбранном DeepSeek/OpenAI агент блокировался баннером «Ollama не отвечает», хотя Ollama не нужна (в `run-agent` пропуск уже был — починили renderer-путь)
 - [x] **Фикс масштабирования интерфейса** — область «Агент» (`ChatPanel.module.css .main`) была `display: grid` без `grid-template-columns`, из-за чего неявная колонка `auto` растягивалась по содержимому и длинные сообщения вылезали за окно (обрезались справа); задана `grid-template-columns: minmax(0, 1fr)` + `min-width: 0`, на `.message` добавлен `overflow-wrap: anywhere`; `.app` переведён с grid на flex-колонку, чтобы баннер обновления не ломал высоту `layout`
 
 - [x] **Статус PR в UI** — кнопка «PR» в топбаре открывает панель (dock) со списком открытых Pull Requests; main-модуль `githubPr.ts` берёт данные из `gh pr list --json` и агрегирует `statusCheckRollup` в CI-статус (success/failure/pending/none); каждый PR — заголовок, ветка, бейдж CI и кнопка «Открыть на GitHub» (`shell.openExternal` через IPC `open-external`, только http(s)); опрос каждые 60 с; грациозная деградация при отсутствии/неавторизованном `gh`

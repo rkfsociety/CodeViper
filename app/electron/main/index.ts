@@ -204,8 +204,10 @@ ipcMain.handle('delete-ollama-model', async (_e, url: string, model: string) => 
   await deleteOllamaModel(url, model)
 })
 
-ipcMain.handle('check-agent-prerequisites', async (_e, ollamaUrl: string, projectPath: string) =>
-  checkAgentPrerequisites(ollamaUrl, projectPath)
+ipcMain.handle(
+  'check-agent-prerequisites',
+  async (_e, ollamaUrl: string, projectPath: string, skipOllamaCheck = false) =>
+    checkAgentPrerequisites(ollamaUrl, projectPath, skipOllamaCheck)
 )
 
 ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) =>

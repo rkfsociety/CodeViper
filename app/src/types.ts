@@ -338,7 +338,8 @@ export interface CodeViperAPI {
   ) => Promise<AgentContextPreview>
   checkAgentPrerequisites: (
     ollamaUrl: string,
-    projectPath: string
+    projectPath: string,
+    skipOllamaCheck?: boolean
   ) => Promise<AgentPrerequisitesResult>
   loadSettings: () => Promise<AgentSettings>
   saveSettings: (settings: AgentSettings) => Promise<AgentSettings>

@@ -92,7 +92,8 @@ export function useMessageQueue({
 
     const prereq = await window.codeviper.checkAgentPrerequisites(
       currentSettings.ollamaUrl,
-      project
+      project,
+      (currentSettings.modelProvider ?? 'ollama') !== 'ollama'
     )
     if (!prereq.ok) {
       setRunning(false)
