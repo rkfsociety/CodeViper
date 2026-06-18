@@ -52,7 +52,10 @@ export class OllamaProvider implements ModelProvider {
         top_p: options.top_p,
         tools: options.tools,
         tool_choice: options.tool_choice,
-        keep_alive: options.keep_alive ?? 5 * 60
+        keep_alive: options.keep_alive ?? 5 * 60,
+        // Ограничить контекст и генерацию для экономии памяти
+        num_ctx: 4096, // ограничить контекст до 4k (вместо 262k)
+        num_predict: options.max_tokens ?? 2048 // ограничить длину ответа
       }),
       signal: options.signal
     })
