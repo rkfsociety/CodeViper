@@ -48,6 +48,7 @@ export function useAgentStream({
   const activeToolMessageIdRef = useRef<string | null>(null)
   const activeToolNameRef = useRef<string | undefined>(undefined)
   const genStartRef = useRef<number | null>(null)
+  const draftThinkingRef = useRef('')
   const runStartRef = useRef<number | null>(null)
   const cumulativeTokensRef = useRef(0)
   const runActiveRef = useRef(false)
@@ -97,14 +98,17 @@ export function useAgentStream({
         setAgentPhase('thinking')
         if (genStartRef.current === null) genStartRef.current = Date.now()
         const thinking = event.content ?? ''
-        setDraftThinking(thinking)
+        const newThinking = draftThinkingRef.current + thinking
+        draftThinkingRef.current = newThinking
+        setDraftThinking(newThinking)
+
         const id = draftMessageIdRef.current
         if (id) {
           upsertMessageRef.current({
             id,
             role: 'assistant',
-            content: '',
-            thinking,
+            content: draftRef.current,
+            thinking: newThinking,
             timestamp: Date.now()
           })
         } else {
@@ -113,8 +117,8 @@ export function useAgentStream({
           upsertMessageRef.current({
             id: newId,
             role: 'assistant',
-            content: '',
-            thinking,
+            content: draftRef.current,
+            thinking: newThinking,
             timestamp: Date.now()
           })
         }
@@ -124,23 +128,28 @@ export function useAgentStream({
         setAgentPhase('writing')
         if (genStartRef.current === null) genStartRef.current = Date.now()
 
-        const content = event.content ?? ''
+        const token = event.content ?? ''
+        const newContent = draftRef.current + token
+        draftRef.current = newContent
+        setDraft(newContent)
+
         if (!draftMessageIdRef.current) {
           const id = makeId()
           draftMessageIdRef.current = id
           upsertMessageRef.current({
             id,
             role: 'assistant',
-            content,
+            content: newContent,
+            thinking: draftThinkingRef.current,
             timestamp: Date.now()
           })
         } else {
           const id = draftMessageIdRef.current
-          // upsertMessage сам найдёт сообщение по id и заменит его
           upsertMessageRef.current({
             id,
             role: 'assistant',
-            content,
+            content: newContent,
+            thinking: draftThinkingRef.current,
             timestamp: Date.now()
           })
         }
@@ -150,6 +159,7 @@ export function useAgentStream({
         setDraft('')
         setDraftThinking('')
         draftRef.current = ''
+        draftThinkingRef.current = ''
         genStartRef.current = null
       }
 
