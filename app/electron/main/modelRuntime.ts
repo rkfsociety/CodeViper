@@ -95,6 +95,15 @@ export class ModelRuntime {
       await this.provider.ensureModelLoaded(model, signal)
     }
   }
+
+  async getModelMemoryInfo(
+    model?: string
+  ): Promise<{ name: string; size?: number; vram?: number }[]> {
+    if (this.provider instanceof OllamaProvider) {
+      return this.provider.getModelMemoryInfo(model)
+    }
+    return []
+  }
 }
 
 // Экспортируем для обратной совместимости

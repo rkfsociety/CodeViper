@@ -195,4 +195,28 @@ export class OllamaProvider implements ModelProvider {
       throw new Error(`Failed to pull model ${model}: ${res.status}`)
     }
   }
+
+  async getModelMemoryInfo(
+    model?: string
+  ): Promise<{ name: string; size?: number; vram?: number }[]> {
+    // Получить информацию о памяти, занимаемой моделями
+    try {
+      const res = await fetch(`${this.baseUrl}/api/ps`)
+      if (!res.ok) return []
+
+      const data = (await res.json()) as {
+        models?: Array<{ name: string; size?: number; size_vram?: number }>
+      }
+
+      return (data.models ?? [])
+        .filter((m) => !model || modelsMatch(m.name, model))
+        .map((m) => ({
+          name: m.name,
+          size: m.size,
+          vram: m.size_vram
+        }))
+    } catch {
+      return []
+    }
+  }
 }

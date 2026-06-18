@@ -706,7 +706,23 @@ export class AgentRunner {
       try {
         await this.modelRuntime.ensureModelLoaded(this.settings.model, this.signal)
         // Выгрузить все остальные модели
-        await this.modelRuntime.prepareModel(this.settings.model)
+        const unloaded = await this.modelRuntime.prepareModel(this.settings.model)
+
+        // Логируем информацию о загруженной модели для отладки
+        const placement = await this.modelRuntime.getModelPlacement(
+          this.settings.model,
+          this.signal
+        )
+        const memoryInfo = await this.modelRuntime.getModelMemoryInfo(this.settings.model)
+        const modelMemory = memoryInfo[0]
+        void agentLogger.write({
+          event: 'model_loaded',
+          model: this.settings.model,
+          placement,
+          size_mb: modelMemory?.size ? Math.round(modelMemory.size / (1024 * 1024)) : undefined,
+          vram_mb: modelMemory?.vram ? Math.round(modelMemory.vram / (1024 * 1024)) : undefined,
+          unloaded: unloaded.unloaded
+        })
       } catch (err) {
         // Ошибка загрузки неблокирующая — Ollama может загрузить при запросе
         void agentLogger.write({
