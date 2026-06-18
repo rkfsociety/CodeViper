@@ -442,7 +442,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     !busy &&
     !!chatId &&
     !!projectPath &&
-    lastVisibleMessage?.role === 'assistant'
+    lastVisibleMessage?.role === 'assistant' &&
+    /\?\s*$/.test(lastVisibleMessage.content.trimEnd())
 
   return (
     <div className={styles.main}>
