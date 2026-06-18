@@ -37,7 +37,12 @@ import { commitAndPushSelfEdits } from './selfCommit'
 import { agentLogger } from './agentLogger'
 import { compressContextMessages } from './contextSummarizer'
 import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
-import { DEEPSEEK_API_BASE_URL, DEEPSEEK_MODEL_DEFAULT } from '../../shared/constants'
+import {
+  DEEPSEEK_API_BASE_URL,
+  DEEPSEEK_MODEL_DEFAULT,
+  MAX_CONSECUTIVE_SAME_TOOL,
+  MAX_SAME_TOOL_TOTAL
+} from '../../shared/constants'
 import { readNdjsonLines } from './ndjson'
 import { parseReflectionLearnings, addMemory } from './memory'
 import { createProjectToolHandlers } from './agentHandlersProject'
@@ -248,6 +253,11 @@ export class AgentRunner {
     let selfImprovePlanNudges = 0
     let currentPlanItemId: string | null = null
     const MAX_SELF_IMPROVE_PLAN_NUDGES = 20
+
+    // Защита от циклов: отслеживаем повторения одного инструмента
+    let lastToolName: string | null = null
+    let consecutiveSameToolCount = 0
+    const toolCallCounts = new Map<string, number>()
 
     try {
       for (let step = 0; step < stepLimit; step++) {
@@ -641,6 +651,37 @@ export class AgentRunner {
           // Добавляем результаты в сообщения в правильном порядке
           const isCloudProviderElse = this.providerConfig.type !== 'ollama'
           for (const { call, output, name } of toolResults) {
+            // Защита от циклов: отслеживаем повторения инструментов
+            if (name === lastToolName) {
+              consecutiveSameToolCount++
+            } else {
+              consecutiveSameToolCount = 1
+              lastToolName = name
+            }
+
+            // Счётчик всех вызовов инструмента
+            const totalCount = (toolCallCounts.get(name) ?? 0) + 1
+            toolCallCounts.set(name, totalCount)
+
+            // Проверяем лимиты на повторения
+            if (consecutiveSameToolCount > MAX_CONSECUTIVE_SAME_TOOL) {
+              this.emit({
+                type: 'error',
+                content: `⚠️ Обнаружен цикл: инструмент "${name}" вызывается ${consecutiveSameToolCount} раз подряд. Остановка для исправления задачи.`
+              })
+              this.emit({ type: 'done' })
+              return
+            }
+
+            if (totalCount > MAX_SAME_TOOL_TOTAL) {
+              this.emit({
+                type: 'error',
+                content: `⚠️ Инструмент "${name}" вызван ${totalCount} раз за сессию (лимит ${MAX_SAME_TOOL_TOTAL}). Возможно циклическое использование.`
+              })
+              this.emit({ type: 'done' })
+              return
+            }
+
             // Для облачных API обрезаем длинные результаты (grep/find часто возвращают много)
             let trimmedOutput = output
             const MAX_CLOUD_RESULT_CHARS = 2000
@@ -675,9 +716,11 @@ export class AgentRunner {
           ? `\nНевыполнено пунктов: ${pendingPlan.filter((item) => !item.done).length}.`
           : ''
 
+      // Если вышли из цикла не по лимиту шагов (вывод был раньше), просто выходим
+      // Лимит шагов намного выше, циклы ловятся через MAX_CONSECUTIVE_SAME_TOOL/MAX_SAME_TOOL_TOTAL
       this.emit({
         type: 'error',
-        content: `Достигнут лимит шагов агента (${stepLimit}).${pendingNote} Уточните задачу или увеличьте лимит в настройках.`
+        content: `Превышена максимальная глубина задачи (${stepLimit} шагов).${pendingNote} Пересмотрите задачу.`
       })
       this.emit({ type: 'done' })
     } catch (error) {
