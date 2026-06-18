@@ -584,6 +584,8 @@ export default function App() {
               setMemoryRefreshKey((key) => key + 1)
               setSkillsRefreshKey((key) => key + 1)
             }}
+            interruptedDraft={activeChat?.interruptedDraft}
+            onInterruptedDraftChange={refreshChatStore}
           />
 
           {terminalOpen && (

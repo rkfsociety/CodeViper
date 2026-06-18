@@ -32,6 +32,10 @@ export interface UseMessageQueueOptions {
   onBusyChange?: (busy: boolean) => void
   onPrerequisiteIssue: (block: PrerequisiteBlock) => void
   onDangerWarning: (block: DangerBlock) => void
+  /** Реф на текущий черновик ответа (из useAgentStream) */
+  draftRef?: MutableRefObject<string>
+  /** Вызывается при обрыве стрима — передаёт partial-текст и сообщение пользователя */
+  onInterruptedDraft?: (partial: string, userMessage: string) => void
 }
 
 export function useMessageQueue({
@@ -46,7 +50,9 @@ export function useMessageQueue({
   onRunStart,
   onBusyChange,
   onPrerequisiteIssue,
-  onDangerWarning
+  onDangerWarning,
+  draftRef,
+  onInterruptedDraft
 }: UseMessageQueueOptions) {
   const queueRef = useRef<Array<{ id: string; text: string }>>([])
   const agentRunningRef = useRef(false)
@@ -167,6 +173,13 @@ export function useMessageQueue({
           })
           await new Promise<void>((r) => setTimeout(r, 2000))
           continue
+        }
+        const isInterruption =
+          error instanceof AgentError &&
+          ((error as AgentError).code === 'timeout' || (error as AgentError).code === 'stream_lost')
+        const partial = draftRef?.current ?? ''
+        if ((isInterruption || partial) && onInterruptedDraft) {
+          onInterruptedDraft(partial, text)
         }
         appendMessage({
           id: makeId(),

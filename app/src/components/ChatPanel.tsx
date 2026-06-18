@@ -10,7 +10,13 @@ import {
 } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentSettings, ChatMessage, ProgressInfo, SystemStats } from '../types'
+import type {
+  AgentSettings,
+  ChatMessage,
+  InterruptedDraft,
+  ProgressInfo,
+  SystemStats
+} from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
 import styles from './ChatPanel.module.css'
 import { AgentContextBar } from './AgentContextBar'
@@ -20,6 +26,7 @@ const MessageBody = lazy(() => import('./MessageBody').then((m) => ({ default: m
 import { MessageCopyButton } from './MessageCopyButton'
 import { MessageRoleBadge } from './MessageRoleBadge'
 import { ThinkingBlock } from './ThinkingBlock'
+import { InterruptedDraftBanner } from './InterruptedDraftBanner'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
 import { useContextPreview } from '../hooks/useContextPreview'
@@ -46,6 +53,10 @@ interface Props {
   onOpenSettings?: () => void
   onEnqueueModel?: (modelName: string) => void
   onRefreshOllama?: () => Promise<void>
+  /** Черновик при обрыве стрима (из activeChat) */
+  interruptedDraft?: InterruptedDraft | null
+  /** Вызывается после сохранения/очистки черновика для обновления chatStore */
+  onInterruptedDraftChange?: () => void
 }
 
 function formatProjectLabel(path: string): string {
@@ -82,7 +93,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onActiveModelChange,
     onOpenSettings,
     onEnqueueModel,
-    onRefreshOllama
+    onRefreshOllama,
+    interruptedDraft,
+    onInterruptedDraftChange
   },
   ref
 ) {
@@ -170,6 +183,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const {
     draft,
     draftThinking,
+    draftRef,
     agentPhase,
     activeToolName,
     summarizing,
@@ -190,6 +204,21 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   })
 
   // ── Хук: очередь сообщений и запуск агента ───────────────────────────────
+  const handleInterruptedDraft = useCallback(
+    async (partial: string, userMessage: string) => {
+      if (!chatId) return
+      try {
+        await window.codeviper.updateChat(chatId, {
+          interruptedDraft: { partial, userMessage, reason: 'timeout', timestamp: Date.now() }
+        })
+        onInterruptedDraftChange?.()
+      } catch {
+        // не прерываем основной поток ошибкой сохранения черновика
+      }
+    },
+    [chatId, onInterruptedDraftChange]
+  )
+
   const {
     submitMessage,
     confirmDangerRun,
@@ -212,7 +241,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onRunStart: resetStreamState,
     onBusyChange,
     onPrerequisiteIssue: setPrerequisiteBlock,
-    onDangerWarning: setDangerBlock
+    onDangerWarning: setDangerBlock,
+    draftRef,
+    onInterruptedDraft: handleInterruptedDraft
   })
 
   // ── Автосохранение состояния для восстановления после краша ─────────────
@@ -435,6 +466,32 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           loading={contextLoading}
           error={contextError}
           onOpen={() => setContextModalOpen(true)}
+        />
+      )}
+
+      {chatId && interruptedDraft && (
+        <InterruptedDraftBanner
+          draft={interruptedDraft}
+          onRetry={() => {
+            const msgId = makeId()
+            appendMessage({
+              id: msgId,
+              role: 'user',
+              content: interruptedDraft.userMessage,
+              timestamp: Date.now()
+            })
+            void executeRun(msgId, interruptedDraft.userMessage)
+            void window.codeviper
+              .updateChat(chatId, { interruptedDraft: null })
+              .then(() => onInterruptedDraftChange?.())
+              .catch(() => {})
+          }}
+          onDismiss={() => {
+            void window.codeviper
+              .updateChat(chatId, { interruptedDraft: null })
+              .then(() => onInterruptedDraftChange?.())
+              .catch(() => {})
+          }}
         />
       )}
 

@@ -148,7 +148,10 @@ const codeviper = {
   updateChat: (
     id: string,
     patch: Partial<
-      Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+      Pick<
+        SavedChat,
+        'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags' | 'interruptedDraft'
+      >
     >
   ) => withTimeout(ipcRenderer.invoke('update-chat', id, patch), IPC_TIMEOUT_MS, 'updateChat'),
 

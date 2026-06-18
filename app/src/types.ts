@@ -34,6 +34,17 @@ export interface ChatFolder {
   updatedAt: string
 }
 
+export interface InterruptedDraft {
+  /** Частичные токены ответа ассистента на момент обрыва */
+  partial: string
+  /** Сообщение пользователя, которое вызвало прогон (для повтора) */
+  userMessage: string
+  /** Причина обрыва */
+  reason: 'timeout' | 'error'
+  /** Метка времени (мс) */
+  timestamp: number
+}
+
 export interface SavedChat {
   id: string
   title: string
@@ -46,6 +57,8 @@ export interface SavedChat {
   pinned?: boolean
   /** Теги для фильтрации */
   tags?: string[]
+  /** Черновик, сохранённый при обрыве стрима */
+  interruptedDraft?: InterruptedDraft | null
 }
 
 export interface ChatStore {
@@ -354,7 +367,10 @@ export interface CodeViperAPI {
   updateChat: (
     id: string,
     patch: Partial<
-      Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+      Pick<
+        SavedChat,
+        'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags' | 'interruptedDraft'
+      >
     >
   ) => Promise<SavedChat | null>
   deleteChat: (id: string) => Promise<void>

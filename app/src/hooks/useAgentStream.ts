@@ -34,6 +34,7 @@ export function useAgentStream({
 }: UseAgentStreamOptions) {
   const [draft, setDraft] = useState('')
   const [draftThinking, setDraftThinking] = useState('')
+  const draftRef = useRef('')
   const [agentPhase, setAgentPhase] = useState<AgentPhase>('thinking')
   const [activeToolName, setActiveToolName] = useState<string | undefined>()
   const [summarizing, setSummarizing] = useState(false)
@@ -79,12 +80,17 @@ export function useAgentStream({
       if (event.type === 'token') {
         setAgentPhase('writing')
         if (genStartRef.current === null) genStartRef.current = Date.now()
-        setDraft((prev) => prev + (event.content ?? ''))
+        setDraft((prev) => {
+          const next = prev + (event.content ?? '')
+          draftRef.current = next
+          return next
+        })
       }
 
       if (event.type === 'clear_draft') {
         setDraft('')
         setDraftThinking('')
+        draftRef.current = ''
         genStartRef.current = null
       }
 
@@ -239,6 +245,7 @@ export function useAgentStream({
         }
         setDraft('')
         setDraftThinking('')
+        draftRef.current = ''
         setAgentPhase('thinking')
         setActiveToolName(undefined)
         setSummarizing(false)
@@ -254,6 +261,7 @@ export function useAgentStream({
   return {
     draft,
     draftThinking,
+    draftRef,
     agentPhase,
     activeToolName,
     summarizing,

@@ -4,13 +4,24 @@ import { mkdir, readFile, rename, unlink } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
-import type { ChatFolder, ChatMessage, ChatStore, SavedChat } from '../../src/types'
+import type {
+  ChatFolder,
+  ChatMessage,
+  ChatStore,
+  InterruptedDraft,
+  SavedChat
+} from '../../src/types'
 
 export { makeChatTitle, deriveChatTitle } from '../../shared/chatTitle'
 
 const MAX_CHATS = 150
 const MAX_MESSAGES_PER_CHAT = 400
 const MAX_CHAT_JSON_CHARS = 1_500_000
+
+interface ChatDataFile {
+  messages: ChatMessage[]
+  interruptedDraft?: InterruptedDraft | null
+}
 
 interface ChatIndexEntry {
   id: string
@@ -85,25 +96,34 @@ async function saveIndex(index: ChatsIndex): Promise<void> {
   await writeJsonAtomic(indexPath(), index)
 }
 
-async function loadChatData(id: string): Promise<ChatMessage[]> {
+async function loadChatData(id: string): Promise<ChatDataFile> {
   const path = chatDataPath(id)
-  if (!existsSync(path)) return []
+  if (!existsSync(path)) return { messages: [] }
 
   try {
     const raw = await readFile(path, 'utf-8')
-    const parsed = JSON.parse(raw) as { messages?: ChatMessage[] }
+    const parsed = JSON.parse(raw) as ChatDataFile
     if (!Array.isArray(parsed.messages)) throw new Error('bad chat data shape')
-    return parsed.messages
+    return {
+      messages: parsed.messages,
+      interruptedDraft: parsed.interruptedDraft ?? null
+    }
   } catch {
     // Файл чата повреждён — спасаем его, иначе автосейв затрёт сообщения пустым массивом.
     await backupCorruptFile(path)
-    return []
+    return { messages: [] }
   }
 }
 
-async function saveChatData(id: string, messages: ChatMessage[]): Promise<void> {
+async function saveChatData(
+  id: string,
+  messages: ChatMessage[],
+  interruptedDraft?: InterruptedDraft | null
+): Promise<void> {
   const trimmed = trimChatMessages(messages)
-  await writeJsonAtomic(chatDataPath(id), { messages: trimmed })
+  const data: ChatDataFile = { messages: trimmed }
+  if (interruptedDraft !== undefined) data.interruptedDraft = interruptedDraft
+  await writeJsonAtomic(chatDataPath(id), data)
 }
 
 function indexEntryFromChat(chat: SavedChat): ChatIndexEntry {
@@ -120,12 +140,13 @@ function indexEntryFromChat(chat: SavedChat): ChatIndexEntry {
 }
 
 async function hydrateChat(entry: ChatIndexEntry): Promise<SavedChat> {
-  const messages = await loadChatData(entry.id)
+  const data = await loadChatData(entry.id)
   return {
     ...entry,
-    messages,
+    messages: data.messages,
     ...(entry.pinned !== undefined ? { pinned: entry.pinned } : {}),
-    ...(entry.tags?.length ? { tags: entry.tags } : {})
+    ...(entry.tags?.length ? { tags: entry.tags } : {}),
+    ...(data.interruptedDraft ? { interruptedDraft: data.interruptedDraft } : {})
   }
 }
 
@@ -152,7 +173,7 @@ async function migrateLegacyStoreIfNeeded(): Promise<void> {
 
     for (const chat of parsed.chats ?? []) {
       const messages = trimChatMessages(chat.messages ?? [])
-      await saveChatData(chat.id, messages)
+      await saveChatData(chat.id, messages, null)
       index.chats.push(indexEntryFromChat({ ...chat, messages }))
     }
 
@@ -218,7 +239,7 @@ export async function createChat(folderId: string | null = null): Promise<SavedC
   index.activeChatId = chat.id
   enforceChatLimit(index)
 
-  await saveChatData(chat.id, [])
+  await saveChatData(chat.id, [], null)
   await saveIndex(index)
   return chat
 }
@@ -226,7 +247,10 @@ export async function createChat(folderId: string | null = null): Promise<SavedC
 export async function updateChat(
   id: string,
   patch: Partial<
-    Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+    Pick<
+      SavedChat,
+      'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags' | 'interruptedDraft'
+    >
   >
 ): Promise<SavedChat | null> {
   const index = await loadIndex()
@@ -240,8 +264,12 @@ export async function updateChat(
   if (patch.tags !== undefined) entry.tags = patch.tags
   entry.updatedAt = new Date().toISOString()
 
-  if (patch.messages !== undefined) {
-    await saveChatData(id, patch.messages)
+  if (patch.messages !== undefined || patch.interruptedDraft !== undefined) {
+    const existing = await loadChatData(id)
+    const messages = patch.messages ?? existing.messages
+    const interruptedDraft =
+      patch.interruptedDraft !== undefined ? patch.interruptedDraft : existing.interruptedDraft
+    await saveChatData(id, messages, interruptedDraft)
   }
 
   await saveIndex(index)

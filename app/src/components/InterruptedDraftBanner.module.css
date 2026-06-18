@@ -1,0 +1,70 @@
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--color-warning-bg, rgba(255, 180, 0, 0.12));
+  border-bottom: 1px solid var(--color-warning-border, rgba(255, 180, 0, 0.35));
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.text {
+  color: var(--color-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.partial {
+  color: var(--color-muted);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btnRetry {
+  padding: 3px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-fg, #fff);
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btnRetry:hover {
+  opacity: 0.85;
+}
+
+.btnDismiss {
+  padding: 3px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.btnDismiss:hover {
+  color: var(--color-fg);
+}
