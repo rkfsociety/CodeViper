@@ -690,10 +690,12 @@ export class AgentRunner {
   private async chat(messages: OllamaMessage[], options?: { requireTool?: boolean }) {
     this.throwIfAborted()
 
-    // Для Ollama: убедиться, что модель загружена (не делаем pull для cloud-провайдеров)
+    // Для Ollama: убедиться, что модель загружена и выгрузить остальные
     if (this.providerConfig.type === 'ollama') {
       try {
         await this.modelRuntime.ensureModelLoaded(this.settings.model, this.signal)
+        // Выгрузить все остальные модели
+        await this.modelRuntime.prepareModel(this.settings.model)
       } catch (err) {
         // Ошибка загрузки неблокирующая — Ollama может загрузить при запросе
         void agentLogger.write({
