@@ -1,7 +1,16 @@
+import { resolve } from 'path'
 import type { AgentSettings } from '../../src/types'
 import type { ToolHandlers } from './agentTools'
 import { safeReadFile } from './services'
 import { buildModelfile, parseTrainingData, prepareModelFromTrainingFile } from './ollamaModels'
+
+function resolveDataPath(projectPath: string, dataPath: string): string {
+  // Если путь уже абсолютный — используем как есть, иначе резолвим относительно проекта
+  if (dataPath.startsWith('/') || dataPath.match(/^[a-zA-Z]:\\/)) {
+    return dataPath
+  }
+  return resolve(projectPath, dataPath)
+}
 
 export function createModelToolHandlers(
   projectPath: string,
@@ -10,7 +19,8 @@ export function createModelToolHandlers(
 ): Partial<ToolHandlers> {
   return {
     preview_ollama_modelfile: async (args) => {
-      const raw = await safeReadFile(projectPath, args.data_path)
+      const filePath = resolveDataPath(projectPath, args.data_path)
+      const raw = await safeReadFile(projectPath, filePath)
       const examples = parseTrainingData(raw)
       if (!examples.length) {
         return 'Ошибка: в файле нет примеров {user, assistant} (JSON или JSONL).'
@@ -25,7 +35,8 @@ export function createModelToolHandlers(
     },
 
     create_ollama_model: async (args) => {
-      const raw = await safeReadFile(projectPath, args.data_path)
+      const filePath = resolveDataPath(projectPath, args.data_path)
+      const raw = await safeReadFile(projectPath, filePath)
       const temperature = args.temperature ? Number(args.temperature) : undefined
       const result = await prepareModelFromTrainingFile({
         baseUrl: settings.ollamaUrl,

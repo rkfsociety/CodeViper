@@ -32,7 +32,7 @@ export function AgentContextBar({ preview, loading, error, onOpen }: Props) {
       >
         <span className="context-bar-icon">◎</span>
         <span className="context-bar-label">Контекст</span>
-        {loading ? (
+        {loading && !preview ? (
           <span className="context-bar-stat">обновление…</span>
         ) : error ? (
           <span className="context-bar-stat danger" title={error}>
