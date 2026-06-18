@@ -1011,8 +1011,51 @@ button {
   border-top: 1px solid var(--border);
 }
 
-.terminal-input input {
+.terminal-input-wrap {
   flex: 1;
+  position: relative;
+}
+
+.terminal-input-wrap input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.terminal-suggestions {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.terminal-suggestions li {
+  padding: 6px 12px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+
+.terminal-suggestions li:hover,
+.terminal-suggestions li.selected {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+.terminal-input input {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-base);
@@ -1204,7 +1247,9 @@ button {
   background: var(--bg-element);
   border: 1px solid var(--border);
   position: relative;
-  transition: background 0.18s, border-color 0.18s;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
   margin-top: 1px;
 }
 
@@ -1221,7 +1266,9 @@ button {
   height: 16px;
   border-radius: 50%;
   background: #8b949e;
-  transition: transform 0.18s, background 0.18s;
+  transition:
+    transform 0.18s,
+    background 0.18s;
 }
 
 .settings-toggle input:checked + .toggle-track .toggle-thumb {
@@ -1908,7 +1955,9 @@ button {
   border-radius: 999px;
   color: var(--blue-light);
   background: var(--bg-msg-user);
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .model-picker-btn:hover,
