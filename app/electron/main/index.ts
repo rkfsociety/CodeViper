@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { existsSync } from 'fs'
 import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
@@ -42,6 +42,7 @@ import { loadWindowState, trackWindowState, windowOptionsFromState } from './win
 import { readAppState, writeAppState, clearAppState } from './appState'
 import { startSystemStatsPush, stopSystemStatsPush } from './systemStats'
 import { setProgressTarget, clearProgress } from './progress'
+import { listPullRequests } from './githubPr'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -315,6 +316,15 @@ ipcMain.handle(
   async (_e, projectPath: string, history: ChatMessage[], userMessage: string, model: string) =>
     buildAgentContextPreview(projectPath, history, userMessage, model)
 )
+
+ipcMain.handle('list-pull-requests', async () => listPullRequests())
+
+ipcMain.on('open-external', (_e, url: string) => {
+  // Открываем только http(s)-ссылки во внешнем браузере.
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+    void shell.openExternal(url)
+  }
+})
 
 ipcMain.handle('load-settings', async () => loadSettings())
 

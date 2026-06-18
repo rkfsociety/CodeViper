@@ -17,6 +17,9 @@ import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 const TerminalPanel = lazy(() =>
   import('./components/TerminalPanel').then((m) => ({ default: m.TerminalPanel }))
 )
+const PrStatusPanel = lazy(() =>
+  import('./components/PrStatusPanel').then((m) => ({ default: m.PrStatusPanel }))
+)
 const SettingsModal = lazy(() =>
   import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal }))
 )
@@ -52,6 +55,7 @@ export default function App() {
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
+  const [prPanelOpen, setPrPanelOpen] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
   const [activeRunModel, setActiveRunModel] = useState('')
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
@@ -499,6 +503,13 @@ export default function App() {
             Терминал
           </button>
           <button
+            className={`btn ${prPanelOpen ? 'active' : ''}`}
+            onClick={() => setPrPanelOpen((open) => !open)}
+            title="Статус Pull Requests"
+          >
+            PR
+          </button>
+          <button
             className="btn"
             title={lightMode ? 'Тёмная тема' : 'Светлая тема'}
             onClick={() => setLightMode((v) => !v)}
@@ -570,6 +581,24 @@ export default function App() {
               ) : (
                 <div className="hint">Выберите проект в чате, чтобы пользоваться терминалом</div>
               )}
+            </div>
+          )}
+
+          {prPanelOpen && (
+            <div className="terminal-dock">
+              <div className="terminal-dock-header">
+                <span>Pull Requests</span>
+                <button
+                  type="button"
+                  className="btn terminal-dock-close"
+                  onClick={() => setPrPanelOpen(false)}
+                >
+                  Скрыть
+                </button>
+              </div>
+              <Suspense fallback={null}>
+                <PrStatusPanel />
+              </Suspense>
             </div>
           )}
         </section>

@@ -217,6 +217,11 @@ const codeviper = {
     return () => ipcRenderer.removeListener('progress-event', handler)
   },
 
+  listPullRequests: () =>
+    withTimeout(ipcRenderer.invoke('list-pull-requests'), 30_000, 'listPullRequests'),
+
+  openExternal: (url: string) => ipcRenderer.send('open-external', url),
+
   logFrontendError: (message: string, stack?: string) =>
     ipcRenderer.send('log-frontend-error', message, stack),
 

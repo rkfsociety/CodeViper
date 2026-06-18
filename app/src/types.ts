@@ -285,6 +285,23 @@ export interface ProgressInfo {
   percent: number | null
 }
 
+export type CiStatus = 'success' | 'failure' | 'pending' | 'none'
+
+export interface PullRequestInfo {
+  number: number
+  title: string
+  headRefName: string
+  url: string
+  isDraft: boolean
+  ciStatus: CiStatus
+}
+
+export interface PullRequestListResult {
+  ok: boolean
+  prs?: PullRequestInfo[]
+  error?: string
+}
+
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   readFile: (projectPath: string, filePath: string) => Promise<string>
@@ -353,6 +370,8 @@ export interface CodeViperAPI {
   ) => Promise<string>
   onSystemStats: (cb: (stats: SystemStats) => void) => () => void
   onProgressEvent: (cb: (progress: ProgressInfo | null) => void) => () => void
+  listPullRequests: () => Promise<PullRequestListResult>
+  openExternal: (url: string) => void
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>
