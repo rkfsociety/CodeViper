@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import type { MemoryEntry } from '../types'
 
 interface Props {
@@ -8,8 +9,6 @@ interface Props {
   githubToken?: string
   refreshKey?: number
 }
-
-const PAGE_SIZE = 12
 
 const CATEGORY_LABELS: Record<MemoryEntry['category'], string> = {
   pattern: 'паттерн',
@@ -28,9 +27,16 @@ export function MemoryPanel({
 }: Props) {
   const [entries, setEntries] = useState<MemoryEntry[]>([])
   const [loading, setLoading] = useState(false)
-  const [visible, setVisible] = useState(PAGE_SIZE)
   const [sharing, setSharing] = useState(false)
   const [shareResult, setShareResult] = useState<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  const rowVirtualizer = useVirtualizer({
+    count: entries.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 90,
+    overscan: 3
+  })
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -102,31 +108,42 @@ export function MemoryPanel({
         </div>
       )}
 
-      <div className="memory-list">
-        {entries.slice(0, visible).map((entry) => (
-          <div key={entry.id} className="memory-item">
-            <div className="memory-item-head">
-              <span className="memory-badge">{CATEGORY_LABELS[entry.category]}</span>
-              <span className="memory-scope">{entry.scope}</span>
-              <button className="btn memory-delete" onClick={() => remove(entry.id)}>
-                ✕
-              </button>
-            </div>
-            <div className="memory-content">{entry.content}</div>
-            {entry.tags.length > 0 && <div className="memory-tags">{entry.tags.join(' · ')}</div>}
-          </div>
-        ))}
+      <div ref={listRef} className="memory-list">
+        <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const entry = entries[virtualRow.index]
+            return (
+              <div
+                key={virtualRow.key}
+                ref={rowVirtualizer.measureElement}
+                data-index={virtualRow.index}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                  paddingBottom: 8
+                }}
+              >
+                <div className="memory-item">
+                  <div className="memory-item-head">
+                    <span className="memory-badge">{CATEGORY_LABELS[entry.category]}</span>
+                    <span className="memory-scope">{entry.scope}</span>
+                    <button className="btn memory-delete" onClick={() => remove(entry.id)}>
+                      ✕
+                    </button>
+                  </div>
+                  <div className="memory-content">{entry.content}</div>
+                  {entry.tags.length > 0 && (
+                    <div className="memory-tags">{entry.tags.join(' · ')}</div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
-
-      {entries.length > visible && (
-        <button
-          type="button"
-          className="btn memory-more-btn"
-          onClick={() => setVisible((v) => v + PAGE_SIZE)}
-        >
-          Показать ещё ({entries.length - visible})
-        </button>
-      )}
     </div>
   )
 }

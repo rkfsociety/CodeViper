@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react'
-import type { ChatStore, SavedChat } from '../types'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import type { ChatFolder, ChatStore, SavedChat } from '../types'
 import { PromptDialog } from './PromptDialog'
 import { ConfirmDialog } from './ConfirmDialog'
 
@@ -18,8 +19,6 @@ interface Props {
   onMoveChat: (chatId: string, folderId: string | null) => void
 }
 
-const CHAT_PAGE_SIZE = 40
-
 type DropTarget = string | null | 'root'
 
 type PromptState =
@@ -30,6 +29,12 @@ type PromptState =
 type ConfirmState =
   | { kind: 'delete-chat'; chatId: string; title: string }
   | { kind: 'delete-folder'; folderId: string; name: string }
+
+type FlatItem =
+  | { kind: 'folder-head'; folder: ChatFolder }
+  | { kind: 'folder-chat'; chat: SavedChat; folderId: string }
+  | { kind: 'root-head' }
+  | { kind: 'root-chat'; chat: SavedChat }
 
 function formatProject(path: string): string {
   if (!path.trim()) return 'без проекта'
@@ -70,7 +75,7 @@ export function ChatHistoryPanel({
   const [dropTarget, setDropTarget] = useState<DropTarget | undefined>(undefined)
   const [prompt, setPrompt] = useState<PromptState | null>(null)
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
-  const [chatLimit, setChatLimit] = useState(CHAT_PAGE_SIZE)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const filteredChats = useMemo(() => {
     const chats = store?.chats ?? []
@@ -107,6 +112,36 @@ export function ChatHistoryPanel({
     }
     return map
   }, [store?.chats])
+
+  const flatItems = useMemo<FlatItem[]>(() => {
+    const items: FlatItem[] = []
+    for (const folder of folders) {
+      items.push({ kind: 'folder-head', folder })
+      if (!collapsed[folder.id]) {
+        for (const chat of chatsByFolder.get(folder.id) ?? []) {
+          items.push({ kind: 'folder-chat', chat, folderId: folder.id })
+        }
+      }
+    }
+    if (rootChats.length > 0 || draggingChatId) {
+      items.push({ kind: 'root-head' })
+      for (const chat of rootChats) {
+        items.push({ kind: 'root-chat', chat })
+      }
+    }
+    return items
+  }, [folders, chatsByFolder, collapsed, rootChats, draggingChatId])
+
+  const rowVirtualizer = useVirtualizer({
+    count: flatItems.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: (i) => {
+      const item = flatItems[i]
+      if (!item || item.kind === 'folder-head' || item.kind === 'root-head') return 42
+      return 74
+    },
+    overscan: 5
+  })
 
   const toggleFolder = useCallback((folderId: string) => {
     setCollapsed((prev) => ({ ...prev, [folderId]: !prev[folderId] }))
@@ -245,28 +280,69 @@ export function ChatHistoryPanel({
     )
   }
 
-  const dropZoneClass = useCallback(
-    (target: DropTarget): string => {
-      return dropTarget === target ? 'drop-target' : ''
-    },
-    [dropTarget]
-  )
-
-  function renderChatList(chats: SavedChat[]) {
-    const shown = chats.slice(0, chatLimit)
+  function renderFolderHead(folder: ChatFolder) {
+    const isCollapsed = collapsed[folder.id]
+    const chats = chatsByFolder.get(folder.id) ?? []
     return (
-      <>
-        {shown.map(renderChat)}
-        {chats.length > chatLimit && (
-          <button
-            type="button"
-            className="btn memory-more-btn"
-            onClick={() => setChatLimit((value) => value + CHAT_PAGE_SIZE)}
+      <div
+        className={`chat-history-folder-head ${dropTarget === folder.id ? 'drop-target' : ''}`}
+        onDragOver={(e) => handleDragOver(folder.id, e)}
+        onDragLeave={() => setDropTarget(undefined)}
+        onDrop={(e) => handleDrop(folder.id, e)}
+      >
+        <button className="chat-history-folder-toggle" onClick={() => toggleFolder(folder.id)}>
+          {isCollapsed ? '▶' : '▼'}
+        </button>
+        <span className="chat-history-folder-label">
+          <span
+            className="chat-history-folder-name"
+            onDoubleClick={() =>
+              setPrompt({
+                kind: 'rename-folder',
+                folderId: folder.id,
+                defaultValue: folder.name
+              })
+            }
           >
-            Показать ещё ({chats.length - chatLimit})
-          </button>
-        )}
-      </>
+            📁 {folder.name}
+          </span>
+          {folder.projectPath && (
+            <span className="chat-history-folder-project" title={folder.projectPath}>
+              {formatProject(folder.projectPath)}
+            </span>
+          )}
+        </span>
+        <span className="chat-history-folder-count">{chats.length}</span>
+        <button
+          className="btn chat-history-btn"
+          title={folder.projectPath ? `Проект: ${folder.projectPath}` : 'Привязать проект к папке'}
+          aria-label={
+            folder.projectPath ? `Проект папки: ${folder.projectPath}` : 'Привязать проект к папке'
+          }
+          onClick={() => onUpdateFolderProject(folder.id)}
+        >
+          📂
+        </button>
+        <button
+          className="btn chat-history-btn"
+          title="Новый чат в папке"
+          aria-label="Новый чат в папке"
+          disabled={chatBusy}
+          onClick={() => onCreateChat(folder.id)}
+        >
+          +
+        </button>
+        <button
+          className="btn chat-history-btn"
+          title="Удалить папку"
+          aria-label="Удалить папку"
+          onClick={() =>
+            setConfirm({ kind: 'delete-folder', folderId: folder.id, name: folder.name })
+          }
+        >
+          ✕
+        </button>
+      </div>
     )
   }
 
@@ -301,112 +377,72 @@ export function ChatHistoryPanel({
         )}
       </div>
 
-      <div className="chat-history-list" role="tree" aria-label="История чатов">
-        {folders.map((folder) => {
-          const chats = chatsByFolder.get(folder.id) ?? []
-          const isCollapsed = collapsed[folder.id]
-
-          return (
-            <div key={folder.id} className="chat-history-folder">
-              <div
-                className={`chat-history-folder-head ${dropZoneClass(folder.id)}`}
-                onDragOver={(e) => handleDragOver(folder.id, e)}
-                onDragLeave={() => setDropTarget(undefined)}
-                onDrop={(e) => handleDrop(folder.id, e)}
-              >
-                <button
-                  className="chat-history-folder-toggle"
-                  onClick={() => toggleFolder(folder.id)}
-                >
-                  {isCollapsed ? '▶' : '▼'}
-                </button>
-                <span className="chat-history-folder-label">
-                  <span
-                    className="chat-history-folder-name"
-                    onDoubleClick={() =>
-                      setPrompt({
-                        kind: 'rename-folder',
-                        folderId: folder.id,
-                        defaultValue: folder.name
-                      })
-                    }
-                  >
-                    📁 {folder.name}
-                  </span>
-                  {folder.projectPath && (
-                    <span className="chat-history-folder-project" title={folder.projectPath}>
-                      {formatProject(folder.projectPath)}
-                    </span>
-                  )}
-                </span>
-                <span className="chat-history-folder-count">{chats.length}</span>
-                <button
-                  className="btn chat-history-btn"
-                  title={
-                    folder.projectPath
-                      ? `Проект: ${folder.projectPath}`
-                      : 'Привязать проект к папке'
-                  }
-                  aria-label={
-                    folder.projectPath
-                      ? `Проект папки: ${folder.projectPath}`
-                      : 'Привязать проект к папке'
-                  }
-                  onClick={() => onUpdateFolderProject(folder.id)}
-                >
-                  📂
-                </button>
-                <button
-                  className="btn chat-history-btn"
-                  title="Новый чат в папке"
-                  aria-label="Новый чат в папке"
-                  disabled={chatBusy}
-                  onClick={() => onCreateChat(folder.id)}
-                >
-                  +
-                </button>
-                <button
-                  className="btn chat-history-btn"
-                  title="Удалить папку"
-                  aria-label="Удалить папку"
-                  onClick={() =>
-                    setConfirm({ kind: 'delete-folder', folderId: folder.id, name: folder.name })
-                  }
-                >
-                  ✕
-                </button>
-              </div>
-              {!isCollapsed && (
-                <div
-                  className={`chat-history-folder-chats ${dropZoneClass(folder.id)}`}
-                  onDragOver={(e) => handleDragOver(folder.id, e)}
-                  onDragLeave={() => setDropTarget(undefined)}
-                  onDrop={(e) => handleDrop(folder.id, e)}
-                >
-                  {renderChatList(chats)}
-                </div>
-              )}
-            </div>
-          )
-        })}
-
-        {(rootChats.length > 0 || draggingChatId) && (
-          <div
-            className={`chat-history-section ${dropZoneClass('root')}`}
-            onDragOver={(e) => handleDragOver('root', e)}
-            onDragLeave={() => setDropTarget(undefined)}
-            onDrop={(e) => handleDrop('root', e)}
-          >
-            <div className="chat-history-section-title">Без папки</div>
-            {renderChatList(rootChats)}
-          </div>
-        )}
-
-        {!filteredChats.length && (
+      <div ref={listRef} className="chat-history-list" role="tree" aria-label="История чатов">
+        {filteredChats.length === 0 && (
           <div className="empty">
             {searchQuery.trim()
               ? 'Ничего не найдено.'
               : 'Нет чатов. Создай первый — кнопка «+ Чат».'}
+          </div>
+        )}
+
+        {flatItems.length > 0 && (
+          <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+            {rowVirtualizer.getVirtualItems().map((vRow) => {
+              const item = flatItems[vRow.index]
+              if (!item) return null
+
+              return (
+                <div
+                  key={vRow.key}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={vRow.index}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${vRow.start}px)`,
+                    paddingBottom: 4
+                  }}
+                >
+                  {item.kind === 'folder-head' && renderFolderHead(item.folder)}
+
+                  {item.kind === 'folder-chat' && (
+                    <div
+                      className={dropTarget === item.folderId ? 'drop-target' : ''}
+                      onDragOver={(e) => handleDragOver(item.folderId, e)}
+                      onDragLeave={() => setDropTarget(undefined)}
+                      onDrop={(e) => handleDrop(item.folderId, e)}
+                    >
+                      {renderChat(item.chat)}
+                    </div>
+                  )}
+
+                  {item.kind === 'root-head' && (
+                    <div
+                      className={`chat-history-section-title${dropTarget === 'root' ? ' drop-target' : ''}`}
+                      onDragOver={(e) => handleDragOver('root', e)}
+                      onDragLeave={() => setDropTarget(undefined)}
+                      onDrop={(e) => handleDrop('root', e)}
+                    >
+                      Без папки
+                    </div>
+                  )}
+
+                  {item.kind === 'root-chat' && (
+                    <div
+                      className={dropTarget === 'root' ? 'drop-target' : ''}
+                      onDragOver={(e) => handleDragOver('root', e)}
+                      onDragLeave={() => setDropTarget(undefined)}
+                      onDrop={(e) => handleDrop('root', e)}
+                    >
+                      {renderChat(item.chat)}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

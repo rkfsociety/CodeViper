@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import type { AgentSkill } from '../types'
 import { isBuiltinSkill } from '../types'
 
@@ -8,14 +9,12 @@ interface Props {
   refreshKey?: number
 }
 
-const PAGE_SIZE = 10
-
 export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props) {
   const [skills, setSkills] = useState<AgentSkill[]>([])
   const [loading, setLoading] = useState(false)
-  const [visible, setVisible] = useState(PAGE_SIZE)
   const [sharing, setSharing] = useState(false)
   const [shareResult, setShareResult] = useState<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -35,6 +34,13 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
     () => skills.filter((skill) => skill.scope === 'project'),
     [skills]
   )
+
+  const rowVirtualizer = useVirtualizer({
+    count: globalSkills.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 82,
+    overscan: 3
+  })
 
   async function remove(id: string) {
     await window.codeviper.deleteSkill(projectPath, id)
@@ -59,11 +65,10 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
     }
   }
 
-  function renderSkill(skill: AgentSkill) {
+  function renderSkillContent(skill: AgentSkill) {
     const builtin = isBuiltinSkill(skill.id)
-
     return (
-      <div key={skill.id} className="memory-item skill-item">
+      <div className="memory-item skill-item">
         <div className="memory-item-head">
           <span className="memory-badge skill-badge">{skill.name}</span>
           {builtin ? (
@@ -110,17 +115,30 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
         <div className="empty">Пока нет навыков — попроси агента создать.</div>
       )}
 
-      <div className="memory-list">{globalSkills.slice(0, visible).map(renderSkill)}</div>
-
-      {globalSkills.length > visible && (
-        <button
-          type="button"
-          className="btn memory-more-btn"
-          onClick={() => setVisible((v) => v + PAGE_SIZE)}
-        >
-          Показать ещё ({globalSkills.length - visible})
-        </button>
-      )}
+      <div ref={listRef} className="memory-list">
+        <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const skill = globalSkills[virtualRow.index]
+            return (
+              <div
+                key={virtualRow.key}
+                ref={rowVirtualizer.measureElement}
+                data-index={virtualRow.index}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                  paddingBottom: 8
+                }}
+              >
+                {renderSkillContent(skill)}
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
       {legacyProjectSkills.length > 0 && (
         <>
@@ -130,7 +148,13 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
           <div className="empty skills-hint">
             Раньше навыки могли сохраняться в .codeviper проекта. Новые создаются только глобально.
           </div>
-          <div className="memory-list">{legacyProjectSkills.map(renderSkill)}</div>
+          <div className="memory-list">
+            {legacyProjectSkills.map((skill) => (
+              <div key={skill.id} style={{ paddingBottom: 8 }}>
+                {renderSkillContent(skill)}
+              </div>
+            ))}
+          </div>
         </>
       )}
     </div>

@@ -1455,8 +1455,6 @@ button {
 }
 
 .memory-list {
-  display: grid;
-  gap: 8px;
   max-height: 220px;
   overflow: auto;
 }
@@ -1580,9 +1578,6 @@ button {
   flex: 1;
   overflow: auto;
   padding: 8px;
-  display: grid;
-  gap: 8px;
-  align-content: start;
 }
 
 .chat-history-folder-head {
