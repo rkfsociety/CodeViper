@@ -65,6 +65,8 @@ export function useAgentStream({
   const resetStreamState = useCallback(() => {
     setDraft('')
     setDraftThinking('')
+    draftRef.current = ''
+    draftThinkingRef.current = ''
     setAgentPhase('thinking')
     setActiveToolName(undefined)
     setSummarizing(false)
