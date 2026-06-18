@@ -1,1 +1,1 @@
-npm test
+cd app && npx lint-staged
