@@ -28,36 +28,36 @@
   --text-tool: #b6c2cf;
 
   /* ── Синий ───────────────────────────────────────────────────────────── */
-  --blue: var(--blue);
-  --blue-light: var(--blue-light);
-  --blue-bright: var(--blue-bright);
-  --blue-deep: var(--blue-deep);
+  --blue: #58a6ff;
+  --blue-light: #79c0ff;
+  --blue-bright: #1f6feb;
+  --blue-deep: #388bfd;
 
   /* ── Зелёный ─────────────────────────────────────────────────────────── */
-  --green-light: var(--green-light);
-  --green: var(--green);
-  --green-medium: var(--green-medium);
-  --green-dark: var(--green-dark);
+  --green-light: #56d364;
+  --green: #3fb950;
+  --green-medium: #2ea043;
+  --green-dark: #238636;
 
   /* ── Жёлтый / предупреждение ─────────────────────────────────────────── */
-  --yellow: var(--yellow);
-  --yellow-light: var(--yellow-light);
-  --yellow-bright: var(--yellow-bright);
-  --yellow-prereq: var(--yellow-prereq);
+  --yellow: #d29922;
+  --yellow-light: #e3b341;
+  --yellow-bright: #f2cc60;
+  --yellow-prereq: #d29922;
 
   /* ── Красный / ошибка ────────────────────────────────────────────────── */
-  --red: var(--red);
-  --red-light: var(--red-light);
-  --red-bg: var(--red-bg);
-  --red-bg-hover: var(--red-bg-hover);
-  --red-bg-dark: var(--red-bg-dark);
+  --red: #f85149;
+  --red-light: #ff7b72;
+  --red-bg: #2d1517;
+  --red-bg-hover: #3d1a1d;
+  --red-bg-dark: #261113;
 
   /* ── Фиолетовый ──────────────────────────────────────────────────────── */
-  --purple: var(--purple);
-  --purple-light: var(--purple-light);
-  --purple-medium: var(--purple-medium);
-  --purple-bright: var(--purple-bright);
-  --purple-bg: var(--purple-bg);
+  --purple: #a371f7;
+  --purple-light: #d2a8ff;
+  --purple-medium: #8957e5;
+  --purple-bright: #bc8cff;
+  --purple-bg: #211633;
 
   /* ── Радиусы ─────────────────────────────────────────────────────────── */
   --radius-xs: 4px;
