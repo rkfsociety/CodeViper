@@ -496,11 +496,11 @@ export class AgentRunner {
           if (assistantText) {
             this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
           } else if (!autonomousSelfImprove) {
-            // Модель вернула пустой ответ и не вызвала инструменты — не молчим.
+            // Модель не вернула ответ и не вызвала инструменты — не молчим.
             this.emit({
               type: 'error',
               content:
-                'Модель вернула пустой ответ и не вызвала инструменты. Выбери модель с поддержкой function calling (например deepseek-chat или qwen2.5-coder) или переформулируй задачу.'
+                'Модель не ответила и не вызвала инструменты. Модель может быть перегружена или неисправна. Попробуй выбрать другую модель, переформулировать задачу или перезагрузить приложение.'
             })
           }
           if (this.settings.selfLearning !== false) {
