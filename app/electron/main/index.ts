@@ -6,6 +6,7 @@ import {
   AgentRunner,
   deleteOllamaModel,
   fetchOllamaModels,
+  fetchOllamaModelsWithDetails,
   pingOllama,
   pullOllamaModel
 } from './agent'
@@ -42,7 +43,8 @@ import { createGist, formatMemoriesAsMarkdown, formatSkillsAsMarkdown } from './
 import { makeId } from '../../shared/makeId'
 import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
 import { readAppState, writeAppState, clearAppState } from './appState'
-import { startSystemStatsPush, stopSystemStatsPush } from './systemStats'
+import { startSystemStatsPush, stopSystemStatsPush, getSystemCapabilities } from './systemStats'
+import { enrichModelCapabilities } from './modelSelection'
 import { setProgressTarget, clearProgress } from './progress'
 import { listPullRequests } from './githubPr'
 import { startUpdateChecks } from './updateChecker'
@@ -184,9 +186,12 @@ ipcMain.handle('write-file', async (_e, projectPath: string, filePath: string, c
 
 ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') => pingOllama(url))
 
-ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') =>
-  fetchOllamaModels(url)
-)
+ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') => {
+  const models = await fetchOllamaModelsWithDetails(url)
+  const systemCaps = await getSystemCapabilities()
+  // Обогащаем модели информацией о совместимости
+  return enrichModelCapabilities(models, systemCaps)
+})
 
 ipcMain.handle(
   'list-provider-models',

@@ -49,6 +49,13 @@ export interface ChatChunk {
 export interface LoadedModel {
   name: string
   size?: number
+  // Информация о совместимости с системой (добавляется на сервере)
+  sizeGB?: number
+  contextLength?: number
+  parameterSize?: string
+  isSupported?: boolean
+  reason?: string
+  recommendedFor?: string
 }
 
 export type ModelPlacement = 'gpu' | 'cpu' | 'partial' | 'unknown'

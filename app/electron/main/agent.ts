@@ -1025,6 +1025,45 @@ export async function fetchOllamaModels(baseUrl: string) {
   }))
 }
 
+/** Получить модели Ollama с деталями (параметры, контекст) для фильтрации по возможностям */
+export async function fetchOllamaModelsWithDetails(baseUrl: string) {
+  const url = baseUrl.replace(/\/$/, '')
+  const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(10_000) })
+  if (!res.ok) throw new Error('Ollama недоступна')
+  const data = (await res.json()) as {
+    models?: Array<{ name: string; size: number; modified_at: string }>
+  }
+
+  const models = data.models ?? []
+  const detailed = await Promise.all(
+    models.map(async (m) => {
+      try {
+        const detRes = await fetch(`${url}/api/show`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: m.name }),
+          signal: AbortSignal.timeout(5_000)
+        })
+        if (detRes.ok) {
+          const details = (await detRes.json()) as {
+            details?: { parameter_size?: string; context_length?: number }
+          }
+          return {
+            name: m.name,
+            size: m.size,
+            details: details.details
+          }
+        }
+      } catch {
+        // пропускаем ошибку
+      }
+      return { name: m.name, size: m.size }
+    })
+  )
+
+  return detailed
+}
+
 export async function pingOllama(baseUrl: string): Promise<boolean> {
   try {
     const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(5_000) })

@@ -6,6 +6,29 @@ export interface SystemStats {
   gpu: number | null
 }
 
+export interface SystemCapabilities {
+  ramGB: number
+  gpuVramGB: number | null
+}
+
+/** Получить информацию о возможностях системы (RAM, GPU VRAM) */
+export async function getSystemCapabilities(): Promise<SystemCapabilities> {
+  try {
+    const [mem, graphics] = await Promise.all([si.mem(), si.graphics()])
+    const ramGB = Math.round((mem.total / (1024 * 1024 * 1024)) * 10) / 10
+
+    let gpuVramGB: number | null = null
+    if (graphics.controllers[0]?.vram) {
+      gpuVramGB = Math.round((graphics.controllers[0].vram * 10) / 10)
+    }
+
+    return { ramGB, gpuVramGB }
+  } catch {
+    // Fallback на приблизительные значения если ошибка
+    return { ramGB: 8, gpuVramGB: null }
+  }
+}
+
 let timer: ReturnType<typeof setInterval> | null = null
 let target: WebContents | null = null
 
