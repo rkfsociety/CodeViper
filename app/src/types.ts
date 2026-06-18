@@ -302,6 +302,11 @@ export interface PullRequestListResult {
   error?: string
 }
 
+export interface UpdateInfo {
+  /** Сколько коммитов origin опережает локальную ветку */
+  commits: number
+}
+
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   readFile: (projectPath: string, filePath: string) => Promise<string>
@@ -372,6 +377,8 @@ export interface CodeViperAPI {
   onProgressEvent: (cb: (progress: ProgressInfo | null) => void) => () => void
   listPullRequests: () => Promise<PullRequestListResult>
   openExternal: (url: string) => void
+  onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
+  restartApp: () => void
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>

@@ -222,6 +222,14 @@ const codeviper = {
 
   openExternal: (url: string) => ipcRenderer.send('open-external', url),
 
+  onUpdateAvailable: (cb: (info: { commits: number }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, info: { commits: number }) => cb(info)
+    ipcRenderer.on('update-available', handler)
+    return () => ipcRenderer.removeListener('update-available', handler)
+  },
+
+  restartApp: () => ipcRenderer.send('restart-app'),
+
   logFrontendError: (message: string, stack?: string) =>
     ipcRenderer.send('log-frontend-error', message, stack),
 

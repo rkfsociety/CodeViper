@@ -5,7 +5,8 @@ import type {
   AppState,
   ChatMessage,
   ChatStore,
-  OllamaModel
+  OllamaModel,
+  UpdateInfo
 } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
@@ -56,6 +57,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [prPanelOpen, setPrPanelOpen] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [settingsReady, setSettingsReady] = useState(false)
   const [activeRunModel, setActiveRunModel] = useState('')
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
@@ -194,6 +196,10 @@ export default function App() {
 
   useEffect(() => {
     return window.codeviper.onAgentConfirm((request) => setConfirmReq(request))
+  }, [])
+
+  useEffect(() => {
+    return window.codeviper.onUpdateAvailable((info) => setUpdateInfo(info))
   }, [])
 
   // Проверяем наличие краш-снимка при старте (файл остался после аварийного завершения)
@@ -521,6 +527,24 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {updateInfo && (
+        <div className="update-banner" role="status">
+          <span>
+            🔄 Доступно обновление: смержено{' '}
+            {updateInfo.commits === 1 ? '1 коммит' : `${updateInfo.commits} коммит(ов)`} в
+            исходники. Перезапустите для пересборки.
+          </span>
+          <div className="update-banner-actions">
+            <button className="btn primary" onClick={() => window.codeviper.restartApp()}>
+              Перезапустить
+            </button>
+            <button className="btn" onClick={() => setUpdateInfo(null)}>
+              Позже
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="layout">
         <section className="panel panel-history">

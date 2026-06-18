@@ -43,6 +43,7 @@ import { readAppState, writeAppState, clearAppState } from './appState'
 import { startSystemStatsPush, stopSystemStatsPush } from './systemStats'
 import { setProgressTarget, clearProgress } from './progress'
 import { listPullRequests } from './githubPr'
+import { startUpdateChecks } from './updateChecker'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -119,6 +120,8 @@ function stream(chatId: string, event: AgentStreamPayload): void {
 app.whenReady().then(async () => {
   await ensureDefaultSkills()
   await createWindow()
+
+  if (mainWindow) startUpdateChecks(mainWindow.webContents)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()
@@ -318,6 +321,12 @@ ipcMain.handle(
 )
 
 ipcMain.handle('list-pull-requests', async () => listPullRequests())
+
+ipcMain.on('restart-app', () => {
+  // Перезапуск: лаунчер start-dev.ps1 при старте подтянет origin и пересоберёт.
+  app.relaunch()
+  app.exit(0)
+})
 
 ipcMain.on('open-external', (_e, url: string) => {
   // Открываем только http(s)-ссылки во внешнем браузере.
