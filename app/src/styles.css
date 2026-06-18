@@ -255,41 +255,6 @@ button {
   border-top: 1px solid var(--border);
 }
 
-.prompt-dialog,
-.confirm-dialog {
-  width: min(420px, 100%);
-}
-
-.prompt-dialog-body,
-.confirm-dialog-body {
-  padding: 16px;
-  display: grid;
-  gap: 8px;
-}
-
-.prompt-dialog-label {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.prompt-dialog-body input {
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  padding: 8px 10px;
-}
-
-.confirm-dialog-body {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 50vh;
-  overflow: auto;
-}
-
 .terminal-dock {
   display: flex;
   flex-direction: column;
@@ -839,65 +804,6 @@ button {
 
 .settings input,
 .settings select {
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  padding: 8px 10px;
-}
-
-.terminal-input {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.terminal-input-wrap {
-  flex: 1;
-  position: relative;
-}
-
-.terminal-input-wrap input {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.terminal-suggestions {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  margin: 0;
-  padding: 4px 0;
-  list-style: none;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  z-index: 100;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.terminal-suggestions li {
-  padding: 6px 12px;
-  font-family: Consolas, 'Courier New', monospace;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text-primary);
-}
-
-.terminal-suggestions li:hover,
-.terminal-suggestions li.selected {
-  background: var(--bg-hover);
-  color: var(--accent);
-}
-
-.terminal-input input {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-base);
@@ -1482,7 +1388,6 @@ button.topbar-pill.topbar-download-error {
 .btn,
 .settings input,
 .settings select,
-.terminal-input input,
 .message,
 .topbar-pill {
   transition:
@@ -1519,7 +1424,6 @@ button.topbar-pill.topbar-download-error {
 /* Единое фокус-кольцо для полей ввода */
 .settings input:focus,
 .settings select:focus,
-.terminal-input input:focus,
 .modal input:focus,
 .modal select:focus,
 .modal textarea:focus {

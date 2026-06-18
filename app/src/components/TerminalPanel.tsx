@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { parseAnsi } from '../../shared/ansi'
 import { useCommandHistory } from '../hooks/useCommandHistory'
+import styles from './TerminalPanel.module.css'
 
 interface Props {
   projectPath: string
@@ -97,8 +98,8 @@ export function TerminalPanel({ projectPath, embedded = false }: Props) {
           </span>
         ))}
       </div>
-      <div className="terminal-input">
-        <div className="terminal-input-wrap">
+      <div className={styles.input}>
+        <div className={styles.inputWrap}>
           <input
             ref={inputRef}
             value={command}
@@ -110,13 +111,13 @@ export function TerminalPanel({ projectPath, embedded = false }: Props) {
             aria-expanded={suggestions.length > 0}
           />
           {suggestions.length > 0 && (
-            <ul className="terminal-suggestions" role="listbox">
+            <ul className={styles.suggestions} role="listbox">
               {suggestions.map((s, i) => (
                 <li
                   key={s}
                   role="option"
                   aria-selected={i === selectedIdx}
-                  className={i === selectedIdx ? 'selected' : ''}
+                  className={i === selectedIdx ? styles.selected : ''}
                   onMouseDown={() => applySuggestion(s)}
                 >
                   {s}

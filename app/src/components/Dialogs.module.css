@@ -1,0 +1,38 @@
+/* Общие стили модальных диалогов PromptDialog / ConfirmDialog / CrashRecoveryDialog.
+   Базовые классы .modal* остаются глобальными в styles.css. */
+
+.dialog {
+  width: min(420px, 100%);
+}
+
+.promptBody {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.promptBody input {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  padding: 8px 10px;
+}
+
+.promptLabel {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.confirmBody {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow: auto;
+}

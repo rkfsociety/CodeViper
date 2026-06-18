@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useModalA11y } from '../hooks/useModalA11y'
+import styles from './Dialogs.module.css'
 
 interface Props {
   open: boolean
@@ -52,7 +53,7 @@ export function PromptDialog({
     <div className="modal-backdrop" onClick={onCancel}>
       <div
         ref={modalRef}
-        className="modal prompt-dialog"
+        className={`modal ${styles.dialog}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="prompt-title"
@@ -64,8 +65,8 @@ export function PromptDialog({
             ✕
           </button>
         </div>
-        <div className="modal-body prompt-dialog-body">
-          {label && <label className="prompt-dialog-label">{label}</label>}
+        <div className={`modal-body ${styles.promptBody}`}>
+          {label && <label className={styles.promptLabel}>{label}</label>}
           <input
             ref={inputRef}
             value={value}

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useModalA11y } from '../hooks/useModalA11y'
 import type { AppState } from '../types'
+import styles from './Dialogs.module.css'
 
 interface Props {
   recovery: AppState | null
@@ -45,7 +46,7 @@ export function CrashRecoveryDialog({ recovery, chatTitle, onRestore, onDismiss 
     <div className="modal-backdrop" onClick={onDismiss}>
       <div
         ref={modalRef}
-        className="modal confirm-dialog"
+        className={`modal ${styles.dialog}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="recovery-title"
@@ -64,10 +65,13 @@ export function CrashRecoveryDialog({ recovery, chatTitle, onRestore, onDismiss 
           </button>
         </div>
 
-        <div id="recovery-body" className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div
+          id="recovery-body"
+          className="modal-body"
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+        >
           <p style={{ margin: 0 }}>
-            Приложение завершилось неожиданно{' '}
-            <strong>{formatTime(recovery.crashedAt)}</strong>.
+            Приложение завершилось неожиданно <strong>{formatTime(recovery.crashedAt)}</strong>.
           </p>
           <p style={{ margin: 0 }}>
             Активный чат: <strong>{chatLabel}</strong>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useModalA11y } from '../hooks/useModalA11y'
+import styles from './Dialogs.module.css'
 
 interface Props {
   open: boolean
@@ -37,7 +38,7 @@ export function ConfirmDialog({
     <div className="modal-backdrop" onClick={onCancel}>
       <div
         ref={modalRef}
-        className="modal confirm-dialog"
+        className={`modal ${styles.dialog}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
@@ -50,7 +51,7 @@ export function ConfirmDialog({
             ✕
           </button>
         </div>
-        <div id="confirm-message" className="modal-body confirm-dialog-body">
+        <div id="confirm-message" className={`modal-body ${styles.confirmBody}`}>
           {message}
         </div>
         <div className="modal-footer">
