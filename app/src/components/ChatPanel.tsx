@@ -74,6 +74,77 @@ function shouldShowAssistantMessage(message: ChatMessage): boolean {
   return visibleAssistantContent(message.content).length > 0
 }
 
+// Группа одинаковых подряд идущих tool-вызовов — сворачивается в один блок.
+type DisplayItem =
+  | { kind: 'message'; message: ChatMessage }
+  | { kind: 'tool-group'; toolName: string; items: ChatMessage[]; key: string }
+
+function groupToolMessages(messages: ChatMessage[]): DisplayItem[] {
+  const result: DisplayItem[] = []
+  let i = 0
+  while (i < messages.length) {
+    const msg = messages[i]
+    if (msg.role === 'tool') {
+      const name = msg.toolName ?? ''
+      const group: ChatMessage[] = [msg]
+      while (
+        i + 1 < messages.length &&
+        messages[i + 1].role === 'tool' &&
+        (messages[i + 1].toolName ?? '') === name
+      ) {
+        i++
+        group.push(messages[i])
+      }
+      if (group.length === 1) {
+        result.push({ kind: 'message', message: msg })
+      } else {
+        result.push({ kind: 'tool-group', toolName: name, items: group, key: msg.id })
+      }
+    } else {
+      result.push({ kind: 'message', message: msg })
+    }
+    i++
+  }
+  return result
+}
+
+function ToolCallGroup({ toolName, items }: { toolName: string; items: ChatMessage[] }) {
+  const [open, setOpen] = useState(false)
+  const done = items.every((m) => !m.content.startsWith('▶'))
+  const statusIcon = done ? '✓' : '▶'
+  const label = toolName || 'Инструмент'
+  return (
+    <div className="message tool tool-group">
+      <button
+        type="button"
+        className="tool-group-header"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="message-role-badge tone-tool">
+          <span className="message-role-icon" aria-hidden="true">
+            ⚙
+          </span>
+          <span className="message-role-text">{label}</span>
+        </span>
+        <span className="tool-group-meta">
+          {statusIcon} ×{items.length}
+        </span>
+        <span className="tool-group-chevron">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="tool-group-list">
+          {items.map((m) => (
+            <pre key={m.id} className="message-plain tool-group-item">
+              {m.content}
+            </pre>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function messageCopyText(message: ChatMessage): string {
   if (message.role === 'assistant') return visibleAssistantContent(message.content)
   if (message.role === 'tool' && message.toolOutput?.trim()) return message.toolOutput
@@ -557,71 +628,77 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           </div>
         )}
 
-        {messages.filter(shouldShowAssistantMessage).map((message) => (
-          <div
-            key={message.id}
-            className={`message ${message.role}${pinnedMessageIds.has(message.id) ? ' pinned' : ''}`}
-          >
-            <div className="message-header">
-              <MessageRoleBadge role={message.role} toolName={message.toolName} />
-              {message.role === 'assistant' && message.durationMs != null && (
-                <span className="message-duration" title="Время генерации">
-                  ⏱ {(message.durationMs / 1000).toFixed(1)}s
-                </span>
+        {groupToolMessages(messages.filter(shouldShowAssistantMessage)).map((item) =>
+          item.kind === 'tool-group' ? (
+            <ToolCallGroup key={item.key} toolName={item.toolName} items={item.items} />
+          ) : (
+            <div
+              key={item.message.id}
+              className={`message ${item.message.role}${pinnedMessageIds.has(item.message.id) ? ' pinned' : ''}`}
+            >
+              <div className="message-header">
+                <MessageRoleBadge role={item.message.role} toolName={item.message.toolName} />
+                {item.message.role === 'assistant' && item.message.durationMs != null && (
+                  <span className="message-duration" title="Время генерации">
+                    ⏱ {(item.message.durationMs / 1000).toFixed(1)}s
+                  </span>
+                )}
+                <MessageCopyButton text={messageCopyText(item.message)} />
+                {!busy && (
+                  <button
+                    type="button"
+                    className={`btn message-pin-btn${pinnedMessageIds.has(item.message.id) ? ' active' : ''}`}
+                    title={pinnedMessageIds.has(item.message.id) ? 'Открепить' : 'Закрепить'}
+                    aria-label={
+                      pinnedMessageIds.has(item.message.id)
+                        ? 'Открепить сообщение'
+                        : 'Закрепить сообщение'
+                    }
+                    aria-pressed={pinnedMessageIds.has(item.message.id)}
+                    onClick={() => togglePinMessage(item.message.id)}
+                  >
+                    📌
+                  </button>
+                )}
+                {!busy && item.message.role === 'user' && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn message-action-btn"
+                      title="Повторить"
+                      aria-label="Повторить запрос"
+                      onClick={() => void retryUserMessage(item.message)}
+                    >
+                      ↺
+                    </button>
+                    <button
+                      type="button"
+                      className="btn message-action-btn"
+                      title="Изменить"
+                      aria-label="Редактировать запрос"
+                      onClick={() => editUserMessage(item.message)}
+                    >
+                      ✎
+                    </button>
+                  </>
+                )}
+              </div>
+              {item.message.role === 'assistant' && item.message.thinking && (
+                <ThinkingBlock content={item.message.thinking} />
               )}
-              <MessageCopyButton text={messageCopyText(message)} />
-              {!busy && (
-                <button
-                  type="button"
-                  className={`btn message-pin-btn${pinnedMessageIds.has(message.id) ? ' active' : ''}`}
-                  title={pinnedMessageIds.has(message.id) ? 'Открепить' : 'Закрепить'}
-                  aria-label={
-                    pinnedMessageIds.has(message.id) ? 'Открепить сообщение' : 'Закрепить сообщение'
+              <Suspense fallback={null}>
+                <MessageBody
+                  role={item.message.role}
+                  content={
+                    item.message.role === 'assistant'
+                      ? visibleAssistantContent(item.message.content)
+                      : item.message.content
                   }
-                  aria-pressed={pinnedMessageIds.has(message.id)}
-                  onClick={() => togglePinMessage(message.id)}
-                >
-                  📌
-                </button>
-              )}
-              {!busy && message.role === 'user' && (
-                <>
-                  <button
-                    type="button"
-                    className="btn message-action-btn"
-                    title="Повторить"
-                    aria-label="Повторить запрос"
-                    onClick={() => void retryUserMessage(message)}
-                  >
-                    ↺
-                  </button>
-                  <button
-                    type="button"
-                    className="btn message-action-btn"
-                    title="Изменить"
-                    aria-label="Редактировать запрос"
-                    onClick={() => editUserMessage(message)}
-                  >
-                    ✎
-                  </button>
-                </>
-              )}
+                />
+              </Suspense>
             </div>
-            {message.role === 'assistant' && message.thinking && (
-              <ThinkingBlock content={message.thinking} />
-            )}
-            <Suspense fallback={null}>
-              <MessageBody
-                role={message.role}
-                content={
-                  message.role === 'assistant'
-                    ? visibleAssistantContent(message.content)
-                    : message.content
-                }
-              />
-            </Suspense>
-          </div>
-        ))}
+          )
+        )}
 
         {(visibleDraft || draftThinking) && (
           <div className="message assistant draft">

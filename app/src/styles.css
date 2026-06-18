@@ -423,6 +423,64 @@ button {
   font-size: 12px;
 }
 
+/* Группа одинаковых tool-вызовов */
+.message.tool.tool-group {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tool-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font-size: 12px;
+}
+
+.tool-group-header:hover {
+  background: color-mix(in srgb, var(--yellow) 8%, transparent);
+}
+
+.tool-group-meta {
+  color: var(--text-muted);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  flex: 1;
+}
+
+.tool-group-chevron {
+  color: var(--text-muted);
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.tool-group-list {
+  border-top: 1px solid color-mix(in srgb, var(--yellow) 20%, transparent);
+  padding: 4px 12px 8px;
+}
+
+.tool-group-item {
+  margin: 0;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  color: var(--text-tool);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tool-group-item:last-child {
+  border-bottom: none;
+}
+
 .message.error {
   border-color: var(--red);
 }
