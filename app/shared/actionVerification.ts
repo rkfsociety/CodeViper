@@ -111,6 +111,11 @@ export function shouldRetryForMissingTools(
 
   if (!assistantText.trim()) return false
 
+  // Не-мутационная задача, требующая инструментов (изучи/перечисли/проанализируй),
+  // но модель не вызвала НИ ОДНОГО инструмента — она лишь написала намерение
+  // («Давайте изучу…») и остановилась. Повтор нужен независимо от длины текста.
+  if (!mutationTask && !anyToolsUsed) return true
+
   return (
     claimsActionCompleted(assistantText) ||
     looksLikeAdviceInsteadOfAction(assistantText) ||
