@@ -373,8 +373,9 @@ export function ChatHistoryPanel({
           </button>
           <button
             className={`btn ${styles.historyBtn}`}
-            title="Удалить"
+            title={chatBusy ? 'Нельзя удалять чат пока агент работает' : 'Удалить'}
             aria-label="Удалить чат"
+            disabled={chatBusy}
             onClick={(e) => {
               e.stopPropagation()
               setConfirm({ kind: 'delete-chat', chatId: chat.id, title: chat.title })
@@ -441,8 +442,9 @@ export function ChatHistoryPanel({
         </button>
         <button
           className={`btn ${styles.historyBtn}`}
-          title="Удалить папку"
+          title={chatBusy ? 'Нельзя удалять папку пока агент работает' : 'Удалить папку'}
           aria-label="Удалить папку"
+          disabled={chatBusy}
           onClick={() =>
             setConfirm({ kind: 'delete-folder', folderId: folder.id, name: folder.name })
           }
