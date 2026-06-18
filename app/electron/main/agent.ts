@@ -502,6 +502,12 @@ export class AgentRunner {
 
         usedTools = true
 
+        // После set_self_improvement_plan следующий шаг должен требовать tool call,
+        // чтобы модель не отвечала текстом вместо выполнения пунктов плана.
+        if (toolCalls.some((call) => call.function.name === 'set_self_improvement_plan')) {
+          requireToolNext = true
+        }
+
         // Все вызовы read-only и не требуют подтверждения → запускаем параллельно.
         const allParallelSafe =
           toolCalls.length > 1 &&
