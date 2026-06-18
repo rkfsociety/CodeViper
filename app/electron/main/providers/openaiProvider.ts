@@ -55,13 +55,26 @@ export class OpenAIProvider implements ModelProvider {
     // DeepSeek и OpenAI v2 поддерживают 'required'; другие провайдеры понимают 'auto'.
     const toolChoice = options.tool_choice ?? 'auto'
 
+    // Маппинг сообщений с поддержкой нативных tool calls (assistant) и tool results (tool_call_id).
+    const mappedMessages = options.messages.map((msg) => {
+      const m: Record<string, unknown> = {
+        role: msg.role,
+        content: msg.content ?? null
+      }
+      if (msg.tool_calls?.length) {
+        m.tool_calls = msg.tool_calls
+        m.content = msg.content ?? null
+      }
+      if (msg.tool_call_id) {
+        m.tool_call_id = msg.tool_call_id
+      }
+      return m
+    })
+
     const body = {
       model: options.model || this.modelName,
       stream: true,
-      messages: options.messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content
-      })),
+      messages: mappedMessages,
       temperature: options.temperature,
       top_p: options.top_p,
       max_tokens: options.max_tokens,
@@ -104,6 +117,10 @@ export class OpenAIProvider implements ModelProvider {
     const decoder = new TextDecoder()
     let buffer = ''
 
+    // Аккумулятор нативных tool calls из стриминга (OpenAI формат — delta по index).
+    type AccToolCall = { id: string; name: string; arguments: string }
+    const accToolCalls: AccToolCall[] = []
+
     try {
       while (true) {
         const { done, value } = await reader.read()
@@ -119,14 +136,44 @@ export class OpenAIProvider implements ModelProvider {
           if (data === '[DONE]') continue
 
           try {
-            const chunk = JSON.parse(data)
-            const delta = chunk.choices?.[0]?.delta
+            const chunk = JSON.parse(data) as {
+              choices?: Array<{
+                delta?: {
+                  content?: string
+                  reasoning?: string
+                  thinking?: string
+                  tool_calls?: Array<{
+                    index: number
+                    id?: string
+                    type?: string
+                    function?: { name?: string; arguments?: string }
+                  }>
+                }
+                finish_reason?: string | null
+              }>
+              usage?: { total_tokens?: number }
+            }
+            const choice = chunk.choices?.[0]
+            const delta = choice?.delta
             if (!delta) continue
+
+            // Накапливаем delta.tool_calls по индексу
+            if (delta.tool_calls) {
+              for (const tc of delta.tool_calls) {
+                if (!accToolCalls[tc.index]) {
+                  accToolCalls[tc.index] = { id: tc.id ?? '', name: '', arguments: '' }
+                }
+                const acc = accToolCalls[tc.index]
+                if (tc.id) acc.id = tc.id
+                if (tc.function?.name) acc.name += tc.function.name
+                if (tc.function?.arguments) acc.arguments += tc.function.arguments
+              }
+            }
 
             // Конвертируем в единый формат ChatChunk
             const chatChunk: ChatChunk = {
               content: delta.content ?? '',
-              stop_reason: chunk.choices?.[0]?.finish_reason,
+              stop_reason: choice?.finish_reason ?? undefined,
               model: options.model || this.modelName
             }
 
@@ -135,6 +182,17 @@ export class OpenAIProvider implements ModelProvider {
               chatChunk.thinking = delta.reasoning
             } else if (delta.thinking) {
               chatChunk.thinking = delta.thinking
+            }
+
+            // При завершении с tool_calls — выдаём финальный чанк с накопленными вызовами
+            if (choice?.finish_reason === 'tool_calls' && accToolCalls.length > 0) {
+              chatChunk.tool_calls = accToolCalls
+                .filter((tc) => tc.id && tc.name)
+                .map((tc) => ({
+                  id: tc.id,
+                  type: 'function' as const,
+                  function: { name: tc.name, arguments: tc.arguments }
+                }))
             }
 
             // Некоторые стриминговые ответы включают usage прямо в chunk
@@ -146,6 +204,20 @@ export class OpenAIProvider implements ModelProvider {
           } catch {
             // skip malformed JSON
           }
+        }
+      }
+
+      // Если стрим закончился без finish_reason='tool_calls' но tool_calls накоплены — всё равно выдаём
+      if (accToolCalls.length > 0) {
+        const assembled = accToolCalls
+          .filter((tc) => tc.id && tc.name)
+          .map((tc) => ({
+            id: tc.id,
+            type: 'function' as const,
+            function: { name: tc.name, arguments: tc.arguments }
+          }))
+        if (assembled.length > 0) {
+          yield { content: '', tool_calls: assembled }
         }
       }
     } finally {

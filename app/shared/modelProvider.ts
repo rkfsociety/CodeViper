@@ -1,9 +1,21 @@
 /** Интерфейс для абстрактной работы с разными провайдерами моделей. */
 
+/** Tool call в формате OpenAI (для cloud-провайдеров). */
+export interface OpenAIToolCall {
+  id: string
+  type: 'function'
+  function: { name: string; arguments: string }
+}
+
 export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system'
-  content: string
+  role: 'user' | 'assistant' | 'system' | 'tool'
+  /** Может быть null для assistant-сообщений с tool_calls (OpenAI-формат). */
+  content: string | null
   thinking?: string
+  /** Нативные tool calls ассистента (cloud-провайдеры). */
+  tool_calls?: OpenAIToolCall[]
+  /** ID вызова инструмента для tool-результатов (cloud-провайдеры). */
+  tool_call_id?: string
 }
 
 export interface ChatOptions {
@@ -30,6 +42,8 @@ export interface ChatChunk {
   model?: string
   /** Общее число токенов (для облачных провайдеров — из usage.total_tokens) */
   total_tokens?: number
+  /** Нативные tool calls из streaming (cloud-провайдеры). */
+  tool_calls?: OpenAIToolCall[]
 }
 
 export interface LoadedModel {

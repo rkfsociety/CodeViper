@@ -54,6 +54,7 @@
 
 ## ✅ Сделано
 
+- [x] **Нативный tool calling для DeepSeek/OpenAI** — `openaiProvider` теперь аккумулирует `delta.tool_calls` из стриминга (по индексу) и выдаёт в финальном `ChatChunk.tool_calls`; `agent.ts` использует нативные tool calls для cloud-провайдеров вместо `extractEmbeddedToolCalls`; tool-результаты сохраняются с `tool_call_id`; в следующем шаге цикла они не фильтруются (только для Ollama), а передаются обратно в DeepSeek с `tool_call_id` и предшествующим `assistant` с `tool_calls` — полный multi-step tool calling соответствует спецификации OpenAI
 - [x] **Черновики при обрыве стрима** — при `stream_lost`/timeout сохраняет `interruptedDraft` в `SavedChat` (поле в data-файле чата); при открытии чата показывает баннер «Превышено время ожидания» с кнопками «Повторить» (заново добавляет сообщение пользователя в очередь) и «Закрыть» (очищает черновик)
 - [x] **Нагрузочное тестирование** — `tests/load.test.ts`: 60 прогонов подряд (heap delta −0.7 МБ), 10 параллельных чатов × 5 сообщений (heap delta −2.0 МБ), история 400/800 записей; метрики heapUsed/heapTotal/rss/external в stdout; скрипт `test:load`
 - [x] **E2E-тесты (Playwright + Electron)** — `e2e/startup.test.ts`, `e2e/chat.test.ts`, `e2e/ollama.test.ts`; проверяют запуск окна, логотип, кнопки, поле ввода, статус Ollama; скрипты `test:e2e` и `test:e2e:headed`; CI запускает через `xvfb-run` после build

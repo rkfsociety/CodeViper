@@ -52,6 +52,8 @@ interface ToolCall {
     name: string
     arguments: Record<string, string> | string
   }
+  /** ID для нативного tool calling (cloud-провайдеры). */
+  id?: string
 }
 
 function isAbortError(error: unknown): boolean {
@@ -284,8 +286,47 @@ export class AgentRunner {
         const assistantThinking = response.message?.thinking
         const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
 
+        const isCloudProviderRun = this.providerConfig.type !== 'ollama'
+        const hasNativeToolCalls = isCloudProviderRun && toolCalls.some((tc) => tc.id)
+
         if (assistantText) {
-          messages.push({ role: 'assistant', content: assistantText })
+          const assistantMsg: OllamaMessage = { role: 'assistant', content: assistantText }
+          // Cloud: если были нативные tool calls, добавляем их к assistant-сообщению
+          if (hasNativeToolCalls) {
+            assistantMsg.tool_calls = toolCalls
+              .filter((tc) => tc.id)
+              .map((tc) => ({
+                id: tc.id!,
+                type: 'function' as const,
+                function: {
+                  name: tc.function.name,
+                  arguments:
+                    typeof tc.function.arguments === 'string'
+                      ? tc.function.arguments
+                      : JSON.stringify(tc.function.arguments)
+                }
+              }))
+          }
+          messages.push(assistantMsg)
+        } else if (hasNativeToolCalls) {
+          // Cloud: пустой текст, только tool_calls — всё равно нужен assistant-чанк в истории
+          messages.push({
+            role: 'assistant',
+            content: '',
+            tool_calls: toolCalls
+              .filter((tc) => tc.id)
+              .map((tc) => ({
+                id: tc.id!,
+                type: 'function' as const,
+                function: {
+                  name: tc.function.name,
+                  arguments:
+                    typeof tc.function.arguments === 'string'
+                      ? tc.function.arguments
+                      : JSON.stringify(tc.function.arguments)
+                }
+              }))
+          })
         }
 
         if (!toolCalls.length) {
@@ -474,6 +515,7 @@ export class AgentRunner {
 
         if (allParallelSafe) {
           const parsedCalls = toolCalls.map((call) => ({
+            id: call.id,
             name: call.function.name,
             args: parseToolArgs(call.function.arguments ?? {})
           }))
@@ -487,7 +529,7 @@ export class AgentRunner {
           }
 
           const results = await Promise.all(
-            parsedCalls.map(async ({ name, args }) => {
+            parsedCalls.map(async ({ id, name, args }) => {
               void agentLogger.write({ event: 'tool_call', step, tool: name, args })
               const toolStartMs = Date.now()
               let output = ''
@@ -512,13 +554,18 @@ export class AgentRunner {
                   error: output
                 })
               }
-              return { name, output }
+              return { id, name, output }
             })
           )
 
-          for (const { name, output } of results) {
+          for (const { id, name, output } of results) {
             this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-            messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
+            const toolMsg: OllamaMessage = {
+              role: 'tool',
+              content: `Инструмент ${name}:\n${output}`
+            }
+            if (id) toolMsg.tool_call_id = id
+            messages.push(toolMsg)
           }
         } else {
           for (const call of toolCalls) {
@@ -539,7 +586,12 @@ export class AgentRunner {
               if (!approved) {
                 const output = '⛔ Действие отклонено пользователем'
                 this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-                messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
+                const rejMsg: OllamaMessage = {
+                  role: 'tool',
+                  content: `Инструмент ${name}:\n${output}`
+                }
+                if (call.id) rejMsg.tool_call_id = call.id
+                messages.push(rejMsg)
                 continue
               }
             }
@@ -578,7 +630,12 @@ export class AgentRunner {
             }
 
             this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-            messages.push({ role: 'tool', content: `Инструмент ${name}:\n${output}` })
+            const seqMsg: OllamaMessage = {
+              role: 'tool',
+              content: `Инструмент ${name}:\n${output}`
+            }
+            if (call.id) seqMsg.tool_call_id = call.id
+            messages.push(seqMsg)
           }
         }
       }
@@ -660,13 +717,19 @@ export class AgentRunner {
     const toolCalls: ToolCall[] = []
     let evalCount: number | undefined
     let evalDurationNs: number | undefined
+    let nativeToolCalls: ToolCall[] | undefined
 
-    // Конвертируем OllamaMessage в ChatMessage (фильтруем tool сообщения)
+    const isCloudProvider = this.providerConfig.type !== 'ollama'
+
+    // Для cloud-провайдеров передаём все сообщения включая tool-результаты;
+    // для Ollama фильтруем — модель использует embedded JSON и не ждёт role:tool.
     const chatMessages = messages
-      .filter((msg) => msg.role !== 'tool')
+      .filter((msg) => isCloudProvider || msg.role !== 'tool')
       .map((msg) => ({
-        role: msg.role as 'user' | 'assistant' | 'system',
-        content: msg.content
+        role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
+        content: msg.content,
+        ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
+        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
       }))
 
     // Трансформируем AGENT_TOOLS в формат провайдеров (name + description + input_schema)
@@ -697,6 +760,17 @@ export class AgentRunner {
         this.emit({ type: 'thinking', content: thinkingPiece })
       }
 
+      // Нативные tool calls от cloud-провайдера (DeepSeek, OpenAI)
+      if (chunk.tool_calls?.length) {
+        nativeToolCalls = chunk.tool_calls.map((tc) => ({
+          id: tc.id,
+          function: {
+            name: tc.function.name,
+            arguments: tc.function.arguments as Record<string, string> | string
+          }
+        }))
+      }
+
       const piece = chunk.content
       if (piece) {
         content += piece
@@ -713,7 +787,6 @@ export class AgentRunner {
       }
     }
 
-    const isCloudProvider = this.providerConfig.type !== 'ollama'
     const ollamaMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
 
     if (ollamaMetrics) {
@@ -730,15 +803,23 @@ export class AgentRunner {
       })
     }
 
-    const embedded = extractEmbeddedToolCalls(content)
-    content = sanitizeAssistantContent(embedded.content)
-    for (const call of embedded.toolCalls) {
-      toolCalls.push({
-        function: {
-          name: call.name,
-          arguments: call.arguments as Record<string, string>
-        }
-      })
+    // Cloud-провайдеры: используем нативные tool calls если есть
+    if (nativeToolCalls?.length) {
+      for (const tc of nativeToolCalls) {
+        toolCalls.push(tc)
+      }
+    } else {
+      // Ollama: извлекаем tool calls из embedded JSON в тексте
+      const embedded = extractEmbeddedToolCalls(content)
+      content = sanitizeAssistantContent(embedded.content)
+      for (const call of embedded.toolCalls) {
+        toolCalls.push({
+          function: {
+            name: call.name,
+            arguments: call.arguments as Record<string, string>
+          }
+        })
+      }
     }
 
     return {

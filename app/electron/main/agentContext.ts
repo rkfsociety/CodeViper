@@ -25,6 +25,14 @@ import type { ProviderConfig } from '../../shared/modelProvider'
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
   content: string
+  /** Нативные tool calls ассистента (хранятся для cloud-провайдеров). */
+  tool_calls?: Array<{
+    id: string
+    type: 'function'
+    function: { name: string; arguments: string }
+  }>
+  /** ID вызова инструмента для tool-результатов (cloud-провайдеры). */
+  tool_call_id?: string
 }
 
 const BASE_SYSTEM_PROMPT = `Ты CodeViper — локальный AI-агент для программирования.
