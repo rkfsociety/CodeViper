@@ -52,9 +52,8 @@ export class OpenAIProvider implements ModelProvider {
       }
     }))
 
-    // 'required' поддерживается только OpenAI v2; большинство совместимых API понимают 'auto'.
-    const toolChoice =
-      options.tool_choice === 'required' ? 'auto' : (options.tool_choice ?? 'auto')
+    // DeepSeek и OpenAI v2 поддерживают 'required'; другие провайдеры понимают 'auto'.
+    const toolChoice = options.tool_choice ?? 'auto'
 
     const body = {
       model: options.model || this.modelName,
@@ -93,7 +92,9 @@ export class OpenAIProvider implements ModelProvider {
       try {
         const parsed = JSON.parse(body) as { error?: { message?: string } }
         if (parsed?.error?.message) detail = parsed.error.message
-      } catch { /* keep raw body */ }
+      } catch {
+        /* keep raw body */
+      }
       throw new Error(`OpenAI API error ${res.status}: ${detail}`)
     }
 
