@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: path.resolve(__dirname, 'e2e'),
   timeout: 30_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
