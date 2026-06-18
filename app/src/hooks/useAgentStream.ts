@@ -4,8 +4,10 @@ import { makeId } from '../../shared/makeId'
 import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentContextPreview, ChatMessage } from '../types'
-import type { GenerationMetrics } from '../../shared/generationMetrics'
+import type { GenerationMetrics, RunStats } from '../../shared/generationMetrics'
 import type { AgentPhase } from '../components/AgentStatusBar'
+
+export type { RunStats }
 
 export interface UseAgentStreamOptions {
   chatIdRef: MutableRefObject<string | null>
@@ -40,11 +42,15 @@ export function useAgentStream({
   const [summarizing, setSummarizing] = useState(false)
   const [generationMetrics, setGenerationMetrics] = useState<GenerationMetrics | null>(null)
   const [runModel, setRunModel] = useState('')
+  const [runStats, setRunStats] = useState<RunStats | null>(null)
 
   const lastAssistantContentRef = useRef('')
   const activeToolMessageIdRef = useRef<string | null>(null)
   const activeToolNameRef = useRef<string | undefined>(undefined)
   const genStartRef = useRef<number | null>(null)
+  const runStartRef = useRef<number | null>(null)
+  const cumulativeTokensRef = useRef(0)
+  const runActiveRef = useRef(false)
 
   // Task 23: wrap mutable callbacks in refs so the single useEffect closure never goes stale
   const appendMessageRef = useRef(appendMessage)
@@ -61,10 +67,24 @@ export function useAgentStream({
     setActiveToolName(undefined)
     setSummarizing(false)
     setGenerationMetrics(null)
+    setRunStats(null)
     activeToolMessageIdRef.current = null
     activeToolNameRef.current = undefined
     lastAssistantContentRef.current = ''
     genStartRef.current = null
+    runStartRef.current = Date.now()
+    cumulativeTokensRef.current = 0
+    runActiveRef.current = true
+  }, [])
+
+  // Тикает каждую секунду пока агент работает — обновляет elapsed в runStats
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!runActiveRef.current || runStartRef.current === null) return
+      const elapsed = Math.floor((Date.now() - runStartRef.current) / 1000)
+      setRunStats({ elapsedSec: elapsed, tokens: cumulativeTokensRef.current })
+    }, 1000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -149,6 +169,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'error') {
+        runActiveRef.current = false
         appendMessageRef.current({
           id: makeId(),
           role: 'system',
@@ -208,6 +229,13 @@ export function useAgentStream({
 
       if (event.type === 'generation_metrics' && event.generationMetrics) {
         setGenerationMetrics(event.generationMetrics)
+        const m = event.generationMetrics
+        // Для Ollama накапливаем evalCount; для cloud берём sessionTokens напрямую
+        if (m.sessionTokens != null) {
+          cumulativeTokensRef.current = m.sessionTokens
+        } else {
+          cumulativeTokensRef.current += m.evalCount
+        }
       }
 
       if (event.type === 'context') {
@@ -250,6 +278,7 @@ export function useAgentStream({
         setActiveToolName(undefined)
         setSummarizing(false)
         genStartRef.current = null
+        runActiveRef.current = false
         onAgentDoneRef?.current?.()
         void processNextQueuedRunRef.current()
       }
@@ -267,6 +296,7 @@ export function useAgentStream({
     summarizing,
     generationMetrics,
     runModel,
+    runStats,
     resetStreamState
   }
 }

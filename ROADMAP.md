@@ -53,6 +53,9 @@
 
 ## ✅ Сделано
 
+- [x] **Отображение токенов и времени в топбаре** — чип «27s · 47.0k tok» появляется между пикером модели и названием чата во время работы агента; обновляется каждую секунду; форматеры `formatElapsed`/`formatTokenCount` в `shared/generationMetrics.ts`; Ollama — накопление `evalCount` по шагам; cloud — `sessionTokens` напрямую; `RunStats` передаётся из `useAgentStream` через `ChatPanel.onRunStatsChange` в `App.tsx`
+- [x] **max_tokens и temperature для cloud-провайдеров** — при `providerConfig.type !== 'ollama'` в `chatOptions` добавляются `max_tokens: 4096` и `temperature: 0.1`; уменьшает расход токенов и повышает детерминированность ответов
+- [x] **Оптимизация токенов (промпт + инструменты)** — `BASE_SYSTEM_PROMPT` сокращён: убраны дублирующие описания инструментов файлов/поиска/git и секция саморедактирования (они уже есть в `buildSelfEditContext()`); descriptions и param descriptions в `agentTools.ts` сокращены вдвое через точечные замены
 - [x] **Экспорт / импорт чатов** — кнопка `⇅` в ChatHistoryPanel открывает меню: «Экспорт JSON», «Экспорт Markdown», «Импорт JSON»; `exportChats`/`importChats` в `chats.ts`; merge по `id` (дубликаты пропускаются); IPC-хендлеры и типы проброшены через preload
 - [x] **Группировка одинаковых инструментов в чате** — последовательные вызовы одного инструмента (напр. несколько `read_codeviper_file` подряд) сворачиваются в один блок `⚙ toolName ✓ ×N ▼`; раскрываются по клику; стили в `styles.css`
 - [x] **Фикс 400 при самоулучшении (orphaned tool messages)** — двухпроходный фильтр в `agent.ts`: pass 1 убирает `role:'tool'` без `tool_call_id` и assistant+tool_calls с непокрытыми id; pass 2 убирает tool-сообщения, чьи `tool_call_id` нет ни в одном оставшемся assistant; устраняет краш при сжатии контекста, когда пара assistant↔tool разрывается по boundary

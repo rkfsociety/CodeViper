@@ -778,6 +778,7 @@ export class AgentRunner {
       stream: true,
       keep_alive: OLLAMA_KEEP_ALIVE as string | number,
       signal: this.signal,
+      ...(isCloudProvider ? { max_tokens: 4096, temperature: 0.1 } : {}),
       ...(options?.requireTool ? { tool_choice: 'required' as const } : {})
     }
 

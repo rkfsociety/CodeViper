@@ -57,6 +57,8 @@ interface Props {
   interruptedDraft?: InterruptedDraft | null
   /** Вызывается после сохранения/очистки черновика для обновления chatStore */
   onInterruptedDraftChange?: () => void
+  /** Вызывается при изменении статистики текущего прогона (время + токены) */
+  onRunStatsChange?: (stats: import('../../shared/generationMetrics').RunStats | null) => void
 }
 
 function formatProjectLabel(path: string): string {
@@ -166,7 +168,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onEnqueueModel,
     onRefreshOllama,
     interruptedDraft,
-    onInterruptedDraftChange
+    onInterruptedDraftChange,
+    onRunStatsChange
   },
   ref
 ) {
@@ -260,6 +263,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     summarizing,
     generationMetrics,
     runModel,
+    runStats,
     resetStreamState
   } = useAgentStream({
     chatIdRef,
@@ -328,6 +332,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     resetStreamState()
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    onRunStatsChange?.(runStats)
+  }, [runStats, onRunStatsChange])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

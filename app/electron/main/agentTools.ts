@@ -7,10 +7,7 @@ export const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          path: {
-            type: 'string',
-            description: 'Абсолютный путь к папке (необязательно — корень проекта)'
-          },
+          path: { type: 'string', description: 'папка (по умолч. корень проекта)' },
           max_depth: { type: 'string', description: 'Глубина дерева 1–5 (по умолчанию 3)' }
         }
       }
@@ -27,7 +24,7 @@ export const AGENT_TOOLS = [
           query: { type: 'string', description: 'Текст или /regex/i для поиска' },
           path: {
             type: 'string',
-            description: 'Ограничить подпапкой (абсолютный путь, необязательно)'
+            description: 'ограничить подпапкой'
           }
         },
         required: ['query']
@@ -53,14 +50,13 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'read_file',
-      description:
-        'Прочитать содержимое файла. Большие файлы (>500 KB) читаются частями: укажи offset и limit. Ответ содержит заголовок с номерами строк и подсказку, если файл не закончился.',
+      description: 'Читать файл. Для больших файлов используй offset/limit.',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь к файлу' },
-          offset: { type: 'string', description: 'Начальная строка (0-based). По умолчанию 0.' },
-          limit: { type: 'string', description: 'Количество строк для чтения. По умолчанию 300.' }
+          path: { type: 'string', description: 'путь к файлу' },
+          offset: { type: 'string', description: 'начало (строка, 0-based)' },
+          limit: { type: 'string', description: 'кол-во строк (по умолч. 300)' }
         },
         required: ['path']
       }
@@ -70,12 +66,11 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'write_file',
-      description:
-        'Полностью перезаписать существующий файл (для новых — create_file, для правок — edit_file)',
+      description: 'Полностью перезаписать файл (для новых — create_file, для правок — edit_file)',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь к файлу' },
+          path: { type: 'string', description: 'путь к файлу' },
           content: { type: 'string', description: 'Новое содержимое файла' }
         },
         required: ['path', 'content']
@@ -86,12 +81,11 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'create_file',
-      description:
-        'Создать новый файл с содержимым. Папки создаются автоматически. Ошибка, если файл уже существует.',
+      description: 'Создать новый файл (папки создаются автоматически; ошибка если уже есть)',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь к новому файлу' },
+          path: { type: 'string', description: 'путь к новому файлу' },
           content: { type: 'string', description: 'Содержимое нового файла' }
         },
         required: ['path', 'content']
@@ -102,12 +96,11 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'edit_file',
-      description:
-        'Точечная правка: заменить old_string на new_string в существующем файле. Сначала read_file. old_string должен быть уникален (или replace_all: true).',
+      description: 'Точечная замена old_string → new_string. Перед правкой — read_file.',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь к файлу' },
+          path: { type: 'string', description: 'путь к файлу' },
           old_string: {
             type: 'string',
             description: 'Точный фрагмент из файла (с пробелами и переносами)'
@@ -126,14 +119,13 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'undo_edit',
-      description:
-        'Отменить последнее изменение файла, сделанное через edit_file (восстановить снимок до правки). Работает только для последнего вызова edit_file для каждого файла.',
+      description: 'Откатить последнее edit_file для файла',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Абсолютный путь к файлу, правку которого нужно отменить'
+            description: 'путь к файлу'
           }
         },
         required: ['path']
@@ -148,7 +140,7 @@ export const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь к существующему файлу' },
+          path: { type: 'string', description: 'путь к файлу' },
           content: { type: 'string', description: 'Текст для добавления в конец' }
         },
         required: ['path', 'content']
@@ -163,7 +155,7 @@ export const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь к файлу' }
+          path: { type: 'string', description: 'путь к файлу' }
         },
         required: ['path']
       }
@@ -202,14 +194,13 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'git_status',
-      description:
-        'Статус git-репозитория проекта (ветка, изменённые файлы). Только чтение — безопаснее, чем run_command.',
+      description: 'Статус git (ветка, изменённые файлы)',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Ограничить подпапкой проекта (абсолютный путь, необязательно)'
+            description: 'ограничить подпапкой'
           }
         }
       }
@@ -219,8 +210,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'git_diff',
-      description:
-        'Diff изменений в git (рабочая копия, staged или конкретный коммит). Только чтение — безопаснее, чем run_command.',
+      description: 'Git diff (рабочая копия, staged или коммит)',
       parameters: {
         type: 'object',
         properties: {
@@ -241,7 +231,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'git_log',
-      description: 'История коммитов git проекта. Только чтение — безопаснее, чем run_command.',
+      description: 'История коммитов git',
       parameters: {
         type: 'object',
         properties: {
@@ -256,8 +246,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'remember',
-      description:
-        'Сохранить знание в ViperMemory.md (паттерн, ошибка, предпочтение, правило проекта)',
+      description: 'Сохранить знание в память агента',
       parameters: {
         type: 'object',
         properties: {
@@ -327,8 +316,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'create_skill',
-      description:
-        'Создать глобальный навык агента → %APPDATA%/CodeViper/ViperSkills.md. Переживает перезапуск и смену проекта; применяется автоматически по триггерам.',
+      description: 'Создать глобальный навык агента (применяется автоматически по триггерам)',
       parameters: {
         type: 'object',
         properties: {
@@ -371,7 +359,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'delete_skill',
-      description: 'Удалить пользовательский навык по id (встроенные viper-* удалять нельзя)',
+      description: 'Удалить навык по id (viper-* нельзя)',
       parameters: {
         type: 'object',
         properties: {
@@ -414,8 +402,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'set_self_improvement_plan',
-      description:
-        'Задать план автономного самоулучшения CodeViper (3–8 пунктов). Используй после изучения кода. Все пункты должны быть выполнены через инструменты.',
+      description: 'Задать план самоулучшения (3–8 пунктов) после изучения кода',
       parameters: {
         type: 'object',
         properties: {
@@ -433,8 +420,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'complete_self_improvement_item',
-      description:
-        'Отметить пункт плана самоулучшения выполненным после реальной правки/создания skill',
+      description: 'Отметить пункт плана выполненным',
       parameters: {
         type: 'object',
         properties: {
@@ -500,14 +486,13 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'read_codeviper_file',
-      description:
-        'Прочитать файл исходников CodeViper. Поддерживает offset/limit для больших файлов.',
+      description: 'Читать файл исходников CodeViper (offset/limit для больших)',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
-          offset: { type: 'string', description: 'Начальная строка (0-based). По умолчанию 0.' },
-          limit: { type: 'string', description: 'Количество строк для чтения. По умолчанию 300.' }
+          path: { type: 'string', description: 'путь в исходниках CodeViper' },
+          offset: { type: 'string', description: 'начало (строка, 0-based)' },
+          limit: { type: 'string', description: 'кол-во строк (по умолч. 300)' }
         },
         required: ['path']
       }
@@ -521,7 +506,7 @@ export const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          path: { type: 'string', description: 'путь в исходниках CodeViper' },
           content: { type: 'string', description: 'Новое содержимое файла' }
         },
         required: ['path', 'content']
@@ -536,7 +521,7 @@ export const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          path: { type: 'string', description: 'путь в исходниках CodeViper' },
           content: { type: 'string', description: 'Содержимое нового файла' }
         },
         required: ['path', 'content']
@@ -547,12 +532,11 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'edit_codeviper_file',
-      description:
-        'Точечная правка файла CodeViper: old_string → new_string. Сначала read_codeviper_file.',
+      description: 'Точечная замена в файле CodeViper. Перед правкой — read_codeviper_file.',
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          path: { type: 'string', description: 'путь в исходниках CodeViper' },
           old_string: { type: 'string', description: 'Точный фрагмент из файла' },
           new_string: { type: 'string', description: 'Новый фрагмент' },
           replace_all: { type: 'string', description: 'true — заменить все вхождения' }
@@ -569,7 +553,7 @@ export const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' },
+          path: { type: 'string', description: 'путь в исходниках CodeViper' },
           content: { type: 'string', description: 'Текст для добавления' }
         },
         required: ['path', 'content']
@@ -584,7 +568,7 @@ export const AGENT_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Абсолютный путь внутри исходников CodeViper' }
+          path: { type: 'string', description: 'путь в исходниках CodeViper' }
         },
         required: ['path']
       }
@@ -624,14 +608,13 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'preview_ollama_modelfile',
-      description:
-        'Собрать Ollama Modelfile из файла с примерами (few-shot). Без создания модели — для проверки.',
+      description: 'Собрать Ollama Modelfile из примеров (без создания — только проверка)',
       parameters: {
         type: 'object',
         properties: {
           data_path: {
             type: 'string',
-            description: 'Абсолютный путь к JSON/JSONL с примерами {user, assistant}'
+            description: 'путь к JSON/JSONL с примерами'
           },
           base_model: {
             type: 'string',
@@ -654,8 +637,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'create_codeviper_branch',
-      description:
-        'Создать ветку agent/<name> для правок своего кода. Переключает репозиторий на новую ветку. Имя санитизируется автоматически.',
+      description: 'Создать и переключиться на ветку agent/<name>',
       parameters: {
         type: 'object',
         properties: {
@@ -672,8 +654,7 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'push_codeviper_branch',
-      description:
-        'Запушить текущую ветку agent/... на GitHub (git push --set-upstream origin). Только для веток agent/*, не для master.',
+      description: 'Пушить текущую ветку agent/* на GitHub',
       parameters: {
         type: 'object',
         properties: {}
@@ -685,7 +666,7 @@ export const AGENT_TOOLS = [
     function: {
       name: 'create_codeviper_pr',
       description:
-        'Создать Pull Request из текущей ветки agent/* на GitHub через gh CLI. Сначала пушит ветку, затем gh pr create. PR НЕ мержится автоматически — требуется ручная проверка. Только для веток agent/*.',
+        'Создать PR из текущей ветки agent/* через gh CLI (PR не мержится автоматически)',
       parameters: {
         type: 'object',
         properties: {
@@ -699,13 +680,12 @@ export const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'create_ollama_model',
-      description:
-        'Создать производную модель Ollama из файла примеров (Modelfile + MESSAGE). Не GPU fine-tuning.',
+      description: 'Создать производную модель Ollama из примеров (Modelfile + MESSAGE)',
       parameters: {
         type: 'object',
         properties: {
           model_name: { type: 'string', description: 'Имя новой модели, напр. my-project-coder' },
-          data_path: { type: 'string', description: 'Абсолютный путь к JSON/JSONL с примерами' },
+          data_path: { type: 'string', description: 'путь к JSON/JSONL с примерами' },
           base_model: { type: 'string', description: 'Базовая модель (FROM)' },
           system: { type: 'string', description: 'SYSTEM промпт (необязательно)' },
           temperature: { type: 'string', description: 'temperature (необязательно)' }

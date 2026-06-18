@@ -10,6 +10,8 @@ import type {
 } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
+import { formatElapsed, formatTokenCount } from '../shared/generationMetrics'
+import type { RunStats } from '../shared/generationMetrics'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
@@ -52,6 +54,7 @@ export default function App() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatBusy, setChatBusy] = useState(false)
+  const [runStats, setRunStats] = useState<RunStats | null>(null)
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -495,6 +498,12 @@ export default function App() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
+        {runStats && (
+          <div className="topbar-run-stats">
+            {formatElapsed(runStats.elapsedSec)}
+            {runStats.tokens > 0 && <> · {formatTokenCount(runStats.tokens)} tok</>}
+          </div>
+        )}
         <div className="topbar-path">{activeChat?.title ?? 'Новый чат'}</div>
         <div className="topbar-actions">
           <button className="btn" onClick={refreshOllama}>
@@ -587,6 +596,7 @@ export default function App() {
             }}
             interruptedDraft={activeChat?.interruptedDraft}
             onInterruptedDraftChange={refreshChatStore}
+            onRunStatsChange={setRunStats}
           />
 
           {terminalOpen && (
