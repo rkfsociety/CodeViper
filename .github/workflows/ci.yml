@@ -35,3 +35,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright (Electron не требует браузеров)
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests (headless via xvfb)
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm run test:e2e
+        env:
+          CI: true
+          DISPLAY: ':99'
