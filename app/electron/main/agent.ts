@@ -576,74 +576,76 @@ export class AgentRunner {
             messages.push(toolMsg)
           }
         } else {
-          for (const call of toolCalls) {
-            this.throwIfAborted()
-
-            const name = call.function.name
-            const args = parseToolArgs(call.function.arguments ?? {})
-            const toolInput = JSON.stringify(args, null, 2)
-            this.emit({ type: 'tool_start', toolName: name, toolInput })
-
-            // Подтверждение мутирующих действий согласно режиму доступа.
-            if (
-              this.confirm &&
-              toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)
-            ) {
-              const approved = await this.confirm(name, toolInput)
+          // Параллельное выполнение инструментов для экономии API-запросов при облачных провайдерах
+          const toolResults = await Promise.all(
+            toolCalls.map(async (call) => {
               this.throwIfAborted()
-              if (!approved) {
-                const output = '⛔ Действие отклонено пользователем'
-                this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-                const rejMsg: OllamaMessage = {
-                  role: 'tool',
-                  content: `Инструмент ${name}:\n${output}`
+
+              const name = call.function.name
+              const args = parseToolArgs(call.function.arguments ?? {})
+              const toolInput = JSON.stringify(args, null, 2)
+              this.emit({ type: 'tool_start', toolName: name, toolInput })
+
+              // Подтверждение мутирующих действий согласно режиму доступа.
+              if (
+                this.confirm &&
+                toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)
+              ) {
+                const approved = await this.confirm(name, toolInput)
+                this.throwIfAborted()
+                if (!approved) {
+                  const output = '⛔ Действие отклонено пользователем'
+                  this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
+                  return { call, output, name }
                 }
-                if (call.id) rejMsg.tool_call_id = call.id
-                messages.push(rejMsg)
-                continue
               }
-            }
 
-            void agentLogger.write({ event: 'tool_call', step, tool: name, args: args })
-            const toolStartMs = Date.now()
-            let output = ''
-            try {
-              output = await this.executeTool(name, args)
-              void agentLogger.write({
-                event: 'tool_result',
-                step,
-                tool: name,
-                ok: true,
-                duration_ms: Date.now() - toolStartMs,
-                output_len: output.length
-              })
-            } catch (error) {
-              output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
-              void agentLogger.write({
-                event: 'tool_result',
-                step,
-                tool: name,
-                ok: false,
-                duration_ms: Date.now() - toolStartMs,
-                error: output
-              })
-            }
+              void agentLogger.write({ event: 'tool_call', step, tool: name, args: args })
+              const toolStartMs = Date.now()
+              let output = ''
+              try {
+                output = await this.executeTool(name, args)
+                void agentLogger.write({
+                  event: 'tool_result',
+                  step,
+                  tool: name,
+                  ok: true,
+                  duration_ms: Date.now() - toolStartMs,
+                  output_len: output.length
+                })
+              } catch (error) {
+                output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+                void agentLogger.write({
+                  event: 'tool_result',
+                  step,
+                  tool: name,
+                  ok: false,
+                  duration_ms: Date.now() - toolStartMs,
+                  error: output
+                })
+              }
 
-            if (MUTATING_TOOLS.has(name)) {
-              mutatingToolsUsed.add(name)
-            }
+              if (MUTATING_TOOLS.has(name)) {
+                mutatingToolsUsed.add(name)
+              }
 
-            if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) {
-              selfEdited = true
-            }
+              if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) {
+                selfEdited = true
+              }
 
-            this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-            const seqMsg: OllamaMessage = {
+              this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
+              return { call, output, name }
+            })
+          )
+
+          // Добавляем результаты в сообщения в правильном порядке
+          for (const { call, output, name } of toolResults) {
+            const msg: OllamaMessage = {
               role: 'tool',
               content: `Инструмент ${name}:\n${output}`
             }
-            if (call.id) seqMsg.tool_call_id = call.id
-            messages.push(seqMsg)
+            if (call.id) msg.tool_call_id = call.id
+            messages.push(msg)
           }
         }
       }
