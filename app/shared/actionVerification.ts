@@ -48,6 +48,15 @@ const ADVICE_INSTEAD_OF_ACTION_PATTERNS: RegExp[] = [
   /(?:^|\n)\s*\d+\.\s+используйте/iu
 ]
 
+/** Паттерны для информационных вопросов (просто ответить, без обязательных инструментов) */
+const INFORMATION_ONLY_PATTERNS: RegExp[] = [
+  /^[^?.]*\?+\s*$/i, // Заканчивается вопросом
+  /(?:какие|какой|когда|где|почему|как|что|кто)\s+/iu, // Вопросительные слова
+  /(?:посоветуй|порекомендуй|предложи|подскажи)\s+/iu, // Просьбы о совете
+  /(?:рассказ|объясн|опиш|перечисл)\s+/iu, // Информационные глаголы
+  /(?:список|перечень|обзор|краткой|кратко|суть)\s+/iu // Информационные термины
+]
+
 const COMPLETION_CLAIM_PATTERNS: RegExp[] = [
   /(?:^|[\s.!?])(?:я\s+)?(?:создал|добавил|записал|обновил|исправил|удалил|сохранил|выполнил|реализовал)(?=\s|[.!?]|$)/i,
   /(?:^|[\s.!?])(?:skill|навык|файл)\s+(?:создан|добавлен|записан|обновл[eё]н|готов)(?=\s|[.!?]|$)/i,
@@ -61,9 +70,18 @@ export function taskLikelyNeedsMutation(userMessage: string): boolean {
   return MUTATION_TASK_PATTERNS.some((pattern) => pattern.test(text))
 }
 
+export function isInformationOnlyQuestion(userMessage: string): boolean {
+  const text = userMessage.trim()
+  if (!text) return false
+  // Если это информационный вопрос, то инструменты не требуются
+  return INFORMATION_ONLY_PATTERNS.some((pattern) => pattern.test(text))
+}
+
 export function taskLikelyNeedsTools(userMessage: string): boolean {
   const text = userMessage.trim()
   if (!text) return false
+  // Информационные вопросы не требуют инструментов, даже если совпадают с TOOL_TASK_PATTERNS
+  if (isInformationOnlyQuestion(text)) return false
   return TOOL_TASK_PATTERNS.some((pattern) => pattern.test(text))
 }
 
