@@ -1,4 +1,13 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import {
+  forwardRef,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState
+} from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage } from '../types'
@@ -6,7 +15,7 @@ import { AgentStatusBar } from './AgentStatusBar'
 import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
-import { MessageBody } from './MessageBody'
+const MessageBody = lazy(() => import('./MessageBody').then((m) => ({ default: m.MessageBody })))
 import { MessageCopyButton } from './MessageCopyButton'
 import { MessageRoleBadge } from './MessageRoleBadge'
 import { ThinkingBlock } from './ThinkingBlock'
@@ -455,14 +464,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                       📌
                     </button>
                   </div>
-                  <MessageBody
-                    role={message.role}
-                    content={
-                      message.role === 'assistant'
-                        ? visibleAssistantContent(message.content)
-                        : message.content
-                    }
-                  />
+                  <Suspense fallback={null}>
+                    <MessageBody
+                      role={message.role}
+                      content={
+                        message.role === 'assistant'
+                          ? visibleAssistantContent(message.content)
+                          : message.content
+                      }
+                    />
+                  </Suspense>
                 </div>
               ))}
           </div>
@@ -521,14 +532,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             {message.role === 'assistant' && message.thinking && (
               <ThinkingBlock content={message.thinking} />
             )}
-            <MessageBody
-              role={message.role}
-              content={
-                message.role === 'assistant'
-                  ? visibleAssistantContent(message.content)
-                  : message.content
-              }
-            />
+            <Suspense fallback={null}>
+              <MessageBody
+                role={message.role}
+                content={
+                  message.role === 'assistant'
+                    ? visibleAssistantContent(message.content)
+                    : message.content
+                }
+              />
+            </Suspense>
           </div>
         ))}
 
@@ -539,7 +552,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               {visibleDraft && <MessageCopyButton text={visibleDraft} />}
             </div>
             {draftThinking && <ThinkingBlock content={draftThinking} live />}
-            {visibleDraft && <MessageBody role="assistant" content={visibleDraft} />}
+            {visibleDraft && (
+              <Suspense fallback={null}>
+                <MessageBody role="assistant" content={visibleDraft} />
+              </Suspense>
+            )}
           </div>
         )}
 

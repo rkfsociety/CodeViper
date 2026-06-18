@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AgentConfirmRequest,
   AgentSettings,
@@ -10,11 +10,16 @@ import type {
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { ChatHistoryPanel } from './components/ChatHistoryPanel'
-import { TerminalPanel } from './components/TerminalPanel'
-import { SettingsModal } from './components/SettingsModal'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
+
+const TerminalPanel = lazy(() =>
+  import('./components/TerminalPanel').then((m) => ({ default: m.TerminalPanel }))
+)
+const SettingsModal = lazy(() =>
+  import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal }))
+)
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
 import { DEFAULT_MAX_STEPS, DEEPSEEK_API_BASE_URL } from '../shared/constants'
@@ -445,27 +450,29 @@ export default function App() {
                 {models.length > 0 && <div className="model-picker-sep" />}
 
                 {/* Список моделей провайдера */}
-                {models.map((m) => m.name).map((name) => {
-                  const isActive = settings.autoModel === false && settings.model === name
-                  const shortName = name.split(':')[0]
-                  const tag = name.includes(':') ? name.split(':')[1] : undefined
-                  return (
-                    <button
-                      key={name}
-                      className={`model-picker-item${isActive ? ' active' : ''}`}
-                      role="option"
-                      aria-selected={isActive}
-                      onClick={() => {
-                        setSettings((prev) => ({ ...prev, model: name, autoModel: false }))
-                        setModelDropdownOpen(false)
-                      }}
-                    >
-                      <span className="model-picker-item-name">{shortName}</span>
-                      {tag && <span className="model-picker-item-tag">{tag}</span>}
-                      {isActive && <span className="model-picker-check">✓</span>}
-                    </button>
-                  )
-                })}
+                {models
+                  .map((m) => m.name)
+                  .map((name) => {
+                    const isActive = settings.autoModel === false && settings.model === name
+                    const shortName = name.split(':')[0]
+                    const tag = name.includes(':') ? name.split(':')[1] : undefined
+                    return (
+                      <button
+                        key={name}
+                        className={`model-picker-item${isActive ? ' active' : ''}`}
+                        role="option"
+                        aria-selected={isActive}
+                        onClick={() => {
+                          setSettings((prev) => ({ ...prev, model: name, autoModel: false }))
+                          setModelDropdownOpen(false)
+                        }}
+                      >
+                        <span className="model-picker-item-name">{shortName}</span>
+                        {tag && <span className="model-picker-item-tag">{tag}</span>}
+                        {isActive && <span className="model-picker-check">✓</span>}
+                      </button>
+                    )
+                  })}
               </div>
             )}
           </div>
@@ -556,7 +563,9 @@ export default function App() {
                 </button>
               </div>
               {activeProjectPath ? (
-                <TerminalPanel projectPath={activeProjectPath} embedded />
+                <Suspense fallback={null}>
+                  <TerminalPanel projectPath={activeProjectPath} embedded />
+                </Suspense>
               ) : (
                 <div className="hint">Выберите проект в чате, чтобы пользоваться терминалом</div>
               )}
@@ -565,20 +574,26 @@ export default function App() {
         </section>
       </div>
 
-      <SettingsModal
-        open={settingsOpen}
-        settings={settings}
-        chatProjectPath={activeProjectPath}
-        ollamaOnline={ollamaOnline}
-        models={models}
-        downloadQueue={downloadQueue}
-        memoryRefreshKey={memoryRefreshKey}
-        skillsRefreshKey={skillsRefreshKey}
-        onClose={() => setSettingsOpen(false)}
-        onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
-        onRefreshOllama={refreshOllama}
-        onSelfLearningChange={(selfLearning) => setSettings((prev) => ({ ...prev, selfLearning }))}
-      />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal
+            open={settingsOpen}
+            settings={settings}
+            chatProjectPath={activeProjectPath}
+            ollamaOnline={ollamaOnline}
+            models={models}
+            downloadQueue={downloadQueue}
+            memoryRefreshKey={memoryRefreshKey}
+            skillsRefreshKey={skillsRefreshKey}
+            onClose={() => setSettingsOpen(false)}
+            onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+            onRefreshOllama={refreshOllama}
+            onSelfLearningChange={(selfLearning) =>
+              setSettings((prev) => ({ ...prev, selfLearning }))
+            }
+          />
+        </Suspense>
+      )}
 
       <ConfirmDialog
         open={showSecurityNotice}
