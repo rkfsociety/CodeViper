@@ -3,9 +3,6 @@ import styles from './SettingsModal.module.css'
 import type { AgentSettings, GitSyncStrategy, OllamaModel, PermissionMode } from '../types'
 import { GIT_SYNC_STRATEGIES, GIT_SYNC_STRATEGY_LABELS } from '../types'
 import {
-  DEFAULT_MAX_STEPS,
-  MAX_STEPS_MIN,
-  MAX_STEPS_MAX,
   DEFAULT_MAX_RUNS_PER_HOUR,
   MAX_RUNS_PER_HOUR_MIN,
   MAX_RUNS_PER_HOUR_MAX,
@@ -545,19 +542,6 @@ export function SettingsModal({
                   onChange={(model) => onSettingsChange({ model })}
                 />
               )}
-
-              <label>
-                Макс. шагов агента
-                <input
-                  type="number"
-                  min={MAX_STEPS_MIN}
-                  max={MAX_STEPS_MAX}
-                  value={settings.maxSteps}
-                  onChange={(e) =>
-                    onSettingsChange({ maxSteps: Number(e.target.value) || DEFAULT_MAX_STEPS })
-                  }
-                />
-              </label>
 
               <label>
                 Макс. прогонов в час
