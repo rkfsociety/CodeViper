@@ -1,6 +1,11 @@
 .main {
   display: grid;
   grid-template-rows: auto auto 1fr auto;
+  /* Без явной колонки grid берёт auto (по ширине контента) — длинные
+     сообщения растягивают панель за пределы окна. Ограничиваем шириной
+     контейнера. */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   min-height: 0;
 }
 

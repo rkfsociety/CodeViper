@@ -93,8 +93,8 @@ button {
 }
 
 .app {
-  display: grid;
-  grid-template-rows: 52px 1fr;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
 }
 
@@ -103,6 +103,8 @@ button {
   align-items: center;
   gap: 12px;
   padding: 0 16px;
+  height: 52px;
+  flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
 }
@@ -157,6 +159,7 @@ button {
   color: var(--blue-light);
   background: linear-gradient(180deg, #0d1b2a 0%, var(--bg-surface) 100%);
   border-bottom: 1px solid color-mix(in srgb, var(--blue) 33%, transparent);
+  flex-shrink: 0;
 }
 
 .update-banner-actions {
@@ -189,6 +192,7 @@ button {
 .layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
+  flex: 1;
   min-height: 0;
 }
 
@@ -367,6 +371,9 @@ button {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   animation: message-fadein 0.28s ease both;
+  /* Перенос длинного текста/URL, чтобы сообщение не вылезало за панель */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 @keyframes message-fadein {
