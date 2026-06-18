@@ -59,11 +59,11 @@ export class OpenAIProvider implements ModelProvider {
     const mappedMessages = options.messages.map((msg) => {
       const m: Record<string, unknown> = {
         role: msg.role,
-        content: msg.content ?? null
+        // OpenAI spec: content должен быть null (не "") для assistant-сообщений с tool_calls
+        content: msg.tool_calls?.length && !msg.content ? null : (msg.content ?? null)
       }
       if (msg.tool_calls?.length) {
         m.tool_calls = msg.tool_calls
-        m.content = msg.content ?? null
       }
       if (msg.tool_call_id) {
         m.tool_call_id = msg.tool_call_id
@@ -120,6 +120,7 @@ export class OpenAIProvider implements ModelProvider {
     // Аккумулятор нативных tool calls из стриминга (OpenAI формат — delta по index).
     type AccToolCall = { id: string; name: string; arguments: string }
     const accToolCalls: AccToolCall[] = []
+    let toolCallsYielded = false
 
     try {
       while (true) {
@@ -186,13 +187,17 @@ export class OpenAIProvider implements ModelProvider {
 
             // При завершении с tool_calls — выдаём финальный чанк с накопленными вызовами
             if (choice?.finish_reason === 'tool_calls' && accToolCalls.length > 0) {
-              chatChunk.tool_calls = accToolCalls
+              const assembled = accToolCalls
                 .filter((tc) => tc.id && tc.name)
                 .map((tc) => ({
                   id: tc.id,
                   type: 'function' as const,
                   function: { name: tc.name, arguments: tc.arguments }
                 }))
+              if (assembled.length > 0) {
+                chatChunk.tool_calls = assembled
+                toolCallsYielded = true
+              }
             }
 
             // Некоторые стриминговые ответы включают usage прямо в chunk
@@ -207,8 +212,8 @@ export class OpenAIProvider implements ModelProvider {
         }
       }
 
-      // Если стрим закончился без finish_reason='tool_calls' но tool_calls накоплены — всё равно выдаём
-      if (accToolCalls.length > 0) {
+      // Fallback: стрим закончился без finish_reason='tool_calls', но tool_calls накоплены
+      if (!toolCallsYielded && accToolCalls.length > 0) {
         const assembled = accToolCalls
           .filter((tc) => tc.id && tc.name)
           .map((tc) => ({
