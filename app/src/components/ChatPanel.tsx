@@ -231,7 +231,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   // ── Хук: стрим событий агента ────────────────────────────────────────────
   const {
     draft,
-    draftThinking,
     draftRef,
     agentPhase,
     activeToolName,
@@ -506,8 +505,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     lastVisibleMessage?.role === 'assistant' &&
     /\?\s*$/.test(lastVisibleMessage.content.trimEnd())
 
-  const visibleDraft = visibleAssistantContent(draft)
-
   return (
     <div className={styles.main}>
       {chatId && (
@@ -694,21 +691,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               </Suspense>
             </div>
           )
-        )}
-
-        {(visibleDraft || draftThinking) && (
-          <div className="message assistant draft">
-            <div className="message-header">
-              <MessageRoleBadge role="assistant" />
-              {visibleDraft && <MessageCopyButton text={visibleDraft} />}
-            </div>
-            {draftThinking && <ThinkingBlock content={draftThinking} live />}
-            {visibleDraft && (
-              <Suspense fallback={null}>
-                <MessageBody role="assistant" content={visibleDraft} />
-              </Suspense>
-            )}
-          </div>
         )}
 
         <div ref={bottomRef} />

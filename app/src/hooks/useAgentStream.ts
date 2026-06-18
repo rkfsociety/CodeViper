@@ -161,6 +161,7 @@ export function useAgentStream({
         draftRef.current = ''
         draftThinkingRef.current = ''
         genStartRef.current = null
+        draftMessageIdRef.current = null
       }
 
       if (event.type === 'assistant') {
@@ -170,19 +171,21 @@ export function useAgentStream({
 
         const id = draftMessageIdRef.current
         if (id) {
+          // Обновляем существующий черновик с финальным контентом
           const cleaned = sanitizeAssistantContent(event.content ?? '')
-          const thinking = event.thinking?.trim() || undefined
+          const finalContent = cleaned || draftRef.current
+          const thinking = event.thinking?.trim() || draftThinkingRef.current || undefined
           upsertMessageRef.current({
             id,
             role: 'assistant',
-            content: cleaned || '',
+            content: finalContent,
             thinking,
             timestamp: Date.now(),
             durationMs
           })
           draftMessageIdRef.current = null
         } else {
-          // Если черновик не создавался — создаём новое сообщение
+          // Если черновика не было (редко) — создаём новое сообщение
           const cleaned = sanitizeAssistantContent(event.content ?? '')
           if (cleaned) {
             appendMessageRef.current({
@@ -199,6 +202,7 @@ export function useAgentStream({
         setDraft('')
         setDraftThinking('')
         draftRef.current = ''
+        draftThinkingRef.current = ''
       }
 
       if (event.type === 'tool_start') {
@@ -340,6 +344,8 @@ export function useAgentStream({
         setDraft('')
         setDraftThinking('')
         draftRef.current = ''
+        draftThinkingRef.current = ''
+        draftMessageIdRef.current = null
         setAgentPhase('thinking')
         setActiveToolName(undefined)
         setSummarizing(false)
