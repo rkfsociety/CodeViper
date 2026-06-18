@@ -6,7 +6,12 @@ import { detectDanger } from '../../shared/dangerDetector'
 import type { DangerWarning } from '../../shared/dangerDetector'
 import type { AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
 import { AgentError } from '../../shared/agentError'
-import { AGENT_RUN_TIMEOUT_MS, MAX_QUEUE_SIZE } from '../../shared/constants'
+import {
+  AGENT_RUN_TIMEOUT_MS,
+  MAX_QUEUE_SIZE,
+  SELF_IMPROVE_RUN_TIMEOUT_MS
+} from '../../shared/constants'
+import { isSelfImprovementTask } from '../../shared/selfImprovement'
 
 export interface PrerequisiteBlock {
   issues: AgentPrerequisiteIssue[]
@@ -141,12 +146,16 @@ export function useMessageQueue({
         err.message.includes('ECONNREFUSED') ||
         err.message.includes('network'))
 
+    const runTimeoutMs = isSelfImprovementTask(text)
+      ? SELF_IMPROVE_RUN_TIMEOUT_MS
+      : AGENT_RUN_TIMEOUT_MS
+
     for (let attempt = 0; attempt <= 1; attempt++) {
       let timeoutHandle: ReturnType<typeof setTimeout> | undefined
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(
           () => reject(new AgentError('Агент не ответил — превышено время ожидания', 'timeout')),
-          AGENT_RUN_TIMEOUT_MS
+          runTimeoutMs
         )
       })
 

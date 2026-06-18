@@ -18,7 +18,9 @@ export function isSelfImprovementTask(userMessage: string): boolean {
 }
 
 export function selfImprovementStepLimit(configuredMaxSteps: number): number {
-  return Math.min(30, Math.max(configuredMaxSteps, 20))
+  // Для самообучения снимаем жёсткий потолок — агент должен дойти до конца плана.
+  // Нижняя граница 50 шагов, верхняя — не ограничена (пользователь может остановить вручную).
+  return Math.max(configuredMaxSteps, 200)
 }
 
 export function parsePlanItemsJson(raw: string): SelfImprovementItem[] {

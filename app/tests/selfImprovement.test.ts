@@ -19,9 +19,9 @@ describe('selfImprovement', () => {
   })
 
   it('увеличивает лимит шагов для самоулучшения', () => {
-    expect(selfImprovementStepLimit(12)).toBe(20)
-    expect(selfImprovementStepLimit(25)).toBe(25)
-    expect(selfImprovementStepLimit(30)).toBe(30)
+    expect(selfImprovementStepLimit(12)).toBe(200)
+    expect(selfImprovementStepLimit(150)).toBe(200)
+    expect(selfImprovementStepLimit(250)).toBe(250)
   })
 
   it('парсит JSON плана', () => {

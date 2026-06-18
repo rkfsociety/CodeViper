@@ -245,7 +245,7 @@ export class AgentRunner {
     const MAX_VERIFICATION_RETRIES = 1
     let selfImprovePlanNudges = 0
     let currentPlanItemId: string | null = null
-    const MAX_SELF_IMPROVE_PLAN_NUDGES = 6
+    const MAX_SELF_IMPROVE_PLAN_NUDGES = 20
 
     try {
       for (let step = 0; step < stepLimit; step++) {
