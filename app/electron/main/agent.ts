@@ -729,16 +729,29 @@ export class AgentRunner {
     // тоже нарушают протокол → убираем их через look-ahead.
     let filteredMessages = messages
     if (isCloudProvider) {
-      // Собираем ID вызовов, для которых есть tool-результат
+      // Проход 1: убираем tool-сообщения без tool_call_id и orphan assistant+tool_calls
+      // (тех, чьи ID не покрыты ни одним tool-результатом в messages).
       const coveredIds = new Set(messages.filter((m) => m.tool_call_id).map((m) => m.tool_call_id!))
-      filteredMessages = messages.filter((msg) => {
+      const pass1 = messages.filter((msg) => {
         if (msg.role === 'tool') return !!msg.tool_call_id
         if (msg.role === 'assistant' && msg.tool_calls?.length) {
-          // Оставляем только если ВСЕ tool_calls этого сообщения покрыты результатами
           return msg.tool_calls.every((tc) => coveredIds.has(tc.id))
         }
         return true
       })
+      // Проход 2: убираем tool-сообщения, чей tool_call_id не присутствует ни в одном
+      // assistant-сообщении из pass1. Это возможно после суммаризации контекста, когда
+      // assistant+tool_calls попадает в сжатую часть, а tool-результат — в «recent».
+      const assistantCallIds = new Set<string>()
+      for (const msg of pass1) {
+        if (msg.role === 'assistant' && msg.tool_calls?.length) {
+          for (const tc of msg.tool_calls) assistantCallIds.add(tc.id)
+        }
+      }
+      filteredMessages = pass1.filter(
+        (msg) =>
+          !(msg.role === 'tool' && msg.tool_call_id && !assistantCallIds.has(msg.tool_call_id))
+      )
     } else {
       filteredMessages = messages.filter((msg) => msg.role !== 'tool')
     }
