@@ -51,6 +51,7 @@ export function useAgentStream({
   const runStartRef = useRef<number | null>(null)
   const cumulativeTokensRef = useRef(0)
   const runActiveRef = useRef(false)
+  const draftMessageIdRef = useRef<string | null>(null)
 
   // Task 23: wrap mutable callbacks in refs so the single useEffect closure never goes stale
   const appendMessageRef = useRef(appendMessage)
@@ -75,6 +76,7 @@ export function useAgentStream({
     runStartRef.current = Date.now()
     cumulativeTokensRef.current = 0
     runActiveRef.current = true
+    draftMessageIdRef.current = null
   }, [])
 
   // Тикает каждую секунду пока агент работает — обновляет elapsed в runStats
@@ -94,17 +96,54 @@ export function useAgentStream({
       if (event.type === 'thinking') {
         setAgentPhase('thinking')
         if (genStartRef.current === null) genStartRef.current = Date.now()
-        setDraftThinking((prev) => prev + (event.content ?? ''))
+        const thinking = event.content ?? ''
+        setDraftThinking(thinking)
+        const id = draftMessageIdRef.current
+        if (id) {
+          upsertMessageRef.current({
+            id,
+            role: 'assistant',
+            content: '',
+            thinking,
+            timestamp: Date.now()
+          })
+        } else {
+          const newId = makeId()
+          draftMessageIdRef.current = newId
+          upsertMessageRef.current({
+            id: newId,
+            role: 'assistant',
+            content: '',
+            thinking,
+            timestamp: Date.now()
+          })
+        }
       }
 
       if (event.type === 'token') {
         setAgentPhase('writing')
         if (genStartRef.current === null) genStartRef.current = Date.now()
-        setDraft((prev) => {
-          const next = prev + (event.content ?? '')
-          draftRef.current = next
-          return next
-        })
+
+        const content = event.content ?? ''
+        if (!draftMessageIdRef.current) {
+          const id = makeId()
+          draftMessageIdRef.current = id
+          upsertMessageRef.current({
+            id,
+            role: 'assistant',
+            content,
+            timestamp: Date.now()
+          })
+        } else {
+          const id = draftMessageIdRef.current
+          // upsertMessage сам найдёт сообщение по id и заменит его
+          upsertMessageRef.current({
+            id,
+            role: 'assistant',
+            content,
+            timestamp: Date.now()
+          })
+        }
       }
 
       if (event.type === 'clear_draft') {
@@ -118,26 +157,43 @@ export function useAgentStream({
         const durationMs =
           genStartRef.current != null ? Date.now() - genStartRef.current : undefined
         genStartRef.current = null
+
+        const id = draftMessageIdRef.current
+        if (id) {
+          const cleaned = sanitizeAssistantContent(event.content ?? '')
+          const thinking = event.thinking?.trim() || undefined
+          upsertMessageRef.current({
+            id,
+            role: 'assistant',
+            content: cleaned || '',
+            thinking,
+            timestamp: Date.now(),
+            durationMs
+          })
+          draftMessageIdRef.current = null
+        } else {
+          // Если черновик не создавался — создаём новое сообщение
+          const cleaned = sanitizeAssistantContent(event.content ?? '')
+          if (cleaned) {
+            appendMessageRef.current({
+              id: makeId(),
+              role: 'assistant',
+              content: cleaned,
+              thinking: event.thinking?.trim(),
+              timestamp: Date.now(),
+              durationMs
+            })
+          }
+        }
+
         setDraft('')
         setDraftThinking('')
-        const thinking = event.thinking?.trim() || undefined
-        const cleaned = sanitizeAssistantContent(event.content ?? '')
-        if (!cleaned || lastAssistantContentRef.current === cleaned) return
-        lastAssistantContentRef.current = cleaned
-        appendMessageRef.current({
-          id: makeId(),
-          role: 'assistant',
-          content: cleaned,
-          thinking,
-          timestamp: Date.now(),
-          durationMs
-        })
+        draftRef.current = ''
       }
 
       if (event.type === 'tool_start') {
         genStartRef.current = null
         setDraft('')
-        setDraftThinking('')
         setAgentPhase('tool')
         setActiveToolName(event.toolName)
         activeToolNameRef.current = event.toolName

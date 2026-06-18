@@ -74,7 +74,12 @@ function visibleAssistantContent(content: string): string {
 
 function shouldShowAssistantMessage(message: ChatMessage): boolean {
   if (message.role !== 'assistant') return true
-  return visibleAssistantContent(message.content).length > 0
+
+  const hasContent = visibleAssistantContent(message.content).length > 0
+  const hasThinking = typeof message.thinking === 'string' && message.thinking.trim().length > 0
+
+  // Показываем сообщение, если есть текст ответа ИЛИ текст размышлений
+  return hasContent || hasThinking
 }
 
 // Все подряд идущие tool-вызовы сворачиваются в один блок.
@@ -492,14 +497,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   const projectLocked = messages.length > 0
 
-  const rawDraft = visibleAssistantContent(draft)
-  // Task 27: suppress draft if last committed assistant message has identical content (race guard)
-  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant')
-  const visibleDraft =
-    rawDraft && lastAssistantMsg && visibleAssistantContent(lastAssistantMsg.content) === rawDraft
-      ? ''
-      : rawDraft
-
   const lastVisibleMessage = [...messages].reverse().find(shouldShowAssistantMessage)
   const awaitingClarification =
     settings.clarifyMode &&
@@ -508,6 +505,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     !!projectPath &&
     lastVisibleMessage?.role === 'assistant' &&
     /\?\s*$/.test(lastVisibleMessage.content.trimEnd())
+
+  const visibleDraft = visibleAssistantContent(draft)
 
   return (
     <div className={styles.main}>
@@ -591,33 +590,37 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         {pinnedMessageIds.size > 0 && (
           <div className="pinned-messages-section">
             <div className="pinned-messages-title">📌 Закреплённые</div>
-            {messages
-              .filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m))
-              .map((message) => (
-                <div key={message.id} className={`message ${message.role} pinned`}>
+            {groupToolMessages(
+              messages.filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m))
+            ).map((item) =>
+              item.kind === 'all-tools' ? (
+                <AllToolsGroup key={item.key} items={item.items} />
+              ) : (
+                <div key={item.message.id} className={`message ${item.message.role} pinned`}>
                   <div className="message-header">
-                    <MessageRoleBadge role={message.role} toolName={message.toolName} />
+                    <MessageRoleBadge role={item.message.role} toolName={item.message.toolName} />
                     <button
                       type="button"
                       className="btn message-pin-btn active"
                       title="Открепить"
-                      onClick={() => togglePinMessage(message.id)}
+                      onClick={() => togglePinMessage(item.message.id)}
                     >
                       📌
                     </button>
                   </div>
                   <Suspense fallback={null}>
                     <MessageBody
-                      role={message.role}
+                      role={item.message.role}
                       content={
-                        message.role === 'assistant'
-                          ? visibleAssistantContent(message.content)
-                          : message.content
+                        item.message.role === 'assistant'
+                          ? visibleAssistantContent(item.message.content)
+                          : item.message.content
                       }
                     />
                   </Suspense>
                 </div>
-              ))}
+              )
+            )}
           </div>
         )}
 
