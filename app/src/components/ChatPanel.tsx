@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentSettings, ChatMessage } from '../types'
+import type { AgentSettings, ChatMessage, SystemStats } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
 import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
@@ -90,6 +90,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
   const [contextModalOpen, setContextModalOpen] = useState(false)
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())
+  const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -227,6 +228,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, draft, queueSize])
+
+  useEffect(() => {
+    if (!busy) {
+      setSystemStats(null)
+      return
+    }
+    return window.codeviper.onSystemStats(setSystemStats)
+  }, [busy])
 
   // ── Prerequisites ────────────────────────────────────────────────────────
   async function retryAfterPrerequisites() {
@@ -579,6 +588,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             queueSize={queueSize}
             summarizing={summarizing}
             generationMetrics={generationMetrics}
+            systemStats={systemStats}
           />
         )}
         {chatId && projectPath && (

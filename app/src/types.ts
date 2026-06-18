@@ -262,12 +262,21 @@ export interface TerminalResult {
   exitCode: number | null
 }
 
+export interface SystemStats {
+  cpu: number
+  gpu: number | null
+}
+
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   readFile: (projectPath: string, filePath: string) => Promise<string>
   writeFile: (projectPath: string, filePath: string, content: string) => Promise<void>
   listOllamaModels: (url?: string) => Promise<OllamaModel[]>
-  listProviderModels: (config: { type: string; baseUrl?: string; apiKey?: string }) => Promise<{ name: string; size?: number }[]>
+  listProviderModels: (config: {
+    type: string
+    baseUrl?: string
+    apiKey?: string
+  }) => Promise<{ name: string; size?: number }[]>
   checkOllama: (url?: string) => Promise<boolean>
   pullOllamaModel: (url: string, model: string) => Promise<void>
   deleteOllamaModel: (url: string, model: string) => Promise<void>
@@ -324,6 +333,7 @@ export interface CodeViperAPI {
     projectPath: string,
     what: 'memory' | 'skills' | 'both'
   ) => Promise<string>
+  onSystemStats: (cb: (stats: SystemStats) => void) => () => void
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>

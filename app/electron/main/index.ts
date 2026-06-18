@@ -40,6 +40,7 @@ import { createGist, formatMemoriesAsMarkdown, formatSkillsAsMarkdown } from './
 import { makeId } from '../../shared/makeId'
 import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
 import { readAppState, writeAppState, clearAppState } from './appState'
+import { startSystemStatsPush, stopSystemStatsPush } from './systemStats'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -346,6 +347,7 @@ ipcMain.handle(
 
     agentRunState = { chatId }
     activeAgentAbort = new AbortController()
+    startSystemStatsPush(_e.sender)
 
     const skipOllama = (settings.modelProvider ?? 'ollama') !== 'ollama'
     const prerequisites = await checkAgentPrerequisites(settings.ollamaUrl, projectPath, skipOllama)
@@ -417,6 +419,7 @@ ipcMain.handle(
         stream(chatId, { type: 'done' })
       }
     } finally {
+      stopSystemStatsPush()
       activeAgentAbort = null
       agentRunState = null
     }

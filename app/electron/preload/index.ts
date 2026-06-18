@@ -201,11 +201,17 @@ const codeviper = {
       'shareAsGist'
     ),
 
+  onSystemStats: (cb: (stats: { cpu: number; gpu: number | null }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, stats: { cpu: number; gpu: number | null }) =>
+      cb(stats)
+    ipcRenderer.on('system-stats', handler)
+    return () => ipcRenderer.removeListener('system-stats', handler)
+  },
+
   logFrontendError: (message: string, stack?: string) =>
     ipcRenderer.send('log-frontend-error', message, stack),
 
-  saveAppState: (state: AppState | null) =>
-    ipcRenderer.send('save-app-state', state),
+  saveAppState: (state: AppState | null) => ipcRenderer.send('save-app-state', state),
 
   getCrashRecovery: (): Promise<AppState | null> =>
     withTimeout(ipcRenderer.invoke('get-crash-recovery'), IPC_TIMEOUT_MS, 'getCrashRecovery')
