@@ -15,10 +15,21 @@ import {
   buildFileTree,
   isInsideProject
 } from './services'
-import { grepInTree, formatGrepResults, findFilesInTree, formatFindResults } from './fileSearch'
+import {
+  grepInTree,
+  formatGrepResults,
+  findFilesInTree,
+  formatFindResults,
+  MAX_WALK_FILES
+} from './fileSearch'
 import { gitStatus, gitDiff, gitLog } from './gitTools'
 import { parseToolBool } from '../../shared/fileEdit'
 import { parseTreeDepth, formatCommandResult } from './agentHandlersUtils'
+import { emitProgress, clearProgress } from './progress'
+
+function scanPercent(scanned: number): number {
+  return Math.min(99, Math.round((scanned / MAX_WALK_FILES) * 100))
+}
 
 const READONLY_ERROR = 'Режим только чтение: операции записи заблокированы'
 
@@ -66,16 +77,32 @@ export function createProjectToolHandlers(
 
     grep_files: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
-      const result = await grepInTree(projectPath, args.query, { subpath: args.path?.trim() })
-      return formatGrepResults(projectPath, args.query, result)
+      try {
+        emitProgress(`Поиск по коду: ${args.query}`, 0)
+        const result = await grepInTree(projectPath, args.query, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) =>
+            emitProgress(`Поиск по коду: ${args.query}`, scanPercent(scanned))
+        })
+        return formatGrepResults(projectPath, args.query, result)
+      } finally {
+        clearProgress()
+      }
     },
 
     find_files: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
-      const result = await findFilesInTree(projectPath, args.pattern, {
-        subpath: args.path?.trim()
-      })
-      return formatFindResults(projectPath, args.pattern, result)
+      try {
+        emitProgress(`Поиск файлов: ${args.pattern}`, 0)
+        const result = await findFilesInTree(projectPath, args.pattern, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) =>
+            emitProgress(`Поиск файлов: ${args.pattern}`, scanPercent(scanned))
+        })
+        return formatFindResults(projectPath, args.pattern, result)
+      } finally {
+        clearProgress()
+      }
     },
 
     read_file: async (args) => {
@@ -148,8 +175,14 @@ export function createProjectToolHandlers(
     }),
 
     run_command: guardWrite(async (args) => {
-      const result = await runCommand(projectPath, args.command, commandTimeoutMs)
-      return formatCommandResult(result)
+      try {
+        // Длительность команды неизвестна заранее — индикатор без процента.
+        emitProgress(`Выполняю: ${args.command}`, null)
+        const result = await runCommand(projectPath, args.command, commandTimeoutMs)
+        return formatCommandResult(result)
+      } finally {
+        clearProgress()
+      }
     }),
 
     git_status: async (args) => gitStatus(projectPath, args.path),

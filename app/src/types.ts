@@ -267,6 +267,12 @@ export interface SystemStats {
   gpu: number | null
 }
 
+export interface ProgressInfo {
+  label: string
+  /** 0–100 для определённого прогресса; null — индикатор без процента */
+  percent: number | null
+}
+
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   readFile: (projectPath: string, filePath: string) => Promise<string>
@@ -334,6 +340,7 @@ export interface CodeViperAPI {
     what: 'memory' | 'skills' | 'both'
   ) => Promise<string>
   onSystemStats: (cb: (stats: SystemStats) => void) => () => void
+  onProgressEvent: (cb: (progress: ProgressInfo | null) => void) => () => void
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>

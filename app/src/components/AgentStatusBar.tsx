@@ -1,6 +1,6 @@
 import { TOOL_LABELS } from '../../shared/toolDisplay'
 import { formatGenerationMetricsHint, type GenerationMetrics } from '../../shared/generationMetrics'
-import type { SystemStats } from '../types'
+import type { ProgressInfo, SystemStats } from '../types'
 
 export type AgentPhase = 'thinking' | 'writing' | 'tool'
 
@@ -47,6 +47,7 @@ interface Props {
   summarizing?: boolean
   generationMetrics?: GenerationMetrics | null
   systemStats?: SystemStats | null
+  progress?: ProgressInfo | null
 }
 
 export function AgentStatusBar({
@@ -56,16 +57,22 @@ export function AgentStatusBar({
   queueSize = 0,
   summarizing = false,
   generationMetrics = null,
-  systemStats = null
+  systemStats = null,
+  progress = null
 }: Props) {
   const queueHint = queueSize > 0 ? ` · в очереди ${queueSize}` : ''
-  const label = summarizing
-    ? `Сжимаю контекст…${queueHint}`
-    : agentStatusLabel(phase, toolName, model, queueSize, generationMetrics, systemStats)
+  const hasPercent = progress != null && progress.percent != null
+  const label = progress
+    ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueHint}`
+    : summarizing
+      ? `Сжимаю контекст…${queueHint}`
+      : agentStatusLabel(phase, toolName, model, queueSize, generationMetrics, systemStats)
 
   return (
     <div
-      className={`agent-status-bar phase-${phase}${summarizing ? ' summarizing' : ''}`}
+      className={`agent-status-bar phase-${phase}${summarizing ? ' summarizing' : ''}${
+        progress ? ' has-progress' : ''
+      }`}
       role="status"
       aria-live="polite"
     >
@@ -74,7 +81,14 @@ export function AgentStatusBar({
         <span className="agent-status-label">{label}</span>
       </div>
       <div className="agent-status-track" aria-hidden="true">
-        <div className="agent-status-fill" />
+        {hasPercent ? (
+          <div
+            className="agent-status-fill agent-status-fill-determinate"
+            style={{ width: `${progress!.percent}%` }}
+          />
+        ) : (
+          <div className="agent-status-fill" />
+        )}
       </div>
     </div>
   )

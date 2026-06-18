@@ -889,6 +889,13 @@ button {
   will-change: transform;
 }
 
+.agent-status-fill-determinate {
+  width: 0;
+  animation: none;
+  background: linear-gradient(90deg, var(--green), var(--green-light));
+  transition: width 0.3s ease;
+}
+
 .agent-status-bar.phase-writing .agent-status-fill {
   background: linear-gradient(90deg, transparent, var(--blue-light), var(--blue), transparent);
   animation-duration: 1.1s;

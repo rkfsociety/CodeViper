@@ -16,7 +16,7 @@ const IGNORED_DIRS = new Set([
   '.vitest-tmp'
 ])
 
-const MAX_WALK_FILES = 800
+export const MAX_WALK_FILES = 800
 const MAX_GREP_RESULTS = 60
 const MAX_FIND_RESULTS = 80
 const MAX_GREP_FILE_BYTES = FILE_SIZE_LIMIT_BYTES
@@ -68,7 +68,8 @@ function matchFileName(name: string, pattern: string): boolean {
 
 async function walkProjectFiles(
   startDir: string,
-  onFile: (absolutePath: string) => Promise<boolean | void>
+  onFile: (absolutePath: string) => Promise<boolean | void>,
+  onProgress?: (scanned: number) => void
 ): Promise<number> {
   let visited = 0
 
@@ -96,6 +97,8 @@ async function walkProjectFiles(
 
       if (!entry.isFile()) continue
       visited += 1
+      // Сообщаем о прогрессе нечасто, чтобы не спамить IPC.
+      if (onProgress && visited % 25 === 0) onProgress(visited)
       const stop = await onFile(fullPath)
       if (stop) return true
     }
@@ -110,7 +113,7 @@ async function walkProjectFiles(
 export async function grepInTree(
   root: string,
   query: string,
-  options?: { subpath?: string; maxResults?: number }
+  options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<{ matches: GrepMatch[]; truncated: boolean; filesScanned: number }> {
   const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
   const maxResults = options?.maxResults ?? MAX_GREP_RESULTS
@@ -118,44 +121,48 @@ export async function grepInTree(
   const matches: GrepMatch[] = []
   let truncated = false
 
-  const filesScanned = await walkProjectFiles(startDir, async (filePath) => {
-    if (matches.length >= maxResults) {
-      truncated = true
-      return true
-    }
-
-    let info
-    try {
-      info = await stat(filePath)
-    } catch {
-      return false
-    }
-    if (!info.isFile() || info.size > MAX_GREP_FILE_BYTES) return false
-
-    let content: string
-    try {
-      content = await readFile(filePath, 'utf-8')
-    } catch {
-      return false
-    }
-    if (content.includes('\0')) return false
-
-    const lines = content.split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      if (!matcher(lines[i])) continue
-      matches.push({
-        path: filePath,
-        line: i + 1,
-        text: lines[i].trimEnd().slice(0, 240)
-      })
+  const filesScanned = await walkProjectFiles(
+    startDir,
+    async (filePath) => {
       if (matches.length >= maxResults) {
         truncated = true
         return true
       }
-    }
 
-    return false
-  })
+      let info
+      try {
+        info = await stat(filePath)
+      } catch {
+        return false
+      }
+      if (!info.isFile() || info.size > MAX_GREP_FILE_BYTES) return false
+
+      let content: string
+      try {
+        content = await readFile(filePath, 'utf-8')
+      } catch {
+        return false
+      }
+      if (content.includes('\0')) return false
+
+      const lines = content.split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        if (!matcher(lines[i])) continue
+        matches.push({
+          path: filePath,
+          line: i + 1,
+          text: lines[i].trimEnd().slice(0, 240)
+        })
+        if (matches.length >= maxResults) {
+          truncated = true
+          return true
+        }
+      }
+
+      return false
+    },
+    options?.onProgress
+  )
 
   return { matches, truncated, filesScanned }
 }
@@ -181,25 +188,29 @@ export function formatGrepResults(
 export async function findFilesInTree(
   root: string,
   pattern: string,
-  options?: { subpath?: string; maxResults?: number }
+  options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<{ paths: string[]; truncated: boolean; filesScanned: number }> {
   const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
   const maxResults = options?.maxResults ?? MAX_FIND_RESULTS
   const paths: string[] = []
   let truncated = false
 
-  const filesScanned = await walkProjectFiles(startDir, async (filePath) => {
-    const name = filePath.split(sep).pop() ?? filePath
-    const rel = relative(root, filePath).split(sep).join('/')
-    if (!matchFileName(name, pattern) && !matchFileName(rel, pattern)) return false
+  const filesScanned = await walkProjectFiles(
+    startDir,
+    async (filePath) => {
+      const name = filePath.split(sep).pop() ?? filePath
+      const rel = relative(root, filePath).split(sep).join('/')
+      if (!matchFileName(name, pattern) && !matchFileName(rel, pattern)) return false
 
-    paths.push(filePath)
-    if (paths.length >= maxResults) {
-      truncated = true
-      return true
-    }
-    return false
-  })
+      paths.push(filePath)
+      if (paths.length >= maxResults) {
+        truncated = true
+        return true
+      }
+      return false
+    },
+    options?.onProgress
+  )
 
   return { paths, truncated, filesScanned }
 }

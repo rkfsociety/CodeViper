@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentSettings, ChatMessage, SystemStats } from '../types'
+import type { AgentSettings, ChatMessage, ProgressInfo, SystemStats } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
 import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
@@ -91,6 +91,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [contextModalOpen, setContextModalOpen] = useState(false)
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
+  const [progress, setProgress] = useState<ProgressInfo | null>(null)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -235,6 +236,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       return
     }
     return window.codeviper.onSystemStats(setSystemStats)
+  }, [busy])
+
+  useEffect(() => {
+    if (!busy) {
+      setProgress(null)
+      return
+    }
+    return window.codeviper.onProgressEvent(setProgress)
   }, [busy])
 
   // ── Prerequisites ────────────────────────────────────────────────────────
@@ -589,6 +598,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             summarizing={summarizing}
             generationMetrics={generationMetrics}
             systemStats={systemStats}
+            progress={progress}
           />
         )}
         {chatId && projectPath && (

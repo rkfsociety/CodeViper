@@ -208,6 +208,15 @@ const codeviper = {
     return () => ipcRenderer.removeListener('system-stats', handler)
   },
 
+  onProgressEvent: (cb: (progress: { label: string; percent: number | null } | null) => void) => {
+    const handler = (
+      _e: Electron.IpcRendererEvent,
+      progress: { label: string; percent: number | null } | null
+    ) => cb(progress)
+    ipcRenderer.on('progress-event', handler)
+    return () => ipcRenderer.removeListener('progress-event', handler)
+  },
+
   logFrontendError: (message: string, stack?: string) =>
     ipcRenderer.send('log-frontend-error', message, stack),
 
