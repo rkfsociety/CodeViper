@@ -51,17 +51,23 @@ export class OllamaProvider implements ModelProvider {
         temperature: options.temperature,
         top_p: options.top_p,
         tools: options.tools,
-        tool_choice: options.tool_choice,
+        // tool_choice не поддерживается Ollama — не передаём
         keep_alive: options.keep_alive ?? 5 * 60,
-        // Ограничить контекст и генерацию для экономии памяти
-        num_ctx: 4096, // ограничить контекст до 4k (вместо 262k)
-        num_predict: options.max_tokens ?? 2048 // ограничить длину ответа
+        num_ctx: 4096,
+        num_predict: options.max_tokens ?? 2048
       }),
       signal: options.signal
     })
 
     if (!res.ok) {
-      throw new Error(`Ollama chat error: ${res.status}`)
+      let detail = ''
+      try {
+        const body = (await res.json()) as { error?: string }
+        detail = body.error ? `: ${body.error}` : ''
+      } catch {
+        /* ignore */
+      }
+      throw new Error(`Ollama chat error: ${res.status}${detail}`)
     }
 
     const reader = res.body?.getReader()
