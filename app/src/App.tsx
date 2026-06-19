@@ -12,7 +12,7 @@ import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { formatElapsed, formatTokenCount } from '../shared/generationMetrics'
 import type { RunStats } from '../shared/generationMetrics'
-import { ChatHistoryPanel } from './components/ChatHistoryPanel'
+import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
@@ -67,6 +67,7 @@ export default function App() {
   const [showSecurityNotice, setShowSecurityNotice] = useState(false)
   const [crashRecovery, setCrashRecovery] = useState<AppState | null>(null)
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false)
+  const [agentMode, setAgentMode] = useState<AgentMode>('code')
   const modelDropdownRef = useRef<HTMLDivElement>(null)
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
@@ -561,6 +562,8 @@ export default function App() {
             store={chatStore}
             activeChatId={activeChatId}
             chatBusy={chatBusy}
+            mode={agentMode}
+            onModeChange={setAgentMode}
             onSelectChat={selectChat}
             onCreateChat={createChat}
             onCreateFolder={createFolder}
@@ -578,7 +581,11 @@ export default function App() {
           <div className="panel-header">Агент</div>
           <ChatPanel
             ref={chatPanelRef}
-            settings={settings}
+            settings={{
+              ...settings,
+              // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать
+              clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode
+            }}
             projectPath={activeProjectPath}
             chatId={activeChatId}
             messages={messages}

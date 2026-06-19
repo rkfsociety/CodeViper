@@ -5,10 +5,14 @@ import { PromptDialog } from './PromptDialog'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './ChatHistoryPanel.module.css'
 
+export type AgentMode = 'chat' | 'code'
+
 interface Props {
   store: ChatStore | null
   activeChatId: string | null
   chatBusy: boolean
+  mode: AgentMode
+  onModeChange: (mode: AgentMode) => void
   onSelectChat: (id: string) => void
   onCreateChat: (folderId?: string | null) => void
   onCreateFolder: (name: string) => void
@@ -111,6 +115,8 @@ export function ChatHistoryPanel({
   store,
   activeChatId,
   chatBusy,
+  mode,
+  onModeChange,
   onSelectChat,
   onCreateChat,
   onCreateFolder,
@@ -457,6 +463,26 @@ export function ChatHistoryPanel({
 
   return (
     <div className={styles.panel}>
+      {/* Переключатель режима агента */}
+      <div className={styles.modeTabs}>
+        <button
+          type="button"
+          className={`${styles.modeTab}${mode === 'chat' ? ' ' + styles.modeTabActive : ''}`}
+          onClick={() => onModeChange('chat')}
+          title="Режим разговора — агент отвечает на вопросы и объясняет"
+        >
+          💬 Chat
+        </button>
+        <button
+          type="button"
+          className={`${styles.modeTab}${mode === 'code' ? ' ' + styles.modeTabActive : ''}`}
+          onClick={() => onModeChange('code')}
+          title="Режим кода — агент сразу пишет и правит файлы"
+        >
+          {'</>'} Code
+        </button>
+      </div>
+
       <div className={styles.toolbar}>
         <button className="btn primary" onClick={() => onCreateChat(null)} disabled={chatBusy}>
           + Чат
