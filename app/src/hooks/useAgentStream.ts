@@ -129,7 +129,7 @@ export function useAgentStream({
 
         hasPendingFlushRef.current = true
         if (!flushTimerRef.current) {
-          flushTimerRef.current = setTimeout(flushPending, 80)
+          flushTimerRef.current = setTimeout(flushPending, 150)
         }
       }
 
@@ -146,7 +146,7 @@ export function useAgentStream({
 
         hasPendingFlushRef.current = true
         if (!flushTimerRef.current) {
-          flushTimerRef.current = setTimeout(flushPending, 80)
+          flushTimerRef.current = setTimeout(flushPending, 150)
         }
       }
 
