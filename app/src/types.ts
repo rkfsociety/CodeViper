@@ -150,6 +150,16 @@ export interface AgentSettings {
   gitSyncStrategy?: GitSyncStrategy
   /** GitHub Personal Access Token для создания Gist (экспорт памяти и навыков) */
   githubToken?: string
+  /** Включить облачный API параллельно с Ollama (для суммаризации или запасного канала) */
+  cloudEnabled?: boolean
+  /** Тип облачного провайдера: deepseek или openai-совместимый */
+  cloudProvider?: 'deepseek' | 'openai'
+  /** API ключ облачного провайдера */
+  cloudApiKey?: string
+  /** Базовый URL для OpenAI-совместимых облачных провайдеров */
+  cloudBaseUrl?: string
+  /** Модель облачного провайдера (по умолчанию deepseek-chat) */
+  cloudModel?: string
 }
 
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'

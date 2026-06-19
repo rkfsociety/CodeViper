@@ -123,6 +123,10 @@ export class AgentRunner {
   private selfImprovementPlan = new SelfImprovementPlanStore()
   private modelRuntime: ModelRuntime
   private providerConfig: ProviderConfig
+  /** Конфиг провайдера для суммаризации контекста (может отличаться от основного) */
+  private summarizeProviderConfig: ProviderConfig
+  /** Модель для суммаризации (с учётом провайдера) */
+  private summarizeModelResolved: string
   private sessionTokens = 0
 
   constructor(
@@ -149,6 +153,50 @@ export class AgentRunner {
       model: providerModel
     }
     this.modelRuntime = new ModelRuntime(this.providerConfig)
+
+    // Конфиг для суммаризации: используем второй провайдер, если настроен
+    const sumConfig = this.buildSummarizeConfig()
+    this.summarizeProviderConfig = sumConfig.providerConfig
+    this.summarizeModelResolved = sumConfig.model
+  }
+
+  /** Строим конфиг провайдера для суммаризации контекста.
+   *  Если включён cloudEnabled: Ollama-агент суммаризирует через облако, облачный — через Ollama. */
+  private buildSummarizeConfig(): { providerConfig: ProviderConfig; model: string } {
+    const primaryIsOllama = this.providerConfig.type === 'ollama'
+
+    // Ollama как основной + настроен облачный API → суммаризируем облаком
+    if (primaryIsOllama && this.settings.cloudEnabled && this.settings.cloudApiKey) {
+      const cloudType = this.settings.cloudProvider || 'deepseek'
+      const defaultUrl =
+        cloudType === 'deepseek' ? DEEPSEEK_API_BASE_URL : 'https://api.openai.com/v1'
+      const cloudBaseUrl = this.settings.cloudBaseUrl || defaultUrl
+      const cloudModel = this.settings.cloudModel || DEEPSEEK_MODEL_DEFAULT
+      return {
+        providerConfig: {
+          type: cloudType,
+          baseUrl: cloudBaseUrl,
+          apiKey: this.settings.cloudApiKey,
+          model: cloudModel
+        },
+        model: cloudModel
+      }
+    }
+
+    // Облако как основной + настроен Ollama → суммаризируем локально
+    if (!primaryIsOllama && this.settings.ollamaUrl) {
+      const ollamaModel = this.summarizeModel || this.settings.model
+      return {
+        providerConfig: { type: 'ollama', baseUrl: this.settings.ollamaUrl },
+        model: ollamaModel
+      }
+    }
+
+    // Без второго провайдера — суммаризируем тем же провайдером
+    return {
+      providerConfig: this.providerConfig,
+      model: this.summarizeModel || this.settings.model
+    }
   }
 
   private throwIfAborted(): void {
@@ -212,11 +260,11 @@ export class AgentRunner {
       autonomousSelfImprove,
       {
         ollamaUrl: this.settings.ollamaUrl,
-        providerConfig: this.providerConfig,
+        providerConfig: this.summarizeProviderConfig,
         signal: this.signal,
         clarifyMode: this.settings.clarifyMode,
         deepReasoning: this.settings.deepReasoning,
-        summarizeModel: this.summarizeModel
+        summarizeModel: this.summarizeModelResolved
       }
     )
     this.throwIfAborted()
@@ -808,9 +856,9 @@ export class AgentRunner {
     const compression = await compressContextMessages({
       messages,
       model: this.settings.model,
-      summarizeModel: this.summarizeModel,
+      summarizeModel: this.summarizeModelResolved,
       toolsJsonChars: JSON.stringify(AGENT_TOOLS).length,
-      providerConfig: this.providerConfig,
+      providerConfig: this.summarizeProviderConfig,
       signal: this.signal,
       onCompressStart: () => {
         compressionNotified = true

@@ -283,6 +283,88 @@ export function SettingsModal({
                 Сжатие длинной истории чата при ~85% лимита контекста. По умолчанию берётся самая
                 лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
               </div>
+
+              {/* ── Второй провайдер (дополнительно) ── */}
+              <div className={styles.section}>
+                <div className={styles.sectionLabel}>Облачный API (дополнительно)</div>
+                <label className={styles.toggle}>
+                  <input
+                    type="checkbox"
+                    checked={settings.cloudEnabled === true}
+                    onChange={(e) => onSettingsChange({ cloudEnabled: e.target.checked })}
+                  />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
+                  </span>
+                  <span className={styles.content}>
+                    <span className={styles.title}>Включить облачный провайдер</span>
+                    <span className={styles.desc}>
+                      {provider === 'ollama'
+                        ? 'Ollama остаётся основным; облако используется для суммаризации контекста'
+                        : 'Облако остаётся основным; Ollama используется для суммаризации контекста'}
+                    </span>
+                  </span>
+                </label>
+
+                {settings.cloudEnabled && (
+                  <>
+                    <label>
+                      Тип облачного провайдера
+                      <select
+                        value={settings.cloudProvider ?? 'deepseek'}
+                        onChange={(e) =>
+                          onSettingsChange({
+                            cloudProvider: e.target.value as 'deepseek' | 'openai'
+                          })
+                        }
+                      >
+                        <option value="deepseek">DeepSeek API</option>
+                        <option value="openai">OpenAI-совместимый API</option>
+                      </select>
+                    </label>
+
+                    {(settings.cloudProvider ?? 'deepseek') === 'openai' && (
+                      <label>
+                        Базовый URL
+                        <input
+                          placeholder="https://api.openai.com/v1"
+                          value={settings.cloudBaseUrl ?? ''}
+                          onChange={(e) => onSettingsChange({ cloudBaseUrl: e.target.value })}
+                        />
+                      </label>
+                    )}
+
+                    <label>
+                      API ключ
+                      <input
+                        type="password"
+                        placeholder="sk-..."
+                        value={settings.cloudApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ cloudApiKey: e.target.value })}
+                        autoComplete="off"
+                      />
+                    </label>
+
+                    <label>
+                      Модель
+                      <input
+                        placeholder={
+                          (settings.cloudProvider ?? 'deepseek') === 'deepseek'
+                            ? 'deepseek-chat'
+                            : 'gpt-4o-mini'
+                        }
+                        value={settings.cloudModel ?? ''}
+                        onChange={(e) => onSettingsChange({ cloudModel: e.target.value })}
+                      />
+                    </label>
+                    <div className={styles.hint}>
+                      {provider === 'ollama'
+                        ? 'Облачная модель будет использоваться для суммаризации длинных диалогов вместо локальной — качество сжатия обычно выше.'
+                        : 'Ollama будет использоваться для локальной суммаризации, освобождая облачные токены.'}
+                    </div>
+                  </>
+                )}
+              </div>
             </>
           )}
 
