@@ -899,8 +899,30 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             rows={3}
           />
 
-          {/* Кнопки внутри поля — только отправить/стоп */}
+          {/* Кнопки внутри поля — прикрепить/стоп/отправить */}
           <div className={styles.inputActions}>
+            <button
+              type="button"
+              className={styles.attachBtn}
+              onClick={() => {
+                void window.codeviper.selectFiles().then((paths) => {
+                  if (!paths.length) return
+                  setDroppedFiles((prev) => {
+                    const existingPaths = new Set(prev.map((x) => x.path))
+                    const newEntries = paths
+                      .filter((p) => !existingPaths.has(p))
+                      .map((p) => ({ name: p.split(/[\\/]/).pop() ?? p, path: p }))
+                    return [...prev, ...newEntries]
+                  })
+                  inputRef.current?.focus()
+                })
+              }}
+              disabled={!chatId}
+              title="Прикрепить файл(ы)"
+              aria-label="Прикрепить файл"
+            >
+              +
+            </button>
             {(agentRunning || queueSize > 0) && (
               <button
                 type="button"

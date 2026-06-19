@@ -363,6 +363,7 @@ export interface UpdateInfo {
 
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
+  selectFiles: () => Promise<string[]>
   readFile: (projectPath: string, filePath: string) => Promise<string>
   writeFile: (projectPath: string, filePath: string, content: string) => Promise<void>
   listOllamaModels: (url?: string) => Promise<OllamaModel[]>

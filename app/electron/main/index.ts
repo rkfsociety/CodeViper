@@ -223,6 +223,13 @@ ipcMain.handle('select-project-folder', async () => {
   return result.canceled ? null : (result.filePaths[0] ?? null)
 })
 
+ipcMain.handle('select-files', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    properties: ['openFile', 'multiSelections']
+  })
+  return result.canceled ? [] : result.filePaths
+})
+
 ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>
   safeReadFile(projectPath, filePath)
 )

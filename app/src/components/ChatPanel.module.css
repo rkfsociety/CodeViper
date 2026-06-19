@@ -171,6 +171,35 @@
   gap: 5px;
 }
 
+.attachBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border, #30363d);
+  background: transparent;
+  color: var(--text-muted, #8b949e);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
+}
+.attachBtn:hover:not(:disabled) {
+  background: var(--bg-secondary, #161b22);
+  color: var(--text, #e6edf3);
+}
+.attachBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .stopBtn {
   display: inline-flex;
   align-items: center;
