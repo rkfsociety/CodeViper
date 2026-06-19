@@ -122,11 +122,17 @@ export function ModelPanel({
           disabled={!toolModels.length || busy}
         >
           {!toolModels.length && <option value="">Нет моделей с tool calling</option>}
-          {toolModels.map((model) => (
-            <option key={model.name} value={model.name}>
-              {model.name} ({formatBytes(model.size)})
-            </option>
-          ))}
+          {toolModels.map((model) => {
+            const unsupported = model.isSupported === false
+            const label = unsupported
+              ? `⚠ ${model.name} (${formatBytes(model.size)})${model.reason ? ' — ' + model.reason : ''}`
+              : `✓ ${model.name} (${formatBytes(model.size)})`
+            return (
+              <option key={model.name} value={model.name} disabled={unsupported}>
+                {label}
+              </option>
+            )
+          })}
         </select>
       </label>
 
@@ -182,21 +188,39 @@ export function ModelPanel({
         <>
           <div className={styles.sectionTitle}>Установленные модели (tool calling)</div>
           <div className={styles.installedList}>
-            {toolModels.map((model) => (
-              <div key={model.name} className={styles.installedRow}>
-                <div className={styles.installedInfo}>
-                  <strong>{model.name}</strong>
-                  <span className={styles.installedSize}>{formatBytes(model.size)}</span>
+            {toolModels.map((model) => {
+              const unsupported = model.isSupported === false
+              return (
+                <div key={model.name} className={styles.installedRow}>
+                  <div className={styles.installedInfo}>
+                    <div className={styles.installedNameRow}>
+                      {unsupported ? (
+                        <span
+                          className={styles.compatWarn}
+                          title={model.reason ?? 'Недостаточно RAM'}
+                        >
+                          ⚠
+                        </span>
+                      ) : (
+                        <span className={styles.compatOk}>✓</span>
+                      )}
+                      <strong>{model.name}</strong>
+                    </div>
+                    <span className={styles.installedSize}>{formatBytes(model.size)}</span>
+                    {unsupported && model.reason && (
+                      <span className={styles.compatReason}>{model.reason}</span>
+                    )}
+                  </div>
+                  <button
+                    className={`btn ${styles.deleteBtn}`}
+                    disabled={!ollamaOnline || !!pulling || !!deleting}
+                    onClick={() => requestRemoveModel(model.name)}
+                  >
+                    {deleting === model.name ? 'Удаление…' : 'Удалить'}
+                  </button>
                 </div>
-                <button
-                  className={`btn ${styles.deleteBtn}`}
-                  disabled={!ollamaOnline || !!pulling || !!deleting}
-                  onClick={() => requestRemoveModel(model.name)}
-                >
-                  {deleting === model.name ? 'Удаление…' : 'Удалить'}
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </>
       )}

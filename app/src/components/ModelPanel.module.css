@@ -92,9 +92,33 @@
   min-width: 0;
 }
 
+.installedNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .installedInfo strong {
   font-size: 13px;
   word-break: break-all;
+}
+
+.compatOk {
+  font-size: 12px;
+  color: var(--green, #3fb950);
+  flex-shrink: 0;
+}
+
+.compatWarn {
+  font-size: 12px;
+  color: var(--yellow, #d29922);
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.compatReason {
+  font-size: 11px;
+  color: var(--yellow, #d29922);
 }
 
 .installedSize {
