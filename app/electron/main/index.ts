@@ -230,6 +230,21 @@ ipcMain.handle('select-files', async () => {
   return result.canceled ? [] : result.filePaths
 })
 
+const ATTACHMENT_SIZE_LIMIT = 200 * 1024 // 200 КБ
+
+ipcMain.handle('read-attachment', async (_e, filePath: string) => {
+  const { stat, readFile } = await import('fs/promises')
+  const info = await stat(filePath)
+  if (info.size > ATTACHMENT_SIZE_LIMIT) {
+    return {
+      ok: false,
+      error: `Файл слишком большой (${(info.size / 1024).toFixed(0)} КБ, лимит 200 КБ)`
+    }
+  }
+  const content = await readFile(filePath, 'utf-8')
+  return { ok: true, content }
+})
+
 ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>
   safeReadFile(projectPath, filePath)
 )

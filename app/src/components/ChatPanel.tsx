@@ -624,9 +624,22 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     const text = input.trim()
     if (!text || !projectPath || !chatId) return
 
-    // Добавляем пути вложенных файлов в начало сообщения
-    const fileSection =
-      droppedFiles.length > 0 ? `Файлы:\n${droppedFiles.map((f) => f.path).join('\n')}\n\n` : ''
+    // Читаем содержимое вложенных файлов
+    let fileSection = ''
+    if (droppedFiles.length > 0) {
+      const parts: string[] = []
+      for (const f of droppedFiles) {
+        const result = await window.codeviper.readAttachment(f.path)
+        if (result.ok && result.content != null) {
+          const ext = f.name.split('.').pop() ?? ''
+          parts.push(`[${f.name}]\n\`\`\`${ext}\n${result.content}\n\`\`\``)
+        } else {
+          parts.push(`[${f.name}] ⚠️ ${result.error ?? 'Не удалось прочитать файл'}`)
+        }
+      }
+      fileSection = parts.join('\n\n') + '\n\n'
+    }
+
     const fullText = fileSection + text
 
     const userMessage: ChatMessage = {

@@ -32,6 +32,9 @@ const codeviper = {
   selectFiles: (): Promise<string[]> =>
     withTimeout(ipcRenderer.invoke('select-files'), IPC_TIMEOUT_MS, 'selectFiles'),
 
+  readAttachment: (filePath: string): Promise<{ ok: boolean; content?: string; error?: string }> =>
+    withTimeout(ipcRenderer.invoke('read-attachment', filePath), IPC_TIMEOUT_MS, 'readAttachment'),
+
   readFile: (projectPath: string, filePath: string) =>
     withTimeout(ipcRenderer.invoke('read-file', projectPath, filePath), IPC_TIMEOUT_MS, 'readFile'),
 
