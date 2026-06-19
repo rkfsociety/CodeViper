@@ -81,7 +81,8 @@ const codeviper = {
   getAgentRunState: () =>
     withTimeout(ipcRenderer.invoke('get-agent-run-state'), IPC_TIMEOUT_MS, 'getAgentRunState'),
 
-  stopAgent: () => withTimeout(ipcRenderer.invoke('stop-agent'), IPC_TIMEOUT_MS, 'stopAgent'),
+  stopAgent: (chatId: string) =>
+    withTimeout(ipcRenderer.invoke('stop-agent', chatId), IPC_TIMEOUT_MS, 'stopAgent'),
 
   previewAgentContext: (
     projectPath: string,

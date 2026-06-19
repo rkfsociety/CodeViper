@@ -58,8 +58,8 @@ import type {
 } from '../../src/types'
 
 let mainWindow: BrowserWindow | null = null
-let agentRunState: { chatId: string } | null = null
-let activeAgentAbort: AbortController | null = null
+const agentRunStates = new Map<string, { chatId: string }>()
+const activeAgentAborts = new Map<string, AbortController>()
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
 
 // Скользящее окно прогонов: хранит timestamp начала каждого прогона за последний час.
@@ -289,11 +289,12 @@ ipcMain.handle('export-chats', async () => exportChats())
 
 ipcMain.handle('import-chats', async (_e, chats: SavedChat[]) => importChats(chats))
 
-ipcMain.handle('get-agent-run-state', async () => agentRunState)
+ipcMain.handle('get-agent-run-state', async () => Array.from(agentRunStates.keys()))
 
-ipcMain.handle('stop-agent', async () => {
-  if (!activeAgentAbort) return false
-  activeAgentAbort.abort()
+ipcMain.handle('stop-agent', async (_e, chatId: string) => {
+  const abort = activeAgentAborts.get(chatId)
+  if (!abort) return false
+  abort.abort()
   return true
 })
 
@@ -363,14 +364,15 @@ ipcMain.handle(
     history: ChatMessage[],
     userMessage: string
   ) => {
-    if (agentRunState) {
-      throw new Error('Агент уже выполняет задачу. Дождитесь завершения текущего запроса.')
+    if (agentRunStates.has(chatId)) {
+      throw new Error('Агент уже выполняет задачу в этом чате. Дождитесь завершения.')
     }
 
     recordRun()
 
-    agentRunState = { chatId }
-    activeAgentAbort = new AbortController()
+    const abortCtrl = new AbortController()
+    agentRunStates.set(chatId, { chatId })
+    activeAgentAborts.set(chatId, abortCtrl)
     startSystemStatsPush(_e.sender)
     setProgressTarget(_e.sender)
 
@@ -429,8 +431,8 @@ ipcMain.handle(
         effectiveSettings,
         projectPath,
         (event) => stream(chatId, event),
-        activeAgentAbort.signal,
-        makeConfirmFn(activeAgentAbort.signal),
+        abortCtrl.signal,
+        makeConfirmFn(abortCtrl.signal),
         summarizeModel
       )
 
@@ -447,8 +449,8 @@ ipcMain.handle(
       stopSystemStatsPush()
       clearProgress()
       setProgressTarget(null)
-      activeAgentAbort = null
-      agentRunState = null
+      activeAgentAborts.delete(chatId)
+      agentRunStates.delete(chatId)
     }
   }
 )

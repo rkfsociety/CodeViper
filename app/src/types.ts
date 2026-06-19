@@ -356,8 +356,8 @@ export interface CodeViperAPI {
     messages: ChatMessage[],
     userMessage: string
   ) => Promise<void>
-  getAgentRunState: () => Promise<AgentRunState | null>
-  stopAgent: () => Promise<boolean>
+  getAgentRunState: () => Promise<string[]>
+  stopAgent: (chatId: string) => Promise<boolean>
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],

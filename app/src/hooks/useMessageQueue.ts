@@ -265,7 +265,7 @@ export function useMessageQueue({
     if (agentRunningRef.current) {
       stoppingRef.current = true // Task 40: block processNextQueuedRun during stop
       try {
-        await window.codeviper.stopAgent()
+        await window.codeviper.stopAgent(chatIdRef.current ?? '')
         // If done event doesn't arrive after stop, force queue continuation
         await new Promise<void>((resolve) => setTimeout(resolve, 250))
         if (agentRunningRef.current) {
