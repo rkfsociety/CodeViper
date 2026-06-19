@@ -40,6 +40,7 @@ import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
 import {
   DEEPSEEK_API_BASE_URL,
   DEEPSEEK_MODEL_DEFAULT,
+  OPENROUTER_API_BASE_URL,
   MAX_CONSECUTIVE_SAME_TOOL,
   MAX_SAME_TOOL_TOTAL
 } from '../../shared/constants'
@@ -140,7 +141,11 @@ export class AgentRunner {
   ) {
     const providerType = this.settings.modelProvider || 'ollama'
     const providerBaseUrl =
-      providerType === 'deepseek' ? DEEPSEEK_API_BASE_URL : this.settings.ollamaUrl
+      providerType === 'deepseek'
+        ? DEEPSEEK_API_BASE_URL
+        : providerType === 'openrouter'
+          ? OPENROUTER_API_BASE_URL
+          : this.settings.ollamaUrl
     // Если провайдер — DeepSeek, но модель выглядит как Ollama-модель — подставляем дефолт
     const providerModel =
       providerType === 'deepseek' && !/^deepseek/i.test(this.settings.model || '')
@@ -169,7 +174,11 @@ export class AgentRunner {
     if (primaryIsOllama && this.settings.cloudEnabled && this.settings.cloudApiKey) {
       const cloudType = this.settings.cloudProvider || 'deepseek'
       const defaultUrl =
-        cloudType === 'deepseek' ? DEEPSEEK_API_BASE_URL : 'https://api.openai.com/v1'
+        cloudType === 'deepseek'
+          ? DEEPSEEK_API_BASE_URL
+          : cloudType === 'openrouter'
+            ? OPENROUTER_API_BASE_URL
+            : 'https://api.openai.com/v1'
       const cloudBaseUrl = this.settings.cloudBaseUrl || defaultUrl
       const cloudModel = this.settings.cloudModel || DEEPSEEK_MODEL_DEFAULT
       return {

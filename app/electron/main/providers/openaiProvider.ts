@@ -10,13 +10,14 @@ export class OpenAIProvider implements ModelProvider {
   constructor(
     private baseUrl: string,
     private apiKey: string,
-    private modelName: string
+    private modelName: string,
+    private extraHeaders: Record<string, string> = {}
   ) {}
 
   async ping(signal?: AbortSignal): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/models`, {
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: { Authorization: `Bearer ${this.apiKey}`, ...this.extraHeaders },
         signal: signal || AbortSignal.timeout(5_000)
       })
       return res.ok
@@ -28,7 +29,7 @@ export class OpenAIProvider implements ModelProvider {
   async listModels(): Promise<LoadedModel[]> {
     try {
       const res = await fetch(`${this.baseUrl}/models`, {
-        headers: { Authorization: `Bearer ${this.apiKey}` }
+        headers: { Authorization: `Bearer ${this.apiKey}`, ...this.extraHeaders }
       })
       if (!res.ok) return []
 
@@ -93,7 +94,8 @@ export class OpenAIProvider implements ModelProvider {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
+        Authorization: `Bearer ${this.apiKey}`,
+        ...this.extraHeaders
       },
       body: JSON.stringify(body),
       signal: options.signal

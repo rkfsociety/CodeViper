@@ -85,7 +85,7 @@ export function SettingsModal({
     setTimeout(() => setPingState('idle'), 3000)
   }
 
-  function handleProviderChange(newProvider: 'ollama' | 'deepseek' | 'openai') {
+  function handleProviderChange(newProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter') {
     const patch: Partial<AgentSettings> = { modelProvider: newProvider }
     if (newProvider === 'deepseek') {
       if (!settings.providerApiKey) patch.providerApiKey = ''
@@ -140,12 +140,15 @@ export function SettingsModal({
                 <select
                   value={provider}
                   onChange={(e) =>
-                    handleProviderChange(e.target.value as 'ollama' | 'deepseek' | 'openai')
+                    handleProviderChange(
+                      e.target.value as 'ollama' | 'deepseek' | 'openai' | 'openrouter'
+                    )
                   }
                 >
                   <option value="ollama">Ollama (локально)</option>
                   <option value="deepseek">DeepSeek API</option>
                   <option value="openai">OpenAI-совместимый API</option>
+                  <option value="openrouter">OpenRouter</option>
                 </select>
               </label>
 
@@ -253,6 +256,51 @@ export function SettingsModal({
                 </>
               )}
 
+              {provider === 'openrouter' && (
+                <>
+                  <div className={styles.hint}>
+                    <strong>OpenRouter</strong> — агрегатор моделей (GPT-4o, Claude, Gemini, Llama и
+                    др.). Базовый URL: <code>https://openrouter.ai/api/v1</code>. Получить ключ:{' '}
+                    <strong>openrouter.ai/keys</strong>
+                  </div>
+                  <label>
+                    OpenRouter API ключ
+                    <div className="settings-api-key-row">
+                      <input
+                        type={apiKeyVisible ? 'text' : 'password'}
+                        placeholder="sk-or-..."
+                        value={settings.providerApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => setApiKeyVisible((v) => !v)}
+                        title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                      >
+                        {apiKeyVisible ? '🙈' : '👁'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => void handlePing()}
+                        disabled={pingState === 'checking' || !settings.providerApiKey}
+                        title="Проверить подключение"
+                      >
+                        {pingState === 'checking'
+                          ? '⏳'
+                          : pingState === 'ok'
+                            ? '✅'
+                            : pingState === 'fail'
+                              ? '❌'
+                              : '🔌'}
+                      </button>
+                    </div>
+                  </label>
+                </>
+              )}
+
               <label className={styles.toggle}>
                 <input
                   type="checkbox"
@@ -314,12 +362,13 @@ export function SettingsModal({
                         value={settings.cloudProvider ?? 'deepseek'}
                         onChange={(e) =>
                           onSettingsChange({
-                            cloudProvider: e.target.value as 'deepseek' | 'openai'
+                            cloudProvider: e.target.value as 'deepseek' | 'openai' | 'openrouter'
                           })
                         }
                       >
                         <option value="deepseek">DeepSeek API</option>
                         <option value="openai">OpenAI-совместимый API</option>
+                        <option value="openrouter">OpenRouter</option>
                       </select>
                     </label>
 

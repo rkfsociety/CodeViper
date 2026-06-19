@@ -8,7 +8,7 @@ import type {
 } from '../../shared/modelProvider'
 import { OllamaProvider } from './providers/ollamaProvider'
 import { OpenAIProvider } from './providers/openaiProvider'
-import { DEEPSEEK_API_BASE_URL } from '../../shared/constants'
+import { DEEPSEEK_API_BASE_URL, OPENROUTER_API_BASE_URL } from '../../shared/constants'
 
 /** Фасад для выбора провайдера моделей по конфигурации. */
 export class ModelRuntime {
@@ -31,6 +31,16 @@ export class ModelRuntime {
       const apiKey = config.apiKey || ''
       const model = config.model || 'gpt-3.5-turbo'
       return new OpenAIProvider(baseUrl, apiKey, model)
+    }
+
+    if (config.type === 'openrouter') {
+      const baseUrl = OPENROUTER_API_BASE_URL
+      const apiKey = config.apiKey || ''
+      const model = config.model || 'openai/gpt-4o-mini'
+      return new OpenAIProvider(baseUrl, apiKey, model, {
+        'HTTP-Referer': 'https://github.com/rkfsociety/CodeViper',
+        'X-Title': 'CodeViper'
+      })
     }
 
     // Fallback на Ollama

@@ -137,7 +137,7 @@ export interface AgentSettings {
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */
-  modelProvider?: 'ollama' | 'deepseek' | 'openai'
+  modelProvider?: 'ollama' | 'deepseek' | 'openai' | 'openrouter'
   /** API ключ для облачных провайдеров (DeepSeek, OpenAI и т.д.) */
   providerApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
@@ -155,7 +155,7 @@ export interface AgentSettings {
   /** Включить облачный API параллельно с Ollama (для суммаризации или запасного канала) */
   cloudEnabled?: boolean
   /** Тип облачного провайдера: deepseek или openai-совместимый */
-  cloudProvider?: 'deepseek' | 'openai'
+  cloudProvider?: 'deepseek' | 'openai' | 'openrouter'
   /** API ключ облачного провайдера */
   cloudApiKey?: string
   /** Базовый URL для OpenAI-совместимых облачных провайдеров */
