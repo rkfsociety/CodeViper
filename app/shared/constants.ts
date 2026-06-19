@@ -32,7 +32,7 @@ export const MAX_QUEUE_SIZE = 50
 
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
-export const CONTEXT_PREVIEW_DEBOUNCE_MS = 600
+export const CONTEXT_PREVIEW_DEBOUNCE_MS = 1000
 
 // ── Провайдеры моделей ────────────────────────────────────────────────────────
 /** URL DeepSeek API (OpenAI-совместимый) */
