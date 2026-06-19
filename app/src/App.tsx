@@ -337,7 +337,7 @@ export default function App() {
 
   const deleteChat = useCallback(
     async (id: string) => {
-      if (chatBusy) return
+      if (chatBusy && id === activeChatId) return
       await window.codeviper.deleteChat(id)
       const store = await refreshChatStore()
       if (activeChatId === id) {

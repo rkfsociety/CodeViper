@@ -379,9 +379,13 @@ export function ChatHistoryPanel({
           </button>
           <button
             className={`btn ${styles.historyBtn}`}
-            title={chatBusy ? 'Нельзя удалять чат пока агент работает' : 'Удалить'}
+            title={
+              chatBusy && chat.id === activeChatId
+                ? 'Нельзя удалять активный чат пока агент работает'
+                : 'Удалить'
+            }
             aria-label="Удалить чат"
-            disabled={chatBusy}
+            disabled={chatBusy && chat.id === activeChatId}
             onClick={(e) => {
               e.stopPropagation()
               setConfirm({ kind: 'delete-chat', chatId: chat.id, title: chat.title })
