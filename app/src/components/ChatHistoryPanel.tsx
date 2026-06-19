@@ -1,15 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { ChatFolder, ChatStore, ImportResult, SavedChat } from '../types'
+import type { ChatFolder, ImportResult, SavedChat } from '../types'
 import { PromptDialog } from './PromptDialog'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './ChatHistoryPanel.module.css'
+import { useChatContext } from '../contexts/ChatContext'
 
 export type AgentMode = 'chat' | 'code'
 
 interface Props {
-  store: ChatStore | null
-  activeChatId: string | null
   chatBusy: boolean
   mode: AgentMode
   onModeChange: (mode: AgentMode) => void
@@ -112,8 +111,6 @@ function chatMatchesQuery(chat: SavedChat, query: string): boolean {
 }
 
 export function ChatHistoryPanel({
-  store,
-  activeChatId,
   chatBusy,
   mode,
   onModeChange,
@@ -128,6 +125,7 @@ export function ChatHistoryPanel({
   onMoveChat,
   onStoreChange
 }: Props) {
+  const { chatStore: store, activeChatId } = useChatContext()
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [tagFilter, setTagFilter] = useState('')

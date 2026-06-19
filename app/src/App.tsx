@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type {
   AgentConfirmRequest,
   AgentSettings,
@@ -11,7 +11,9 @@ import type {
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { formatElapsed, formatTokenCount } from '../shared/generationMetrics'
+import { useMemo } from 'react'
 import { AgentProvider, useAgentState } from './contexts/AgentContext'
+import { ChatContext } from './contexts/ChatContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
@@ -104,6 +106,20 @@ function AppContent() {
     setChatStore(store)
     return store
   }, [])
+
+  const chatContextValue = useMemo(
+    () => ({
+      messages,
+      setMessages,
+      activeChatId,
+      chatStore,
+      activeChat,
+      activeProjectPath,
+      interruptedDraft: activeChat?.interruptedDraft,
+      refreshChatStore
+    }),
+    [messages, activeChatId, chatStore, activeChat, activeProjectPath, refreshChatStore]
+  )
 
   const refreshOllama = useCallback(async () => {
     const provider = settings.modelProvider
@@ -401,233 +417,231 @@ function AppContent() {
   )
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="logo">
-          <span>🐍 CodeViper</span>
-        </div>
-        <div
-          className={`status-dot ${ollamaOnline ? 'online' : 'offline'}`}
-          title={ollamaOnline ? 'Ollama online' : 'Ollama offline'}
-        />
-        <div className="topbar-status">
-          <span className={`topbar-pill ${ollamaOnline ? 'online' : 'offline'}`}>
-            {ollamaOnline ? 'Ollama' : 'Ollama offline'}
-          </span>
-          <OllamaDownloadStatus
-            pulling={downloadQueue.pulling}
-            queued={downloadQueue.queued}
-            progress={downloadQueue.progress}
-            error={downloadQueue.error}
-            onOpenSettings={() => setSettingsOpen(true)}
+    <ChatContext.Provider value={chatContextValue}>
+      <div className="app">
+        <header className="topbar">
+          <div className="logo">
+            <span>🐍 CodeViper</span>
+          </div>
+          <div
+            className={`status-dot ${ollamaOnline ? 'online' : 'offline'}`}
+            title={ollamaOnline ? 'Ollama online' : 'Ollama offline'}
           />
-        </div>
-        {runStats && (
-          <div className="topbar-run-stats">
-            {formatElapsed(runStats.elapsedSec)}
-            {runStats.tokens > 0 && <> · {formatTokenCount(runStats.tokens)} tok</>}
+          <div className="topbar-status">
+            <span className={`topbar-pill ${ollamaOnline ? 'online' : 'offline'}`}>
+              {ollamaOnline ? 'Ollama' : 'Ollama offline'}
+            </span>
+            <OllamaDownloadStatus
+              pulling={downloadQueue.pulling}
+              queued={downloadQueue.queued}
+              progress={downloadQueue.progress}
+              error={downloadQueue.error}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          </div>
+          {runStats && (
+            <div className="topbar-run-stats">
+              {formatElapsed(runStats.elapsedSec)}
+              {runStats.tokens > 0 && <> · {formatTokenCount(runStats.tokens)} tok</>}
+            </div>
+          )}
+          <div className="topbar-path">{activeChat?.title ?? 'Новый чат'}</div>
+          <div className="topbar-actions">
+            <button className="btn" onClick={refreshOllama}>
+              Обновить Ollama
+            </button>
+            <button
+              className={`btn ${terminalOpen ? 'active' : ''}`}
+              onClick={() => setTerminalOpen((open) => !open)}
+              disabled={!activeProjectPath}
+              title={activeProjectPath ? undefined : 'Сначала выберите проект в чате'}
+            >
+              Терминал
+            </button>
+            <button
+              className={`btn ${prPanelOpen ? 'active' : ''}`}
+              onClick={() => setPrPanelOpen((open) => !open)}
+              title="Статус Pull Requests"
+            >
+              PR
+            </button>
+            <button
+              className="btn"
+              title={lightMode ? 'Тёмная тема' : 'Светлая тема'}
+              onClick={() => setLightMode((v) => !v)}
+            >
+              {lightMode ? '🌙' : '☀️'}
+            </button>
+            <button
+              className="btn"
+              onClick={() => setSettingsOpen(true)}
+              title="Настройки (Ctrl+,)"
+            >
+              Настройки
+            </button>
+          </div>
+        </header>
+
+        {updateInfo && (
+          <div className="update-banner" role="status">
+            <span>
+              🔄 Доступно обновление: смержено{' '}
+              {updateInfo.commits === 1 ? '1 коммит' : `${updateInfo.commits} коммит(ов)`} в
+              исходники. Перезапустите для пересборки.
+            </span>
+            <div className="update-banner-actions">
+              <button className="btn primary" onClick={() => window.codeviper.restartApp()}>
+                Перезапустить
+              </button>
+              <button className="btn" onClick={() => setUpdateInfo(null)}>
+                Позже
+              </button>
+            </div>
           </div>
         )}
-        <div className="topbar-path">{activeChat?.title ?? 'Новый чат'}</div>
-        <div className="topbar-actions">
-          <button className="btn" onClick={refreshOllama}>
-            Обновить Ollama
-          </button>
-          <button
-            className={`btn ${terminalOpen ? 'active' : ''}`}
-            onClick={() => setTerminalOpen((open) => !open)}
-            disabled={!activeProjectPath}
-            title={activeProjectPath ? undefined : 'Сначала выберите проект в чате'}
-          >
-            Терминал
-          </button>
-          <button
-            className={`btn ${prPanelOpen ? 'active' : ''}`}
-            onClick={() => setPrPanelOpen((open) => !open)}
-            title="Статус Pull Requests"
-          >
-            PR
-          </button>
-          <button
-            className="btn"
-            title={lightMode ? 'Тёмная тема' : 'Светлая тема'}
-            onClick={() => setLightMode((v) => !v)}
-          >
-            {lightMode ? '🌙' : '☀️'}
-          </button>
-          <button className="btn" onClick={() => setSettingsOpen(true)} title="Настройки (Ctrl+,)">
-            Настройки
-          </button>
-        </div>
-      </header>
 
-      {updateInfo && (
-        <div className="update-banner" role="status">
-          <span>
-            🔄 Доступно обновление: смержено{' '}
-            {updateInfo.commits === 1 ? '1 коммит' : `${updateInfo.commits} коммит(ов)`} в
-            исходники. Перезапустите для пересборки.
-          </span>
-          <div className="update-banner-actions">
-            <button className="btn primary" onClick={() => window.codeviper.restartApp()}>
-              Перезапустить
-            </button>
-            <button className="btn" onClick={() => setUpdateInfo(null)}>
-              Позже
-            </button>
-          </div>
-        </div>
-      )}
+        <div className="layout">
+          <section className="panel panel-history">
+            <div className="panel-header">История чатов</div>
+            <ChatHistoryPanel
+              chatBusy={chatBusy}
+              mode={agentMode}
+              onModeChange={setAgentMode}
+              onSelectChat={selectChat}
+              onCreateChat={createChat}
+              onCreateFolder={createFolder}
+              onDeleteChat={deleteChat}
+              onRenameChat={renameChat}
+              onRenameFolder={renameFolder}
+              onUpdateFolderProject={updateFolderProject}
+              onDeleteFolder={deleteFolder}
+              onMoveChat={moveChat}
+              onStoreChange={() => void refreshChatStore()}
+            />
+          </section>
 
-      <div className="layout">
-        <section className="panel panel-history">
-          <div className="panel-header">История чатов</div>
-          <ChatHistoryPanel
-            store={chatStore}
-            activeChatId={activeChatId}
-            chatBusy={chatBusy}
-            mode={agentMode}
-            onModeChange={setAgentMode}
-            onSelectChat={selectChat}
-            onCreateChat={createChat}
-            onCreateFolder={createFolder}
-            onDeleteChat={deleteChat}
-            onRenameChat={renameChat}
-            onRenameFolder={renameFolder}
-            onUpdateFolderProject={updateFolderProject}
-            onDeleteFolder={deleteFolder}
-            onMoveChat={moveChat}
-            onStoreChange={() => void refreshChatStore()}
-          />
-        </section>
+          <section className="panel panel-main">
+            <div className="panel-header">Агент</div>
+            <ChatPanel
+              ref={chatPanelRef}
+              settings={{
+                ...settings,
+                // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать
+                clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode
+              }}
+              onBusyChange={setChatBusy}
+              onPickProject={pickProjectForActiveChat}
+              models={models}
+              onModelChange={(model, auto) =>
+                setSettings((prev) => ({ ...prev, model, autoModel: auto }))
+              }
+              onOpenSettings={() => setSettingsOpen(true)}
+              onEnqueueModel={downloadQueue.enqueue}
+              onRefreshOllama={refreshOllama}
+              onLearningSaved={() => {
+                setMemoryRefreshKey((key) => key + 1)
+                setSkillsRefreshKey((key) => key + 1)
+              }}
+            />
 
-        <section className="panel panel-main">
-          <div className="panel-header">Агент</div>
-          <ChatPanel
-            ref={chatPanelRef}
-            settings={{
-              ...settings,
-              // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать
-              clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode
-            }}
-            projectPath={activeProjectPath}
-            chatId={activeChatId}
-            messages={messages}
-            onMessagesChange={setMessages}
-            onBusyChange={setChatBusy}
-            onPickProject={pickProjectForActiveChat}
-            models={models}
-            onModelChange={(model, auto) =>
-              setSettings((prev) => ({ ...prev, model, autoModel: auto }))
-            }
-            onOpenSettings={() => setSettingsOpen(true)}
-            onEnqueueModel={downloadQueue.enqueue}
-            onRefreshOllama={refreshOllama}
-            onLearningSaved={() => {
-              setMemoryRefreshKey((key) => key + 1)
-              setSkillsRefreshKey((key) => key + 1)
-            }}
-            interruptedDraft={activeChat?.interruptedDraft}
-            onInterruptedDraftChange={refreshChatStore}
-          />
-
-          {terminalOpen && (
-            <div className="terminal-dock">
-              <div className="terminal-dock-header">
-                <span>Терминал</span>
-                <button
-                  type="button"
-                  className="btn terminal-dock-close"
-                  onClick={() => setTerminalOpen(false)}
-                >
-                  Скрыть
-                </button>
+            {terminalOpen && (
+              <div className="terminal-dock">
+                <div className="terminal-dock-header">
+                  <span>Терминал</span>
+                  <button
+                    type="button"
+                    className="btn terminal-dock-close"
+                    onClick={() => setTerminalOpen(false)}
+                  >
+                    Скрыть
+                  </button>
+                </div>
+                {activeProjectPath ? (
+                  <Suspense fallback={null}>
+                    <TerminalPanel projectPath={activeProjectPath} embedded />
+                  </Suspense>
+                ) : (
+                  <div className="hint">Выберите проект в чате, чтобы пользоваться терминалом</div>
+                )}
               </div>
-              {activeProjectPath ? (
+            )}
+
+            {prPanelOpen && (
+              <div className="terminal-dock">
+                <div className="terminal-dock-header">
+                  <span>Pull Requests</span>
+                  <button
+                    type="button"
+                    className="btn terminal-dock-close"
+                    onClick={() => setPrPanelOpen(false)}
+                  >
+                    Скрыть
+                  </button>
+                </div>
                 <Suspense fallback={null}>
-                  <TerminalPanel projectPath={activeProjectPath} embedded />
+                  <PrStatusPanel />
                 </Suspense>
-              ) : (
-                <div className="hint">Выберите проект в чате, чтобы пользоваться терминалом</div>
-              )}
-            </div>
-          )}
-
-          {prPanelOpen && (
-            <div className="terminal-dock">
-              <div className="terminal-dock-header">
-                <span>Pull Requests</span>
-                <button
-                  type="button"
-                  className="btn terminal-dock-close"
-                  onClick={() => setPrPanelOpen(false)}
-                >
-                  Скрыть
-                </button>
               </div>
-              <Suspense fallback={null}>
-                <PrStatusPanel />
-              </Suspense>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        </div>
+
+        {settingsOpen && (
+          <Suspense fallback={null}>
+            <SettingsModal
+              open={settingsOpen}
+              settings={settings}
+              chatProjectPath={activeProjectPath}
+              ollamaOnline={ollamaOnline}
+              models={models}
+              downloadQueue={downloadQueue}
+              memoryRefreshKey={memoryRefreshKey}
+              skillsRefreshKey={skillsRefreshKey}
+              onClose={() => setSettingsOpen(false)}
+              onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+              onRefreshOllama={refreshOllama}
+              onSelfLearningChange={(selfLearning) =>
+                setSettings((prev) => ({ ...prev, selfLearning }))
+              }
+            />
+          </Suspense>
+        )}
+
+        <ConfirmDialog
+          open={showSecurityNotice}
+          title="Усилены настройки безопасности"
+          message={
+            'По умолчанию режим доступа теперь: «Принимать правки, спрашивать команды» вместо «Без подтверждений». Это требует подтверждения для команд и скриптов. Ты можешь изменить это в настройках.\n\nТакже включена песочница (sandbox) и добавлена проверка на скрипты .ps1 и .bat.'
+          }
+          confirmLabel="ОК"
+          onConfirm={() => setShowSecurityNotice(false)}
+          onCancel={() => setShowSecurityNotice(false)}
+        />
+
+        <ConfirmDialog
+          open={!!confirmReq}
+          title="Подтвердите действие агента"
+          message={
+            confirmReq
+              ? `Инструмент: ${confirmReq.toolName}\n\n${confirmReq.toolInput.slice(0, 800)}`
+              : ''
+          }
+          confirmLabel="Выполнить"
+          onConfirm={() => resolveConfirm(true)}
+          onCancel={() => resolveConfirm(false)}
+        />
+
+        <CrashRecoveryDialog
+          recovery={crashRecovery}
+          chatTitle={
+            crashRecovery
+              ? (chatStore?.chats.find((c) => c.id === crashRecovery.activeChatId)?.title ?? null)
+              : null
+          }
+          onRestore={() => void handleCrashRestore()}
+          onDismiss={() => setCrashRecovery(null)}
+        />
       </div>
-
-      {settingsOpen && (
-        <Suspense fallback={null}>
-          <SettingsModal
-            open={settingsOpen}
-            settings={settings}
-            chatProjectPath={activeProjectPath}
-            ollamaOnline={ollamaOnline}
-            models={models}
-            downloadQueue={downloadQueue}
-            memoryRefreshKey={memoryRefreshKey}
-            skillsRefreshKey={skillsRefreshKey}
-            onClose={() => setSettingsOpen(false)}
-            onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
-            onRefreshOllama={refreshOllama}
-            onSelfLearningChange={(selfLearning) =>
-              setSettings((prev) => ({ ...prev, selfLearning }))
-            }
-          />
-        </Suspense>
-      )}
-
-      <ConfirmDialog
-        open={showSecurityNotice}
-        title="Усилены настройки безопасности"
-        message={
-          'По умолчанию режим доступа теперь: «Принимать правки, спрашивать команды» вместо «Без подтверждений». Это требует подтверждения для команд и скриптов. Ты можешь изменить это в настройках.\n\nТакже включена песочница (sandbox) и добавлена проверка на скрипты .ps1 и .bat.'
-        }
-        confirmLabel="ОК"
-        onConfirm={() => setShowSecurityNotice(false)}
-        onCancel={() => setShowSecurityNotice(false)}
-      />
-
-      <ConfirmDialog
-        open={!!confirmReq}
-        title="Подтвердите действие агента"
-        message={
-          confirmReq
-            ? `Инструмент: ${confirmReq.toolName}\n\n${confirmReq.toolInput.slice(0, 800)}`
-            : ''
-        }
-        confirmLabel="Выполнить"
-        onConfirm={() => resolveConfirm(true)}
-        onCancel={() => resolveConfirm(false)}
-      />
-
-      <CrashRecoveryDialog
-        recovery={crashRecovery}
-        chatTitle={
-          crashRecovery
-            ? (chatStore?.chats.find((c) => c.id === crashRecovery.activeChatId)?.title ?? null)
-            : null
-        }
-        onRestore={() => void handleCrashRestore()}
-        onDismiss={() => setCrashRecovery(null)}
-      />
-    </div>
+    </ChatContext.Provider>
   )
 }

@@ -12,14 +12,7 @@ import {
 } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type {
-  AgentSettings,
-  ChatMessage,
-  InterruptedDraft,
-  OllamaModel,
-  ProgressInfo,
-  SystemStats
-} from '../types'
+import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, SystemStats } from '../types'
 import { filterToolCallingModels } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
 import styles from './ChatPanel.module.css'
@@ -37,6 +30,7 @@ import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
 import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
 import { useAgentDispatch, useAgentState } from '../contexts/AgentContext'
+import { useChatContext } from '../contexts/ChatContext'
 import { useAppStateSync } from '../hooks/useAppStateSync'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditPreviewBlock } from './EditPreviewBlock'
@@ -48,10 +42,6 @@ export interface ChatPanelHandle {
 
 interface Props {
   settings: AgentSettings
-  projectPath: string
-  chatId: string | null
-  messages: ChatMessage[]
-  onMessagesChange: (messages: ChatMessage[]) => void
   onBusyChange?: (busy: boolean) => void
   onLearningSaved?: () => void
   onPickProject: () => void
@@ -61,10 +51,6 @@ interface Props {
   onOpenSettings?: () => void
   onEnqueueModel?: (modelName: string) => void
   onRefreshOllama?: () => Promise<void>
-  /** Черновик при обрыве стрима (из activeChat) */
-  interruptedDraft?: InterruptedDraft | null
-  /** Вызывается после сохранения/очистки черновика для обновления chatStore */
-  onInterruptedDraftChange?: () => void
 }
 
 const FILE_LIMIT = 10
@@ -231,10 +217,6 @@ const MessageRow = memo(function MessageRow({
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   {
     settings,
-    projectPath,
-    chatId,
-    messages,
-    onMessagesChange,
     onBusyChange,
     onLearningSaved,
     onPickProject,
@@ -243,12 +225,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onActiveModelChange,
     onOpenSettings,
     onEnqueueModel,
-    onRefreshOllama,
-    interruptedDraft,
-    onInterruptedDraftChange
+    onRefreshOllama
   },
   ref
 ) {
+  const {
+    messages,
+    setMessages,
+    activeChatId: chatId,
+    activeProjectPath: projectPath,
+    interruptedDraft,
+    refreshChatStore: onInterruptedDraftChange
+  } = useChatContext()
   const [input, setInput] = useState('')
   const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string; size?: number }[]>(
     []
@@ -281,7 +269,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const chatIdRef = useRef(chatId)
   const projectPathRef = useRef(projectPath)
   const settingsRef = useRef(settings)
-  const onMessagesChangeRef = useRef(onMessagesChange)
+  const setMessagesRef = useRef(setMessages)
   const onLearningSavedRef = useRef(onLearningSaved)
   const onActiveModelChangeRef = useRef(onActiveModelChange)
 
@@ -317,13 +305,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   chatIdRef.current = chatId
   projectPathRef.current = projectPath
   settingsRef.current = settings
-  onMessagesChangeRef.current = onMessagesChange
+  setMessagesRef.current = setMessages
   onLearningSavedRef.current = onLearningSaved
   onActiveModelChangeRef.current = onActiveModelChange
 
   function commitMessages(next: ChatMessage[]) {
     messagesRef.current = next
-    onMessagesChangeRef.current(next)
+    setMessagesRef.current(next)
   }
 
   function appendMessage(message: ChatMessage) {
