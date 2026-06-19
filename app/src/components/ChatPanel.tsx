@@ -30,7 +30,7 @@ import { ThinkingBlock } from './ThinkingBlock'
 import { InterruptedDraftBanner } from './InterruptedDraftBanner'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
-import { AllToolsGroup } from './AllToolsGroup'
+
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
 import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
@@ -118,8 +118,6 @@ function groupToolMessages(messages: ChatMessage[]): DisplayItem[] {
 
   return result
 }
-
-// AllToolsBlock заменён на AllToolsGroup (см. ./AllToolsGroup.tsx)
 
 function messageCopyText(message: ChatMessage): string {
   if (message.role === 'assistant') return visibleAssistantContent(message.content)
@@ -686,9 +684,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           <div className="pinned-messages-section">
             <div className="pinned-messages-title">📌 Закреплённые</div>
             {pinnedDisplayItems.map((item) =>
-              item.kind === 'all-tools' ? (
-                <AllToolsGroup key={item.key} items={item.items} />
-              ) : (
+              item.kind === 'all-tools' ? null : (
                 <div key={item.message.id} className={`message ${item.message.role} pinned`}>
                   <div className="message-header">
                     <MessageRoleBadge role={item.message.role} toolName={item.message.toolName} />
@@ -718,9 +714,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         )}
 
         {displayItems.map((item) =>
-          item.kind === 'all-tools' ? (
-            <AllToolsGroup key={item.key} items={item.items} />
-          ) : (
+          item.kind === 'all-tools' ? null : (
             <MessageRow
               key={item.message.id}
               message={item.message}
