@@ -29,6 +29,8 @@ export interface ChatMessage {
   previewPath?: string
   previewDiff?: string
   previewStatus?: 'pending' | 'applied' | 'cancelled'
+  /** Прикреплённые изображения (data URL для показа миниатюры) */
+  images?: { name: string; dataUrl: string }[]
 }
 
 export interface ChatFolder {
@@ -364,7 +366,14 @@ export interface UpdateInfo {
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   selectFiles: () => Promise<string[]>
-  readAttachment: (filePath: string) => Promise<{ ok: boolean; content?: string; error?: string }>
+  readAttachment: (filePath: string) => Promise<{
+    ok: boolean
+    isImage?: boolean
+    content?: string
+    dataUrl?: string
+    mime?: string
+    error?: string
+  }>
   readFile: (projectPath: string, filePath: string) => Promise<string>
   writeFile: (projectPath: string, filePath: string, content: string) => Promise<void>
   listOllamaModels: (url?: string) => Promise<OllamaModel[]>

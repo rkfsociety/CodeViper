@@ -1696,6 +1696,23 @@ button.topbar-pill.topbar-download-error {
   opacity: 1;
 }
 
+.message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 4px;
+}
+
+.message-image-thumb {
+  max-width: 240px;
+  max-height: 180px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  object-fit: contain;
+  background: var(--bg-secondary);
+  cursor: zoom-in;
+}
+
 /* Task 13: pinned messages section */
 .pinned-messages-section {
   border: 1px solid var(--border);

@@ -232,8 +232,21 @@ ipcMain.handle('select-files', async () => {
 
 const ATTACHMENT_SIZE_LIMIT = 200 * 1024 // 200 КБ
 
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'])
+const IMAGE_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml'
+}
+
 ipcMain.handle('read-attachment', async (_e, filePath: string) => {
   const { stat, readFile } = await import('fs/promises')
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
+  const isImage = IMAGE_EXTENSIONS.has(ext)
+
   const info = await stat(filePath)
   if (info.size > ATTACHMENT_SIZE_LIMIT) {
     return {
@@ -241,8 +254,16 @@ ipcMain.handle('read-attachment', async (_e, filePath: string) => {
       error: `Файл слишком большой (${(info.size / 1024).toFixed(0)} КБ, лимит 200 КБ)`
     }
   }
+
+  if (isImage) {
+    const buf = await readFile(filePath)
+    const mime = IMAGE_MIME[ext] ?? 'image/png'
+    const dataUrl = `data:${mime};base64,${buf.toString('base64')}`
+    return { ok: true, isImage: true, dataUrl, mime }
+  }
+
   const content = await readFile(filePath, 'utf-8')
-  return { ok: true, content }
+  return { ok: true, isImage: false, content }
 })
 
 ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>

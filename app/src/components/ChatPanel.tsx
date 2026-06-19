@@ -194,6 +194,19 @@ const MessageRow = memo(function MessageRow({
       {message.role === 'assistant' && message.thinking && (
         <ThinkingBlock content={message.thinking} />
       )}
+      {message.images && message.images.length > 0 && (
+        <div className="message-images">
+          {message.images.map((img) => (
+            <img
+              key={img.name}
+              src={img.dataUrl}
+              alt={img.name}
+              className="message-image-thumb"
+              title={img.name}
+            />
+          ))}
+        </div>
+      )}
       <Suspense fallback={null}>
         <MessageBody
           role={message.role}
@@ -625,28 +638,32 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     if (!text || !projectPath || !chatId) return
 
     // Читаем содержимое вложенных файлов
-    let fileSection = ''
-    if (droppedFiles.length > 0) {
-      const parts: string[] = []
-      for (const f of droppedFiles) {
-        const result = await window.codeviper.readAttachment(f.path)
-        if (result.ok && result.content != null) {
-          const ext = f.name.split('.').pop() ?? ''
-          parts.push(`[${f.name}]\n\`\`\`${ext}\n${result.content}\n\`\`\``)
-        } else {
-          parts.push(`[${f.name}] ⚠️ ${result.error ?? 'Не удалось прочитать файл'}`)
-        }
+    const textParts: string[] = []
+    const images: { name: string; dataUrl: string }[] = []
+
+    for (const f of droppedFiles) {
+      const result = await window.codeviper.readAttachment(f.path)
+      if (!result.ok) {
+        textParts.push(`[${f.name}] ⚠️ ${result.error ?? 'Не удалось прочитать файл'}`)
+      } else if (result.isImage && result.dataUrl) {
+        images.push({ name: f.name, dataUrl: result.dataUrl })
+        // В текстовый контекст — base64-блок для мультимодальных моделей
+        textParts.push(`[изображение: ${f.name}]\n![${f.name}](${result.dataUrl})`)
+      } else if (result.content != null) {
+        const ext = f.name.split('.').pop() ?? ''
+        textParts.push(`[${f.name}]\n\`\`\`${ext}\n${result.content}\n\`\`\``)
       }
-      fileSection = parts.join('\n\n') + '\n\n'
     }
 
+    const fileSection = textParts.length > 0 ? textParts.join('\n\n') + '\n\n' : ''
     const fullText = fileSection + text
 
     const userMessage: ChatMessage = {
       id: makeId(),
       role: 'user',
       content: fullText,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(images.length > 0 && { images })
     }
     appendMessage(userMessage)
     setInput('')
