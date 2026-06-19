@@ -28,9 +28,8 @@
 
 ### ⚡ Производительность
 
-- [ ] **9. Worker для grep/find** — перенести `grep_files` и `find_files` в `worker_threads` на стороне main; прогресс через `postMessage`; основной поток не блокируется
-- [ ] **10. Worker для эмбеддингов** — вызов Ollama embed в отдельном worker_thread; очередь задач; результат кэшируется в памяти (LRU, 500 записей)
-- [ ] **11. Worker для парсинга больших файлов** — чтение и разбивка файлов >512 КБ вынести из main; возвращать чанки через postMessage
+- [ ] **9. Worker для эмбеддингов** — вызов Ollama embed в отдельном worker_thread; очередь задач; результат кэшируется в памяти (LRU, 500 записей)
+- [ ] **10. Worker для парсинга больших файлов** — чтение и разбивка файлов >512 КБ вынести из main; возвращать чанки через postMessage
 
 ---
 
@@ -161,6 +160,7 @@
 - [x] **CI + pre-commit хуки** — husky + lint-staged; GitHub Actions
 - [x] **Семантическое версионирование** — `bump-version.ts`; CHANGELOG.md; git-тег
 - [x] **Изоляция стилей (первая фаза)** — ChatHistoryPanel, SettingsModal, ChatPanel на CSS-модули
+- [x] **Worker для grep/find** — `grep_files` и `find_files` в `worker_threads`; прогресс через `postMessage`; main не блокируется
 - [x] **Индикатор прогресса** — IPC `progress-event`; grep/find шлют процент
 - [x] **Виртуализация длинных списков** — `@tanstack/react-virtual`
 - [x] **Ленивая загрузка** — `React.lazy` для MessageBody, SettingsModal, TerminalPanel
