@@ -156,6 +156,7 @@
 - [x] **Worker для парсинга больших файлов** — `readFile` + `split('\n')` + нарезка строк для файлов >512 КБ в `worker_thread`; singleton-воркер с очередью
 - [x] **Открытие файлов из чата** — regex по тексту сообщений агента; клик открывает файл через `shell.showItemInFolder`; подсветка в inline-коде и обычном тексте
 - [x] **Совместимость моделей** — ✓/⚠ значки рядом с каждой моделью; несовместимые по RAM отключены в `<select>`; причина показана в строке; данные из `getSystemCapabilities()`
+- [x] **Адаптивные лимиты контекста** — `computeAdaptiveLimits` масштабирует `maxToolMessageChars` и `maxHistoryMessages` по окну контекста модели (16k→2k симв/12 сообщ, 128k→16k симв/80 сообщ); чип «Инструмент: Xk | История: N» в `AgentContextBar`
 - [x] **Индикатор прогресса** — IPC `progress-event`; grep/find шлют процент
 - [x] **Виртуализация длинных списков** — `@tanstack/react-virtual`
 - [x] **Ленивая загрузка** — `React.lazy` для MessageBody, SettingsModal, TerminalPanel

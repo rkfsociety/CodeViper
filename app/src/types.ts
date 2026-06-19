@@ -224,6 +224,11 @@ export interface SelfImprovementPlanItem {
   blockReason?: string
 }
 
+export interface AdaptiveLimits {
+  maxToolMessageChars: number
+  maxHistoryMessages: number
+}
+
 export interface AgentContextPreview {
   model: string
   generatedAt: string
@@ -237,6 +242,7 @@ export interface AgentContextPreview {
   toolCount: number
   sections: AgentContextSection[]
   messages: AgentContextMessagePreview[]
+  adaptiveLimits?: AdaptiveLimits
 }
 
 export interface AgentStreamPayload {

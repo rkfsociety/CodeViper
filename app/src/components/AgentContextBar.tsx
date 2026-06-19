@@ -81,6 +81,15 @@ export function AgentContextBar({ preview, loading, error, onOpen }: Props) {
               {preview.contextUsagePercent}%
             </span>
           )}
+          {preview.adaptiveLimits && (
+            <span
+              className="context-chip"
+              title={`Лимиты адаптированы под модель:\nИнструмент: до ${preview.adaptiveLimits.maxToolMessageChars.toLocaleString('ru-RU')} симв.\nИстория: до ${preview.adaptiveLimits.maxHistoryMessages} сообщений`}
+            >
+              Инструмент: {formatChars(preview.adaptiveLimits.maxToolMessageChars)} | История:{' '}
+              {preview.adaptiveLimits.maxHistoryMessages}
+            </span>
+          )}
         </div>
       )}
     </div>

@@ -45,3 +45,35 @@ export function computeContextUsage(
 export function estimateMessageChars(content: string): number {
   return content.length + 24
 }
+
+export interface AdaptiveLimits {
+  maxToolMessageChars: number
+  maxHistoryMessages: number
+}
+
+/**
+ * Вычисляет лимиты на размер вывода инструментов и глубину истории,
+ * масштабируя их по реальному окну контекста модели.
+ *
+ * Формула:
+ *   maxToolMessageChars ≈ contextLimit / 8   (в символах, т.к. ~3.5 симв/ток)
+ *   maxHistoryMessages  ≈ contextLimit / 1333 (при среднем сообщении ~800 ток)
+ *
+ * Примеры (contextLimit → tool chars | history):
+ *   16k  → 2 000 chars | 12 сообщений   (7B, дефолт)
+ *   32k  → 4 000 chars | 24 сообщения   (14B)
+ *   64k  → 8 000 chars | 48 сообщений   (32B)
+ *  128k  → 16 000 chars | 80 сообщений  (70B)
+ */
+export function computeAdaptiveLimits(model: string): AdaptiveLimits {
+  const limitTokens = getModelContextLimitTokens(model)
+
+  const maxToolMessageChars = Math.max(1_500, Math.min(16_000, Math.floor(limitTokens / 8)))
+
+  const maxHistoryMessages = Math.max(
+    MIN_RECENT_CONTEXT_MESSAGES,
+    Math.min(80, Math.floor(limitTokens / 1_333))
+  )
+
+  return { maxToolMessageChars, maxHistoryMessages }
+}

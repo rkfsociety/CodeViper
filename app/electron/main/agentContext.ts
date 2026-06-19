@@ -15,6 +15,7 @@ import { SELF_IMPROVEMENT_MODE_PROMPT } from '../../shared/selfImprovement'
 import { DEEP_REASONING_PROMPT, isThinkingModel } from '../../shared/reasoning'
 import {
   computeContextUsage,
+  computeAdaptiveLimits,
   estimateMessageChars,
   estimateTokensFromChars,
   MAX_TOOL_MESSAGE_CHARS
@@ -129,7 +130,10 @@ async function buildAgentContext(projectPath: string, taskHint: string): Promise
   return [memoryContext, skillsContext].filter(Boolean).join('\n\n')
 }
 
-function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
+function mapHistoryMessageToOllama(
+  message: ChatMessage,
+  maxToolChars = MAX_TOOL_MESSAGE_CHARS
+): OllamaMessage | null {
   switch (message.role) {
     case 'user':
       return { role: 'user', content: message.content }
@@ -149,8 +153,8 @@ function mapHistoryMessageToOllama(message: ChatMessage): OllamaMessage | null {
           : message.content
       }
 
-      if (output.length > MAX_TOOL_MESSAGE_CHARS) {
-        output = `${output.slice(0, MAX_TOOL_MESSAGE_CHARS)}\n… (обрезано)`
+      if (output.length > maxToolChars) {
+        output = `${output.slice(0, maxToolChars)}\n… (обрезано)`
       }
 
       return { role: 'tool', content: `Инструмент ${name}:\n${output}` }
@@ -249,8 +253,10 @@ export async function buildAgentContextPreview(
     cotReasoning
   )
 
-  const mappedHistory = history
-    .map(mapHistoryMessageToOllama)
+  const adaptiveLimits = computeAdaptiveLimits(model)
+  const slicedHistory = history.slice(-adaptiveLimits.maxHistoryMessages)
+  const mappedHistory = slicedHistory
+    .map((m) => mapHistoryMessageToOllama(m, adaptiveLimits.maxToolMessageChars))
     .filter((m): m is OllamaMessage => m !== null)
 
   const toolsJsonChars = JSON.stringify(AGENT_TOOLS).length
@@ -353,7 +359,8 @@ export async function buildAgentContextPreview(
     droppedMessageCount: compressed.droppedMessageCount,
     toolCount: AGENT_TOOLS.length,
     sections,
-    messages
+    messages,
+    adaptiveLimits
   }
 }
 
