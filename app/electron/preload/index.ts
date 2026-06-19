@@ -29,7 +29,7 @@ const codeviper = {
   selectProjectFolder: (): Promise<string | null> =>
     withTimeout(ipcRenderer.invoke('select-project-folder'), IPC_TIMEOUT_MS, 'selectProjectFolder'),
 
-  selectFiles: (): Promise<string[]> =>
+  selectFiles: (): Promise<{ path: string; size: number }[]> =>
     withTimeout(ipcRenderer.invoke('select-files'), IPC_TIMEOUT_MS, 'selectFiles'),
 
   readAttachment: (

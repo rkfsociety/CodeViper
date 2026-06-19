@@ -224,10 +224,17 @@ ipcMain.handle('select-project-folder', async () => {
 })
 
 ipcMain.handle('select-files', async () => {
+  const { stat } = await import('fs/promises')
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openFile', 'multiSelections']
   })
-  return result.canceled ? [] : result.filePaths
+  if (result.canceled) return []
+  return Promise.all(
+    result.filePaths.map(async (p) => {
+      const info = await stat(p)
+      return { path: p, size: info.size }
+    })
+  )
 })
 
 const ATTACHMENT_SIZE_LIMIT = 200 * 1024 // 200 КБ

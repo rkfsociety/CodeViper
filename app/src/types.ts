@@ -365,7 +365,7 @@ export interface UpdateInfo {
 
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
-  selectFiles: () => Promise<string[]>
+  selectFiles: () => Promise<{ path: string; size: number }[]>
   readAttachment: (filePath: string) => Promise<{
     ok: boolean
     isImage?: boolean

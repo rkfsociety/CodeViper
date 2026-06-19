@@ -68,6 +68,14 @@ interface Props {
   onRunStatsChange?: (stats: import('../../shared/generationMetrics').RunStats | null) => void
 }
 
+const FILE_LIMIT = 10
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Б`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} КБ`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`
+}
+
 function formatProjectLabel(path: string): string {
   if (!path.trim()) return 'Проект не выбран'
   const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
@@ -244,7 +252,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   ref
 ) {
   const [input, setInput] = useState('')
-  const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string }[]>([])
+  const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string; size?: number }[]>(
+    []
+  )
   const [clipboardImages, setClipboardImages] = useState<{ name: string; dataUrl: string }[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
@@ -432,12 +442,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     if (!files.length) return
     const entries = files.map((f) => ({
       name: f.name,
-      // Electron добавляет .path на объект File
-      path: (f as File & { path?: string }).path ?? f.name
+      path: (f as File & { path?: string }).path ?? f.name,
+      size: f.size
     }))
     setDroppedFiles((prev) => {
       const existingPaths = new Set(prev.map((x) => x.path))
-      return [...prev, ...entries.filter((x) => !existingPaths.has(x.path))]
+      const fresh = entries.filter((x) => !existingPaths.has(x.path))
+      const slots = FILE_LIMIT - prev.length - clipboardImages.length
+      return [...prev, ...fresh.slice(0, Math.max(0, slots))]
     })
     inputRef.current?.focus()
   }
@@ -472,7 +484,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         URL.revokeObjectURL(objectUrl)
         const dataUrl = canvas.toDataURL('image/png')
         const name = `screenshot-${Date.now()}.png`
-        setClipboardImages((prev) => [...prev, { name, dataUrl }])
+        setClipboardImages((prev) => {
+          const slots = FILE_LIMIT - droppedFiles.length - prev.length
+          if (slots <= 0) return prev
+          return [...prev, { name, dataUrl }]
+        })
       }
       img.src = objectUrl
     })
@@ -929,47 +945,56 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           />
         )}
 
+        {(droppedFiles.length > 0 || clipboardImages.length > 0) && (
+          <div className={styles.fileChips}>
+            {droppedFiles.map((f) => (
+              <span key={f.path} className={styles.fileChip} title={f.path}>
+                <span className={styles.fileChipName}>{f.name}</span>
+                {f.size != null && (
+                  <span className={styles.fileChipSize}>{formatSize(f.size)}</span>
+                )}
+                <button
+                  type="button"
+                  className={styles.fileChipRemove}
+                  aria-label={`Убрать ${f.name}`}
+                  onClick={() => removeDroppedFile(f.path)}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            {clipboardImages.map((img) => (
+              <span
+                key={img.name}
+                className={`${styles.fileChip} ${styles.fileChipImage}`}
+                title={img.name}
+              >
+                <img src={img.dataUrl} alt={img.name} className={styles.fileChipThumb} />
+                <span className={styles.fileChipName}>{img.name}</span>
+                <button
+                  type="button"
+                  className={styles.fileChipRemove}
+                  aria-label={`Убрать ${img.name}`}
+                  onClick={() => removeClipboardImage(img.name)}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+            <span className={styles.fileChipsSummary}>
+              {droppedFiles.length + clipboardImages.length}/{FILE_LIMIT}
+              {droppedFiles.reduce((s, f) => s + (f.size ?? 0), 0) > 0 &&
+                ` · ${formatSize(droppedFiles.reduce((s, f) => s + (f.size ?? 0), 0))}`}
+            </span>
+          </div>
+        )}
+
         <div
           className={`${styles.inputBox}${inputFocused ? ' ' + styles.inputBoxFocused : ''}${isDragOver ? ' ' + styles.inputBoxDragOver : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {(droppedFiles.length > 0 || clipboardImages.length > 0) && (
-            <div className={styles.fileChips}>
-              {droppedFiles.map((f) => (
-                <span key={f.path} className={styles.fileChip} title={f.path}>
-                  <span className={styles.fileChipName}>{f.name}</span>
-                  <button
-                    type="button"
-                    className={styles.fileChipRemove}
-                    aria-label={`Убрать ${f.name}`}
-                    onClick={() => removeDroppedFile(f.path)}
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-              {clipboardImages.map((img) => (
-                <span
-                  key={img.name}
-                  className={`${styles.fileChip} ${styles.fileChipImage}`}
-                  title={img.name}
-                >
-                  <img src={img.dataUrl} alt={img.name} className={styles.fileChipThumb} />
-                  <span className={styles.fileChipName}>{img.name}</span>
-                  <button
-                    type="button"
-                    className={styles.fileChipRemove}
-                    aria-label={`Убрать ${img.name}`}
-                    onClick={() => removeClipboardImage(img.name)}
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
           {isDragOver && (
             <div className={styles.dragOverlay} aria-hidden="true">
               Отпустите файл(ы)
@@ -994,14 +1019,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               type="button"
               className={styles.attachBtn}
               onClick={() => {
-                void window.codeviper.selectFiles().then((paths) => {
-                  if (!paths.length) return
+                void window.codeviper.selectFiles().then((entries) => {
+                  if (!entries.length) return
                   setDroppedFiles((prev) => {
                     const existingPaths = new Set(prev.map((x) => x.path))
-                    const newEntries = paths
-                      .filter((p) => !existingPaths.has(p))
-                      .map((p) => ({ name: p.split(/[\\/]/).pop() ?? p, path: p }))
-                    return [...prev, ...newEntries]
+                    const fresh = entries
+                      .filter((e) => !existingPaths.has(e.path))
+                      .map((e) => ({
+                        name: e.path.split(/[\\/]/).pop() ?? e.path,
+                        path: e.path,
+                        size: e.size
+                      }))
+                    const slots = FILE_LIMIT - prev.length - clipboardImages.length
+                    return [...prev, ...fresh.slice(0, Math.max(0, slots))]
                   })
                   inputRef.current?.focus()
                 })
