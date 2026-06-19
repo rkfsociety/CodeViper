@@ -1,6 +1,7 @@
 import { TOOL_LABELS } from '../../shared/toolDisplay'
-import { formatGenerationMetricsHint, type GenerationMetrics } from '../../shared/generationMetrics'
+import { formatGenerationMetricsHint } from '../../shared/generationMetrics'
 import type { ProgressInfo, SystemStats } from '../types'
+import { useAgentState } from '../contexts/AgentContext'
 
 export type AgentPhase = 'thinking' | 'writing' | 'tool'
 
@@ -21,7 +22,7 @@ export function agentStatusLabel(
   toolName?: string,
   model?: string,
   queueSize = 0,
-  generationMetrics?: GenerationMetrics | null,
+  generationMetrics?: import('../../shared/generationMetrics').GenerationMetrics | null,
   systemStats?: SystemStats | null
 ): string {
   const queueHint = queueSize > 0 ? ` · в очереди ${queueSize}` : ''
@@ -40,37 +41,39 @@ export function agentStatusLabel(
 }
 
 interface Props {
-  phase: AgentPhase
-  toolName?: string
+  /** Фолбэк-модель из настроек (отображается если runModel ещё не известен) */
   model?: string
   queueSize?: number
-  summarizing?: boolean
-  generationMetrics?: GenerationMetrics | null
   systemStats?: SystemStats | null
   progress?: ProgressInfo | null
 }
 
 export function AgentStatusBar({
-  phase,
-  toolName,
   model,
   queueSize = 0,
-  summarizing = false,
-  generationMetrics = null,
   systemStats = null,
   progress = null
 }: Props) {
-  const queueHint = queueSize > 0 ? ` · в очереди ${queueSize}` : ''
+  const { agentPhase, activeToolName, summarizing, generationMetrics, runModel } = useAgentState()
+  const displayModel = runModel || model
+
   const hasPercent = progress != null && progress.percent != null
   const label = progress
-    ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueHint}`
+    ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
     : summarizing
-      ? `Сжимаю контекст…${queueHint}`
-      : agentStatusLabel(phase, toolName, model, queueSize, generationMetrics, systemStats)
+      ? `Сжимаю контекст…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+      : agentStatusLabel(
+          agentPhase,
+          activeToolName,
+          displayModel,
+          queueSize,
+          generationMetrics,
+          systemStats
+        )
 
   return (
     <div
-      className={`agent-status-bar phase-${phase}${summarizing ? ' summarizing' : ''}${
+      className={`agent-status-bar phase-${agentPhase}${summarizing ? ' summarizing' : ''}${
         progress ? ' has-progress' : ''
       }`}
       role="status"

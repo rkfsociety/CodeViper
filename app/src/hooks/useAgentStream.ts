@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { MutableRefObject } from 'react'
+import type { Dispatch, MutableRefObject } from 'react'
 import { makeId } from '../../shared/makeId'
 import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentContextPreview, ChatMessage } from '../types'
-import type { GenerationMetrics, RunStats } from '../../shared/generationMetrics'
-import type { AgentPhase } from '../components/AgentStatusBar'
+import type { GenerationMetrics } from '../../shared/generationMetrics'
+import type { AgentAction } from '../contexts/AgentContext'
 
-export type { RunStats }
+export type { RunStats } from '../../shared/generationMetrics'
 
 export interface UseAgentStreamOptions {
   chatIdRef: MutableRefObject<string | null>
@@ -20,6 +20,7 @@ export interface UseAgentStreamOptions {
   upsertMessage: (message: ChatMessage) => void
   setContextPreview: (preview: AgentContextPreview | null) => void
   onAgentDoneRef?: MutableRefObject<(() => void) | undefined>
+  dispatch: Dispatch<AgentAction>
 }
 
 export function useAgentStream({
@@ -32,17 +33,12 @@ export function useAgentStream({
   appendMessage,
   upsertMessage,
   setContextPreview,
-  onAgentDoneRef
+  onAgentDoneRef,
+  dispatch
 }: UseAgentStreamOptions) {
   const [draft, setDraft] = useState('')
   const [draftThinking, setDraftThinking] = useState('')
   const draftRef = useRef('')
-  const [agentPhase, setAgentPhase] = useState<AgentPhase>('thinking')
-  const [activeToolName, setActiveToolName] = useState<string | undefined>()
-  const [summarizing, setSummarizing] = useState(false)
-  const [generationMetrics, setGenerationMetrics] = useState<GenerationMetrics | null>(null)
-  const [runModel, setRunModel] = useState('')
-  const [runStats, setRunStats] = useState<RunStats | null>(null)
 
   const lastAssistantContentRef = useRef('')
   const activeToolMessageIdRef = useRef<string | null>(null)
@@ -58,13 +54,15 @@ export function useAgentStream({
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasPendingFlushRef = useRef(false)
 
-  // Task 23: wrap mutable callbacks in refs so the single useEffect closure never goes stale
+  // Стабильные рефы на колбэки
   const appendMessageRef = useRef(appendMessage)
   const upsertMessageRef = useRef(upsertMessage)
   const setContextPreviewRef = useRef(setContextPreview)
+  const dispatchRef = useRef(dispatch)
   appendMessageRef.current = appendMessage
   upsertMessageRef.current = upsertMessage
   setContextPreviewRef.current = setContextPreview
+  dispatchRef.current = dispatch
 
   // Сбрасывает накопленные токены в messages немедленно (до таймера)
   const flushPending = useCallback(() => {
@@ -91,11 +89,7 @@ export function useAgentStream({
     setDraftThinking('')
     draftRef.current = ''
     draftThinkingRef.current = ''
-    setAgentPhase('thinking')
-    setActiveToolName(undefined)
-    setSummarizing(false)
-    setGenerationMetrics(null)
-    setRunStats(null)
+    dispatchRef.current({ type: 'RESET' })
     activeToolMessageIdRef.current = null
     activeToolNameRef.current = undefined
     lastAssistantContentRef.current = ''
@@ -107,12 +101,14 @@ export function useAgentStream({
   }, [flushPending])
 
   // Тикает каждые 3 секунды пока агент работает — обновляет elapsed в runStats.
-  // 1 с → 3 с: снижает частоту лишних ре-рендеров без заметного ухудшения UX.
   useEffect(() => {
     const interval = setInterval(() => {
       if (!runActiveRef.current || runStartRef.current === null) return
       const elapsed = Math.floor((Date.now() - runStartRef.current) / 1000)
-      setRunStats({ elapsedSec: elapsed, tokens: cumulativeTokensRef.current })
+      dispatchRef.current({
+        type: 'SET_STATS',
+        stats: { elapsedSec: elapsed, tokens: cumulativeTokensRef.current }
+      })
     }, 3000)
     return () => clearInterval(interval)
   }, [])
@@ -122,16 +118,15 @@ export function useAgentStream({
       if (event.chatId !== chatIdRef.current) return
 
       if (event.type === 'thinking') {
-        setAgentPhase('thinking')
+        dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
         if (genStartRef.current === null) genStartRef.current = Date.now()
         const thinking = event.content ?? ''
         const newThinking = draftThinkingRef.current + thinking
         draftThinkingRef.current = newThinking
-        setDraftThinking(newThinking) // немедленно — рендерит только блок черновика
+        setDraftThinking(newThinking)
 
         if (!draftMessageIdRef.current) draftMessageIdRef.current = makeId()
 
-        // Батч: upsertMessage (→ messages) через 80 мс
         hasPendingFlushRef.current = true
         if (!flushTimerRef.current) {
           flushTimerRef.current = setTimeout(flushPending, 80)
@@ -139,17 +134,16 @@ export function useAgentStream({
       }
 
       if (event.type === 'token') {
-        setAgentPhase('writing')
+        dispatchRef.current({ type: 'SET_PHASE', phase: 'writing' })
         if (genStartRef.current === null) genStartRef.current = Date.now()
 
         const token = event.content ?? ''
         const newContent = draftRef.current + token
         draftRef.current = newContent
-        setDraft(newContent) // немедленно — рендерит только блок черновика
+        setDraft(newContent)
 
         if (!draftMessageIdRef.current) draftMessageIdRef.current = makeId()
 
-        // Батч: upsertMessage (→ messages) через 80 мс
         hasPendingFlushRef.current = true
         if (!flushTimerRef.current) {
           flushTimerRef.current = setTimeout(flushPending, 80)
@@ -167,14 +161,13 @@ export function useAgentStream({
       }
 
       if (event.type === 'assistant') {
-        flushPending() // сбросить батч до финального апдейта
+        flushPending()
         const durationMs =
           genStartRef.current != null ? Date.now() - genStartRef.current : undefined
         genStartRef.current = null
 
         const id = draftMessageIdRef.current
         if (id) {
-          // Обновляем существующий черновик с финальным контентом
           const cleaned = sanitizeAssistantContent(event.content ?? '')
           const finalContent = cleaned || draftRef.current
           const thinking = event.thinking?.trim() || draftThinkingRef.current || undefined
@@ -188,7 +181,6 @@ export function useAgentStream({
           })
           draftMessageIdRef.current = null
         } else {
-          // Если черновика не было (редко) — создаём новое сообщение
           const cleaned = sanitizeAssistantContent(event.content ?? '')
           if (cleaned) {
             appendMessageRef.current({
@@ -209,11 +201,10 @@ export function useAgentStream({
       }
 
       if (event.type === 'tool_start') {
-        flushPending() // зафиксировать незавершённый черновик перед инструментом
+        flushPending()
         genStartRef.current = null
         setDraft('')
-        setAgentPhase('tool')
-        setActiveToolName(event.toolName)
+        dispatchRef.current({ type: 'SET_PHASE', phase: 'tool', toolName: event.toolName })
         activeToolNameRef.current = event.toolName
         const id = makeId()
         activeToolMessageIdRef.current = id
@@ -227,8 +218,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'tool_end') {
-        setAgentPhase('thinking')
-        setActiveToolName(undefined)
+        dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
         activeToolNameRef.current = undefined
         const id = activeToolMessageIdRef.current ?? makeId()
         activeToolMessageIdRef.current = null
@@ -250,7 +240,6 @@ export function useAgentStream({
           content: event.content ?? '',
           timestamp: Date.now()
         })
-        // Task 24: error means the run is ending — continue the queue
         const runId = runIdRef.current
         if (doneRunIdRef.current !== runId) {
           doneRunIdRef.current = runId
@@ -290,7 +279,7 @@ export function useAgentStream({
       if (event.type === 'model_selected') {
         const model = event.selectedModel ?? ''
         if (model) {
-          setRunModel(model)
+          dispatchRef.current({ type: 'SET_MODEL', model })
           onActiveModelChangeRef.current?.(model)
         }
         appendMessageRef.current({
@@ -302,9 +291,8 @@ export function useAgentStream({
       }
 
       if (event.type === 'generation_metrics' && event.generationMetrics) {
-        setGenerationMetrics(event.generationMetrics)
-        const m = event.generationMetrics
-        // Для Ollama накапливаем evalCount; для cloud берём sessionTokens напрямую
+        const m = event.generationMetrics as GenerationMetrics
+        dispatchRef.current({ type: 'SET_METRICS', metrics: m })
         if (m.sessionTokens != null) {
           cumulativeTokensRef.current = m.sessionTokens
         } else {
@@ -314,7 +302,7 @@ export function useAgentStream({
 
       if (event.type === 'context') {
         if (typeof event.summarizing === 'boolean') {
-          setSummarizing(event.summarizing)
+          dispatchRef.current({ type: 'SET_SUMMARIZING', value: event.summarizing })
         }
         if (event.contextPreview) {
           setContextPreviewRef.current(event.contextPreview)
@@ -343,11 +331,10 @@ export function useAgentStream({
       }
 
       if (event.type === 'done') {
-        flushPending() // гарантируем что последние токены записаны в messages
+        flushPending()
         const runId = runIdRef.current
         if (doneRunIdRef.current === runId) return
         doneRunIdRef.current = runId
-        // Task 28: finalize incomplete tool_start without matching tool_end
         if (activeToolMessageIdRef.current) {
           const name = activeToolNameRef.current ?? ''
           upsertMessageRef.current({
@@ -365,9 +352,8 @@ export function useAgentStream({
         draftRef.current = ''
         draftThinkingRef.current = ''
         draftMessageIdRef.current = null
-        setAgentPhase('thinking')
-        setActiveToolName(undefined)
-        setSummarizing(false)
+        dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
+        dispatchRef.current({ type: 'SET_SUMMARIZING', value: false })
         genStartRef.current = null
         runActiveRef.current = false
         onAgentDoneRef?.current?.()
@@ -382,12 +368,6 @@ export function useAgentStream({
     draft,
     draftThinking,
     draftRef,
-    agentPhase,
-    activeToolName,
-    summarizing,
-    generationMetrics,
-    runModel,
-    runStats,
     resetStreamState
   }
 }

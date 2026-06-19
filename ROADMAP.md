@@ -19,10 +19,9 @@
 
 ### 🏗️ Архитектура: единый стейт
 
-- [ ] **5. Выделить AgentStore** — вынести `agentPhase`, `runStats`, `generationMetrics`, `activeToolName`, `summarizing` из `useAgentStream` в отдельный `useReducer` + Context; остальные компоненты читают из контекста без пропсов
-- [ ] **6. Выделить ChatStore в Context** — `messages`, `draft`, `activeChatId` → один `ChatContext`; убрать цепочку пропсов через App → ChatPanel → дочерние
-- [ ] **7. Выделить QueueStore** — логику очереди из `App.tsx` в отдельный хук `useAgentQueue`; единый источник правды для состояния очереди
-- [ ] **8. Убрать дублирование resetStreamState / resetMessages** — после выделения сторов объединить функции сброса в один `reset()` из корневого контекста
+- [ ] **5. Выделить ChatStore в Context** — `messages`, `draft`, `activeChatId` → один `ChatContext`; убрать цепочку пропсов через App → ChatPanel → дочерние
+- [ ] **6. Выделить QueueStore** — логику очереди из `App.tsx` в отдельный хук `useAgentQueue`; единый источник правды для состояния очереди
+- [ ] **7. Убрать дублирование resetStreamState / resetMessages** — после выделения сторов объединить функции сброса в один `reset()` из корневого контекста
 
 ---
 
@@ -114,6 +113,7 @@
 - [x] **Diff перед правками (preview_edit)** — инструмент `preview_edit {path, content}` строит unified diff через LCS-алгоритм → stream-событие `preview`; UI показывает diff-блок с подсветкой строк и кнопками «Применить» / «Отмена»; pending-preview Map + IPC back-channel
 - [x] **История изменений файлов** — NDJSON-лог в `userData/logs/file-history-YYYY-MM-DD.ndjson` при каждом `edit_file`/`write_file`/`create_file`/`append_file`/`delete_file`/`move_file`; инструмент `show_file_history {path}` выводит список правок с датой и diff
 - [x] **Оптимизация производительности IPC** — батчинг token/thinking-событий с 50ms flush; `setInterval` для runStats снижен с 1с до 3с; скрытый компонент `AllToolsGroup` убран из рендера (`return null`)
+- [x] **AgentStore (contexts/AgentContext)** — `agentPhase`, `runStats`, `generationMetrics`, `activeToolName`, `summarizing`, `runModel` вынесены из `useAgentStream` в `useReducer` + Context; `AgentStatusBar` и `App` читают из контекста без пропсов; `useAgentStream` принимает `dispatch` как параметр
 - [x] **Вложения в чат** — кнопка «+» для выбора файлов; drag-and-drop; передача текстовых файлов в контекст (лимит 200 КБ); превью изображений в чате + base64 для мультимодальных моделей; Ctrl+V для вставки скриншотов; список файлов над полем ввода с именем, размером и кнопкой ✕; лимит 10 файлов за раз; суммарный счётчик
 - [x] **Dual-provider режим (Ollama + облако одновременно)** — новые поля `cloudEnabled/cloudProvider/cloudApiKey/cloudModel` в `AgentSettings`; `buildSummarizeConfig()` в `AgentRunner` маршрутизирует суммаризацию контекста на второй провайдер; Ollama-агент суммаризирует через облако, облачный — через Ollama; UI-раздел «Облачный API (дополнительно)» в настройках
 - [x] **Исправлен fallback на Ollama при облачном API** — убрана логика отката на Ollama при сбое cloud-провайдера; `modelRuntime.ts` напрямую делегирует в `this.provider.chat()`

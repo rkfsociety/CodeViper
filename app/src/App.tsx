@@ -11,7 +11,7 @@ import type {
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { formatElapsed, formatTokenCount } from '../shared/generationMetrics'
-import type { RunStats } from '../shared/generationMetrics'
+import { AgentProvider, useAgentState } from './contexts/AgentContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
@@ -46,6 +46,14 @@ const DEFAULT_SETTINGS: AgentSettings = {
 }
 
 export default function App() {
+  return (
+    <AgentProvider>
+      <AppContent />
+    </AgentProvider>
+  )
+}
+
+function AppContent() {
   const [settings, setSettings] = useState<AgentSettings>(DEFAULT_SETTINGS)
   const [ollamaOnline, setOllamaOnline] = useState(false)
   const [models, setModels] = useState<OllamaModel[]>([])
@@ -53,7 +61,7 @@ export default function App() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [chatBusy, setChatBusy] = useState(false)
-  const [runStats, setRunStats] = useState<RunStats | null>(null)
+  const { runStats } = useAgentState()
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -521,7 +529,6 @@ export default function App() {
             }}
             interruptedDraft={activeChat?.interruptedDraft}
             onInterruptedDraftChange={refreshChatStore}
-            onRunStatsChange={setRunStats}
           />
 
           {terminalOpen && (

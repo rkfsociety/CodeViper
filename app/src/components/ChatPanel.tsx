@@ -36,6 +36,7 @@ import { WelcomePanel } from './WelcomePanel'
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
 import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
+import { useAgentDispatch, useAgentState } from '../contexts/AgentContext'
 import { useAppStateSync } from '../hooks/useAppStateSync'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditPreviewBlock } from './EditPreviewBlock'
@@ -64,8 +65,6 @@ interface Props {
   interruptedDraft?: InterruptedDraft | null
   /** Вызывается после сохранения/очистки черновика для обновления chatStore */
   onInterruptedDraftChange?: () => void
-  /** Вызывается при изменении статистики текущего прогона (время + токены) */
-  onRunStatsChange?: (stats: import('../../shared/generationMetrics').RunStats | null) => void
 }
 
 const FILE_LIMIT = 10
@@ -246,8 +245,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onEnqueueModel,
     onRefreshOllama,
     interruptedDraft,
-    onInterruptedDraftChange,
-    onRunStatsChange
+    onInterruptedDraftChange
   },
   ref
 ) {
@@ -288,6 +286,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const onActiveModelChangeRef = useRef(onActiveModelChange)
 
   // Координационные рефы между хуками — созданы здесь, переданы в оба.
+  const dispatch = useAgentDispatch()
+  const { runModel } = useAgentState()
+
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
   const doneRunIdRef = useRef(-1)
@@ -348,16 +349,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   // ── Хук: стрим событий агента ────────────────────────────────────────────
-  const {
-    draftRef,
-    agentPhase,
-    activeToolName,
-    summarizing,
-    generationMetrics,
-    runModel,
-    runStats,
-    resetStreamState
-  } = useAgentStream({
+  const { draftRef, resetStreamState } = useAgentStream({
     chatIdRef,
     runIdRef,
     doneRunIdRef,
@@ -367,7 +359,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     appendMessage,
     upsertMessage,
     setContextPreview,
-    onAgentDoneRef
+    onAgentDoneRef,
+    dispatch
   })
 
   // ── Хук: очередь сообщений и запуск агента ───────────────────────────────
@@ -504,10 +497,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     resetStreamState()
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    onRunStatsChange?.(runStats)
-  }, [runStats, onRunStatsChange])
 
   // Следим за тем, находится ли пользователь внизу чата
   useEffect(() => {
@@ -924,12 +913,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       <div className={styles.input}>
         {busy && (
           <AgentStatusBar
-            phase={agentPhase}
-            toolName={activeToolName}
-            model={runModel || settings.model}
+            model={settings.model}
             queueSize={queueSize}
-            summarizing={summarizing}
-            generationMetrics={generationMetrics}
             systemStats={systemStats}
             progress={progress}
           />
