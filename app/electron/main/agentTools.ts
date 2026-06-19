@@ -65,6 +65,21 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'show_file_history',
+      description:
+        'Показать историю правок файла: список всех изменений, внесённых агентом, с датой и unified diff каждого изменения.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'путь к файлу относительно корня проекта' }
+        },
+        required: ['path']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'preview_edit',
       description:
         'Показать пользователю unified diff предлагаемых правок файла. Пользователь увидит изменения и выберет «Применить» или «Отмена». Используй вместо write_file, когда нужно согласование перед записью.',
@@ -730,6 +745,7 @@ export interface ToolArgs {
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
+  show_file_history: { path: string }
   preview_edit: { path: string; content: string }
   write_file: { path: string; content: string }
   create_file: { path: string; content: string }
