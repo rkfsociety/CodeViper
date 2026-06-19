@@ -1,9 +1,6 @@
 .main {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  /* Без явной колонки grid берёт auto (по ширине контента) — длинные
-     сообщения растягивают панель за пределы окна. Ограничиваем шириной
-     контейнера. */
+  grid-template-rows: 1fr auto;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
@@ -21,45 +18,16 @@
   flex: 1;
 }
 
-.projectBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-surface);
-}
-
-.projectInfo {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.projectLabel {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.projectPath {
-  font-size: 11px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .clarifyBanner {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 12px 0;
-  padding: 8px 14px;
+  margin: 0 10px 0;
+  padding: 6px 12px;
   border: 1px solid color-mix(in srgb, var(--blue) 33%, transparent);
-  border-radius: 10px;
+  border-radius: 8px;
   background: linear-gradient(180deg, #0d1b2a 0%, var(--bg-base) 100%);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--blue-light);
   animation: clarify-fadein 0.2s ease;
 }
@@ -77,55 +45,161 @@
 
 .clarifyIcon {
   flex-shrink: 0;
-  font-size: 15px;
+  font-size: 14px;
 }
 
+/* ── Область ввода ────────────────────────────────────── */
 .input {
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: 6px;
+  padding: 8px 10px 10px;
   border-top: 1px solid var(--border);
 }
 
-.input textarea {
-  width: 100%;
-  min-height: 88px;
-  resize: vertical;
-  border-radius: 10px;
+/* Один контейнер: textarea + нижняя полоса */
+.inputBox {
+  display: grid;
+  grid-template-rows: auto auto;
   border: 1px solid var(--border);
+  border-radius: 12px;
   background: var(--bg-base);
-  color: var(--text-primary);
-  padding: 10px 12px;
   transition:
-    background-color 0.15s ease,
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.1s ease;
+    box-shadow 0.15s ease;
+  overflow: hidden;
 }
 
-.input textarea:focus {
-  outline: none;
+.inputBoxFocused {
   border-color: var(--blue-bright);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue-bright) 27%, transparent);
 }
 
-.inputActions {
+.inputBox textarea {
+  width: 100%;
+  min-height: 64px;
+  max-height: 240px;
+  resize: none;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  padding: 10px 12px 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+}
+
+/* ── Нижняя полоса ──────────────────────────────────── */
+.inputFooter {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  gap: 4px;
+  padding: 5px 6px 5px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
 }
 
-.inputButtons {
+.footerLeft,
+.footerRight {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
-@media (max-width: 640px) {
-  .inputActions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-  }
+.footerRight {
+  flex-shrink: 0;
+}
+
+/* чип — маленькая кнопка/метка */
+.footerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footerChip:hover {
+  background: var(--bg-element);
+  color: var(--text-primary);
+}
+
+.footerChipActive {
+  background: color-mix(in srgb, var(--blue) 18%, transparent);
+  border-color: color-mix(in srgb, var(--blue) 50%, transparent);
+  color: var(--blue-light);
+}
+
+.footerChipWarn {
+  color: var(--yellow, #d29922);
+  border-color: color-mix(in srgb, var(--yellow, #d29922) 35%, transparent);
+}
+
+.footerChipDanger {
+  color: var(--red, #f85149);
+  border-color: color-mix(in srgb, var(--red, #f85149) 40%, transparent);
+}
+
+.footerChipStop {
+  color: var(--red, #f85149);
+  border-color: color-mix(in srgb, var(--red, #f85149) 40%, transparent);
+}
+
+.footerChipStop:hover {
+  background: color-mix(in srgb, var(--red, #f85149) 15%, transparent);
+  color: var(--red, #f85149);
+}
+
+/* Кнопка «Отправить» — круглая стрелка */
+.sendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--blue, #1f6feb);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    opacity 0.12s ease,
+    background-color 0.12s ease;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: var(--blue-bright, #388bfd);
+}
+
+.sendBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Убираем старые классы — больше не используются */
+.inputActions {
+  display: none;
+}
+.inputButtons {
+  display: none;
 }

@@ -19,7 +19,6 @@ import type {
 } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
 import styles from './ChatPanel.module.css'
-import { AgentContextBar } from './AgentContextBar'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
 const MessageBody = lazy(() => import('./MessageBody').then((m) => ({ default: m.MessageBody })))
@@ -153,6 +152,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
+  const [showQuickBar, setShowQuickBar] = useState(false)
+  const [inputFocused, setInputFocused] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -220,7 +221,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   // ── Хук: контекст-превью (debounce 350 ms) ──────────────────────────────
-  const { contextPreview, contextLoading, contextError, setContextPreview } = useContextPreview(
+  const { contextPreview, contextLoading, setContextPreview } = useContextPreview(
     chatId,
     projectPath,
     messages,
@@ -505,30 +506,24 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     lastVisibleMessage?.role === 'assistant' &&
     /\?\s*$/.test(lastVisibleMessage.content.trimEnd())
 
+  function formatModelShort(model: string): string {
+    const name = (model || '').trim()
+    if (!name) return '—'
+    const base = name.includes(':') ? name.split(':')[0]! : name
+    return base.length > 16 ? base.slice(0, 15) + '…' : base
+  }
+
+  function contextChipClass(): string {
+    if (!contextPreview) return styles.footerChip
+    const pct = contextPreview.contextUsagePercent
+    if (pct >= 90) return `${styles.footerChip} ${styles.footerChipDanger}`
+    if (pct >= 70) return `${styles.footerChip} ${styles.footerChipWarn}`
+    return styles.footerChip
+  }
+
   return (
     <div className={styles.main}>
-      {chatId && (
-        <div className={styles.projectBar}>
-          <div className={styles.projectInfo} title={projectPath || undefined}>
-            <span className={styles.projectLabel}>📁 {formatProjectLabel(projectPath)}</span>
-            {projectPath && <span className={styles.projectPath}>{projectPath}</span>}
-          </div>
-          {!projectLocked && (
-            <button type="button" className="btn" onClick={onPickProject} disabled={busy}>
-              {projectPath ? 'Сменить проект' : 'Выбрать проект'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {chatId && (
-        <AgentContextBar
-          preview={contextPreview}
-          loading={contextLoading}
-          error={contextError}
-          onOpen={() => setContextModalOpen(true)}
-        />
-      )}
+      {/* projectBar и AgentContextBar убраны — перенесены в inputFooter */}
 
       {chatId && interruptedDraft && (
         <InterruptedDraftBanner
@@ -716,42 +711,118 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             progress={progress}
           />
         )}
-        {chatId && projectPath && (
-          <QuickPromptBar onInsert={insertPrompt} disabled={!chatId || !projectPath} />
+
+        {showQuickBar && chatId && projectPath && (
+          <QuickPromptBar
+            onInsert={(text) => {
+              insertPrompt(text)
+              setShowQuickBar(false)
+            }}
+            disabled={!chatId || !projectPath}
+          />
         )}
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleInputKeyDown}
-          placeholder="Например: добавь валидацию email в форму регистрации"
-          disabled={!chatId}
-        />
-        <div className={styles.inputActions}>
-          <span className="empty">
-            {!chatId
-              ? 'Сначала создай чат слева'
-              : !projectPath
-                ? 'Сначала выбери проект для этого чата'
-                : agentRunning
-                  ? queueSize > 0
-                    ? `Enter — в очередь (${queueSize} ожидают), Shift+Enter — новая строка`
-                    : 'Enter — в очередь, Shift+Enter — новая строка'
-                  : 'Enter — отправить, Shift+Enter — новая строка'}
-          </span>
-          <div className={styles.inputButtons}>
-            {(agentRunning || queueSize > 0) && (
-              <button type="button" className="btn danger" onClick={() => void stopAgent()}>
-                Стоп
+
+        <div className={`${styles.inputBox}${inputFocused ? ' ' + styles.inputBoxFocused : ''}`}>
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleInputKeyDown}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
+            placeholder="Напиши задачу… (/ — быстрые промпты)"
+            disabled={!chatId}
+            rows={3}
+          />
+
+          <div className={styles.inputFooter}>
+            <div className={styles.footerLeft}>
+              {/* Проект */}
+              {chatId && (
+                <button
+                  type="button"
+                  className={styles.footerChip}
+                  title={projectPath || 'Выбрать проект'}
+                  onClick={!projectLocked ? onPickProject : undefined}
+                  disabled={busy && !projectLocked}
+                  style={!projectLocked ? undefined : { cursor: 'default' }}
+                >
+                  📁 {projectPath ? formatProjectLabel(projectPath) : 'Проект'}
+                </button>
+              )}
+
+              {/* Контекст */}
+              {chatId && (contextPreview || contextLoading) && (
+                <button
+                  type="button"
+                  className={contextChipClass()}
+                  title={
+                    contextPreview
+                      ? `Контекст: ${contextPreview.contextUsagePercent}% · ~${contextPreview.estimatedTokens.toLocaleString('ru-RU')} tok`
+                      : 'Загрузка контекста…'
+                  }
+                  onClick={() => setContextModalOpen(true)}
+                >
+                  ◎{' '}
+                  {contextLoading && !contextPreview
+                    ? '…'
+                    : contextPreview
+                      ? `${contextPreview.contextUsagePercent}%`
+                      : ''}
+                  {contextPreview?.historySummarized && ' Σ'}
+                  {contextPreview?.historyTruncated && !contextPreview.historySummarized && (
+                    <> −{contextPreview.droppedMessageCount}</>
+                  )}
+                </button>
+              )}
+
+              {/* Быстрые промпты */}
+              {chatId && projectPath && (
+                <button
+                  type="button"
+                  className={`${styles.footerChip}${showQuickBar ? ' ' + styles.footerChipActive : ''}`}
+                  title="Быстрые промпты"
+                  onClick={() => setShowQuickBar((v) => !v)}
+                >
+                  /
+                </button>
+              )}
+            </div>
+
+            <div className={styles.footerRight}>
+              {/* Модель */}
+              {chatId && (
+                <span
+                  className={styles.footerChip}
+                  style={{ cursor: 'default', pointerEvents: 'none' }}
+                  title={settings.model}
+                >
+                  {formatModelShort(runModel || settings.model)}
+                </span>
+              )}
+
+              {/* Стоп */}
+              {(agentRunning || queueSize > 0) && (
+                <button
+                  type="button"
+                  className={`${styles.footerChip} ${styles.footerChipStop}`}
+                  onClick={() => void stopAgent()}
+                >
+                  ■ Стоп{queueSize > 0 ? ` (${queueSize})` : ''}
+                </button>
+              )}
+
+              {/* Отправить */}
+              <button
+                type="button"
+                className={styles.sendBtn}
+                onClick={() => void send()}
+                disabled={!settings.model || !chatId || !projectPath || !input.trim()}
+                title={agentRunning ? 'В очередь' : 'Отправить (Enter)'}
+              >
+                ↑
               </button>
-            )}
-            <button
-              className="btn primary"
-              onClick={() => void send()}
-              disabled={!settings.model || !chatId || !projectPath || !input.trim()}
-            >
-              {agentRunning ? 'В очередь' : 'Отправить'}
-            </button>
+            </div>
           </div>
         </div>
       </div>
