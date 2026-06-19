@@ -241,6 +241,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [inputFocused, setInputFocused] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const modelPickerRef = useRef<HTMLDivElement>(null)
+  const [contextPopoverOpen, setContextPopoverOpen] = useState(false)
+  const contextPopoverRef = useRef<HTMLDivElement>(null)
   // contextPreview вынесен сюда чтобы и useAgentStream, и useContextPreview могли обновлять его
   const [contextPreview, setContextPreview] = useState<
     import('../types').AgentContextPreview | null
@@ -454,6 +456,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     document.addEventListener('mousedown', handleOutside)
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [modelPickerOpen])
+
+  useEffect(() => {
+    if (!contextPopoverOpen) return
+    function handleOutside(e: MouseEvent) {
+      if (contextPopoverRef.current && !contextPopoverRef.current.contains(e.target as Node)) {
+        setContextPopoverOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [contextPopoverOpen])
 
   // ── Prerequisites ────────────────────────────────────────────────────────
   async function retryAfterPrerequisites() {
@@ -844,28 +857,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         {chatId && (
           <div className={styles.inputMeta}>
             <div className={styles.metaLeft}>
-              {/* Контекст — кружок с процентом */}
-              <button
-                type="button"
-                className={`${styles.metaBtn} ${contextChipClass()}`}
-                onClick={() => setContextModalOpen(true)}
-                title={
-                  contextPreview
-                    ? `Контекст: ${contextPreview.contextUsagePercent}% · ~${contextPreview.estimatedTokens.toLocaleString('ru-RU')} tok\nНажми для подробностей`
-                    : contextLoading
-                      ? 'Вычисляю контекст…'
-                      : 'Контекст агента'
-                }
-              >
-                <span className={styles.contextDot} aria-hidden="true" />
-                {contextLoading && !contextPreview
-                  ? '…'
-                  : contextPreview
-                    ? `${contextPreview.contextUsagePercent}%`
-                    : '◎'}
-                {contextPreview?.historySummarized && <span className={styles.metaBadge}>Σ</span>}
-              </button>
-
               {/* Выбор модели */}
               <div className={styles.modelPicker} ref={modelPickerRef}>
                 <button
@@ -951,6 +942,73 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               >
                 /
               </button>
+
+              {/* Кружок контекста */}
+              <div className={styles.contextPopoverWrap} ref={contextPopoverRef}>
+                <button
+                  type="button"
+                  className={`${styles.contextCircleBtn} ${contextChipClass()}${contextPopoverOpen ? ' ' + styles.contextCircleActive : ''}`}
+                  onClick={() => setContextPopoverOpen((v) => !v)}
+                  title="Использование контекста"
+                  aria-label="Использование контекста"
+                >
+                  <span className={styles.contextDot} aria-hidden="true" />
+                  {contextLoading && !contextPreview
+                    ? '…'
+                    : contextPreview
+                      ? `${contextPreview.contextUsagePercent}%`
+                      : '◎'}
+                  {contextPreview?.historySummarized && <span className={styles.metaBadge}>Σ</span>}
+                </button>
+
+                {contextPopoverOpen && contextPreview && (
+                  <div className={styles.contextPopover} role="tooltip">
+                    <div className={styles.ctxTitle}>Контекст модели</div>
+                    <div className={styles.ctxRows}>
+                      {contextPreview.sections.map((s) => (
+                        <div key={s.id} className={styles.ctxRow}>
+                          <span className={styles.ctxRowName}>{s.title}</span>
+                          <span className={styles.ctxRowVal}>
+                            ~{(s.charCount / 4000).toFixed(1)}k tok
+                            <span className={styles.ctxRowKb}>
+                              {' '}
+                              ({(s.charCount / 1024).toFixed(1)} KB)
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={styles.ctxBar}>
+                      <div
+                        className={styles.ctxBarFill}
+                        style={{
+                          width: `${Math.min(100, contextPreview.contextUsagePercent)}%`,
+                          background:
+                            contextPreview.contextUsagePercent >= 90
+                              ? 'var(--red, #f85149)'
+                              : contextPreview.contextUsagePercent >= 70
+                                ? 'var(--yellow, #d29922)'
+                                : 'var(--blue, #1f6feb)'
+                        }}
+                      />
+                    </div>
+                    <div className={styles.ctxTotal}>
+                      ~{contextPreview.estimatedTokens.toLocaleString('ru-RU')} /{' '}
+                      {contextPreview.contextLimitTokens.toLocaleString('ru-RU')} tok
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.ctxDetails}
+                      onClick={() => {
+                        setContextPopoverOpen(false)
+                        setContextModalOpen(true)
+                      }}
+                    >
+                      Детали →
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -330,6 +330,128 @@
   margin: 2px 0;
 }
 
+/* ── Попап контекста ──────────────────────────────── */
+.contextPopoverWrap {
+  position: relative;
+}
+
+.contextCircleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.contextCircleBtn:hover,
+.contextCircleActive {
+  background: var(--bg-element);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.contextPopover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 14px 16px 12px;
+  z-index: 300;
+}
+
+.ctxTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border, #30363d);
+}
+
+.ctxRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.ctxRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.ctxRowName {
+  color: var(--text-secondary);
+}
+
+.ctxRowVal {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ctxRowKb {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.ctxBar {
+  height: 5px;
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.08));
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.ctxBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.ctxTotal {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ctxDetails {
+  display: block;
+  width: 100%;
+  padding: 5px;
+  background: none;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.12s;
+}
+
+.ctxDetails:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary);
+}
+
 /* Старые классы (не используются) */
 .footerChip {
   display: none;
