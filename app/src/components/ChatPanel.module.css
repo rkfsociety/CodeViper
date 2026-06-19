@@ -240,6 +240,96 @@
   opacity: 0.8;
 }
 
+.modelPicker {
+  position: relative;
+}
+
+.metaModelBtn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 160px;
+}
+
+.modelAuto {
+  opacity: 0.6;
+  font-size: 10px;
+}
+
+.modelChevron {
+  font-size: 9px;
+  opacity: 0.5;
+  margin-left: 2px;
+}
+
+.modelPickerDropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.modelPickerItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+}
+
+.modelPickerItem:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.modelPickerActive {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.modelPickerName {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modelPickerDesc {
+  font-size: 10px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.modelPickerTag {
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.08));
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.modelPickerCheck {
+  color: var(--accent, #58a6ff);
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.modelPickerSep {
+  height: 1px;
+  background: var(--border, #30363d);
+  margin: 2px 0;
+}
+
 /* Старые классы (не используются) */
 .footerChip {
   display: none;

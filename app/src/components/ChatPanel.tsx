@@ -16,9 +16,11 @@ import type {
   AgentSettings,
   ChatMessage,
   InterruptedDraft,
+  OllamaModel,
   ProgressInfo,
   SystemStats
 } from '../types'
+import { filterToolCallingModels } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
 import styles from './ChatPanel.module.css'
 import { AgentContextModal } from './AgentContextModal'
@@ -52,6 +54,8 @@ interface Props {
   onBusyChange?: (busy: boolean) => void
   onLearningSaved?: () => void
   onPickProject: () => void
+  models?: OllamaModel[]
+  onModelChange?: (model: string, auto: boolean) => void
   onActiveModelChange?: (model: string) => void
   onOpenSettings?: () => void
   onEnqueueModel?: (modelName: string) => void
@@ -214,6 +218,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onBusyChange,
     onLearningSaved,
     onPickProject,
+    models = [],
+    onModelChange,
     onActiveModelChange,
     onOpenSettings,
     onEnqueueModel,
@@ -233,6 +239,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
   const [showQuickBar, setShowQuickBar] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
+  const modelPickerRef = useRef<HTMLDivElement>(null)
   // contextPreview вынесен сюда чтобы и useAgentStream, и useContextPreview могли обновлять его
   const [contextPreview, setContextPreview] = useState<
     import('../types').AgentContextPreview | null
@@ -435,6 +443,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     }
     return window.codeviper.onProgressEvent(setProgress)
   }, [busy])
+
+  useEffect(() => {
+    if (!modelPickerOpen) return
+    function handleOutside(e: MouseEvent) {
+      if (modelPickerRef.current && !modelPickerRef.current.contains(e.target as Node)) {
+        setModelPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [modelPickerOpen])
 
   // ── Prerequisites ────────────────────────────────────────────────────────
   async function retryAfterPrerequisites() {
@@ -848,9 +867,65 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               </button>
 
               {/* Выбор модели */}
-              <span className={styles.metaModel} title={settings.model}>
-                {formatModelShort(runModel || settings.model)}
-              </span>
+              <div className={styles.modelPicker} ref={modelPickerRef}>
+                <button
+                  type="button"
+                  className={`${styles.metaBtn} ${styles.metaModelBtn}`}
+                  title={settings.model}
+                  onClick={() => setModelPickerOpen((v) => !v)}
+                >
+                  {settings.autoModel !== false && (
+                    <span className={styles.modelAuto}>Авто · </span>
+                  )}
+                  {formatModelShort(runModel || settings.model)}
+                  <span className={styles.modelChevron}>{modelPickerOpen ? '▴' : '▾'}</span>
+                </button>
+                {modelPickerOpen && (
+                  <div className={styles.modelPickerDropdown} role="listbox">
+                    <button
+                      type="button"
+                      className={`${styles.modelPickerItem}${settings.autoModel !== false ? ' ' + styles.modelPickerActive : ''}`}
+                      role="option"
+                      aria-selected={settings.autoModel !== false}
+                      onClick={() => {
+                        onModelChange?.(settings.model, true)
+                        setModelPickerOpen(false)
+                      }}
+                    >
+                      <span className={styles.modelPickerName}>Авто</span>
+                      <span className={styles.modelPickerDesc}>Лучшая доступная модель</span>
+                      {settings.autoModel !== false && (
+                        <span className={styles.modelPickerCheck}>✓</span>
+                      )}
+                    </button>
+                    {filterToolCallingModels(models).length > 0 && (
+                      <div className={styles.modelPickerSep} />
+                    )}
+                    {filterToolCallingModels(models).map((m) => {
+                      const isActive = settings.autoModel === false && settings.model === m.name
+                      const shortName = m.name.split(':')[0]
+                      const tag = m.name.includes(':') ? m.name.split(':')[1] : undefined
+                      return (
+                        <button
+                          key={m.name}
+                          type="button"
+                          className={`${styles.modelPickerItem}${isActive ? ' ' + styles.modelPickerActive : ''}`}
+                          role="option"
+                          aria-selected={isActive}
+                          onClick={() => {
+                            onModelChange?.(m.name, false)
+                            setModelPickerOpen(false)
+                          }}
+                        >
+                          <span className={styles.modelPickerName}>{shortName}</span>
+                          {tag && <span className={styles.modelPickerTag}>{tag}</span>}
+                          {isActive && <span className={styles.modelPickerCheck}>✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
 
               {/* Проект */}
               <button
