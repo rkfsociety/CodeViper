@@ -922,12 +922,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               <button
                 type="button"
                 className={styles.metaBtn}
-                title={projectPath || 'Выбрать проект'}
+                title={
+                  projectLocked
+                    ? `Проект зафиксирован — чат уже содержит сообщения (${projectPath})`
+                    : projectPath || 'Выбрать проект'
+                }
                 onClick={!projectLocked ? onPickProject : undefined}
                 style={projectLocked ? { cursor: 'default' } : undefined}
                 disabled={busy && !projectLocked}
               >
                 📁 {projectPath ? formatProjectLabel(projectPath) : 'Выбрать проект'}
+                {projectLocked && (
+                  <span style={{ opacity: 0.45, fontSize: 9, marginLeft: 2 }}>🔒</span>
+                )}
               </button>
             </div>
 
