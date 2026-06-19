@@ -62,6 +62,44 @@ const agentRunStates = new Map<string, { chatId: string }>()
 const activeAgentAborts = new Map<string, AbortController>()
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
 
+// Батчинг IPC: token/thinking события накапливаем и шлём не чаще раз в 50 мс.
+// webContents.send на каждый чанк имеет накладные расходы на сериализацию и IPC.
+const pendingTokenBuf = new Map<string, { token: string; thinking: string }>()
+let tokenFlushTimer: ReturnType<typeof setTimeout> | null = null
+
+function flushTokenBatch(): void {
+  tokenFlushTimer = null
+  for (const [chatId, buf] of pendingTokenBuf) {
+    if (buf.token)
+      mainWindow?.webContents.send('agent-stream', { chatId, type: 'token', content: buf.token })
+    if (buf.thinking)
+      mainWindow?.webContents.send('agent-stream', {
+        chatId,
+        type: 'thinking',
+        content: buf.thinking
+      })
+  }
+  pendingTokenBuf.clear()
+}
+
+function flushChatTokens(chatId: string): void {
+  const buf = pendingTokenBuf.get(chatId)
+  if (!buf) return
+  if (buf.token)
+    mainWindow?.webContents.send('agent-stream', { chatId, type: 'token', content: buf.token })
+  if (buf.thinking)
+    mainWindow?.webContents.send('agent-stream', {
+      chatId,
+      type: 'thinking',
+      content: buf.thinking
+    })
+  pendingTokenBuf.delete(chatId)
+  if (pendingTokenBuf.size === 0 && tokenFlushTimer) {
+    clearTimeout(tokenFlushTimer)
+    tokenFlushTimer = null
+  }
+}
+
 // Скользящее окно прогонов: хранит timestamp начала каждого прогона за последний час.
 const runTimestamps: number[] = []
 const HOUR_MS = 60 * 60 * 1000
@@ -112,6 +150,19 @@ async function createWindow(): Promise<void> {
 }
 
 function stream(chatId: string, event: AgentStreamPayload): void {
+  if (event.type === 'token' || event.type === 'thinking') {
+    let buf = pendingTokenBuf.get(chatId)
+    if (!buf) {
+      buf = { token: '', thinking: '' }
+      pendingTokenBuf.set(chatId, buf)
+    }
+    if (event.type === 'token') buf.token += event.content ?? ''
+    else buf.thinking += event.content ?? ''
+    if (!tokenFlushTimer) tokenFlushTimer = setTimeout(flushTokenBatch, 50)
+    return
+  }
+  // Перед любым нетокенным событием сбрасываем накопленные токены этого чата.
+  flushChatTokens(chatId)
   const payload: AgentStreamEvent = { chatId, ...event }
   mainWindow?.webContents.send('agent-stream', payload)
 }
