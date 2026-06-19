@@ -35,6 +35,8 @@ export interface UseMessageQueueOptions {
   appendMessage: (message: ChatMessage) => void
   onRunStart: () => void
   onBusyChange?: (busy: boolean) => void
+  /** Вызывается при полном сбросе очереди (смена чата и т.п.) — сбрасывает состояние стрима */
+  onReset?: () => void
   onPrerequisiteIssue: (block: PrerequisiteBlock) => void
   onDangerWarning: (block: DangerBlock) => void
   /** Реф на текущий черновик ответа (из useAgentStream) */
@@ -54,6 +56,7 @@ export function useMessageQueue({
   appendMessage,
   onRunStart,
   onBusyChange,
+  onReset,
   onPrerequisiteIssue,
   onDangerWarning,
   draftRef,
@@ -63,6 +66,7 @@ export function useMessageQueue({
   const agentRunningRef = useRef(false)
   const stoppingRef = useRef(false) // Task 40: guards stopAgent ↔ processNextQueuedRun race
   const onRunStartRef = useRef(onRunStart)
+  const onResetRef = useRef(onReset)
   const onPrerequisiteIssueRef = useRef(onPrerequisiteIssue)
   const onDangerWarningRef = useRef(onDangerWarning)
   const [queueSize, setQueueSize] = useState(0)
@@ -70,6 +74,7 @@ export function useMessageQueue({
 
   // Держим рефы на свежих колбэках — без этого стейт-машина видит устаревшие замыкания.
   onRunStartRef.current = onRunStart
+  onResetRef.current = onReset
   onPrerequisiteIssueRef.current = onPrerequisiteIssue
   onDangerWarningRef.current = onDangerWarning
 
@@ -282,10 +287,11 @@ export function useMessageQueue({
   }
 
   function resetQueue() {
+    onResetRef.current?.()
     queueRef.current = []
     setQueueSize(0)
     setRunning(false)
-    // Task 41: mark the current run as stale so stream events from it are ignored
+    // mark the current run as stale so stream events from it are ignored
     runIdRef.current += 1
     doneRunIdRef.current = runIdRef.current
   }

@@ -387,6 +387,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     processNextQueuedRunRef,
     appendMessage,
     onRunStart: resetStreamState,
+    onReset: resetStreamState,
     onBusyChange: setChatBusy,
     onPrerequisiteIssue: setPrerequisiteBlock,
     onDangerWarning: setDangerBlock,
@@ -482,7 +483,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setClipboardImages([])
     setPrerequisiteBlock(null)
     setContextPreview(null)
-    resetStreamState()
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
