@@ -1,10 +1,12 @@
 import {
   forwardRef,
   lazy,
+  memo,
   Suspense,
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState
 } from 'react'
@@ -125,6 +127,84 @@ function messageCopyText(message: ChatMessage): string {
   return message.content
 }
 
+// Мемоизированная строка сообщения — перерисовывается только при изменении самого сообщения.
+const MessageRow = memo(function MessageRow({
+  message,
+  pinned,
+  busy,
+  onPin,
+  onRetry,
+  onEdit
+}: {
+  message: ChatMessage
+  pinned: boolean
+  busy: boolean
+  onPin: (id: string) => void
+  onRetry: (message: ChatMessage) => void
+  onEdit: (message: ChatMessage) => void
+}) {
+  return (
+    <div className={`message ${message.role}${pinned ? ' pinned' : ''}`}>
+      <div className="message-header">
+        <MessageRoleBadge role={message.role} toolName={message.toolName} />
+        {message.role === 'assistant' && message.durationMs != null && (
+          <span className="message-duration" title="Время генерации">
+            ⏱ {(message.durationMs / 1000).toFixed(1)}s
+          </span>
+        )}
+        <MessageCopyButton text={messageCopyText(message)} />
+        {!busy && (
+          <button
+            type="button"
+            className={`btn message-pin-btn${pinned ? ' active' : ''}`}
+            title={pinned ? 'Открепить' : 'Закрепить'}
+            aria-label={pinned ? 'Открепить сообщение' : 'Закрепить сообщение'}
+            aria-pressed={pinned}
+            onClick={() => onPin(message.id)}
+          >
+            📌
+          </button>
+        )}
+        {!busy && message.role === 'user' && (
+          <>
+            <button
+              type="button"
+              className="btn message-action-btn"
+              title="Повторить"
+              aria-label="Повторить запрос"
+              onClick={() => onRetry(message)}
+            >
+              ↺
+            </button>
+            <button
+              type="button"
+              className="btn message-action-btn"
+              title="Изменить"
+              aria-label="Редактировать запрос"
+              onClick={() => onEdit(message)}
+            >
+              ✎
+            </button>
+          </>
+        )}
+      </div>
+      {message.role === 'assistant' && message.thinking && (
+        <ThinkingBlock content={message.thinking} />
+      )}
+      <Suspense fallback={null}>
+        <MessageBody
+          role={message.role}
+          content={
+            message.role === 'assistant'
+              ? visibleAssistantContent(message.content)
+              : message.content
+          }
+        />
+      </Suspense>
+    </div>
+  )
+})
+
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   {
     settings,
@@ -154,6 +234,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
   const [showQuickBar, setShowQuickBar] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
+  // contextPreview вынесен сюда чтобы и useAgentStream, и useContextPreview могли обновлять его
+  const [contextPreview, setContextPreview] = useState<
+    import('../types').AgentContextPreview | null
+  >(null)
+  const [contextLoading, setContextLoading] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -220,18 +305,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     commitMessages(next)
   }
 
-  // ── Хук: контекст-превью (debounce 350 ms) ──────────────────────────────
-  const { contextPreview, contextLoading, setContextPreview } = useContextPreview(
-    chatId,
-    projectPath,
-    messages,
-    input,
-    settings.model
-  )
-
   // ── Хук: стрим событий агента ────────────────────────────────────────────
   const {
-    draft,
     draftRef,
     agentPhase,
     activeToolName,
@@ -296,6 +371,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onInterruptedDraft: handleInterruptedDraft
   })
 
+  // ── Хук: контекст-превью (debounce 600 ms, не работает пока агент занят) ─
+  useContextPreview(chatId, projectPath, messages, input, settings.model, busy, {
+    onPreview: setContextPreview,
+    onLoading: setContextLoading
+  })
+
   // ── Автосохранение состояния для восстановления после краша ─────────────
   useAppStateSync({ chatIdRef, projectPathRef, getQueueSnapshot })
 
@@ -323,11 +404,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
+  // draft убран из deps: он встроен в messages через upsertMessage,
+  // поэтому messages.length уже меняется при новых сообщениях.
+  // Скролл при токенах стриминга (обновление последнего сообщения)
+  // обрабатывается отдельным эффектом ниже через messages.
   useEffect(() => {
     if (atBottomRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, draft, queueSize])
+  }, [messages.length, queueSize])
 
   useEffect(() => {
     if (!busy) {
@@ -497,7 +582,27 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   const projectLocked = messages.length > 0
 
-  const lastVisibleMessage = [...messages].reverse().find(shouldShowAssistantMessage)
+  // Мемоизируем тяжёлые вычисления — не пересчитываются на каждый ре-рендер
+  const displayItems = useMemo(
+    () => groupToolMessages(messages.filter(shouldShowAssistantMessage)),
+    [messages]
+  )
+
+  const pinnedDisplayItems = useMemo(
+    () =>
+      pinnedMessageIds.size > 0
+        ? groupToolMessages(
+            messages.filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m))
+          )
+        : [],
+    [messages, pinnedMessageIds]
+  )
+
+  const lastVisibleMessage = useMemo(
+    () => [...messages].reverse().find(shouldShowAssistantMessage),
+    [messages]
+  )
+
   const awaitingClarification =
     settings.clarifyMode &&
     !busy &&
@@ -572,19 +677,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
       <div className={styles.messages} ref={scrollRef}>
         {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
-        {chatId && !projectPath && !messages.length && !draft && (
+        {chatId && !projectPath && !messages.length && (
           <div className="empty">Выбери папку с кодом — кнопка «Выбрать проект» выше.</div>
         )}
-        {chatId && projectPath && !messages.length && !draft && (
-          <WelcomePanel onSelect={insertPrompt} />
-        )}
+        {chatId && projectPath && !messages.length && <WelcomePanel onSelect={insertPrompt} />}
 
-        {pinnedMessageIds.size > 0 && (
+        {pinnedDisplayItems.length > 0 && (
           <div className="pinned-messages-section">
             <div className="pinned-messages-title">📌 Закреплённые</div>
-            {groupToolMessages(
-              messages.filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m))
-            ).map((item) =>
+            {pinnedDisplayItems.map((item) =>
               item.kind === 'all-tools' ? (
                 <AllToolsGroup key={item.key} items={item.items} />
               ) : (
@@ -616,75 +717,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           </div>
         )}
 
-        {groupToolMessages(messages.filter(shouldShowAssistantMessage)).map((item) =>
+        {displayItems.map((item) =>
           item.kind === 'all-tools' ? (
             <AllToolsGroup key={item.key} items={item.items} />
           ) : (
-            <div
+            <MessageRow
               key={item.message.id}
-              className={`message ${item.message.role}${pinnedMessageIds.has(item.message.id) ? ' pinned' : ''}`}
-            >
-              <div className="message-header">
-                <MessageRoleBadge role={item.message.role} toolName={item.message.toolName} />
-                {item.message.role === 'assistant' && item.message.durationMs != null && (
-                  <span className="message-duration" title="Время генерации">
-                    ⏱ {(item.message.durationMs / 1000).toFixed(1)}s
-                  </span>
-                )}
-                <MessageCopyButton text={messageCopyText(item.message)} />
-                {!busy && (
-                  <button
-                    type="button"
-                    className={`btn message-pin-btn${pinnedMessageIds.has(item.message.id) ? ' active' : ''}`}
-                    title={pinnedMessageIds.has(item.message.id) ? 'Открепить' : 'Закрепить'}
-                    aria-label={
-                      pinnedMessageIds.has(item.message.id)
-                        ? 'Открепить сообщение'
-                        : 'Закрепить сообщение'
-                    }
-                    aria-pressed={pinnedMessageIds.has(item.message.id)}
-                    onClick={() => togglePinMessage(item.message.id)}
-                  >
-                    📌
-                  </button>
-                )}
-                {!busy && item.message.role === 'user' && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn message-action-btn"
-                      title="Повторить"
-                      aria-label="Повторить запрос"
-                      onClick={() => void retryUserMessage(item.message)}
-                    >
-                      ↺
-                    </button>
-                    <button
-                      type="button"
-                      className="btn message-action-btn"
-                      title="Изменить"
-                      aria-label="Редактировать запрос"
-                      onClick={() => editUserMessage(item.message)}
-                    >
-                      ✎
-                    </button>
-                  </>
-                )}
-              </div>
-              {item.message.role === 'assistant' && item.message.thinking && (
-                <ThinkingBlock content={item.message.thinking} />
-              )}
-              <Suspense fallback={null}>
-                <MessageBody
-                  role={item.message.role}
-                  content={
-                    item.message.role === 'assistant'
-                      ? visibleAssistantContent(item.message.content)
-                      : item.message.content
-                  }
-                />
-              </Suspense>
-            </div>
+              message={item.message}
+              pinned={pinnedMessageIds.has(item.message.id)}
+              busy={busy}
+              onPin={togglePinMessage}
+              onRetry={retryUserMessage}
+              onEdit={editUserMessage}
+            />
           )
         )}
 
