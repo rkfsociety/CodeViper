@@ -13,10 +13,8 @@ import { DEEPSEEK_API_BASE_URL } from '../../shared/constants'
 /** Фасад для выбора провайдера моделей по конфигурации. */
 export class ModelRuntime {
   private provider: ModelProvider
-  private config: ProviderConfig
 
   constructor(config: ProviderConfig) {
-    this.config = config
     this.provider = this.createProvider(config)
   }
 
@@ -49,35 +47,6 @@ export class ModelRuntime {
   }
 
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
-    // Для облачных провайдеров при сетевой ошибке пробуем Ollama как fallback
-    if (this.config.type !== 'ollama') {
-      let hadChunk = false
-      try {
-        for await (const chunk of this.provider.chat(options)) {
-          hadChunk = true
-          yield chunk
-        }
-        return
-      } catch (err) {
-        // Abort не подлежит fallback
-        if (err instanceof DOMException && err.name === 'AbortError') throw err
-        // Если уже получили данные — не делаем fallback (частичный ответ)
-        if (hadChunk) throw err
-        // 4xx = ошибка конфигурации (неверный ключ, неверная модель) — сообщаем явно, без fallback
-        if (err instanceof Error && /API error [45]\d\d/.test(err.message)) throw err
-        // Иначе (сеть, таймаут, 5xx) — пробуем локальную Ollama
-        const ollamaBaseUrl = this.config.baseUrl?.includes('ollama')
-          ? this.config.baseUrl
-          : 'http://127.0.0.1:11434'
-        const fallback = new OllamaProvider(ollamaBaseUrl)
-        yield {
-          content: '⚠️ Облачный API недоступен, переключаюсь на локальную Ollama...\n',
-          model: 'fallback'
-        }
-        yield* fallback.chat(options)
-        return
-      }
-    }
     yield* this.provider.chat(options)
   }
 
