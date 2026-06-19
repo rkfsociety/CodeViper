@@ -28,8 +28,7 @@
 
 ### ⚡ Производительность
 
-- [ ] **9. Worker для эмбеддингов** — вызов Ollama embed в отдельном worker_thread; очередь задач; результат кэшируется в памяти (LRU, 500 записей)
-- [ ] **10. Worker для парсинга больших файлов** — чтение и разбивка файлов >512 КБ вынести из main; возвращать чанки через postMessage
+- [ ] **9. Worker для парсинга больших файлов** — чтение и разбивка файлов >512 КБ вынести из main; возвращать чанки через postMessage
 
 ---
 
@@ -161,6 +160,7 @@
 - [x] **Семантическое версионирование** — `bump-version.ts`; CHANGELOG.md; git-тег
 - [x] **Изоляция стилей (первая фаза)** — ChatHistoryPanel, SettingsModal, ChatPanel на CSS-модули
 - [x] **Worker для grep/find** — `grep_files` и `find_files` в `worker_threads`; прогресс через `postMessage`; main не блокируется
+- [x] **Worker для эмбеддингов** — fetch к Ollama embed в `worker_thread`; singleton-воркер; LRU-кеш 500 записей; параллельные запросы без блокировки main
 - [x] **Индикатор прогресса** — IPC `progress-event`; grep/find шлют процент
 - [x] **Виртуализация длинных списков** — `@tanstack/react-virtual`
 - [x] **Ленивая загрузка** — `React.lazy` для MessageBody, SettingsModal, TerminalPanel
