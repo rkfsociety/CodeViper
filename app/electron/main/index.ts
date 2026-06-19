@@ -343,6 +343,12 @@ ipcMain.on('open-external', (_e, url: string) => {
   }
 })
 
+ipcMain.on('show-item-in-folder', (_e, filePath: string) => {
+  if (typeof filePath === 'string' && filePath.trim()) {
+    shell.showItemInFolder(filePath)
+  }
+})
+
 ipcMain.handle('load-settings', async () => loadSettings())
 
 ipcMain.handle('save-settings', async (_e, settings: AgentSettings) => saveSettings(settings))

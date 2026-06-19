@@ -231,6 +231,8 @@ const codeviper = {
 
   openExternal: (url: string) => ipcRenderer.send('open-external', url),
 
+  showItemInFolder: (filePath: string) => ipcRenderer.send('show-item-in-folder', filePath),
+
   onUpdateAvailable: (cb: (info: { commits: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, info: { commits: number }) => cb(info)
     ipcRenderer.on('update-available', handler)

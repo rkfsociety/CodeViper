@@ -405,6 +405,7 @@ export interface CodeViperAPI {
   onProgressEvent: (cb: (progress: ProgressInfo | null) => void) => () => void
   listPullRequests: () => Promise<PullRequestListResult>
   openExternal: (url: string) => void
+  showItemInFolder: (filePath: string) => void
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
   restartApp: () => void
   logFrontendError: (message: string, stack?: string) => void
