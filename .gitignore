@@ -4,6 +4,7 @@ app/out
 app/release
 app/dist-electron
 app/.vitest-tmp
+app/.pending-restart
 CodeViper.exe
 CodeViper-Setup.exe
 CodeViper-new.exe

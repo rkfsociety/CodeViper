@@ -32,7 +32,7 @@ import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { ModelRuntime } from './modelRuntime'
 import type { ProviderConfig } from '../../shared/modelProvider'
-import { commitAndPushSelfEdits } from './selfCommit'
+import { commitAndPushSelfEdits, stageSelfEditsForRestart } from './selfCommit'
 import { agentLogger } from './agentLogger'
 import { compressContextMessages } from './contextSummarizer'
 import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
@@ -731,8 +731,12 @@ export class AgentRunner {
         model: this.settings.model,
         total_ms: Date.now() - runStartMs
       })
-      if (selfEdited && this.settings.autoPushSelfEdits !== false) {
-        await this.autoCommitSelfEdits(userMessage)
+      if (selfEdited) {
+        if (autonomousSelfImprove && this.settings.autoPushSelfEdits !== false) {
+          await this.autoCommitSelfEdits(userMessage)
+        } else if (!autonomousSelfImprove) {
+          await this.stageSelfEditsForRestart(userMessage)
+        }
       }
     }
   }
@@ -746,6 +750,20 @@ export class AgentRunner {
       })
     } catch {
       // автокоммит необязателен — не критично для задачи
+    }
+  }
+
+  private async stageSelfEditsForRestart(userMessage: string): Promise<void> {
+    try {
+      const result = await stageSelfEditsForRestart(userMessage)
+      this.emit({
+        type: 'context',
+        content: result.ok
+          ? `⏳ Правки сохранены: ${result.message}`
+          : `⚠️ Не удалось сохранить правки: ${result.message}`
+      })
+    } catch {
+      // необязательно — не критично
     }
   }
 

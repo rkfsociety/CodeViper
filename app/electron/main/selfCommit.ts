@@ -1,4 +1,6 @@
 import { spawn } from 'child_process'
+import { writeFile } from 'fs/promises'
+import { join } from 'path'
 import { getCodeViperSourceRoot } from './codeviperSource'
 
 interface GitResult {
@@ -237,4 +239,45 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
   }
 
   return { ok: true, message: 'самоправки закоммичены и запушены на GitHub' }
+}
+
+/**
+ * Сохраняет правки исходников CodeViper в git stash и пишет маркер `.pending-restart`.
+ * При следующем запуске CodeViper.cmd пользователю предложат применить эти правки.
+ * Используется когда агент редактирует свои файлы вне режима самоулучшения.
+ */
+export async function stageSelfEditsForRestart(summary: string): Promise<SelfCommitResult> {
+  const source = getCodeViperSourceRoot()
+
+  const top = await runGit(source, ['rev-parse', '--show-toplevel'])
+  if (top.code !== 0) {
+    return {
+      ok: false,
+      message: 'не git-репозиторий — правки остались на диске, пересборка при следующем запуске'
+    }
+  }
+
+  const status = await runGit(source, ['status', '--porcelain', '--', '.'])
+  if (!status.stdout.trim()) {
+    return { ok: true, message: 'нет изменений для отложенного применения' }
+  }
+
+  const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 72) || 'правки агента'
+  const label = `agent-pending: ${shortSummary}`
+
+  // pathspec '.' ограничивает stash только файлами в app/ (текущий каталог)
+  const stash = await runGit(source, ['stash', 'push', '-u', '-m', label, '--', '.'])
+  if (stash.code !== 0) {
+    return {
+      ok: false,
+      message: `git stash не удался: ${(stash.stderr || stash.stdout).trim()} — правки остались на диске`
+    }
+  }
+
+  await writeFile(join(source, '.pending-restart'), label, 'utf8')
+
+  return {
+    ok: true,
+    message: 'правки сохранены и будут применены при следующем запуске CodeViper'
+  }
 }
