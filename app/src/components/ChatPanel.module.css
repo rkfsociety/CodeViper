@@ -73,6 +73,80 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue-bright) 27%, transparent);
 }
 
+.inputBoxDragOver {
+  border-color: var(--blue-bright);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--blue-bright) 35%, transparent);
+  background: color-mix(in srgb, var(--blue) 6%, var(--bg-base));
+}
+
+/* ── Drag overlay ─────────────────────────────────────────────── */
+.dragOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--blue) 12%, var(--bg-base) 88%);
+  color: var(--blue-light);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 11px;
+}
+
+/* ── Чипы прикреплённых файлов ───────────────────────────────── */
+.fileChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px 0;
+}
+
+.fileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 8px;
+  border-radius: 99px;
+  border: 1px solid color-mix(in srgb, var(--blue) 40%, transparent);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  color: var(--blue-light);
+  font-size: 11px;
+  max-width: 200px;
+}
+
+.fileChipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileChipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0.6;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition:
+    opacity 0.1s,
+    background-color 0.1s;
+}
+
+.fileChipRemove:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--blue) 25%, transparent);
+}
+
 .inputBox textarea {
   width: 100%;
   min-height: 60px;

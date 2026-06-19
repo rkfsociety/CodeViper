@@ -231,6 +231,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   ref
 ) {
   const [input, setInput] = useState('')
+  const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string }[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
   const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
   const [contextModalOpen, setContextModalOpen] = useState(false)
@@ -396,9 +398,44 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   // ── Автосохранение состояния для восстановления после краша ─────────────
   useAppStateSync({ chatIdRef, projectPathRef, getQueueSnapshot })
 
+  // ── Drag-and-drop файлов ─────────────────────────────────────────────────
+  function handleDragOver(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes('Files')) return
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    // Игнорируем уход на дочерние элементы
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+    setIsDragOver(false)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    if (!files.length) return
+    const entries = files.map((f) => ({
+      name: f.name,
+      // Electron добавляет .path на объект File
+      path: (f as File & { path?: string }).path ?? f.name
+    }))
+    setDroppedFiles((prev) => {
+      const existingPaths = new Set(prev.map((x) => x.path))
+      return [...prev, ...entries.filter((x) => !existingPaths.has(x.path))]
+    })
+    inputRef.current?.focus()
+  }
+
+  function removeDroppedFile(path: string) {
+    setDroppedFiles((prev) => prev.filter((f) => f.path !== path))
+  }
+
   // ── Сброс при смене чата ─────────────────────────────────────────────────
   useEffect(() => {
     setInput('')
+    setDroppedFiles([])
     setPrerequisiteBlock(null)
     setContextPreview(null)
     resetStreamState()
@@ -587,17 +624,23 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     const text = input.trim()
     if (!text || !projectPath || !chatId) return
 
+    // Добавляем пути вложенных файлов в начало сообщения
+    const fileSection =
+      droppedFiles.length > 0 ? `Файлы:\n${droppedFiles.map((f) => f.path).join('\n')}\n\n` : ''
+    const fullText = fileSection + text
+
     const userMessage: ChatMessage = {
       id: makeId(),
       role: 'user',
-      content: text,
+      content: fullText,
       timestamp: Date.now()
     }
     appendMessage(userMessage)
     setInput('')
+    setDroppedFiles([])
     atBottomRef.current = true
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    await submitMessage(userMessage.id, text)
+    await submitMessage(userMessage.id, fullText)
   }
 
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -816,7 +859,34 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           />
         )}
 
-        <div className={`${styles.inputBox}${inputFocused ? ' ' + styles.inputBoxFocused : ''}`}>
+        <div
+          className={`${styles.inputBox}${inputFocused ? ' ' + styles.inputBoxFocused : ''}${isDragOver ? ' ' + styles.inputBoxDragOver : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {droppedFiles.length > 0 && (
+            <div className={styles.fileChips}>
+              {droppedFiles.map((f) => (
+                <span key={f.path} className={styles.fileChip} title={f.path}>
+                  <span className={styles.fileChipName}>{f.name}</span>
+                  <button
+                    type="button"
+                    className={styles.fileChipRemove}
+                    aria-label={`Убрать ${f.name}`}
+                    onClick={() => removeDroppedFile(f.path)}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {isDragOver && (
+            <div className={styles.dragOverlay} aria-hidden="true">
+              Отпустите файл(ы)
+            </div>
+          )}
           <textarea
             ref={inputRef}
             value={input}
