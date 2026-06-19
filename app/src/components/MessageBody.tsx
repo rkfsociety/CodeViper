@@ -90,7 +90,7 @@ interface Props {
   content: string
 }
 
-export function MessageBody({ role, content }: Props) {
+export const MessageBody = React.memo(function MessageBody({ role, content }: Props) {
   if (role === 'tool') {
     return <pre className="message-plain">{content}</pre>
   }
@@ -106,4 +106,4 @@ export function MessageBody({ role, content }: Props) {
       </ReactMarkdown>
     </div>
   )
-}
+})

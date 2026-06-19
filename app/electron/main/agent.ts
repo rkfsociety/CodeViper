@@ -304,6 +304,8 @@ export class AgentRunner {
     let lastToolName: string | null = null
     let consecutiveSameToolCount = 0
     const toolCallCounts = new Map<string, number>()
+    let loopRecoveryCount = 0
+    const MAX_LOOP_RECOVERY = 3
 
     try {
       let step = 0
@@ -715,22 +717,32 @@ export class AgentRunner {
 
             // Проверяем лимит на одинаковые подряд идущие вызовы (с точными теми же аргументами)
             if (consecutiveSameToolCount > MAX_CONSECUTIVE_SAME_TOOL) {
-              const argsStr = JSON.stringify(call.function.arguments)
-              this.emit({
-                type: 'error',
-                content: `⚠️ Обнаружен цикл: инструмент "${name}" вызывается ${consecutiveSameToolCount} раз подряд с одинаковыми аргументами: ${argsStr}. Остановка для исправления задачи.`
+              loopRecoveryCount++
+              if (loopRecoveryCount > MAX_LOOP_RECOVERY) {
+                this.emit({ type: 'done' })
+                return
+              }
+              consecutiveSameToolCount = 0
+              lastToolName = null
+              messages.push({
+                role: 'user',
+                content: `Ты вызываешь инструмент "${name}" с теми же аргументами несколько раз подряд и не продвигаешься вперёд. Попробуй другой подход: измени запрос, используй другой инструмент или обоснуй вывод на основе уже полученных данных.`
               })
-              this.emit({ type: 'done' })
-              return
+              break
             }
 
             if (totalCount > MAX_SAME_TOOL_TOTAL) {
-              this.emit({
-                type: 'error',
-                content: `⚠️ Инструмент "${name}" вызван ${totalCount} раз за сессию (лимит ${MAX_SAME_TOOL_TOTAL}). Возможно циклическое использование.`
+              loopRecoveryCount++
+              if (loopRecoveryCount > MAX_LOOP_RECOVERY) {
+                this.emit({ type: 'done' })
+                return
+              }
+              toolCallCounts.set(name, 0)
+              messages.push({
+                role: 'user',
+                content: `Ты слишком часто используешь инструмент "${name}". Попробуй другой подход или подведи итог на основе уже собранных данных.`
               })
-              this.emit({ type: 'done' })
-              return
+              break
             }
 
             // Для облачных API обрезаем длинные результаты (grep/find часто возвращают много)
