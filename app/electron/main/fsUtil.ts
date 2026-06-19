@@ -11,19 +11,62 @@ export async function backupCorruptFile(filePath: string): Promise<void> {
   await rename(filePath, backup).catch(() => {})
 }
 
-// Очередь per-path: гарантирует последовательную запись одного файла,
-// чтобы избежать гонки rename(tmp→final) при параллельных update-chat.
-const writeQueues = new Map<string, Promise<void>>()
+// Коалесцирование записей per-path.
+// Схема: не более 1 активной + 1 ожидающей записи на файл.
+// Все промежуточные вызовы обновляют данные ожидающей записи, не добавляя новых.
+// Это предотвращает: (a) гонку rename на Windows, (b) накопление очереди при частых вызовах.
 
-export async function writeJsonAtomic(filePath: string, data: unknown): Promise<void> {
-  // Дожидаемся предыдущей записи в тот же файл
-  const prev = writeQueues.get(filePath) ?? Promise.resolve()
-  const next = prev.then(() => _writeJsonAtomicOnce(filePath, data))
-  writeQueues.set(
-    filePath,
-    next.catch(() => {})
-  )
-  return next
+interface PendingWrite {
+  data: unknown
+  promise: Promise<void>
+  resolve: () => void
+  reject: (e: unknown) => void
+}
+
+const activeWrites = new Map<string, Promise<void>>()
+const pendingWrites = new Map<string, PendingWrite>()
+
+export function writeJsonAtomic(filePath: string, data: unknown): Promise<void> {
+  // Есть ожидающая — обновляем данные, возвращаем тот же промис
+  const pending = pendingWrites.get(filePath)
+  if (pending) {
+    pending.data = data
+    return pending.promise
+  }
+
+  // Нет активной — пишем немедленно
+  const active = activeWrites.get(filePath)
+  if (!active) {
+    const p = _writeJsonAtomicOnce(filePath, data)
+    activeWrites.set(filePath, p)
+    p.finally(() => {
+      activeWrites.delete(filePath)
+      flushPending(filePath)
+    })
+    return p
+  }
+
+  // Есть активная — ставим одну ожидающую запись
+  let resolve!: () => void
+  let reject!: (e: unknown) => void
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  pendingWrites.set(filePath, { data, promise, resolve, reject })
+  return promise
+}
+
+function flushPending(filePath: string): void {
+  const pending = pendingWrites.get(filePath)
+  if (!pending) return
+  pendingWrites.delete(filePath)
+  const p = _writeJsonAtomicOnce(filePath, pending.data).then(pending.resolve, pending.reject)
+  activeWrites.set(filePath, p)
+  p.finally(() => {
+    activeWrites.delete(filePath)
+    flushPending(filePath)
+  })
 }
 
 async function _writeJsonAtomicOnce(filePath: string, data: unknown): Promise<void> {
