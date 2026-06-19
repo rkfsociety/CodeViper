@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import { computeEmbeddingQueued } from './embeddingQueue'
 
 export const EMBED_MODEL = 'nomic-embed-text'
 const INDEX_FILENAME = 'embeddings.json'
@@ -42,19 +43,7 @@ async function saveIndex(path: string, index: EmbeddingIndex): Promise<void> {
 }
 
 export async function computeEmbedding(text: string, ollamaUrl: string): Promise<number[] | null> {
-  try {
-    const res = await fetch(`${ollamaUrl}/api/embed`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: EMBED_MODEL, input: text }),
-      signal: AbortSignal.timeout(15_000)
-    })
-    if (!res.ok) return null
-    const data = (await res.json()) as { embeddings?: number[][] }
-    return data.embeddings?.[0] ?? null
-  } catch {
-    return null
-  }
+  return computeEmbeddingQueued(text, ollamaUrl)
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {

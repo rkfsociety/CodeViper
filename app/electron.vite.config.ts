@@ -10,7 +10,8 @@ export default defineConfig({
       lib: {
         entry: {
           index: resolve(__dirname, 'electron/main/index.ts'),
-          fileSearchWorker: resolve(__dirname, 'electron/main/fileSearchWorker.ts')
+          fileSearchWorker: resolve(__dirname, 'electron/main/fileSearchWorker.ts'),
+          embeddingWorker: resolve(__dirname, 'electron/main/embeddingWorker.ts')
         }
       }
     }
