@@ -14,6 +14,7 @@ import { dirname, join, resolve, sep } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
+import { readLargeFileQueued } from './largeFileQueue'
 import {
   FILE_SIZE_LIMIT_BYTES,
   READ_DEFAULT_LINE_LIMIT,
@@ -198,6 +199,11 @@ export async function safeReadFilePartial(
 
   if (!usePartial) {
     return readFile(filePath, 'utf-8')
+  }
+
+  // Большие файлы: разбивка строк в worker_thread, чтобы не блокировать main
+  if (isLarge) {
+    return readLargeFileQueued(filePath, offset, limit ?? null, READ_DEFAULT_LINE_LIMIT)
   }
 
   const raw = await readFile(filePath, 'utf-8')

@@ -11,7 +11,8 @@ export default defineConfig({
         entry: {
           index: resolve(__dirname, 'electron/main/index.ts'),
           fileSearchWorker: resolve(__dirname, 'electron/main/fileSearchWorker.ts'),
-          embeddingWorker: resolve(__dirname, 'electron/main/embeddingWorker.ts')
+          embeddingWorker: resolve(__dirname, 'electron/main/embeddingWorker.ts'),
+          largeFileWorker: resolve(__dirname, 'electron/main/largeFileWorker.ts')
         }
       }
     }
