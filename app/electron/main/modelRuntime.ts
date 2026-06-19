@@ -8,6 +8,7 @@ import type {
 } from '../../shared/modelProvider'
 import { OllamaProvider } from './providers/ollamaProvider'
 import { OpenAIProvider } from './providers/openaiProvider'
+import { DEEPSEEK_API_BASE_URL } from '../../shared/constants'
 
 /** Фасад для выбора провайдера моделей по конфигурации. */
 export class ModelRuntime {
@@ -26,7 +27,9 @@ export class ModelRuntime {
     }
 
     if (config.type === 'openai' || config.type === 'deepseek') {
-      const baseUrl = config.baseUrl || 'https://api.openai.com/v1'
+      const defaultUrl =
+        config.type === 'deepseek' ? DEEPSEEK_API_BASE_URL : 'https://api.openai.com/v1'
+      const baseUrl = config.baseUrl || defaultUrl
       const apiKey = config.apiKey || ''
       const model = config.model || 'gpt-3.5-turbo'
       return new OpenAIProvider(baseUrl, apiKey, model)
