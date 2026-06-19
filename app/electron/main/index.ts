@@ -61,6 +61,7 @@ let mainWindow: BrowserWindow | null = null
 const agentRunStates = new Map<string, { chatId: string }>()
 const activeAgentAborts = new Map<string, AbortController>()
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
+const pendingPreviews = new Map<string, (apply: boolean) => void>()
 
 // Батчинг IPC: token/thinking события накапливаем и шлём не чаще раз в 50 мс.
 // webContents.send на каждый чанк имеет накладные расходы на сериализацию и IPC.
@@ -357,6 +358,27 @@ ipcMain.on('agent-confirm-response', (_e, id: string, approved: boolean) => {
   }
 })
 
+ipcMain.on('agent-preview-response', (_e, id: string, apply: boolean) => {
+  const resolve = pendingPreviews.get(id)
+  if (resolve) {
+    pendingPreviews.delete(id)
+    resolve(apply)
+  }
+})
+
+function makePreviewFn(signal: AbortSignal): (previewId: string) => Promise<boolean> {
+  return (previewId) =>
+    new Promise<boolean>((resolve) => {
+      const settle = (apply: boolean) => {
+        pendingPreviews.delete(previewId)
+        resolve(apply)
+      }
+      pendingPreviews.set(previewId, settle)
+      // previewId доставляется через stream-событие 'preview' — отдельный IPC не нужен.
+      signal.addEventListener('abort', () => settle(false), { once: true })
+    })
+}
+
 function makeConfirmFn(
   signal: AbortSignal
 ): (toolName: string, toolInput: string) => Promise<boolean> {
@@ -484,7 +506,8 @@ ipcMain.handle(
         (event) => stream(chatId, event),
         abortCtrl.signal,
         makeConfirmFn(abortCtrl.signal),
-        summarizeModel
+        summarizeModel,
+        makePreviewFn(abortCtrl.signal)
       )
 
       await runner.run(history, userMessage)

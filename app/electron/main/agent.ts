@@ -33,6 +33,7 @@ import { toolRequiresConfirm } from '../../shared/permissions'
 import { ModelRuntime } from './modelRuntime'
 import type { ProviderConfig } from '../../shared/modelProvider'
 import { commitAndPushSelfEdits, stageSelfEditsForRestart } from './selfCommit'
+import { createUnifiedDiff } from './diffUtil'
 import { agentLogger } from './agentLogger'
 import { compressContextMessages } from './contextSummarizer'
 import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
@@ -130,7 +131,8 @@ export class AgentRunner {
     private emit: (event: AgentStreamPayload) => void,
     private signal?: AbortSignal,
     private confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
-    private summarizeModel?: string
+    private summarizeModel?: string,
+    private previewFn?: (previewId: string) => Promise<boolean>
   ) {
     const providerType = this.settings.modelProvider || 'ollama'
     const providerBaseUrl =
@@ -1000,6 +1002,44 @@ export class AgentRunner {
     }
   }
 
+  private async handlePreviewEdit(args: Record<string, string>): Promise<string> {
+    const { path: filePath, content: newContent } = args
+    if (!filePath || newContent === undefined) return 'preview_edit: нужны path и content'
+
+    const { safeReadFilePartial, safeWriteFile, isInsideProject } = await import('./services')
+    if (!isInsideProject(this.projectPath, filePath)) {
+      return `preview_edit: путь вне проекта — ${filePath}`
+    }
+
+    let oldContent = ''
+    try {
+      const raw = await safeReadFilePartial(this.projectPath, filePath, 0, 10000)
+      oldContent = typeof raw === 'string' ? raw : ''
+    } catch {
+      // Новый файл — oldContent остаётся пустым
+    }
+
+    const diff = createUnifiedDiff(oldContent, newContent, filePath)
+    if (!diff) return 'Нет изменений — содержимое файла уже совпадает с предложенным.'
+
+    if (!this.previewFn) {
+      // Нет UI (тесты / нет окна) — применяем сразу
+      await safeWriteFile(this.projectPath, filePath, newContent)
+      return `✅ Файл записан: ${filePath}`
+    }
+
+    const { makeId: mkId } = await import('../../shared/makeId')
+    const previewId = mkId()
+    // Шлём diff через stream — renderer добавит сообщение с кнопками Apply/Cancel
+    this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
+
+    const apply = await this.previewFn(previewId)
+    if (!apply) return `❌ Правки отменены пользователем: ${filePath}`
+
+    await safeWriteFile(this.projectPath, filePath, newContent)
+    return `✅ Правки применены: ${filePath}`
+  }
+
   private toolHandlers?: ToolHandlers
 
   private getToolHandlers(): ToolHandlers {
@@ -1019,7 +1059,8 @@ export class AgentRunner {
       ...createSelfImprovementToolHandlers(this.selfImprovementPlan, (items) =>
         this.emitSelfImprovementPlan(items)
       ),
-      ...createModelToolHandlers(this.projectPath, this.settings, this.signal)
+      ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
+      preview_edit: (args) => this.handlePreviewEdit(args)
     } as ToolHandlers
 
     return this.toolHandlers

@@ -24,6 +24,11 @@ export interface ChatMessage {
   timestamp: number
   /** Время генерации этого ответа (мс) */
   durationMs?: number
+  /** Поля preview_edit — заполнены только для сообщений с предпросмотром правок */
+  previewId?: string
+  previewPath?: string
+  previewDiff?: string
+  previewStatus?: 'pending' | 'applied' | 'cancelled'
 }
 
 export interface ChatFolder {
@@ -245,6 +250,12 @@ export interface AgentContextPreview {
   adaptiveLimits?: AdaptiveLimits
 }
 
+export interface AgentPreviewRequest {
+  id: string
+  path: string
+  diff: string
+}
+
 export interface AgentStreamPayload {
   type:
     | 'token'
@@ -261,7 +272,12 @@ export interface AgentStreamPayload {
     | 'self_improve_plan'
     | 'model_selected'
     | 'generation_metrics'
+    | 'preview'
   content?: string
+  /** Поля события preview */
+  previewId?: string
+  previewPath?: string
+  previewDiff?: string
   /** Полные рассуждения (передаётся вместе с событием assistant) */
   thinking?: string
   toolName?: string
@@ -402,6 +418,7 @@ export interface CodeViperAPI {
   importChats: (chats: SavedChat[]) => Promise<ImportResult>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
+  respondAgentPreview: (id: string, apply: boolean) => void
   shareAsGist: (
     token: string,
     projectPath: string,

@@ -328,6 +328,20 @@ export function useAgentStream({
         }
       }
 
+      if (event.type === 'preview') {
+        flushPending()
+        appendMessageRef.current({
+          id: makeId(),
+          role: 'system',
+          content: `📋 Предпросмотр правок: ${event.previewPath ?? ''}`,
+          previewId: event.previewId,
+          previewPath: event.previewPath,
+          previewDiff: event.previewDiff,
+          previewStatus: 'pending',
+          timestamp: Date.now()
+        })
+      }
+
       if (event.type === 'done') {
         flushPending() // гарантируем что последние токены записаны в messages
         const runId = runIdRef.current

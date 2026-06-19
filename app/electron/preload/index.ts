@@ -204,6 +204,9 @@ const codeviper = {
   respondAgentConfirm: (id: string, approved: boolean) =>
     ipcRenderer.send('agent-confirm-response', id, approved),
 
+  respondAgentPreview: (id: string, apply: boolean) =>
+    ipcRenderer.send('agent-preview-response', id, apply),
+
   shareAsGist: (token: string, projectPath: string, what: 'memory' | 'skills' | 'both') =>
     withTimeout(
       ipcRenderer.invoke('share-as-gist', token, projectPath, what),

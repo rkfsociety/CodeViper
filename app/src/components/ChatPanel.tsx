@@ -36,6 +36,7 @@ import { useAgentStream } from '../hooks/useAgentStream'
 import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
 import { useAppStateSync } from '../hooks/useAppStateSync'
 import { ConfirmDialog } from './ConfirmDialog'
+import { EditPreviewBlock } from './EditPreviewBlock'
 
 export interface ChatPanelHandle {
   insertPath: (path: string) => void
@@ -301,6 +302,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     const next = [...messagesRef.current]
     next[index] = message
     commitMessages(next)
+  }
+
+  function respondPreview(messageId: string, previewId: string, apply: boolean) {
+    const msg = messagesRef.current.find((m) => m.id === messageId)
+    if (!msg) return
+    upsertMessage({ ...msg, previewStatus: apply ? 'applied' : 'cancelled' })
+    window.codeviper.respondAgentPreview(previewId, apply)
   }
 
   // ── Хук: стрим событий агента ────────────────────────────────────────────
@@ -713,19 +721,34 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           </div>
         )}
 
-        {displayItems.map((item) =>
-          item.kind === 'all-tools' ? null : (
+        {displayItems.map((item) => {
+          if (item.kind === 'all-tools') return null
+          const msg = item.message
+          if (msg.previewId && msg.previewDiff !== undefined) {
+            return (
+              <EditPreviewBlock
+                key={msg.id}
+                messageId={msg.id}
+                previewId={msg.previewId}
+                path={msg.previewPath ?? ''}
+                diff={msg.previewDiff}
+                status={msg.previewStatus ?? 'cancelled'}
+                onRespond={respondPreview}
+              />
+            )
+          }
+          return (
             <MessageRow
-              key={item.message.id}
-              message={item.message}
-              pinned={pinnedMessageIds.has(item.message.id)}
+              key={msg.id}
+              message={msg}
+              pinned={pinnedMessageIds.has(msg.id)}
               busy={busy}
               onPin={togglePinMessage}
               onRetry={retryUserMessage}
               onEdit={editUserMessage}
             />
           )
-        )}
+        })}
 
         <div ref={bottomRef} />
       </div>

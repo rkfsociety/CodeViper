@@ -65,6 +65,22 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'preview_edit',
+      description:
+        'Показать пользователю unified diff предлагаемых правок файла. Пользователь увидит изменения и выберет «Применить» или «Отмена». Используй вместо write_file, когда нужно согласование перед записью.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'путь к файлу относительно корня проекта' },
+          content: { type: 'string', description: 'новое содержимое файла целиком' }
+        },
+        required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'write_file',
       description: 'Полностью перезаписать файл (для новых — create_file, для правок — edit_file)',
       parameters: {
@@ -714,6 +730,7 @@ export interface ToolArgs {
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
+  preview_edit: { path: string; content: string }
   write_file: { path: string; content: string }
   create_file: { path: string; content: string }
   edit_file: { path: string; old_string: string; new_string: string; replace_all?: string }
