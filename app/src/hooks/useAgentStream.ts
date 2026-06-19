@@ -54,6 +54,10 @@ export function useAgentStream({
   const runActiveRef = useRef(false)
   const draftMessageIdRef = useRef<string | null>(null)
 
+  // Батчинг: upsertMessage вызывается не на каждый токен, а раз в 80 мс
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasPendingFlushRef = useRef(false)
+
   // Task 23: wrap mutable callbacks in refs so the single useEffect closure never goes stale
   const appendMessageRef = useRef(appendMessage)
   const upsertMessageRef = useRef(upsertMessage)
@@ -62,7 +66,27 @@ export function useAgentStream({
   upsertMessageRef.current = upsertMessage
   setContextPreviewRef.current = setContextPreview
 
+  // Сбрасывает накопленные токены в messages немедленно (до таймера)
+  const flushPending = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current)
+      flushTimerRef.current = null
+    }
+    if (!hasPendingFlushRef.current) return
+    hasPendingFlushRef.current = false
+    const id = draftMessageIdRef.current
+    if (!id) return
+    upsertMessageRef.current({
+      id,
+      role: 'assistant',
+      content: draftRef.current,
+      thinking: draftThinkingRef.current || undefined,
+      timestamp: Date.now()
+    })
+  }, [])
+
   const resetStreamState = useCallback(() => {
+    flushPending()
     setDraft('')
     setDraftThinking('')
     draftRef.current = ''
@@ -80,7 +104,7 @@ export function useAgentStream({
     cumulativeTokensRef.current = 0
     runActiveRef.current = true
     draftMessageIdRef.current = null
-  }, [])
+  }, [flushPending])
 
   // Тикает каждую секунду пока агент работает — обновляет elapsed в runStats
   useEffect(() => {
@@ -102,27 +126,14 @@ export function useAgentStream({
         const thinking = event.content ?? ''
         const newThinking = draftThinkingRef.current + thinking
         draftThinkingRef.current = newThinking
-        setDraftThinking(newThinking)
+        setDraftThinking(newThinking) // немедленно — рендерит только блок черновика
 
-        const id = draftMessageIdRef.current
-        if (id) {
-          upsertMessageRef.current({
-            id,
-            role: 'assistant',
-            content: draftRef.current,
-            thinking: newThinking,
-            timestamp: Date.now()
-          })
-        } else {
-          const newId = makeId()
-          draftMessageIdRef.current = newId
-          upsertMessageRef.current({
-            id: newId,
-            role: 'assistant',
-            content: draftRef.current,
-            thinking: newThinking,
-            timestamp: Date.now()
-          })
+        if (!draftMessageIdRef.current) draftMessageIdRef.current = makeId()
+
+        // Батч: upsertMessage (→ messages) через 80 мс
+        hasPendingFlushRef.current = true
+        if (!flushTimerRef.current) {
+          flushTimerRef.current = setTimeout(flushPending, 80)
         }
       }
 
@@ -133,31 +144,19 @@ export function useAgentStream({
         const token = event.content ?? ''
         const newContent = draftRef.current + token
         draftRef.current = newContent
-        setDraft(newContent)
+        setDraft(newContent) // немедленно — рендерит только блок черновика
 
-        if (!draftMessageIdRef.current) {
-          const id = makeId()
-          draftMessageIdRef.current = id
-          upsertMessageRef.current({
-            id,
-            role: 'assistant',
-            content: newContent,
-            thinking: draftThinkingRef.current,
-            timestamp: Date.now()
-          })
-        } else {
-          const id = draftMessageIdRef.current
-          upsertMessageRef.current({
-            id,
-            role: 'assistant',
-            content: newContent,
-            thinking: draftThinkingRef.current,
-            timestamp: Date.now()
-          })
+        if (!draftMessageIdRef.current) draftMessageIdRef.current = makeId()
+
+        // Батч: upsertMessage (→ messages) через 80 мс
+        hasPendingFlushRef.current = true
+        if (!flushTimerRef.current) {
+          flushTimerRef.current = setTimeout(flushPending, 80)
         }
       }
 
       if (event.type === 'clear_draft') {
+        flushPending()
         setDraft('')
         setDraftThinking('')
         draftRef.current = ''
@@ -167,6 +166,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'assistant') {
+        flushPending() // сбросить батч до финального апдейта
         const durationMs =
           genStartRef.current != null ? Date.now() - genStartRef.current : undefined
         genStartRef.current = null
@@ -208,6 +208,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'tool_start') {
+        flushPending() // зафиксировать незавершённый черновик перед инструментом
         genStartRef.current = null
         setDraft('')
         setAgentPhase('tool')
@@ -327,6 +328,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'done') {
+        flushPending() // гарантируем что последние токены записаны в messages
         const runId = runIdRef.current
         if (doneRunIdRef.current === runId) return
         doneRunIdRef.current = runId
@@ -359,7 +361,7 @@ export function useAgentStream({
     })
 
     return unsubscribe
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- все зависимости через стабильные рефы
+  }, [flushPending]) // eslint-disable-line react-hooks/exhaustive-deps -- остальные зависимости через стабильные рефы
 
   return {
     draft,
