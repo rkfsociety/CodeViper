@@ -921,8 +921,7 @@ export class AgentRunner {
           !(msg.role === 'tool' && msg.tool_call_id && !assistantCallIds.has(msg.tool_call_id))
       )
 
-      // Для облачных API обрезаем историю до последних ~20 сообщений экономии токенов
-      // История >20 сообщений редко содержит полезный контекст, но стоит много токенов
+      // Для облачных API обрезаем историю до последних ~20 сообщений для экономии токенов
       const MAX_CLOUD_MESSAGES = 20
       if (pass2.length > MAX_CLOUD_MESSAGES) {
         // Сохраняем всегда первое user-сообщение (исходный запрос) + последние сообщения
@@ -935,6 +934,29 @@ export class AgentRunner {
         } else {
           pass2 = pass2.slice(-MAX_CLOUD_MESSAGES)
         }
+
+        // После обрезки: снова удаляем сироты tool/assistant, которые могли появиться
+        // из-за того что граница среза разрезала пару assistant+tool_calls → tool_result.
+        const idsAfterSlice = new Set<string>()
+        for (const msg of pass2) {
+          if (msg.role === 'assistant' && msg.tool_calls?.length) {
+            for (const tc of msg.tool_calls) idsAfterSlice.add(tc.id)
+          }
+        }
+        pass2 = pass2.filter(
+          (msg) =>
+            !(msg.role === 'tool' && msg.tool_call_id && !idsAfterSlice.has(msg.tool_call_id))
+        )
+        // Убираем assistant+tool_calls, чьи tool-результаты тоже не попали в срез
+        const toolResultIds = new Set(
+          pass2.filter((m) => m.tool_call_id).map((m) => m.tool_call_id!)
+        )
+        pass2 = pass2.filter((msg) => {
+          if (msg.role === 'assistant' && msg.tool_calls?.length) {
+            return msg.tool_calls.every((tc) => toolResultIds.has(tc.id))
+          }
+          return true
+        })
       }
 
       filteredMessages = pass2
