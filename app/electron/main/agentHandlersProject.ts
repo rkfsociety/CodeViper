@@ -15,13 +15,8 @@ import {
   buildFileTree,
   isInsideProject
 } from './services'
-import {
-  grepInTree,
-  formatGrepResults,
-  findFilesInTree,
-  formatFindResults,
-  MAX_WALK_FILES
-} from './fileSearch'
+import { formatGrepResults, formatFindResults, MAX_WALK_FILES } from './fileSearch'
+import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { gitStatus, gitDiff, gitLog } from './gitTools'
 import { parseToolBool } from '../../shared/fileEdit'
 import { parseTreeDepth, formatCommandResult } from './agentHandlersUtils'
@@ -79,7 +74,7 @@ export function createProjectToolHandlers(
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск по коду: ${args.query}`, 0)
-        const result = await grepInTree(projectPath, args.query, {
+        const result = await grepInTreeWorker(projectPath, args.query, {
           subpath: args.path?.trim(),
           onProgress: (scanned) =>
             emitProgress(`Поиск по коду: ${args.query}`, scanPercent(scanned))
@@ -94,7 +89,7 @@ export function createProjectToolHandlers(
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск файлов: ${args.pattern}`, 0)
-        const result = await findFilesInTree(projectPath, args.pattern, {
+        const result = await findFilesInTreeWorker(projectPath, args.pattern, {
           subpath: args.path?.trim(),
           onProgress: (scanned) =>
             emitProgress(`Поиск файлов: ${args.pattern}`, scanPercent(scanned))

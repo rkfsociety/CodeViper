@@ -8,7 +8,10 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       lib: {
-        entry: resolve(__dirname, 'electron/main/index.ts')
+        entry: {
+          index: resolve(__dirname, 'electron/main/index.ts'),
+          fileSearchWorker: resolve(__dirname, 'electron/main/fileSearchWorker.ts')
+        }
       }
     }
   },

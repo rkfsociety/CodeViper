@@ -1,0 +1,28 @@
+import { workerData, parentPort } from 'worker_threads'
+import { grepInTree, findFilesInTree } from './fileSearch'
+
+type WorkerRequest =
+  | { type: 'grep'; root: string; query: string; subpath?: string; maxResults?: number }
+  | { type: 'find'; root: string; pattern: string; subpath?: string; maxResults?: number }
+
+async function run() {
+  const req = workerData as WorkerRequest
+
+  if (req.type === 'grep') {
+    const result = await grepInTree(req.root, req.query, {
+      subpath: req.subpath,
+      maxResults: req.maxResults,
+      onProgress: (scanned) => parentPort!.postMessage({ type: 'progress', scanned })
+    })
+    parentPort!.postMessage({ type: 'result', data: result })
+  } else {
+    const result = await findFilesInTree(req.root, req.pattern, {
+      subpath: req.subpath,
+      maxResults: req.maxResults,
+      onProgress: (scanned) => parentPort!.postMessage({ type: 'progress', scanned })
+    })
+    parentPort!.postMessage({ type: 'result', data: result })
+  }
+}
+
+run().catch((err) => parentPort!.postMessage({ type: 'error', message: String(err) }))
