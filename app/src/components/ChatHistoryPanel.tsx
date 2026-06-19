@@ -5,11 +5,11 @@ import { PromptDialog } from './PromptDialog'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './ChatHistoryPanel.module.css'
 import { useChatContext } from '../contexts/ChatContext'
+import { useChatBusy } from '../contexts/QueueContext'
 
 export type AgentMode = 'chat' | 'code'
 
 interface Props {
-  chatBusy: boolean
   mode: AgentMode
   onModeChange: (mode: AgentMode) => void
   onSelectChat: (id: string) => void
@@ -111,7 +111,6 @@ function chatMatchesQuery(chat: SavedChat, query: string): boolean {
 }
 
 export function ChatHistoryPanel({
-  chatBusy,
   mode,
   onModeChange,
   onSelectChat,
@@ -126,6 +125,7 @@ export function ChatHistoryPanel({
   onStoreChange
 }: Props) {
   const { chatStore: store, activeChatId } = useChatContext()
+  const { chatBusy } = useChatBusy()
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [tagFilter, setTagFilter] = useState('')

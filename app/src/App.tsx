@@ -14,6 +14,7 @@ import { formatElapsed, formatTokenCount } from '../shared/generationMetrics'
 import { useMemo } from 'react'
 import { AgentProvider, useAgentState } from './contexts/AgentContext'
 import { ChatContext } from './contexts/ChatContext'
+import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
@@ -50,7 +51,9 @@ const DEFAULT_SETTINGS: AgentSettings = {
 export default function App() {
   return (
     <AgentProvider>
-      <AppContent />
+      <QueueProvider>
+        <AppContent />
+      </QueueProvider>
     </AgentProvider>
   )
 }
@@ -62,8 +65,8 @@ function AppContent() {
   const [chatStore, setChatStore] = useState<ChatStore | null>(null)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [chatBusy, setChatBusy] = useState(false)
   const { runStats } = useAgentState()
+  const { chatBusy } = useChatBusy()
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -504,7 +507,6 @@ function AppContent() {
           <section className="panel panel-history">
             <div className="panel-header">История чатов</div>
             <ChatHistoryPanel
-              chatBusy={chatBusy}
               mode={agentMode}
               onModeChange={setAgentMode}
               onSelectChat={selectChat}
@@ -529,7 +531,6 @@ function AppContent() {
                 // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать
                 clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode
               }}
-              onBusyChange={setChatBusy}
               onPickProject={pickProjectForActiveChat}
               models={models}
               onModelChange={(model, auto) =>

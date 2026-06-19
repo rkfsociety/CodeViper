@@ -31,6 +31,7 @@ import { useAgentStream } from '../hooks/useAgentStream'
 import { useMessageQueue, type PrerequisiteBlock, type DangerBlock } from '../hooks/useMessageQueue'
 import { useAgentDispatch, useAgentState } from '../contexts/AgentContext'
 import { useChatContext } from '../contexts/ChatContext'
+import { useChatBusy } from '../contexts/QueueContext'
 import { useAppStateSync } from '../hooks/useAppStateSync'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditPreviewBlock } from './EditPreviewBlock'
@@ -42,7 +43,6 @@ export interface ChatPanelHandle {
 
 interface Props {
   settings: AgentSettings
-  onBusyChange?: (busy: boolean) => void
   onLearningSaved?: () => void
   onPickProject: () => void
   models?: OllamaModel[]
@@ -217,7 +217,6 @@ const MessageRow = memo(function MessageRow({
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   {
     settings,
-    onBusyChange,
     onLearningSaved,
     onPickProject,
     models = [],
@@ -237,6 +236,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     interruptedDraft,
     refreshChatStore: onInterruptedDraftChange
   } = useChatContext()
+  const { setChatBusy } = useChatBusy()
   const [input, setInput] = useState('')
   const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string; size?: number }[]>(
     []
@@ -387,7 +387,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     processNextQueuedRunRef,
     appendMessage,
     onRunStart: resetStreamState,
-    onBusyChange,
+    onBusyChange: setChatBusy,
     onPrerequisiteIssue: setPrerequisiteBlock,
     onDangerWarning: setDangerBlock,
     draftRef,
