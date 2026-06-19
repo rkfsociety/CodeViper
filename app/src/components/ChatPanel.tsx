@@ -245,6 +245,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 ) {
   const [input, setInput] = useState('')
   const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string }[]>([])
+  const [clipboardImages, setClipboardImages] = useState<{ name: string; dataUrl: string }[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
   const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
@@ -445,10 +446,43 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setDroppedFiles((prev) => prev.filter((f) => f.path !== path))
   }
 
+  function removeClipboardImage(name: string) {
+    setClipboardImages((prev) => prev.filter((img) => img.name !== name))
+  }
+
+  // ── Вставка изображений из буфера обмена (Ctrl+V) ────────────────────────
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = Array.from(e.clipboardData.items)
+    const imageItems = items.filter((item) => item.type.startsWith('image/'))
+    if (!imageItems.length) return
+
+    e.preventDefault()
+    imageItems.forEach((item) => {
+      const blob = item.getAsFile()
+      if (!blob) return
+      const img = new window.Image()
+      const objectUrl = URL.createObjectURL(blob)
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.drawImage(img, 0, 0)
+        URL.revokeObjectURL(objectUrl)
+        const dataUrl = canvas.toDataURL('image/png')
+        const name = `screenshot-${Date.now()}.png`
+        setClipboardImages((prev) => [...prev, { name, dataUrl }])
+      }
+      img.src = objectUrl
+    })
+  }
+
   // ── Сброс при смене чата ─────────────────────────────────────────────────
   useEffect(() => {
     setInput('')
     setDroppedFiles([])
+    setClipboardImages([])
     setPrerequisiteBlock(null)
     setContextPreview(null)
     resetStreamState()
@@ -647,12 +681,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         textParts.push(`[${f.name}] ⚠️ ${result.error ?? 'Не удалось прочитать файл'}`)
       } else if (result.isImage && result.dataUrl) {
         images.push({ name: f.name, dataUrl: result.dataUrl })
-        // В текстовый контекст — base64-блок для мультимодальных моделей
         textParts.push(`[изображение: ${f.name}]\n![${f.name}](${result.dataUrl})`)
       } else if (result.content != null) {
         const ext = f.name.split('.').pop() ?? ''
         textParts.push(`[${f.name}]\n\`\`\`${ext}\n${result.content}\n\`\`\``)
       }
+    }
+
+    // Изображения из буфера обмена (Ctrl+V)
+    for (const img of clipboardImages) {
+      images.push(img)
+      textParts.push(`[изображение: ${img.name}]\n![${img.name}](${img.dataUrl})`)
     }
 
     const fileSection = textParts.length > 0 ? textParts.join('\n\n') + '\n\n' : ''
@@ -668,6 +707,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     appendMessage(userMessage)
     setInput('')
     setDroppedFiles([])
+    setClipboardImages([])
     atBottomRef.current = true
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     await submitMessage(userMessage.id, fullText)
@@ -895,7 +935,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {droppedFiles.length > 0 && (
+          {(droppedFiles.length > 0 || clipboardImages.length > 0) && (
             <div className={styles.fileChips}>
               {droppedFiles.map((f) => (
                 <span key={f.path} className={styles.fileChip} title={f.path}>
@@ -905,6 +945,24 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                     className={styles.fileChipRemove}
                     aria-label={`Убрать ${f.name}`}
                     onClick={() => removeDroppedFile(f.path)}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+              {clipboardImages.map((img) => (
+                <span
+                  key={img.name}
+                  className={`${styles.fileChip} ${styles.fileChipImage}`}
+                  title={img.name}
+                >
+                  <img src={img.dataUrl} alt={img.name} className={styles.fileChipThumb} />
+                  <span className={styles.fileChipName}>{img.name}</span>
+                  <button
+                    type="button"
+                    className={styles.fileChipRemove}
+                    aria-label={`Убрать ${img.name}`}
+                    onClick={() => removeClipboardImage(img.name)}
                   >
                     ✕
                   </button>
@@ -922,6 +980,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleInputKeyDown}
+            onPaste={handlePaste}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             placeholder="Напиши задачу… (/ — быстрые промпты)"
