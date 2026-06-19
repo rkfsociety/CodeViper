@@ -619,11 +619,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   function contextChipClass(): string {
-    if (!contextPreview) return styles.footerChip
+    if (!contextPreview) return styles.metaBtn
     const pct = contextPreview.contextUsagePercent
-    if (pct >= 90) return `${styles.footerChip} ${styles.footerChipDanger}`
-    if (pct >= 70) return `${styles.footerChip} ${styles.footerChipWarn}`
-    return styles.footerChip
+    if (pct >= 90) return `${styles.metaBtn} ${styles.footerChipDanger}`
+    if (pct >= 70) return `${styles.metaBtn} ${styles.footerChipWarn}`
+    return styles.metaBtn
   }
 
   return (
@@ -780,96 +780,88 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             rows={3}
           />
 
-          <div className={styles.inputFooter}>
-            <div className={styles.footerLeft}>
-              {/* Проект */}
-              {chatId && (
-                <button
-                  type="button"
-                  className={styles.footerChip}
-                  title={projectPath || 'Выбрать проект'}
-                  onClick={!projectLocked ? onPickProject : undefined}
-                  disabled={busy && !projectLocked}
-                  style={!projectLocked ? undefined : { cursor: 'default' }}
-                >
-                  📁 {projectPath ? formatProjectLabel(projectPath) : 'Проект'}
-                </button>
-              )}
-
-              {/* Контекст */}
-              {chatId && (contextPreview || contextLoading) && (
-                <button
-                  type="button"
-                  className={contextChipClass()}
-                  title={
-                    contextPreview
-                      ? `Контекст: ${contextPreview.contextUsagePercent}% · ~${contextPreview.estimatedTokens.toLocaleString('ru-RU')} tok`
-                      : 'Загрузка контекста…'
-                  }
-                  onClick={() => setContextModalOpen(true)}
-                >
-                  ◎{' '}
-                  {contextLoading && !contextPreview
-                    ? '…'
-                    : contextPreview
-                      ? `${contextPreview.contextUsagePercent}%`
-                      : ''}
-                  {contextPreview?.historySummarized && ' Σ'}
-                  {contextPreview?.historyTruncated && !contextPreview.historySummarized && (
-                    <> −{contextPreview.droppedMessageCount}</>
-                  )}
-                </button>
-              )}
-
-              {/* Быстрые промпты */}
-              {chatId && projectPath && (
-                <button
-                  type="button"
-                  className={`${styles.footerChip}${showQuickBar ? ' ' + styles.footerChipActive : ''}`}
-                  title="Быстрые промпты"
-                  onClick={() => setShowQuickBar((v) => !v)}
-                >
-                  /
-                </button>
-              )}
-            </div>
-
-            <div className={styles.footerRight}>
-              {/* Модель */}
-              {chatId && (
-                <span
-                  className={styles.footerChip}
-                  style={{ cursor: 'default', pointerEvents: 'none' }}
-                  title={settings.model}
-                >
-                  {formatModelShort(runModel || settings.model)}
-                </span>
-              )}
-
-              {/* Стоп */}
-              {(agentRunning || queueSize > 0) && (
-                <button
-                  type="button"
-                  className={`${styles.footerChip} ${styles.footerChipStop}`}
-                  onClick={() => void stopAgent()}
-                >
-                  ■ Стоп{queueSize > 0 ? ` (${queueSize})` : ''}
-                </button>
-              )}
-
-              {/* Отправить */}
+          {/* Кнопки внутри поля — только отправить/стоп */}
+          <div className={styles.inputActions}>
+            {(agentRunning || queueSize > 0) && (
               <button
                 type="button"
-                className={styles.sendBtn}
-                onClick={() => void send()}
-                disabled={!settings.model || !chatId || !projectPath || !input.trim()}
-                title={agentRunning ? 'В очередь' : 'Отправить (Enter)'}
+                className={`${styles.stopBtn}`}
+                onClick={() => void stopAgent()}
+                title="Остановить агента"
               >
-                ↑
+                ■ Стоп{queueSize > 0 ? ` (${queueSize})` : ''}
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.sendBtn}
+              onClick={() => void send()}
+              disabled={!settings.model || !chatId || !projectPath || !input.trim()}
+              title={agentRunning ? 'В очередь' : 'Отправить (Enter)'}
+            >
+              ↑
+            </button>
+          </div>
+        </div>
+
+        {/* Нижняя строка: контекст + модель + проект */}
+        {chatId && (
+          <div className={styles.inputMeta}>
+            <div className={styles.metaLeft}>
+              {/* Контекст — кружок с процентом */}
+              <button
+                type="button"
+                className={`${styles.metaBtn} ${contextChipClass()}`}
+                onClick={() => setContextModalOpen(true)}
+                title={
+                  contextPreview
+                    ? `Контекст: ${contextPreview.contextUsagePercent}% · ~${contextPreview.estimatedTokens.toLocaleString('ru-RU')} tok\nНажми для подробностей`
+                    : contextLoading
+                      ? 'Вычисляю контекст…'
+                      : 'Контекст агента'
+                }
+              >
+                <span className={styles.contextDot} aria-hidden="true" />
+                {contextLoading && !contextPreview
+                  ? '…'
+                  : contextPreview
+                    ? `${contextPreview.contextUsagePercent}%`
+                    : '◎'}
+                {contextPreview?.historySummarized && <span className={styles.metaBadge}>Σ</span>}
+              </button>
+
+              {/* Выбор модели */}
+              <span className={styles.metaModel} title={settings.model}>
+                {formatModelShort(runModel || settings.model)}
+              </span>
+
+              {/* Проект */}
+              <button
+                type="button"
+                className={styles.metaBtn}
+                title={projectPath || 'Выбрать проект'}
+                onClick={!projectLocked ? onPickProject : undefined}
+                style={projectLocked ? { cursor: 'default' } : undefined}
+                disabled={busy && !projectLocked}
+              >
+                📁 {projectPath ? formatProjectLabel(projectPath) : 'Выбрать проект'}
+              </button>
+            </div>
+
+            <div className={styles.metaRight}>
+              {/* Быстрые промпты */}
+              <button
+                type="button"
+                className={`${styles.metaBtn}${showQuickBar ? ' ' + styles.metaBtnActive : ''}`}
+                title="Быстрые промпты"
+                onClick={() => setShowQuickBar((v) => !v)}
+                disabled={!projectPath}
+              >
+                /
               </button>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <ConfirmDialog

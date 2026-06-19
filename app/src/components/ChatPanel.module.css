@@ -51,15 +51,14 @@
 /* ── Область ввода ────────────────────────────────────── */
 .input {
   display: grid;
-  gap: 6px;
-  padding: 8px 10px 10px;
+  gap: 5px;
+  padding: 8px 10px 8px;
   border-top: 1px solid var(--border);
 }
 
-/* Один контейнер: textarea + нижняя полоса */
+/* Скруглённый контейнер с textarea */
 .inputBox {
-  display: grid;
-  grid-template-rows: auto auto;
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-base);
@@ -76,97 +75,47 @@
 
 .inputBox textarea {
   width: 100%;
-  min-height: 64px;
-  max-height: 240px;
+  min-height: 60px;
+  max-height: 260px;
   resize: none;
   border: none;
   background: transparent;
   color: var(--text-primary);
-  padding: 10px 12px 6px;
+  padding: 10px 80px 10px 12px; /* правый отступ под кнопки */
   font-size: 13px;
   line-height: 1.5;
   outline: none;
 }
 
-/* ── Нижняя полоса ──────────────────────────────────── */
-.inputFooter {
+/* Кнопки внутри поля (справа внизу) */
+.inputActions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 5px 6px 5px 8px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-surface);
+  gap: 5px;
 }
 
-.footerLeft,
-.footerRight {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-.footerRight {
-  flex-shrink: 0;
-}
-
-/* чип — маленькая кнопка/метка */
-.footerChip {
+.stopBtn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--red, #f85149) 50%, transparent);
+  background: color-mix(in srgb, var(--red, #f85149) 12%, transparent);
+  color: var(--red, #f85149);
   font-size: 11px;
-  line-height: 1;
-  white-space: nowrap;
+  font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease;
-  min-width: 0;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background-color 0.12s;
+}
+.stopBtn:hover {
+  background: color-mix(in srgb, var(--red, #f85149) 22%, transparent);
 }
 
-.footerChip:hover {
-  background: var(--bg-element);
-  color: var(--text-primary);
-}
-
-.footerChipActive {
-  background: color-mix(in srgb, var(--blue) 18%, transparent);
-  border-color: color-mix(in srgb, var(--blue) 50%, transparent);
-  color: var(--blue-light);
-}
-
-.footerChipWarn {
-  color: var(--yellow, #d29922);
-  border-color: color-mix(in srgb, var(--yellow, #d29922) 35%, transparent);
-}
-
-.footerChipDanger {
-  color: var(--red, #f85149);
-  border-color: color-mix(in srgb, var(--red, #f85149) 40%, transparent);
-}
-
-.footerChipStop {
-  color: var(--red, #f85149);
-  border-color: color-mix(in srgb, var(--red, #f85149) 40%, transparent);
-}
-
-.footerChipStop:hover {
-  background: color-mix(in srgb, var(--red, #f85149) 15%, transparent);
-  color: var(--red, #f85149);
-}
-
-/* Кнопка «Отправить» — круглая стрелка */
 .sendBtn {
   display: flex;
   align-items: center;
@@ -175,10 +124,10 @@
   height: 28px;
   padding: 0;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  border: none;
   background: var(--blue, #1f6feb);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
@@ -186,19 +135,120 @@
     opacity 0.12s ease,
     background-color 0.12s ease;
 }
-
 .sendBtn:hover:not(:disabled) {
   background: var(--blue-bright, #388bfd);
 }
-
 .sendBtn:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
 }
 
-/* Убираем старые классы — больше не используются */
-.inputActions {
+/* ── Строка под полем: контекст + модель + проект ─── */
+.inputMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.metaLeft,
+.metaRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.metaRight {
+  flex-shrink: 0;
+}
+
+/* Общая кнопка-метка строки */
+.metaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+.metaBtn:hover:not(:disabled) {
+  background: var(--bg-element);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+.metaBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.metaBtnActive {
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
+  border-color: color-mix(in srgb, var(--blue) 40%, transparent);
+  color: var(--blue-light);
+}
+
+/* Кружок контекста */
+.contextDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* Цвета по уровню заполнения */
+.metaBtn.footerChipWarn {
+  color: var(--yellow, #d29922);
+}
+.metaBtn.footerChipDanger {
+  color: var(--red, #f85149);
+}
+
+/* Значок суммаризации */
+.metaBadge {
+  font-size: 9px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+/* Название модели — без рамки, чуть ярче */
+.metaModel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 3px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  opacity: 0.8;
+}
+
+/* Старые классы (не используются) */
+.footerChip {
   display: none;
+}
+.footerChipWarn {
+  color: var(--yellow, #d29922);
+}
+.footerChipDanger {
+  color: var(--red, #f85149);
 }
 .inputButtons {
   display: none;
