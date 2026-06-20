@@ -37,10 +37,16 @@ export class ModelRuntime {
       const baseUrl = OPENROUTER_API_BASE_URL
       const apiKey = config.apiKey || ''
       const model = config.model || 'openai/gpt-4o-mini'
-      return new OpenAIProvider(baseUrl, apiKey, model, {
-        'HTTP-Referer': 'https://github.com/rkfsociety/CodeViper',
-        'X-OpenRouter-Title': 'CodeViper'
-      })
+      return new OpenAIProvider(
+        baseUrl,
+        apiKey,
+        model,
+        {
+          'HTTP-Referer': 'https://github.com/rkfsociety/CodeViper',
+          'X-OpenRouter-Title': 'CodeViper'
+        },
+        `${OPENROUTER_API_BASE_URL}/models?supported_parameters=tools&order=most-popular`
+      )
     }
 
     // Fallback на Ollama

@@ -11,7 +11,9 @@ export class OpenAIProvider implements ModelProvider {
     private baseUrl: string,
     private apiKey: string,
     private modelName: string,
-    private extraHeaders: Record<string, string> = {}
+    private extraHeaders: Record<string, string> = {},
+    /** Полный URL для GET-запроса списка моделей (переопределяет дефолтный /models) */
+    private listModelsUrl?: string
   ) {}
 
   async ping(signal?: AbortSignal): Promise<boolean> {
@@ -28,13 +30,19 @@ export class OpenAIProvider implements ModelProvider {
 
   async listModels(): Promise<LoadedModel[]> {
     try {
-      const res = await fetch(`${this.baseUrl}/models`, {
+      const url = this.listModelsUrl ?? `${this.baseUrl}/models`
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${this.apiKey}`, ...this.extraHeaders }
       })
       if (!res.ok) return []
 
-      const data = (await res.json()) as { data?: Array<{ id: string }> }
-      return (data.data ?? []).map((item) => ({ name: item.id }))
+      const data = (await res.json()) as {
+        data?: Array<{ id: string; context_length?: number; name?: string }>
+      }
+      return (data.data ?? []).map((item) => ({
+        name: item.id,
+        contextLength: item.context_length
+      }))
     } catch {
       return []
     }

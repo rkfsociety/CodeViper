@@ -387,7 +387,7 @@ export interface CodeViperAPI {
     type: string
     baseUrl?: string
     apiKey?: string
-  }) => Promise<{ name: string; size?: number }[]>
+  }) => Promise<{ name: string; size?: number; contextLength?: number }[]>
   checkOllama: (url?: string) => Promise<boolean>
   pullOllamaModel: (url: string, model: string) => Promise<void>
   deleteOllamaModel: (url: string, model: string) => Promise<void>

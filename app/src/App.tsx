@@ -132,15 +132,47 @@ function AppContent() {
     setOllamaOnline(online)
 
     if (provider === 'deepseek') {
-      // Для облачного провайдера: загружаем список моделей с API DeepSeek
       try {
         const list = await window.codeviper.listProviderModels({
           type: 'deepseek',
           baseUrl: DEEPSEEK_API_BASE_URL,
-          apiKey: settings.providerApiKey
+          apiKey: settings.deepseekApiKey
         })
-        const ollamaModels = list.map((m) => ({ name: m.name, size: m.size ?? 0, modifiedAt: '' }))
-        setModels(ollamaModels)
+        setModels(list.map((m) => ({ name: m.name, size: m.size ?? 0, modifiedAt: '' })))
+      } catch {
+        setModels([])
+      }
+      return
+    }
+
+    if (provider === 'openai') {
+      try {
+        const list = await window.codeviper.listProviderModels({
+          type: 'openai',
+          baseUrl: settings.ollamaUrl || 'https://api.openai.com/v1',
+          apiKey: settings.openaiApiKey
+        })
+        setModels(list.map((m) => ({ name: m.name, size: m.size ?? 0, modifiedAt: '' })))
+      } catch {
+        setModels([])
+      }
+      return
+    }
+
+    if (provider === 'openrouter') {
+      try {
+        const list = await window.codeviper.listProviderModels({
+          type: 'openrouter',
+          apiKey: settings.openrouterApiKey
+        })
+        setModels(
+          list.map((m) => ({
+            name: m.name,
+            size: m.size ?? 0,
+            modifiedAt: '',
+            contextLength: m.contextLength
+          }))
+        )
       } catch {
         setModels([])
       }
@@ -162,7 +194,13 @@ function AppContent() {
     } else {
       setModels([])
     }
-  }, [settings.ollamaUrl, settings.modelProvider, settings.providerApiKey])
+  }, [
+    settings.ollamaUrl,
+    settings.modelProvider,
+    settings.deepseekApiKey,
+    settings.openaiApiKey,
+    settings.openrouterApiKey
+  ])
 
   const downloadQueue = useOllamaDownloadQueue({
     ollamaUrl: settings.ollamaUrl,
