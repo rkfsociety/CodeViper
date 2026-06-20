@@ -50,7 +50,9 @@ vi.mock('../electron/main/selfCommit', () => ({
 
 // ── ModelRuntime — использует chatState.impl из vi.hoisted() ─────────────────
 vi.mock('../electron/main/modelRuntime', () => {
-  function MockModelRuntime() { /* пустой конструктор */ }
+  function MockModelRuntime() {
+    /* пустой конструктор */
+  }
 
   MockModelRuntime.prototype.getModelPlacement = function () {
     return Promise.resolve('gpu')
@@ -67,12 +69,10 @@ vi.mock('../electron/main/modelRuntime', () => {
 import { AgentRunner } from '../electron/main/agent'
 import type { AgentStreamPayload, AgentSettings } from '../src/types'
 
-// Минимально необходимые настройки — maxSteps ОБЯЗАТЕЛЕН (без него цикл не запускается)
 function makeSettings(overrides: Partial<AgentSettings> = {}): AgentSettings {
   return {
     model: 'test-model',
     ollamaUrl: 'http://localhost:11434',
-    maxSteps: 12,
     ...overrides
   }
 }
@@ -82,7 +82,9 @@ function makeSettings(overrides: Partial<AgentSettings> = {}): AgentSettings {
 // Внутри каждого шага — массив чанков.
 // Tool call передаётся как JSON в поле content, т.к. AgentRunner.chat()
 // извлекает инструменты через extractEmbeddedToolCalls(content), а НЕ из chunk.tool_calls.
-function makeResponses(steps: Array<Array<{ content: string }>>): () => AsyncGenerator<{ content: string }> {
+function makeResponses(
+  steps: Array<Array<{ content: string }>>
+): () => AsyncGenerator<{ content: string }> {
   let call = 0
   return async function* () {
     const chunks = steps[call] ?? steps[steps.length - 1]
@@ -116,19 +118,16 @@ describe('AgentRunner — интеграционный прогон', () => {
   it('простой текстовый ответ — emit assistant + done', async () => {
     chatState.impl = makeResponses([[{ content: 'Привет! Чем помочь?' }]])
 
-    const runner = new AgentRunner(
-      makeSettings(),
-      projectDir,
-      emit
-    )
+    const runner = new AgentRunner(makeSettings(), projectDir, emit)
 
     await runner.run([], 'привет')
 
     const types = emitted.map((e) => e.type)
-expect(types).toContain('done')
+    expect(types).toContain('done')
 
     const assistantEvents = emitted.filter((e) => e.type === 'assistant') as Array<{
-      type: 'assistant'; content: string
+      type: 'assistant'
+      content: string
     }>
     expect(assistantEvents.length).toBeGreaterThanOrEqual(1)
     expect(assistantEvents[0].content).toContain('Привет')
@@ -142,11 +141,7 @@ expect(types).toContain('done')
       [{ content: 'Папка пустая.' }]
     ])
 
-    const runner = new AgentRunner(
-      makeSettings(),
-      projectDir,
-      emit
-    )
+    const runner = new AgentRunner(makeSettings(), projectDir, emit)
 
     await runner.run([], 'покажи папку')
 
@@ -156,7 +151,8 @@ expect(types).toContain('done')
     expect(types).toContain('done')
 
     const toolStart = emitted.find((e) => e.type === 'tool_start') as {
-      type: 'tool_start'; toolName: string
+      type: 'tool_start'
+      toolName: string
     }
     expect(toolStart.toolName).toBe('list_directory')
   })
@@ -170,16 +166,13 @@ expect(types).toContain('done')
       [{ content: 'Файл прочитан.' }]
     ])
 
-    const runner = new AgentRunner(
-      makeSettings(),
-      projectDir,
-      emit
-    )
+    const runner = new AgentRunner(makeSettings(), projectDir, emit)
 
     await runner.run([], 'прочитай файл')
 
     const toolEnd = emitted.find((e) => e.type === 'tool_end') as {
-      type: 'tool_end'; toolOutput: string
+      type: 'tool_end'
+      toolOutput: string
     }
     expect(toolEnd).toBeDefined()
     expect(toolEnd.toolOutput).toContain('содержимое файла')
@@ -187,7 +180,14 @@ expect(types).toContain('done')
 
   it('отклонённый confirm останавливает инструмент, агент продолжает', async () => {
     chatState.impl = makeResponses([
-      [{ content: toolCallContent('write_file', { path: join(projectDir, 'out.txt'), content: 'данные' }) }],
+      [
+        {
+          content: toolCallContent('write_file', {
+            path: join(projectDir, 'out.txt'),
+            content: 'данные'
+          })
+        }
+      ],
       [{ content: 'Операция отменена.' }]
     ])
 
@@ -206,7 +206,8 @@ expect(types).toContain('done')
     expect(confirm).toHaveBeenCalledOnce()
 
     const toolEnd = emitted.find((e) => e.type === 'tool_end') as {
-      type: 'tool_end'; toolOutput: string
+      type: 'tool_end'
+      toolOutput: string
     }
     expect(toolEnd.toolOutput).toContain('отклонено')
 
@@ -222,12 +223,7 @@ expect(types).toContain('done')
       throw new DOMException('Aborted', 'AbortError')
     }
 
-    const runner = new AgentRunner(
-      makeSettings(),
-      projectDir,
-      emit,
-      controller.signal
-    )
+    const runner = new AgentRunner(makeSettings(), projectDir, emit, controller.signal)
 
     // run() должен завершиться без uncaught exception
     await expect(runner.run([], 'сделай что-нибудь')).resolves.toBeUndefined()
@@ -237,35 +233,10 @@ expect(types).toContain('done')
     expect(types).toContain('error')
 
     const errorEvents = emitted.filter((e) => e.type === 'error') as Array<{
-      type: 'error'; content: string
+      type: 'error'
+      content: string
     }>
     expect(errorEvents.some((e) => e.content.includes('Остановлено'))).toBe(true)
-  })
-
-  it('достижение лимита шагов (maxSteps=2) — emit error лимита + done', async () => {
-    // Модель всегда вызывает инструмент — агент циклит до maxSteps
-    chatState.impl = makeResponses([
-      [{ content: toolCallContent('list_directory', { path: projectDir }) }]
-    ])
-
-    const runner = new AgentRunner(
-      makeSettings({ maxSteps: 2 }),
-      projectDir,
-      emit
-    )
-
-    await runner.run([], 'покажи папку снова и снова')
-
-    const types = emitted.map((e) => e.type)
-    expect(types).toContain('error')
-    expect(types).toContain('done')
-
-    const limitError = emitted.find(
-      (e) =>
-        e.type === 'error' &&
-        (e as { type: 'error'; content: string }).content.includes('лимит')
-    )
-    expect(limitError).toBeDefined()
   })
 
   it('невалидный JSON в аргументах tool call не крашит прогон', async () => {
@@ -277,11 +248,7 @@ expect(types).toContain('done')
       [{ content: 'Готово.' }]
     ])
 
-    const runner = new AgentRunner(
-      makeSettings(),
-      projectDir,
-      emit
-    )
+    const runner = new AgentRunner(makeSettings(), projectDir, emit)
 
     await expect(runner.run([], 'список')).resolves.toBeUndefined()
 

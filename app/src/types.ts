@@ -174,8 +174,6 @@ export interface AgentSettings {
   cloudBaseUrl?: string
   /** Модель облачного провайдера (по умолчанию deepseek-chat) */
   cloudModel?: string
-  /** Максимальное количество шагов агента (tool call → ответ) за один запрос; не задано — безлимитно */
-  maxSteps?: number
 }
 
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'

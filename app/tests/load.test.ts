@@ -75,7 +75,7 @@ import type { AgentSettings, AgentStreamPayload, ChatMessage } from '../src/type
 // ── Хелперы ──────────────────────────────────────────────────────────────────
 
 function makeSettings(overrides: Partial<AgentSettings> = {}): AgentSettings {
-  return { model: 'test-model', ollamaUrl: 'http://localhost:11434', maxSteps: 5, ...overrides }
+  return { model: 'test-model', ollamaUrl: 'http://localhost:11434', ...overrides }
 }
 
 /** Простой ответ без tool call — агент сразу завершает шаг */
