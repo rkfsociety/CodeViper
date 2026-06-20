@@ -342,7 +342,6 @@ export class AgentRunner {
     const messages: OllamaMessage[] = prepared.messages
 
     let usedTools = false
-    let gpuChecked = false
     let selfEdited = false
     const mutatingToolsUsed = new Set<string>()
     let verificationRetries = 0
@@ -390,11 +389,6 @@ export class AgentRunner {
           has_tools: (response.message?.tool_calls?.length ?? 0) > 0,
           has_thinking: !!response.message?.thinking
         })
-
-        if (!gpuChecked) {
-          gpuChecked = true
-          await this.warnIfCpu()
-        }
 
         const assistantText = sanitizeAssistantContent(response.message?.content ?? '')
         const assistantThinking = response.message?.thinking
@@ -1204,23 +1198,6 @@ export class AgentRunner {
       | undefined
     if (!handler) return `Неизвестный инструмент: ${name}`
     return handler(args)
-  }
-
-  private async warnIfCpu(): Promise<void> {
-    const placement = await this.modelRuntime.getModelPlacement(this.settings.model)
-    if (placement === 'cpu') {
-      this.emit({
-        type: 'context',
-        content:
-          '🐢 Модель загружена в RAM (CPU), не в видеопамять — ответы будут медленнее. Проверьте, что Ollama видит GPU (драйверы CUDA/ROCm) или выберите модель меньшего размера.'
-      })
-    } else if (placement === 'partial') {
-      this.emit({
-        type: 'context',
-        content:
-          '⚙️ Модель размещена частично в GPU и RAM — для скорости можно выбрать модель меньшего размера.'
-      })
-    }
   }
 
   private async reflectAndLearn(
