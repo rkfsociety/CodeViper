@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@qdrant/js-client-rest": "^1.18.0",
     "@tanstack/react-virtual": "^3.14.3",
     "highlight.js": "^11.11.1",
     "react": "^19.1.0",
@@ -40,7 +41,8 @@
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
-    "systeminformation": "^5.31.7"
+    "systeminformation": "^5.31.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

@@ -166,6 +166,16 @@ export interface AgentSettings {
   excludeThinkingFromHistory?: boolean
   /** Размер контекста выбранной модели в токенах (сохраняется при выборе модели) */
   modelContextLength?: number
+  /** Порог суммаризации контекста в процентах (50–85, дефолт 85) */
+  contextSummarizeThreshold?: number
+  /** Агрессивное сжатие: суммаризировать при 65% заполнения (экономия 30–40%) */
+  aggressiveCompression?: boolean
+  /** Режим энергосбережения: батчинг обновлений UI (300 мс), анимации отключены */
+  powerSaveMode?: boolean
+  /** Отключить фоновый сбор CPU/GPU-статистики */
+  disableSystemStats?: boolean
+  /** Обновлять PR только вручную (без авто-опроса каждые 5 минут) */
+  prManualRefresh?: boolean
   /** Включить облачный API параллельно с Ollama (для суммаризации или запасного канала) */
   cloudEnabled?: boolean
   /** Тип облачного провайдера: deepseek или openai-совместимый */
@@ -176,6 +186,12 @@ export interface AgentSettings {
   cloudBaseUrl?: string
   /** Модель облачного провайдера (по умолчанию deepseek-chat) */
   cloudModel?: string
+  /** URL Qdrant (например http://localhost:6333) */
+  qdrantUrl?: string
+  /** API ключ Qdrant (опционально, для защищённых инстансов) */
+  qdrantApiKey?: string
+  /** Режим чата: только базовый промпт, без инструментов и дерева проекта (транзиентное, не сохраняется) */
+  chatMode?: boolean
 }
 
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'
@@ -405,6 +421,7 @@ export interface CodeViperAPI {
     apiKey?: string
   }) => Promise<{ name: string; size?: number; contextLength?: number }[]>
   checkOllama: (url?: string) => Promise<boolean>
+  checkQdrant: (url: string, apiKey?: string) => Promise<boolean>
   pullOllamaModel: (url: string, model: string) => Promise<void>
   deleteOllamaModel: (url: string, model: string) => Promise<void>
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => () => void

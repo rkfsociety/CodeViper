@@ -28,10 +28,11 @@ function countPayloadChars(messages: OllamaMessage[], toolsJsonChars: number): n
   )
 }
 
-function buildSummaryMessage(summary: string): OllamaMessage {
+function buildSummaryMessage(summary: string, thresholdPercent?: number): OllamaMessage {
+  const pct = thresholdPercent ?? 85
   return {
     role: 'user',
-    content: `[Сводка предыдущего контекста — автоматически при ~85%+ лимита]\n${summary.trim()}`
+    content: `[Сводка предыдущего контекста — автоматически при ~${pct}%+ лимита]\n${summary.trim()}`
   }
 }
 
@@ -90,6 +91,8 @@ export async function compressContextMessages(options: {
   minRecentMessages?: number
   /** Вызывается один раз, когда сжатие реально начинается (суммаризация или обрезка). */
   onCompressStart?: () => void
+  /** Порог суммаризации в процентах (50–85); по умолчанию — глобальная константа (85) */
+  summarizeThresholdPercent?: number
 }): Promise<ContextCompressionResult> {
   const minRecent = options.minRecentMessages ?? MIN_RECENT_CONTEXT_MESSAGES
   const summarizeModel = options.summarizeModel?.trim() || options.model
@@ -99,7 +102,12 @@ export async function compressContextMessages(options: {
   let droppedMessageCount = 0
 
   const evaluate = () =>
-    computeContextUsage(countPayloadChars(messages, options.toolsJsonChars), options.model)
+    computeContextUsage(
+      countPayloadChars(messages, options.toolsJsonChars),
+      options.model,
+      undefined,
+      options.summarizeThresholdPercent
+    )
 
   let usage = evaluate()
 
@@ -148,8 +156,8 @@ export async function compressContextMessages(options: {
 
         if (summary) {
           messages = system
-            ? [system, buildSummaryMessage(summary), ...recent]
-            : [buildSummaryMessage(summary), ...recent]
+            ? [system, buildSummaryMessage(summary, options.summarizeThresholdPercent), ...recent]
+            : [buildSummaryMessage(summary, options.summarizeThresholdPercent), ...recent]
           summarized = true
           usage = evaluate()
           continue

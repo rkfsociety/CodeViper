@@ -84,8 +84,14 @@ function buildSystemPrompt(
   projectTreeText: string,
   selfImproveMode = false,
   clarifyMode = false,
-  cotReasoning = false
+  cotReasoning = false,
+  chatMode = false
 ): string {
+  // В режиме Chat — только базовый промпт: без инструментов, дерева проекта и памяти.
+  if (chatMode) {
+    return BASE_SYSTEM_PROMPT
+  }
+
   const parts = [BASE_SYSTEM_PROMPT]
   if (selfImproveMode) parts.push(buildSelfEditContext())
 
@@ -182,6 +188,10 @@ export interface PrepareAgentContextOptions {
   excludeThinkingFromHistory?: boolean
   /** Реальный размер контекста модели в токенах (если известен из API провайдера) */
   modelContextLength?: number
+  /** Порог суммаризации в процентах (50–85); передаётся из настроек пользователя */
+  summarizeThresholdPercent?: number
+  /** Режим чата: только базовый промпт без инструментов, дерева проекта и памяти */
+  chatMode?: boolean
 }
 
 function section(
@@ -229,10 +239,11 @@ export async function buildAgentContextPreview(
   selfImproveMode = false,
   options: PrepareAgentContextOptions = {}
 ): Promise<AgentContextPreview> {
-  const memorySkillsContext = await buildAgentContext(projectPath, userMessage)
+  const chatMode = options.chatMode === true
+  const memorySkillsContext = chatMode ? '' : await buildAgentContext(projectPath, userMessage)
 
   let projectTreeText = ''
-  if (projectPath.trim()) {
+  if (!chatMode && projectPath.trim()) {
     const tree = await buildFileTree(projectPath)
     projectTreeText = formatFileTree(tree)
     if (projectTreeText.length > MAX_PROJECT_TREE_CHARS) {
@@ -251,7 +262,8 @@ export async function buildAgentContextPreview(
     projectTreeText,
     selfImproveMode,
     options.clarifyMode,
-    cotReasoning
+    cotReasoning,
+    chatMode
   )
 
   const adaptiveLimits = computeAdaptiveLimits(model, options.modelContextLength)
@@ -266,7 +278,7 @@ export async function buildAgentContextPreview(
     )
     .filter((m): m is OllamaMessage => m !== null)
 
-  const activeTools = getAgentTools(selfImproveMode)
+  const activeTools = chatMode ? [] : getAgentTools(selfImproveMode)
   const toolsJsonChars = JSON.stringify(activeTools).length
   const initialMessages: OllamaMessage[] = [
     { role: 'system', content: systemContent },
@@ -281,7 +293,8 @@ export async function buildAgentContextPreview(
     toolsJsonChars,
     ollamaUrl: options.ollamaUrl,
     providerConfig: options.providerConfig,
-    signal: options.signal
+    signal: options.signal,
+    summarizeThresholdPercent: options.summarizeThresholdPercent
   })
 
   const ollamaMessages = compressed.messages
@@ -305,8 +318,9 @@ export async function buildAgentContextPreview(
     }
   }
 
-  const projectContent = projectPath.trim() ? buildProjectContext(projectPath, projectTreeText) : ''
-  const toolsContent = formatAgentToolsSummary(selfImproveMode)
+  const projectContent =
+    !chatMode && projectPath.trim() ? buildProjectContext(projectPath, projectTreeText) : ''
+  const toolsContent = chatMode ? '' : formatAgentToolsSummary(selfImproveMode)
 
   const sections: AgentContextSection[] = [
     section('instructions', 'Инструкции агента', BASE_SYSTEM_PROMPT)
@@ -341,14 +355,16 @@ export async function buildAgentContextPreview(
     )
   }
 
-  sections.push(
-    section(
-      'tools',
-      `Инструменты (${activeTools.length})`,
-      toolsContent,
-      'Схема function calling для Ollama'
+  if (!chatMode) {
+    sections.push(
+      section(
+        'tools',
+        `Инструменты (${activeTools.length})`,
+        toolsContent,
+        'Схема function calling для Ollama'
+      )
     )
-  )
+  }
 
   const messages = ollamaMessages.map(messagePreview)
   const totalChars =

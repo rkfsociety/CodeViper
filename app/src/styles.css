@@ -2243,3 +2243,12 @@ button.topbar-pill.topbar-download-error {
   opacity: 1;
   color: var(--red);
 }
+
+/* Режим энергосбережения: отключает все анимации и переходы */
+.power-save *,
+.power-save *::before,
+.power-save *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

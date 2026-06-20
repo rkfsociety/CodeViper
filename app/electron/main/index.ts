@@ -306,6 +306,20 @@ ipcMain.handle('write-file', async (_e, projectPath: string, filePath: string, c
 
 ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') => pingOllama(url))
 
+ipcMain.handle('check-qdrant', async (_e, url: string, apiKey?: string) => {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (apiKey) headers['api-key'] = apiKey
+    const res = await fetch(`${url.replace(/\/$/, '')}/collections`, {
+      headers,
+      signal: AbortSignal.timeout(5000)
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+})
+
 ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') => {
   const models = await fetchOllamaModelsWithDetails(url)
   const systemCaps = await getSystemCapabilities()
@@ -537,7 +551,7 @@ ipcMain.handle(
     const abortCtrl = new AbortController()
     agentRunStates.set(chatId, { chatId })
     activeAgentAborts.set(chatId, abortCtrl)
-    startSystemStatsPush(_e.sender)
+    if (!settings.disableSystemStats) startSystemStatsPush(_e.sender)
     setProgressTarget(_e.sender)
 
     const skipOllama = (settings.modelProvider ?? 'ollama') !== 'ollama'

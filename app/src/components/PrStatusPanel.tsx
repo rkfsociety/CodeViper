@@ -12,7 +12,13 @@ const CI_LABEL: Record<CiStatus, string> = {
   none: '— нет CI'
 }
 
-export function PrStatusPanel({ isOpen }: { isOpen: boolean }) {
+export function PrStatusPanel({
+  isOpen,
+  manualRefresh
+}: {
+  isOpen: boolean
+  manualRefresh?: boolean
+}) {
   const [result, setResult] = useState<PullRequestListResult | null>(null)
   const [loading, setLoading] = useState(false)
   const inFlight = useRef(false)
@@ -34,9 +40,10 @@ export function PrStatusPanel({ isOpen }: { isOpen: boolean }) {
   useEffect(() => {
     if (!isOpen) return
     void load()
+    if (manualRefresh) return
     const timer = setInterval(() => void load(), POLL_INTERVAL_MS)
     return () => clearInterval(timer)
-  }, [isOpen, load])
+  }, [isOpen, manualRefresh, load])
 
   const prs = result?.prs ?? []
 

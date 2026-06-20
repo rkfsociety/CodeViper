@@ -239,6 +239,14 @@ export class AgentRunner {
     }
   }
 
+  private resolveSummarizeThreshold(): number {
+    if (this.settings.aggressiveCompression) return 65
+    if (this.settings.contextSummarizeThreshold != null) {
+      return Math.max(50, Math.min(85, this.settings.contextSummarizeThreshold))
+    }
+    return 85
+  }
+
   private throwIfAborted(): void {
     if (this.signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError')
@@ -308,7 +316,8 @@ export class AgentRunner {
         deepReasoning: this.settings.deepReasoning,
         summarizeModel: this.summarizeModelResolved,
         excludeThinkingFromHistory: this.settings.excludeThinkingFromHistory !== false,
-        modelContextLength: this.settings.modelContextLength
+        modelContextLength: this.settings.modelContextLength,
+        summarizeThresholdPercent: this.resolveSummarizeThreshold()
       }
     )
     this.throwIfAborted()
@@ -904,6 +913,7 @@ export class AgentRunner {
       toolsJsonChars: JSON.stringify(getAgentTools(this.selfImproveMode)).length,
       providerConfig: this.summarizeProviderConfig,
       signal: this.signal,
+      summarizeThresholdPercent: this.resolveSummarizeThreshold(),
       onCompressStart: () => {
         compressionNotified = true
         this.emit({ type: 'context', summarizing: true })

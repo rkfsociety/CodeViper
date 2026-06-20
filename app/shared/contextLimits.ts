@@ -37,7 +37,8 @@ export function estimateCharsFromTokens(tokenCount: number): number {
 export function computeContextUsage(
   totalChars: number,
   model: string,
-  knownContextLength?: number
+  knownContextLength?: number,
+  summarizeThresholdPercent?: number
 ): {
   limitTokens: number
   estimatedTokens: number
@@ -48,12 +49,16 @@ export function computeContextUsage(
   const estimatedTokens = estimateTokensFromChars(totalChars)
   const ratio = limitTokens > 0 ? estimatedTokens / limitTokens : 1
   const usagePercent = Math.min(100, Math.round(ratio * 100))
+  const threshold =
+    summarizeThresholdPercent != null
+      ? summarizeThresholdPercent / 100
+      : CONTEXT_SUMMARIZE_THRESHOLD
 
   return {
     limitTokens,
     estimatedTokens,
     usagePercent,
-    shouldSummarize: ratio >= CONTEXT_SUMMARIZE_THRESHOLD
+    shouldSummarize: ratio >= threshold
   }
 }
 

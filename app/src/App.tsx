@@ -498,7 +498,7 @@ function AppContent() {
 
   return (
     <ChatContext.Provider value={chatContextValue}>
-      <div className="app">
+      <div className={`app${settings.powerSaveMode ? ' power-save' : ''}`}>
         <header className="topbar">
           <div className="logo">
             <img src={logoUrl} alt="CodeViper" className="logo-img" />
@@ -600,7 +600,8 @@ function AppContent() {
               settings={{
                 ...settings,
                 // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать
-                clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode
+                clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode,
+                chatMode: agentMode === 'chat'
               }}
               onPickProject={pickProjectForActiveChat}
               models={models}
@@ -651,7 +652,7 @@ function AppContent() {
                   </button>
                 </div>
                 <Suspense fallback={null}>
-                  <PrStatusPanel isOpen={prPanelOpen} />
+                  <PrStatusPanel isOpen={prPanelOpen} manualRefresh={settings.prManualRefresh} />
                 </Suspense>
               </div>
             )}

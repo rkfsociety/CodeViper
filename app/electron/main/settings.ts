@@ -2,35 +2,48 @@ import { app, safeStorage } from 'electron'
 import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
+import { z } from 'zod'
 import type { AgentSettings, GitSyncStrategy } from '../../src/types'
 import { GIT_SYNC_STRATEGIES } from '../../src/types'
-import { normalizePermissionMode, type PermissionMode } from '../../shared/permissions'
+import { normalizePermissionMode } from '../../shared/permissions'
 import { DEFAULT_MODEL_PROVIDER } from '../../shared/constants'
 import { writeJsonAtomic } from './fsUtil'
 
-export interface PersistedSettings {
-  version: 1
-  ollamaUrl: string
-  model: string
-  selfLearning: boolean
-  autoModel: boolean
-  permissionMode: PermissionMode
-  clarifyMode: boolean
-  deepReasoning: boolean
-  excludeThinkingFromHistory: boolean
-  autoPushSelfEdits: boolean
-  summarizeModel: string
-  modelProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
-  /** @deprecated Заменено на deepseekApiKey/openaiApiKey/openrouterApiKey */
-  providerApiKey: string
-  deepseekApiKey: string
-  openaiApiKey: string
-  openrouterApiKey: string
-  geminiApiKey: string
-  gitSyncOnStartup: boolean
-  gitSyncStrategy: GitSyncStrategy
-  modelContextLength?: number
-}
+const PermissionModeSchema = z.enum(['ask', 'acceptEdits', 'bypass'])
+const GitSyncStrategySchema = z.enum(['stash', 'rebase', 'ff-only'])
+const ModelProviderSchema = z.enum(['ollama', 'deepseek', 'openai', 'openrouter', 'gemini'])
+
+export const PersistedSettingsSchema = z.object({
+  version: z.literal(1),
+  ollamaUrl: z.string(),
+  model: z.string(),
+  selfLearning: z.boolean(),
+  autoModel: z.boolean(),
+  permissionMode: PermissionModeSchema,
+  clarifyMode: z.boolean(),
+  deepReasoning: z.boolean(),
+  excludeThinkingFromHistory: z.boolean(),
+  autoPushSelfEdits: z.boolean(),
+  summarizeModel: z.string(),
+  modelProvider: ModelProviderSchema,
+  providerApiKey: z.string(),
+  deepseekApiKey: z.string(),
+  openaiApiKey: z.string(),
+  openrouterApiKey: z.string(),
+  geminiApiKey: z.string(),
+  gitSyncOnStartup: z.boolean(),
+  gitSyncStrategy: GitSyncStrategySchema,
+  modelContextLength: z.number().int().positive().optional(),
+  qdrantUrl: z.string().optional(),
+  qdrantApiKey: z.string().optional(),
+  powerSaveMode: z.boolean().optional(),
+  disableSystemStats: z.boolean().optional(),
+  prManualRefresh: z.boolean().optional(),
+  contextSummarizeThreshold: z.number().int().min(50).max(85).optional(),
+  aggressiveCompression: z.boolean().optional()
+})
+
+export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
 
 function storePath(): string {
   return join(app.getPath('userData'), 'settings.json')
@@ -55,7 +68,9 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   openrouterApiKey: '',
   geminiApiKey: '',
   gitSyncOnStartup: true,
-  gitSyncStrategy: 'stash'
+  gitSyncStrategy: 'stash',
+  qdrantUrl: '',
+  qdrantApiKey: ''
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -101,7 +116,16 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)
       : DEFAULT_SETTINGS.gitSyncStrategy,
-    ...(settings.modelContextLength ? { modelContextLength: settings.modelContextLength } : {})
+    ...(settings.modelContextLength ? { modelContextLength: settings.modelContextLength } : {}),
+    qdrantUrl: settings.qdrantUrl?.trim() ?? '',
+    qdrantApiKey: settings.qdrantApiKey?.trim() ?? '',
+    ...(settings.powerSaveMode ? { powerSaveMode: true } : {}),
+    ...(settings.disableSystemStats ? { disableSystemStats: true } : {}),
+    ...(settings.prManualRefresh ? { prManualRefresh: true } : {}),
+    ...(settings.contextSummarizeThreshold != null
+      ? { contextSummarizeThreshold: settings.contextSummarizeThreshold }
+      : {}),
+    ...(settings.aggressiveCompression ? { aggressiveCompression: true } : {})
   }
 }
 
@@ -135,15 +159,28 @@ export async function loadSettings(): Promise<PersistedSettings> {
 
   try {
     const raw = await readFile(path, 'utf-8')
-    const parsed = JSON.parse(raw) as Partial<PersistedSettings>
-    // Расшифровать API-ключи перед возвратом
-    if (parsed.providerApiKey) parsed.providerApiKey = decryptApiKey(parsed.providerApiKey)
-    if (parsed.deepseekApiKey) parsed.deepseekApiKey = decryptApiKey(parsed.deepseekApiKey)
-    if (parsed.openaiApiKey) parsed.openaiApiKey = decryptApiKey(parsed.openaiApiKey)
-    if (parsed.openrouterApiKey) parsed.openrouterApiKey = decryptApiKey(parsed.openrouterApiKey)
-    if (parsed.geminiApiKey) parsed.geminiApiKey = decryptApiKey(parsed.geminiApiKey)
-    return normalize(parsed)
-  } catch {
+    const json = JSON.parse(raw) as unknown
+
+    // Расшифровать API-ключи до валидации
+    if (json && typeof json === 'object') {
+      const obj = json as Record<string, unknown>
+      if (obj.providerApiKey) obj.providerApiKey = decryptApiKey(obj.providerApiKey as string)
+      if (obj.deepseekApiKey) obj.deepseekApiKey = decryptApiKey(obj.deepseekApiKey as string)
+      if (obj.openaiApiKey) obj.openaiApiKey = decryptApiKey(obj.openaiApiKey as string)
+      if (obj.openrouterApiKey) obj.openrouterApiKey = decryptApiKey(obj.openrouterApiKey as string)
+      if (obj.geminiApiKey) obj.geminiApiKey = decryptApiKey(obj.geminiApiKey as string)
+      if (obj.qdrantApiKey) obj.qdrantApiKey = decryptApiKey(obj.qdrantApiKey as string)
+    }
+
+    const result = PersistedSettingsSchema.safeParse(json)
+    if (result.success) return result.data
+
+    // Схема не прошла — логируем проблемные поля и применяем normalize с дефолтами
+    const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')
+    console.warn('[settings] Невалидный конфиг, применяю дефолты. Проблемы:', issues)
+    return normalize(json as Partial<PersistedSettings>)
+  } catch (e) {
+    console.warn('[settings] Ошибка загрузки конфига:', e instanceof Error ? e.message : String(e))
     return { ...DEFAULT_SETTINGS }
   }
 }
@@ -157,7 +194,8 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     deepseekApiKey: encryptApiKey(normalized.deepseekApiKey),
     openaiApiKey: encryptApiKey(normalized.openaiApiKey),
     openrouterApiKey: encryptApiKey(normalized.openrouterApiKey),
-    geminiApiKey: encryptApiKey(normalized.geminiApiKey)
+    geminiApiKey: encryptApiKey(normalized.geminiApiKey),
+    qdrantApiKey: encryptApiKey(normalized.qdrantApiKey ?? '')
   }
   await writeJsonAtomic(storePath(), toSave)
   // Продублировать настройки git-sync в config.json для лаунчера (start-dev.ps1).
