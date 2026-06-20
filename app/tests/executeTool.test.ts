@@ -27,20 +27,20 @@ describe('executeTool — read_file', () => {
   it('читает существующий файл', async () => {
     const file = join(projectDir, 'hello.txt')
     writeFileSync(file, 'мир')
-    const handlers = createProjectToolHandlers(projectDir)
+    const { handlers } = createProjectToolHandlers(projectDir)
     const result = await handlers.read_file!({ path: file })
     expect(result).toContain('мир')
   })
 
   it('бросает ошибку для несуществующего файла', async () => {
-    const handlers = createProjectToolHandlers(projectDir)
+    const { handlers } = createProjectToolHandlers(projectDir)
     await expect(handlers.read_file!({ path: join(projectDir, 'nope.txt') })).rejects.toThrow(
       /ENOENT|not found/i
     )
   })
 
   it('блокирует чтение вне проекта', async () => {
-    const handlers = createProjectToolHandlers(projectDir)
+    const { handlers } = createProjectToolHandlers(projectDir)
     await expect(
       handlers.read_file!({ path: join(projectDir, '..', 'secret.txt') })
     ).rejects.toMatchObject({ code: 'readonly' })
@@ -49,14 +49,14 @@ describe('executeTool — read_file', () => {
 
 describe('executeTool — write_file + readonlyMode', () => {
   it('пишет файл', async () => {
-    const handlers = createProjectToolHandlers(projectDir)
+    const { handlers } = createProjectToolHandlers(projectDir)
     const file = join(projectDir, 'out.txt')
     const result = await handlers.write_file!({ path: file, content: 'данные' })
     expect(result).toMatch(/записан|обновлён/i)
   })
 
   it('readonlyMode блокирует запись', async () => {
-    const handlers = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
+    const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
     await expect(
       handlers.write_file!({ path: join(projectDir, 'out.txt'), content: 'x' })
     ).rejects.toThrow(/только чтение/i)
@@ -66,10 +66,9 @@ describe('executeTool — write_file + readonlyMode', () => {
 describe('executeTool — неизвестный инструмент', () => {
   it('возвращает "Неизвестный инструмент"', async () => {
     // Эмулируем поведение AgentRunner.executeTool: ищем handler, при отсутствии — строка
-    const handlers = createProjectToolHandlers(projectDir) as Record<
-      string,
-      ((args: Record<string, string>) => Promise<string>) | undefined
-    >
+    const { handlers } = createProjectToolHandlers(projectDir) as {
+      handlers: Record<string, ((args: Record<string, string>) => Promise<string>) | undefined>
+    }
     const handler = handlers['no_such_tool']
     expect(handler).toBeUndefined()
     // AgentRunner возвращает фиксированную строку при отсутствии хендлера
