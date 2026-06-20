@@ -302,6 +302,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const modelPickerRef = useRef<HTMLDivElement>(null)
   const [contextPopoverOpen, setContextPopoverOpen] = useState(false)
   const contextPopoverRef = useRef<HTMLDivElement>(null)
+  const [summarizing, setSummarizing] = useState(false)
   // contextPreview вынесен сюда чтобы и useAgentStream, и useContextPreview могли обновлять его
   const [contextPreview, setContextPreview] = useState<
     import('../types').AgentContextPreview | null
@@ -430,6 +431,34 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setTodoItemsRef,
     dispatch
   })
+
+  async function handleSummarizeContext() {
+    if (!chatId || summarizing || messages.length === 0) return
+    setSummarizing(true)
+    try {
+      const result = await window.codeviper.summarizeContext(messages, settings)
+      if (!result.droppedChatIds.length && !result.summary) return
+      const kept = messages.filter((m) => !result.droppedChatIds.includes(m.id))
+      const next: ChatMessage[] = result.summary
+        ? [
+            {
+              id: `summary-${Date.now()}`,
+              role: 'assistant',
+              content: result.summary,
+              timestamp: Date.now()
+            },
+            ...kept
+          ]
+        : kept
+      commitMessages(next)
+      await window.codeviper.updateChat(chatId, { messages: next })
+    } catch {
+      // игнорируем — пользователь увидит что ничего не изменилось
+    } finally {
+      setSummarizing(false)
+      setContextPopoverOpen(false)
+    }
+  }
 
   // ── Хук: очередь сообщений и запуск агента ───────────────────────────────
   const handleInterruptedDraft = useCallback(
@@ -1347,6 +1376,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                     >
                       Детали →
                     </button>
+                    {contextPreview.contextUsagePercent > 60 && (
+                      <button
+                        type="button"
+                        className={styles.ctxDetails}
+                        style={{ marginTop: 4, opacity: summarizing ? 0.6 : 1 }}
+                        disabled={summarizing}
+                        onClick={() => void handleSummarizeContext()}
+                        title="Суммаризировать старые сообщения, чтобы освободить контекст"
+                      >
+                        {summarizing ? 'Сжимаю…' : 'Сжать историю'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

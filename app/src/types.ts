@@ -442,6 +442,15 @@ export interface CodeViperAPI {
     userMessage: string,
     model: string
   ) => Promise<AgentContextPreview>
+  summarizeContext: (
+    messages: ChatMessage[],
+    settings: AgentSettings
+  ) => Promise<{
+    droppedChatIds: string[]
+    summary: string | null
+    summarized: boolean
+    truncated: boolean
+  }>
   checkAgentPrerequisites: (
     ollamaUrl: string,
     projectPath: string,

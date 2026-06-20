@@ -13,7 +13,7 @@ import {
 import { checkAgentPrerequisites } from './agentPrerequisites'
 import { formatPrerequisitesMessage } from '../../shared/agentPrerequisites'
 import { filterToolCallingModels } from '../../shared/recommendedModels'
-import { buildAgentContextPreview } from './agentContext'
+import { buildAgentContextPreview, summarizeChatHistory } from './agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel, ModelRuntime } from './modelRuntime'
 import {
   selectModelForTask,
@@ -515,6 +515,12 @@ ipcMain.handle(
   'preview-agent-context',
   async (_e, projectPath: string, history: ChatMessage[], userMessage: string, model: string) =>
     buildAgentContextPreview(projectPath, history, userMessage, model)
+)
+
+ipcMain.handle(
+  'summarize-context',
+  async (_e, chatMessages: ChatMessage[], settings: AgentSettings) =>
+    summarizeChatHistory(chatMessages, settings)
 )
 
 ipcMain.handle('list-pull-requests', async () => listPullRequests())

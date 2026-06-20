@@ -113,6 +113,13 @@ const codeviper = {
       'previewAgentContext'
     ),
 
+  summarizeContext: (messages: ChatMessage[], settings: AgentSettings) =>
+    withTimeout(
+      ipcRenderer.invoke('summarize-context', messages, settings),
+      60_000,
+      'summarizeContext'
+    ),
+
   checkAgentPrerequisites: (ollamaUrl: string, projectPath: string, skipOllamaCheck = false) =>
     withTimeout(
       ipcRenderer.invoke('check-agent-prerequisites', ollamaUrl, projectPath, skipOllamaCheck),

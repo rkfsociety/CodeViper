@@ -3,6 +3,7 @@ import type {
   AgentContextPreview,
   AgentContextSection,
   AgentRole,
+  AgentSettings,
   ChatMessage,
   FileNode
 } from '../../src/types'
@@ -499,4 +500,81 @@ export async function prepareAgentRunContext(
   }))
 
   return { messages, preview }
+}
+
+export interface SummarizeChatHistoryResult {
+  droppedChatIds: string[]
+  summary: string | null
+  summarized: boolean
+  truncated: boolean
+}
+
+export async function summarizeChatHistory(
+  chatMessages: ChatMessage[],
+  settings: AgentSettings
+): Promise<SummarizeChatHistoryResult> {
+  const mapped = chatMessages.map((m) => ({
+    id: m.id,
+    ollama: mapHistoryMessageToOllama(m)
+  }))
+  const ollamaMessages = mapped.filter((x) => x.ollama !== null).map((x) => x.ollama!)
+
+  const providerType = settings.modelProvider || 'ollama'
+  const { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL, OPENROUTER_API_BASE_URL } =
+    await import('../../shared/constants')
+
+  const providerBaseUrl: string | undefined =
+    providerType === 'deepseek'
+      ? DEEPSEEK_API_BASE_URL
+      : providerType === 'gemini'
+        ? GEMINI_API_BASE_URL
+        : providerType === 'openrouter'
+          ? OPENROUTER_API_BASE_URL
+          : settings.ollamaUrl
+
+  const providerApiKey =
+    providerType === 'deepseek'
+      ? (settings.deepseekApiKey ?? settings.providerApiKey)
+      : providerType === 'gemini'
+        ? (settings.geminiApiKey ?? settings.providerApiKey)
+        : providerType === 'openrouter'
+          ? (settings.openrouterApiKey ?? settings.providerApiKey)
+          : providerType === 'openai'
+            ? (settings.openaiApiKey ?? settings.providerApiKey)
+            : providerType === 'anthropic'
+              ? (settings.claudeApiKey ?? settings.providerApiKey)
+              : undefined
+
+  const providerConfig: ProviderConfig = {
+    type: providerType,
+    baseUrl: providerBaseUrl,
+    apiKey: providerApiKey,
+    model: settings.model
+  }
+
+  const result = await compressContextMessages({
+    messages: ollamaMessages,
+    model: settings.model,
+    summarizeModel: settings.summarizeModel,
+    toolsJsonChars: 0,
+    providerConfig,
+    summarizeThresholdPercent: 60
+  })
+
+  const droppedOllama = result.droppedMessageCount
+  const droppedChatIds: string[] = []
+  let ollamaDropped = 0
+  for (const x of mapped) {
+    if (ollamaDropped >= droppedOllama) break
+    droppedChatIds.push(x.id)
+    if (x.ollama !== null) ollamaDropped++
+  }
+
+  let summary: string | null = null
+  if (result.summarized) {
+    const summaryMsg = result.messages.find((m) => m.content.startsWith('[Сводка'))
+    if (summaryMsg) summary = summaryMsg.content
+  }
+
+  return { droppedChatIds, summary, summarized: result.summarized, truncated: result.truncated }
 }
