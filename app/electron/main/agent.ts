@@ -1023,15 +1023,9 @@ export class AgentRunner {
       ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
     }))
 
-    // Трансформируем AGENT_TOOLS в формат провайдеров (name + description + input_schema)
+    // Получаем инструменты в формате провайдеров (уже трансформированы в getAgentTools)
     // В режиме Chat инструменты не нужны — экономим токены на схемах.
-    const toolsForProvider = this.settings.chatMode
-      ? []
-      : getAgentTools(this.selfImproveMode).map((tool) => ({
-          name: tool.function.name,
-          description: tool.function.description,
-          input_schema: tool.function.parameters
-        }))
+    const toolsForProvider = this.settings.chatMode ? [] : getAgentTools(this.selfImproveMode)
 
     // Используем ModelRuntime для универсальной поддержки разных провайдеров
     const chatOptions = {
