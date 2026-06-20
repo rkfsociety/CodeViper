@@ -813,14 +813,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     return base.length > 16 ? base.slice(0, 15) + '…' : base
   }
 
-  function contextChipClass(): string {
-    if (!contextPreview) return styles.metaBtn
-    const pct = contextPreview.contextUsagePercent
-    if (pct >= 90) return `${styles.metaBtn} ${styles.footerChipDanger}`
-    if (pct >= 70) return `${styles.metaBtn} ${styles.footerChipWarn}`
-    return styles.metaBtn
-  }
-
   return (
     <div className={styles.main}>
       {/* projectBar и AgentContextBar убраны — перенесены в inputFooter */}
@@ -869,96 +861,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         preview={contextPreview}
         onClose={() => setContextModalOpen(false)}
       />
-
-      {/* Информационная полоса над чатом */}
-      {chatId && contextPreview && (
-        <div className={styles.chatHeader}>
-          <div className={styles.chatHeaderLeft}>
-            <button
-              type="button"
-              className={styles.contextButton}
-              onClick={() => setContextModalOpen(true)}
-              title="Открыть превью контекста"
-            >
-              <div
-                className={styles.contextCircle}
-                style={{
-                  background: `conic-gradient(var(--blue, #0969da) 0deg ${contextPreview.contextUsagePercent * 3.6}deg, var(--border, #30363d) ${contextPreview.contextUsagePercent * 3.6}deg 360deg)`
-                }}
-              >
-                <div className={styles.contextCircleInner}>
-                  <span className={styles.contextPercent}>
-                    {contextPreview.contextUsagePercent}%
-                  </span>
-                </div>
-              </div>
-            </button>
-
-            {/* Селектор модели */}
-            <div className={styles.headerModelPicker} ref={modelPickerRef}>
-              <button
-                type="button"
-                className={styles.headerModelBtn}
-                title={settings.model}
-                onClick={() => setModelPickerOpen((v) => !v)}
-              >
-                {settings.autoModel !== false && <span className={styles.modelAuto}>Авто</span>}
-                {formatModelShort(runModel || settings.model)}
-                <span className={styles.modelChevron}>{modelPickerOpen ? '▴' : '▾'}</span>
-              </button>
-              {modelPickerOpen && (
-                <div className={styles.headerModelDropdown} role="listbox">
-                  <button
-                    type="button"
-                    className={`${styles.modelPickerItem}${settings.autoModel !== false ? ' ' + styles.modelPickerActive : ''}`}
-                    role="option"
-                    aria-selected={settings.autoModel !== false}
-                    onClick={() => {
-                      onModelChange?.(settings.model, true)
-                      setModelPickerOpen(false)
-                    }}
-                  >
-                    Авто
-                  </button>
-                  {displayModels.length > 0 && <div className={styles.modelPickerSep} />}
-                  {displayModels.map((m: OllamaModel) => {
-                    const isActive = settings.autoModel === false && settings.model === m.name
-                    return (
-                      <button
-                        key={m.name}
-                        type="button"
-                        className={`${styles.modelPickerItem}${isActive ? ' ' + styles.modelPickerActive : ''}`}
-                        role="option"
-                        aria-selected={isActive}
-                        onClick={() => {
-                          onModelChange?.(m.name, false)
-                          setModelPickerOpen(false)
-                        }}
-                      >
-                        {m.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Статистика справа */}
-          <div className={styles.chatHeaderRight}>
-            {runStats && runStats.elapsedSec > 0 && (
-              <span className={styles.headerStat} title="Время выполнения">
-                {formatElapsed(runStats.elapsedSec)}
-              </span>
-            )}
-            {runStats && runStats.tokens > 0 && (
-              <span className={styles.headerStat} title="Токены">
-                {formatTokenCount(runStats.tokens)}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className={styles.messages} ref={scrollRef}>
         {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
@@ -1315,22 +1217,58 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                 /
               </button>
 
-              {/* Кружок контекста */}
+              {/* Кружок контекста с визуальным прогрессом */}
               <div className={styles.contextPopoverWrap} ref={contextPopoverRef}>
                 <button
                   type="button"
-                  className={`${styles.contextCircleBtn} ${contextChipClass()}${contextPopoverOpen ? ' ' + styles.contextCircleActive : ''}`}
+                  className={`${styles.contextCircleBtn}${contextPopoverOpen ? ' ' + styles.contextCircleActive : ''}`}
                   onClick={() => setContextPopoverOpen((v) => !v)}
                   title="Использование контекста"
                   aria-label="Использование контекста"
+                  style={{
+                    padding: 0,
+                    border: 'none',
+                    background: 'transparent',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
-                  <span className={styles.contextDot} aria-hidden="true" />
-                  {contextLoading && !contextPreview
-                    ? '…'
-                    : contextPreview
-                      ? `${contextPreview.contextUsagePercent}%`
-                      : '◎'}
-                  {contextPreview?.historySummarized && <span className={styles.metaBadge}>Σ</span>}
+                  {contextLoading && !contextPreview ? (
+                    <span style={{ fontSize: '14px' }}>…</span>
+                  ) : contextPreview ? (
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        background: `conic-gradient(var(--blue, #0969da) 0deg ${contextPreview.contextUsagePercent * 3.6}deg, var(--border, #30363d) ${contextPreview.contextUsagePercent * 3.6}deg 360deg)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative'
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: 'var(--bg-secondary, #161b22)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '9px',
+                          fontWeight: '600',
+                          color: 'var(--text-secondary, #c9d1d9)'
+                        }}
+                      >
+                        {contextPreview.contextUsagePercent}%
+                      </div>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '14px' }}>◎</span>
+                  )}
                 </button>
 
                 {contextPopoverOpen && contextPreview && (
