@@ -1,6 +1,7 @@
 import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
+import { tronStringify } from '../lib/tron'
 
 export interface AgentLogEntry {
   ts?: string
@@ -29,7 +30,7 @@ class AgentLogger {
   async write(entry: AgentLogEntry): Promise<void> {
     try {
       await mkdir(this.logsDir(), { recursive: true })
-      const line = JSON.stringify({ ts: new Date().toISOString(), ...entry }) + '\n'
+      const line = tronStringify({ ts: new Date().toISOString(), ...entry }) + '\n'
       await appendFile(this.filePath(), line, 'utf8')
     } catch {
       // логирование необязательно — не прерываем работу агента

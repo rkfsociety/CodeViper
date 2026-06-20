@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, unlink } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
+import { clearChatFromRAG, addMessageToRAG } from './contextRAG'
 import type {
   ChatFolder,
   ChatMessage,
@@ -257,7 +258,9 @@ export async function updateChat(
       SavedChat,
       'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags' | 'interruptedDraft'
     >
-  >
+  >,
+  /** Параметры для RAG индексирования новых сообщений */
+  ragOptions?: { ollamaUrl: string; projectPath: string }
 ): Promise<SavedChat | null> {
   const index = await loadIndex()
   const entry = index.chats.find((item) => item.id === id)
@@ -276,13 +279,31 @@ export async function updateChat(
     const interruptedDraft =
       patch.interruptedDraft !== undefined ? patch.interruptedDraft : existing.interruptedDraft
     await saveChatData(id, messages, interruptedDraft)
+
+    // Индексируем новые сообщения в RAG (асинхронно, не блокируя)
+    if (ragOptions && patch.messages && patch.messages.length > existing.messages.length) {
+      const newMessages = patch.messages.slice(existing.messages.length)
+      for (const msg of newMessages) {
+        if (msg.role === 'system') continue
+        // Преобразуем ChatMessage в OllamaMessage для RAG индексирования
+        const ollamaMsg = {
+          role: msg.role as 'user' | 'assistant' | 'tool',
+          content: msg.content
+        }
+        addMessageToRAG(msg.id, ollamaMsg, id, ragOptions.projectPath, ragOptions.ollamaUrl).catch(
+          () => {
+            /* Ошибки RAG индексирования не критичны */
+          }
+        )
+      }
+    }
   }
 
   await saveIndex(index)
   return hydrateChat(entry)
 }
 
-export async function deleteChat(id: string): Promise<void> {
+export async function deleteChat(id: string, projectPath?: string): Promise<void> {
   const index = await loadIndex()
   index.chats = index.chats.filter((chat) => chat.id !== id)
   if (index.activeChatId === id) {
@@ -290,6 +311,13 @@ export async function deleteChat(id: string): Promise<void> {
   }
   await saveIndex(index)
   await unlink(chatDataPath(id)).catch(() => {})
+
+  // Очищаем RAG индекс для удалённого чата
+  if (projectPath) {
+    clearChatFromRAG(id, projectPath).catch(() => {
+      /* Ошибки очистки RAG не критичны */
+    })
+  }
 }
 
 export async function createFolder(name: string): Promise<ChatFolder> {

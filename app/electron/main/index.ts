@@ -411,10 +411,28 @@ ipcMain.handle(
     patch: Partial<
       Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
     >
-  ) => updateChat(id, patch)
+  ) => {
+    // Получаем параметры для RAG индексирования из settings
+    const settings = await loadSettings()
+    const ollamaUrl = settings.ollamaUrl || 'http://127.0.0.1:11434'
+    const projectPath = patch.projectPath || ''
+
+    return updateChat(
+      id,
+      patch,
+      projectPath && ollamaUrl
+        ? {
+            ollamaUrl,
+            projectPath
+          }
+        : undefined
+    )
+  }
 )
 
-ipcMain.handle('delete-chat', async (_e, id: string) => deleteChat(id))
+ipcMain.handle('delete-chat', async (_e, id: string, projectPath?: string) =>
+  deleteChat(id, projectPath)
+)
 
 ipcMain.handle('create-chat-folder', async (_e, name: string) => createFolder(name))
 
@@ -620,7 +638,8 @@ ipcMain.handle(
         abortCtrl.signal,
         makeConfirmFn(abortCtrl.signal),
         summarizeModel,
-        makePreviewFn(abortCtrl.signal)
+        makePreviewFn(abortCtrl.signal),
+        chatId
       )
 
       await runner.run(history, userMessage)

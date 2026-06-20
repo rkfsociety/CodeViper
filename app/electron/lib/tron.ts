@@ -1,15 +1,8 @@
 /**
- * TRON (Token Reduced Object Notation) — компактный формат для сериализации данных
- * Сокращает размер JSON на ~27% за счёт удаления лишних кавычек и пробелов
+ * TRON (Token Reduced Object Notation) для Electron main process
+ * Используется для сжатия больших объёмов данных при IPC и логировании
  */
 
-/**
- * Сериализует значение в TRON формат
- * Примеры:
- *   {name: "test"} → {n:"test"}
- *   [1, 2, 3] → [1,2,3]
- *   null → ~
- */
 export function tronStringify(value: unknown): string {
   const cache = new WeakMap<object, string>()
 
@@ -49,9 +42,6 @@ export function tronStringify(value: unknown): string {
   return stringify(value)
 }
 
-/**
- * Парсит TRON строку обратно в объект
- */
 export function tronParse(tron: string): unknown {
   let pos = 0
 
@@ -177,27 +167,54 @@ export function tronParse(tron: string): unknown {
 }
 
 /**
- * Вспомогательные функции для localStorage
+ * Логгер для Electron main process с TRON сжатием
  */
-export const tronStorage = {
-  getItem(key: string): unknown {
-    try {
-      const raw = localStorage.getItem(key)
-      return raw ? tronParse(raw) : null
-    } catch {
-      return null
-    }
-  },
+export class TronLogger {
+  private static readonly TAG = '[TRON]'
 
-  setItem(key: string, value: unknown): void {
-    try {
-      localStorage.setItem(key, tronStringify(value))
-    } catch {
-      // ignore quota errors
+  static log(message: string, data?: unknown): void {
+    if (data) {
+      const compressed = tronStringify(data)
+      console.log(`${TronLogger.TAG} ${message}`, compressed)
+    } else {
+      console.log(`${TronLogger.TAG} ${message}`)
     }
-  },
+  }
 
-  removeItem(key: string): void {
-    localStorage.removeItem(key)
+  static error(message: string, error?: unknown, data?: unknown): void {
+    if (error && data) {
+      const compressed = tronStringify(data)
+      console.error(`${TronLogger.TAG} ${message}`, error, compressed)
+    } else if (error) {
+      console.error(`${TronLogger.TAG} ${message}`, error)
+    } else {
+      console.error(`${TronLogger.TAG} ${message}`)
+    }
+  }
+
+  static info(message: string, data?: unknown): void {
+    TronLogger.log(`[INFO] ${message}`, data)
+  }
+
+  static warn(message: string, data?: unknown): void {
+    console.warn(`${TronLogger.TAG} [WARN] ${message}`, data ? tronStringify(data) : '')
+  }
+
+  /**
+   * Получить размер экономии при сжатии
+   */
+  static getCompressionRatio(original: unknown): {
+    original: number
+    compressed: number
+    ratio: number
+  } {
+    const json = JSON.stringify(original)
+    const tron = tronStringify(original)
+    const ratio = ((1 - tron.length / json.length) * 100).toFixed(1)
+    return {
+      original: json.length,
+      compressed: tron.length,
+      ratio: parseFloat(ratio)
+    }
   }
 }

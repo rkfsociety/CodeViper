@@ -2,6 +2,7 @@ import type {
   AgentContextMessagePreview,
   AgentContextPreview,
   AgentContextSection,
+  AgentRole,
   ChatMessage,
   FileNode
 } from '../../src/types'
@@ -21,6 +22,7 @@ import {
   MAX_TOOL_MESSAGE_CHARS
 } from '../../shared/contextLimits'
 import { compressContextMessages } from './contextSummarizer'
+import { searchRAGMessages } from './contextRAG'
 import type { ProviderConfig } from '../../shared/modelProvider'
 
 export interface OllamaMessage {
@@ -126,6 +128,71 @@ async function buildAgentContext(projectPath: string, taskHint: string): Promise
   return [memoryContext, skillsContext].filter(Boolean).join('\n\n')
 }
 
+/**
+ * Объединить историю сообщений с RAG поиском.
+ * Возвращает релевантные сообщения из истории + RAG результаты.
+ */
+async function getMergedHistoryWithRAG(
+  history: ChatMessage[],
+  userMessage: string,
+  chatId: string,
+  projectPath: string,
+  ollamaUrl: string,
+  maxHistoryMessages: number
+): Promise<ChatMessage[]> {
+  const recentMessages = history.slice(-maxHistoryMessages)
+
+  // Пытаемся найти релевантные сообщения по семантике
+  const ragResults = await searchRAGMessages(
+    userMessage,
+    chatId,
+    projectPath,
+    ollamaUrl,
+    Math.floor(maxHistoryMessages / 2),
+    0.25
+  ).catch(() => [])
+
+  if (ragResults.length === 0) {
+    return recentMessages
+  }
+
+  // Создаём Map недавних сообщений для быстрого поиска
+  const recentIds = new Set(recentMessages.map((m) => m.id))
+
+  // Преобразуем RAG результаты обратно в ChatMessage
+  const ragMessages: ChatMessage[] = ragResults
+    .filter((r) => !recentIds.has(r.id))
+    .slice(0, Math.floor(maxHistoryMessages / 3))
+    .map((r) => ({
+      id: r.id,
+      role: r.message.role as AgentRole,
+      content: r.message.content,
+      timestamp: Date.now()
+    }))
+
+  // Объединяем: недавние + релевантные из RAG (без дупликатов)
+  const mergedIds = new Set<string>()
+  const merged: ChatMessage[] = []
+
+  // Сначала добавляем недавние сообщения
+  for (const m of recentMessages) {
+    if (!mergedIds.has(m.id)) {
+      merged.push(m)
+      mergedIds.add(m.id)
+    }
+  }
+
+  // Затем добавляем релевантные из RAG (если не было в недавних)
+  for (const m of ragMessages) {
+    if (!mergedIds.has(m.id)) {
+      merged.push(m)
+      mergedIds.add(m.id)
+    }
+  }
+
+  return merged
+}
+
 function stripThinkingTags(content: string): string {
   return content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
 }
@@ -192,6 +259,10 @@ export interface PrepareAgentContextOptions {
   summarizeThresholdPercent?: number
   /** Режим чата: только базовый промпт без инструментов, дерева проекта и памяти */
   chatMode?: boolean
+  /** ID чата для RAG поиска релевантных сообщений */
+  chatId?: string
+  /** Включить RAG поиск релевантных сообщений из истории */
+  enableRAG?: boolean
 }
 
 function section(
@@ -267,7 +338,24 @@ export async function buildAgentContextPreview(
   )
 
   const adaptiveLimits = computeAdaptiveLimits(model, options.modelContextLength)
-  const slicedHistory = history.slice(-adaptiveLimits.maxHistoryMessages)
+
+  // Используем RAG поиск если включен и есть chatId и ollamaUrl
+  let slicedHistory = history.slice(-adaptiveLimits.maxHistoryMessages)
+  if (options.enableRAG && options.chatId && options.ollamaUrl) {
+    try {
+      slicedHistory = await getMergedHistoryWithRAG(
+        history,
+        userMessage,
+        options.chatId,
+        projectPath,
+        options.ollamaUrl,
+        adaptiveLimits.maxHistoryMessages
+      )
+    } catch {
+      // Fallback на обычную историю при ошибке RAG
+    }
+  }
+
   const mappedHistory = slicedHistory
     .map((m) =>
       mapHistoryMessageToOllama(
