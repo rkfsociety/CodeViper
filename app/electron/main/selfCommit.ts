@@ -220,7 +220,7 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
   }
 
   const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 80) || 'правки агента'
-  const message = `chore(self): автоправки агента — ${shortSummary}`
+  const message = `chore(self): автоправки агента — ${shortSummary}\n\nCo-authored-by: CodeViper <295331836+CodeViperApp@users.noreply.github.com>`
 
   const commit = await runGit(source, ['commit', '-m', message, '--', '.'])
   if (commit.code !== 0) {
