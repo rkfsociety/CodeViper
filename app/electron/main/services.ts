@@ -211,6 +211,27 @@ export async function safeReadFile(projectPath: string, filePath: string): Promi
   return readFile(filePath, 'utf-8')
 }
 
+// LRU-кэш read_file / read_codeviper_file: ключ {path, offset, limit}, инвалидация по mtime
+const READ_CACHE_MAX = 500
+type ReadCacheEntry = { result: string; mtimeMs: number }
+const readFileCache = new Map<string, ReadCacheEntry>()
+
+function readCacheKey(filePath: string, offset: number, limit: number | undefined): string {
+  return `${filePath}\0${offset}\0${limit ?? ''}`
+}
+
+function readCacheEvict(): void {
+  if (readFileCache.size >= READ_CACHE_MAX) {
+    readFileCache.delete(readFileCache.keys().next().value!)
+  }
+}
+
+export function invalidateReadCache(filePath: string): void {
+  for (const key of readFileCache.keys()) {
+    if (key.startsWith(filePath + '\0')) readFileCache.delete(key)
+  }
+}
+
 export async function safeReadFilePartial(
   projectPath: string,
   filePath: string,
@@ -225,31 +246,44 @@ export async function safeReadFilePartial(
   if (!info.isFile()) throw new Error('Это не файл')
 
   const isLarge = info.size > FILE_SIZE_LIMIT_BYTES
-  const usePartial = isLarge || offset > 0 || limit != null
 
-  if (!usePartial) {
-    return readFile(filePath, 'utf-8')
-  }
-
-  // Большие файлы: разбивка строк в worker_thread, чтобы не блокировать main
+  // Большие файлы не кэшируем — они идут через worker
   if (isLarge) {
     return readLargeFileQueued(filePath, offset, limit ?? null, READ_DEFAULT_LINE_LIMIT)
   }
 
-  const raw = await readFile(filePath, 'utf-8')
-  const allLines = raw.split('\n')
-  const totalLines = allLines.length
-  const from = Math.max(0, offset)
-  const count = limit != null ? Math.max(1, limit) : READ_DEFAULT_LINE_LIMIT
-  const to = Math.min(from + count, totalLines)
-  const chunk = allLines.slice(from, to).join('\n')
-  const remaining = totalLines - to
+  const cacheKey = readCacheKey(filePath, offset, limit)
+  const cached = readFileCache.get(cacheKey)
+  if (cached && cached.mtimeMs === info.mtimeMs) {
+    // Обновляем позицию в LRU
+    readFileCache.delete(cacheKey)
+    readFileCache.set(cacheKey, cached)
+    return cached.result
+  }
 
-  const header = `[Файл: ${filePath} | строки ${from + 1}–${to} из ${totalLines}]`
-  const footer =
-    remaining > 0 ? `\n[Ещё ${remaining} строк. Читай дальше: offset=${to}]` : `\n[Конец файла]`
+  const usePartial = offset > 0 || limit != null
 
-  return `${header}\n${chunk}${footer}`
+  let result: string
+  if (!usePartial) {
+    result = await readFile(filePath, 'utf-8')
+  } else {
+    const raw = await readFile(filePath, 'utf-8')
+    const allLines = raw.split('\n')
+    const totalLines = allLines.length
+    const from = Math.max(0, offset)
+    const count = limit != null ? Math.max(1, limit) : READ_DEFAULT_LINE_LIMIT
+    const to = Math.min(from + count, totalLines)
+    const chunk = allLines.slice(from, to).join('\n')
+    const remaining = totalLines - to
+    const header = `[Файл: ${filePath} | строки ${from + 1}–${to} из ${totalLines}]`
+    const footer =
+      remaining > 0 ? `\n[Ещё ${remaining} строк. Читай дальше: offset=${to}]` : `\n[Конец файла]`
+    result = `${header}\n${chunk}${footer}`
+  }
+
+  readCacheEvict()
+  readFileCache.set(cacheKey, { result, mtimeMs: info.mtimeMs })
+  return result
 }
 
 export async function safeWriteFile(
@@ -268,6 +302,7 @@ export async function safeWriteFile(
 
   await mkdir(dir, { recursive: true })
   await writeFile(filePath, content, 'utf-8')
+  invalidateReadCache(filePath)
 }
 
 function assertPathInsideProject(projectPath: string, filePath: string, label = 'файл'): void {
@@ -297,6 +332,7 @@ export async function safeCreateFile(
 
   await mkdir(dir, { recursive: true })
   await writeFile(filePath, content, 'utf-8')
+  invalidateReadCache(filePath)
 }
 
 export async function safeEditFile(
@@ -340,6 +376,7 @@ export async function safeAppendFile(
   }
 
   await appendFile(filePath, content, 'utf-8')
+  invalidateReadCache(filePath)
 }
 
 export async function safeDeleteFile(projectPath: string, filePath: string): Promise<void> {
