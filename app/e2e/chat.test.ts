@@ -26,6 +26,7 @@ test.describe('Чат', () => {
   test('пикер модели виден и содержит текст', async () => {
     const { app, page } = await launchApp()
     try {
+      await page.locator('button', { hasText: '+ Чат' }).click()
       const picker = page.locator('[data-testid="model-picker-btn"]')
       await expect(picker).toBeVisible({ timeout: 10_000 })
     } finally {
@@ -47,11 +48,7 @@ test.describe('Чат', () => {
   test('ввод текста в поле сообщения работает', async () => {
     const { app, page } = await launchApp()
     try {
-      // Создаём новый чат чтобы textarea стала активной
-      const newChatBtn = page.locator('button', { hasText: /новый|new chat/i }).first()
-      if (await newChatBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await newChatBtn.click()
-      }
+      await page.locator('button', { hasText: '+ Чат' }).click()
       const input = page.locator('textarea').first()
       await expect(input).toBeVisible({ timeout: 10_000 })
       await expect(input).toBeEnabled({ timeout: 5_000 })
