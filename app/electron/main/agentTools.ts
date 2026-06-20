@@ -65,6 +65,26 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'search_in_file',
+      description:
+        'Поиск текста внутри одного файла (включая файлы >512KB, которые grep_files пропускает). Возвращает строки с совпадениями и их номера.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'путь к файлу' },
+          query: { type: 'string', description: 'Текст или /regex/i для поиска' },
+          context_lines: {
+            type: 'string',
+            description: 'Число строк контекста вокруг совпадения (0–5, по умолч. 0)'
+          }
+        },
+        required: ['path', 'query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'show_file_history',
       description:
         'Показать историю правок файла: список всех изменений, внесённых агентом, с датой и unified diff каждого изменения.',
@@ -727,10 +747,43 @@ export const AGENT_TOOLS = [
   }
 ] as const
 
-export function formatAgentToolsSummary(): string {
-  return AGENT_TOOLS.map(
-    (tool) => `- **${tool.function.name}** — ${tool.function.description}`
-  ).join('\n')
+/** Инструменты, нужные только в режиме самоулучшения (codeviper_* + ollama model tools + plan). */
+const SELF_IMPROVE_ONLY_TOOLS = new Set<string>([
+  'list_codeviper_directory',
+  'grep_codeviper_files',
+  'find_codeviper_files',
+  'read_codeviper_file',
+  'write_codeviper_file',
+  'create_codeviper_file',
+  'edit_codeviper_file',
+  'append_codeviper_file',
+  'delete_codeviper_file',
+  'move_codeviper_file',
+  'run_codeviper_command',
+  'create_codeviper_branch',
+  'push_codeviper_branch',
+  'create_codeviper_pr',
+  'preview_ollama_modelfile',
+  'create_ollama_model',
+  'set_self_improvement_plan',
+  'complete_self_improvement_item',
+  'get_self_improvement_plan'
+])
+
+/**
+ * Возвращает список инструментов для текущего режима.
+ * В обычном режиме исключает 19 специализированных инструментов (codeviper, ollama, self-improve plan),
+ * что экономит ~35% размера tools JSON и системного контекста.
+ */
+export function getAgentTools(selfImproveMode: boolean) {
+  if (selfImproveMode) return AGENT_TOOLS
+  return AGENT_TOOLS.filter((t) => !SELF_IMPROVE_ONLY_TOOLS.has(t.function.name))
+}
+
+export function formatAgentToolsSummary(selfImproveMode = true): string {
+  return getAgentTools(selfImproveMode)
+    .map((tool) => `- **${tool.function.name}** — ${tool.function.description}`)
+    .join('\n')
 }
 
 /** Имя любого инструмента — выводится прямо из AGENT_TOOLS, не разъезжается со схемами. */
@@ -745,6 +798,7 @@ export interface ToolArgs {
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
+  search_in_file: { path: string; query: string; context_lines?: string }
   show_file_history: { path: string }
   preview_edit: { path: string; content: string }
   write_file: { path: string; content: string }

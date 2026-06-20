@@ -2,7 +2,12 @@ import { Worker } from 'worker_threads'
 import { join } from 'path'
 import type { GrepMatch } from './fileSearch'
 
-type GrepResult = { matches: GrepMatch[]; truncated: boolean; filesScanned: number }
+type GrepResult = {
+  matches: GrepMatch[]
+  truncated: boolean
+  filesScanned: number
+  skippedLargeFiles: string[]
+}
 type FindResult = { paths: string[]; truncated: boolean; filesScanned: number }
 
 function runWorker<T>(req: object, onProgress?: (scanned: number) => void): Promise<T> {

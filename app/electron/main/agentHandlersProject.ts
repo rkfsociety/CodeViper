@@ -109,6 +109,61 @@ export function createProjectToolHandlers(
       return safeReadFilePartial(projectPath, args.path, offset, limit)
     },
 
+    search_in_file: async (args) => {
+      assertInsideProject(args.path, 'файл')
+      const absPath = resolve(projectPath, args.path)
+      const contextLines = Math.min(5, Math.max(0, parseInt(args.context_lines ?? '0', 10) || 0))
+      const MAX_SEARCH_RESULTS = 100
+
+      let content: string
+      try {
+        content = await readFile(absPath, 'utf-8')
+      } catch {
+        return `Ошибка чтения файла: ${args.path}`
+      }
+      if (content.includes('\0')) return `Файл бинарный, поиск невозможен: ${args.path}`
+
+      const trimmed = args.query.trim()
+      let matcher: (line: string) => boolean
+      const slash = trimmed.match(/^\/(.+)\/([a-z]*)$/i)
+      if (slash) {
+        try {
+          const re = new RegExp(slash[1], slash[2].includes('i') ? 'i' : undefined)
+          matcher = (line) => re.test(line)
+        } catch {
+          matcher = (line) => line.toLowerCase().includes(trimmed.toLowerCase())
+        }
+      } else {
+        const lower = trimmed.toLowerCase()
+        matcher = (line) => line.toLowerCase().includes(lower)
+      }
+
+      const lines = content.split('\n')
+      const results: string[] = []
+      let count = 0
+      let truncated = false
+
+      for (let i = 0; i < lines.length; i++) {
+        if (!matcher(lines[i])) continue
+        if (count >= MAX_SEARCH_RESULTS) {
+          truncated = true
+          break
+        }
+        count++
+        const start = Math.max(0, i - contextLines)
+        const end = Math.min(lines.length - 1, i + contextLines)
+        for (let j = start; j <= end; j++) {
+          const marker = j === i ? '>' : ' '
+          results.push(`${marker}${j + 1}: ${lines[j].trimEnd().slice(0, 300)}`)
+        }
+        if (contextLines > 0 && i + contextLines < lines.length - 1) results.push('---')
+      }
+
+      if (!results.length) return `Совпадений не найдено в ${args.path} (строк: ${lines.length}).`
+      const header = `Найдено: ${count}${truncated ? '+' : ''} совпадений в ${args.path} (строк в файле: ${lines.length})\nЗапрос: ${args.query}`
+      return `${header}\n\n${results.join('\n')}`
+    },
+
     write_file: guardWrite(async (args) => {
       assertInsideProject(args.path)
       let oldContent = ''

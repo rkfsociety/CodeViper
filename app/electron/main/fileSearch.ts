@@ -114,11 +114,17 @@ export async function grepInTree(
   root: string,
   query: string,
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
-): Promise<{ matches: GrepMatch[]; truncated: boolean; filesScanned: number }> {
+): Promise<{
+  matches: GrepMatch[]
+  truncated: boolean
+  filesScanned: number
+  skippedLargeFiles: string[]
+}> {
   const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
   const maxResults = options?.maxResults ?? MAX_GREP_RESULTS
   const matcher = compileLineMatcher(query)
   const matches: GrepMatch[] = []
+  const skippedLargeFiles: string[] = []
   let truncated = false
 
   const filesScanned = await walkProjectFiles(
@@ -135,7 +141,11 @@ export async function grepInTree(
       } catch {
         return false
       }
-      if (!info.isFile() || info.size > MAX_GREP_FILE_BYTES) return false
+      if (!info.isFile()) return false
+      if (info.size > MAX_GREP_FILE_BYTES) {
+        skippedLargeFiles.push(filePath)
+        return false
+      }
 
       let content: string
       try {
@@ -164,16 +174,26 @@ export async function grepInTree(
     options?.onProgress
   )
 
-  return { matches, truncated, filesScanned }
+  return { matches, truncated, filesScanned, skippedLargeFiles }
 }
 
 export function formatGrepResults(
   root: string,
   query: string,
-  result: { matches: GrepMatch[]; truncated: boolean; filesScanned: number }
+  result: {
+    matches: GrepMatch[]
+    truncated: boolean
+    filesScanned: number
+    skippedLargeFiles: string[]
+  }
 ): string {
+  const skippedNote =
+    result.skippedLargeFiles.length > 0
+      ? `\nПропущено (>512KB): ${result.skippedLargeFiles.map((f) => relative(root, f).split(sep).join('/')).join(', ')} — используй search_in_file для поиска внутри них`
+      : ''
+
   if (!result.matches.length) {
-    return `Совпадений не найдено (просмотрено файлов: ${result.filesScanned}).`
+    return `Совпадений не найдено (просмотрено файлов: ${result.filesScanned}).${skippedNote}`
   }
 
   const lines = result.matches.map((match) => {
@@ -182,7 +202,7 @@ export function formatGrepResults(
   })
 
   const header = `Найдено: ${result.matches.length}${result.truncated ? '+' : ''} (файлов просмотрено: ${result.filesScanned})`
-  return `${header}\nЗапрос: ${query}\n\n${lines.join('\n')}`
+  return `${header}\nЗапрос: ${query}\n\n${lines.join('\n')}${skippedNote}`
 }
 
 export async function findFilesInTree(

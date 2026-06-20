@@ -15,7 +15,7 @@ import {
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
 import { prepareAgentRunContext, type OllamaMessage } from './agentContext'
-import { AGENT_TOOLS, type ToolHandlers, type ToolName } from './agentTools'
+import { getAgentTools, type ToolHandlers, type ToolName } from './agentTools'
 import {
   isSelfImprovementTask,
   parsePlanFromAssistantText,
@@ -122,6 +122,7 @@ const REFLECTION_PROMPT = `Проанализируй выполненную з�
 
 export class AgentRunner {
   private selfImprovementPlan = new SelfImprovementPlanStore()
+  private selfImproveMode = false
   private modelRuntime: ModelRuntime
   private providerConfig: ProviderConfig
   /** Конфиг провайдера для суммаризации контекста (может отличаться от основного) */
@@ -265,6 +266,7 @@ export class AgentRunner {
     })
 
     const autonomousSelfImprove = isSelfImprovementTask(userMessage)
+    this.selfImproveMode = autonomousSelfImprove
 
     if (autonomousSelfImprove) {
       this.selfImprovementPlan.reset()
@@ -897,7 +899,7 @@ export class AgentRunner {
       messages,
       model: this.settings.model,
       summarizeModel: this.summarizeModelResolved,
-      toolsJsonChars: JSON.stringify(AGENT_TOOLS).length,
+      toolsJsonChars: JSON.stringify(getAgentTools(this.selfImproveMode)).length,
       providerConfig: this.summarizeProviderConfig,
       signal: this.signal,
       onCompressStart: () => {
@@ -1012,7 +1014,7 @@ export class AgentRunner {
     }))
 
     // Трансформируем AGENT_TOOLS в формат провайдеров (name + description + input_schema)
-    const toolsForProvider = AGENT_TOOLS.map((tool) => ({
+    const toolsForProvider = getAgentTools(this.selfImproveMode).map((tool) => ({
       name: tool.function.name,
       description: tool.function.description,
       input_schema: tool.function.parameters

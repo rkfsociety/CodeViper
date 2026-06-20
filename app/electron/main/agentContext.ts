@@ -10,7 +10,7 @@ import { buildSelfEditContext } from './codeviperSource'
 import { buildMemoryContext } from './memory'
 import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
-import { AGENT_TOOLS, formatAgentToolsSummary } from './agentTools'
+import { getAgentTools, formatAgentToolsSummary } from './agentTools'
 import { SELF_IMPROVEMENT_MODE_PROMPT } from '../../shared/selfImprovement'
 import { DEEP_REASONING_PROMPT, isThinkingModel } from '../../shared/reasoning'
 import {
@@ -97,7 +97,8 @@ function buildSystemPrompt(
   clarifyMode = false,
   cotReasoning = false
 ): string {
-  const parts = [BASE_SYSTEM_PROMPT, buildSelfEditContext()]
+  const parts = [BASE_SYSTEM_PROMPT]
+  if (selfImproveMode) parts.push(buildSelfEditContext())
 
   // Для не-think моделей усиливаем рассуждение через промпт.
   if (cotReasoning) {
@@ -276,7 +277,8 @@ export async function buildAgentContextPreview(
     )
     .filter((m): m is OllamaMessage => m !== null)
 
-  const toolsJsonChars = JSON.stringify(AGENT_TOOLS).length
+  const activeTools = getAgentTools(selfImproveMode)
+  const toolsJsonChars = JSON.stringify(activeTools).length
   const initialMessages: OllamaMessage[] = [
     { role: 'system', content: systemContent },
     ...mappedHistory,
@@ -314,14 +316,15 @@ export async function buildAgentContextPreview(
     }
   }
 
-  const selfEditContent = buildSelfEditContext()
   const projectContent = projectPath.trim() ? buildProjectContext(projectPath, projectTreeText) : ''
-  const toolsContent = formatAgentToolsSummary()
+  const toolsContent = formatAgentToolsSummary(selfImproveMode)
 
   const sections: AgentContextSection[] = [
-    section('instructions', 'Инструкции агента', BASE_SYSTEM_PROMPT),
-    section('self-edit', 'Саморедактирование', selfEditContent)
+    section('instructions', 'Инструкции агента', BASE_SYSTEM_PROMPT)
   ]
+  if (selfImproveMode) {
+    sections.push(section('self-edit', 'Саморедактирование', buildSelfEditContext()))
+  }
 
   if (projectContent) {
     sections.push(section('project', 'Проект', projectContent, projectPath))
@@ -352,7 +355,7 @@ export async function buildAgentContextPreview(
   sections.push(
     section(
       'tools',
-      `Инструменты (${AGENT_TOOLS.length})`,
+      `Инструменты (${activeTools.length})`,
       toolsContent,
       'Схема function calling для Ollama'
     )
@@ -374,7 +377,7 @@ export async function buildAgentContextPreview(
     historyTruncated: compressed.truncated,
     historySummarized: compressed.summarized,
     droppedMessageCount: compressed.droppedMessageCount,
-    toolCount: AGENT_TOOLS.length,
+    toolCount: activeTools.length,
     sections,
     messages,
     adaptiveLimits
