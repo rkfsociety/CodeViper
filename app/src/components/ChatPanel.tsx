@@ -139,49 +139,55 @@ const MessageRow = memo(function MessageRow({
   onRetry: (message: ChatMessage) => void
   onEdit: (message: ChatMessage) => void
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [menuOpen])
+
   return (
     <div className={`message ${message.role}${pinned ? ' pinned' : ''}`}>
-      <div className="message-header">
-        <MessageRoleBadge role={message.role} toolName={message.toolName} />
-        {message.role === 'assistant' && message.durationMs != null && (
-          <span className="message-duration" title="Время генерации">
-            ⏱ {(message.durationMs / 1000).toFixed(1)}s
-          </span>
-        )}
-        <MessageCopyButton text={messageCopyText(message)} />
-        {!busy && (
-          <button
-            type="button"
-            className={`btn message-pin-btn${pinned ? ' active' : ''}`}
-            title={pinned ? 'Открепить' : 'Закрепить'}
-            aria-label={pinned ? 'Открепить сообщение' : 'Закрепить сообщение'}
-            aria-pressed={pinned}
-            onClick={() => onPin(message.id)}
-          >
-            📌
-          </button>
-        )}
-        {!busy && message.role === 'user' && (
-          <>
-            <button
-              type="button"
-              className="btn message-action-btn"
-              title="Повторить"
-              aria-label="Повторить запрос"
-              onClick={() => onRetry(message)}
-            >
-              ↺
-            </button>
-            <button
-              type="button"
-              className="btn message-action-btn"
-              title="Изменить"
-              aria-label="Редактировать запрос"
-              onClick={() => onEdit(message)}
-            >
-              ✎
-            </button>
-          </>
+      <div className="message-menu" ref={menuRef}>
+        <button
+          type="button"
+          className="btn message-menu-trigger"
+          title="Действия"
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          ···
+        </button>
+        {menuOpen && (
+          <div className="message-menu-dropdown" onClick={() => setMenuOpen(false)}>
+            <MessageCopyButton text={messageCopyText(message)} asMenuItem />
+            {!busy && (
+              <button type="button" className="message-menu-item" onClick={() => onPin(message.id)}>
+                {pinned ? '📌 Открепить' : '📌 Закрепить'}
+              </button>
+            )}
+            {!busy && message.role === 'user' && (
+              <>
+                <button
+                  type="button"
+                  className="message-menu-item"
+                  onClick={() => onRetry(message)}
+                >
+                  ↺ Повторить
+                </button>
+                <button type="button" className="message-menu-item" onClick={() => onEdit(message)}>
+                  ✎ Изменить
+                </button>
+              </>
+            )}
+            {message.role === 'assistant' && message.durationMs != null && (
+              <span className="message-menu-meta">⏱ {(message.durationMs / 1000).toFixed(1)}s</span>
+            )}
+          </div>
         )}
       </div>
       {message.role === 'assistant' && message.thinking && (

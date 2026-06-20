@@ -2,15 +2,15 @@ import { useState } from 'react'
 
 interface Props {
   text: string
+  asMenuItem?: boolean
 }
 
-export function MessageCopyButton({ text }: Props) {
+export function MessageCopyButton({ text, asMenuItem }: Props) {
   const [copied, setCopied] = useState(false)
 
   async function copy() {
     const value = text.trim()
     if (!value) return
-
     try {
       await navigator.clipboard.writeText(value)
       setCopied(true)
@@ -18,6 +18,19 @@ export function MessageCopyButton({ text }: Props) {
     } catch {
       setCopied(false)
     }
+  }
+
+  if (asMenuItem) {
+    return (
+      <button
+        type="button"
+        className="message-menu-item"
+        onClick={() => void copy()}
+        disabled={!text.trim()}
+      >
+        {copied ? '✓ Скопировано' : '⎘ Копировать'}
+      </button>
+    )
   }
 
   return (
