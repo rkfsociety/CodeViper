@@ -39,7 +39,7 @@ export class ModelRuntime {
       const model = config.model || 'openai/gpt-4o-mini'
       return new OpenAIProvider(baseUrl, apiKey, model, {
         'HTTP-Referer': 'https://github.com/rkfsociety/CodeViper',
-        'X-Title': 'CodeViper'
+        'X-OpenRouter-Title': 'CodeViper'
       })
     }
 
