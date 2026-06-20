@@ -870,6 +870,96 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onClose={() => setContextModalOpen(false)}
       />
 
+      {/* Информационная полоса над чатом */}
+      {chatId && contextPreview && (
+        <div className={styles.chatHeader}>
+          <div className={styles.chatHeaderLeft}>
+            <button
+              type="button"
+              className={styles.contextButton}
+              onClick={() => setContextModalOpen(true)}
+              title="Открыть превью контекста"
+            >
+              <div
+                className={styles.contextCircle}
+                style={{
+                  background: `conic-gradient(var(--blue, #0969da) 0deg ${contextPreview.contextUsagePercent * 3.6}deg, var(--border, #30363d) ${contextPreview.contextUsagePercent * 3.6}deg 360deg)`
+                }}
+              >
+                <div className={styles.contextCircleInner}>
+                  <span className={styles.contextPercent}>
+                    {contextPreview.contextUsagePercent}%
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* Селектор модели */}
+            <div className={styles.headerModelPicker} ref={modelPickerRef}>
+              <button
+                type="button"
+                className={styles.headerModelBtn}
+                title={settings.model}
+                onClick={() => setModelPickerOpen((v) => !v)}
+              >
+                {settings.autoModel !== false && <span className={styles.modelAuto}>Авто</span>}
+                {formatModelShort(runModel || settings.model)}
+                <span className={styles.modelChevron}>{modelPickerOpen ? '▴' : '▾'}</span>
+              </button>
+              {modelPickerOpen && (
+                <div className={styles.headerModelDropdown} role="listbox">
+                  <button
+                    type="button"
+                    className={`${styles.modelPickerItem}${settings.autoModel !== false ? ' ' + styles.modelPickerActive : ''}`}
+                    role="option"
+                    aria-selected={settings.autoModel !== false}
+                    onClick={() => {
+                      onModelChange?.(settings.model, true)
+                      setModelPickerOpen(false)
+                    }}
+                  >
+                    Авто
+                  </button>
+                  {displayModels.length > 0 && <div className={styles.modelPickerSep} />}
+                  {displayModels.map((m: OllamaModel) => {
+                    const isActive = settings.autoModel === false && settings.model === m.name
+                    return (
+                      <button
+                        key={m.name}
+                        type="button"
+                        className={`${styles.modelPickerItem}${isActive ? ' ' + styles.modelPickerActive : ''}`}
+                        role="option"
+                        aria-selected={isActive}
+                        onClick={() => {
+                          onModelChange?.(m.name, false)
+                          setModelPickerOpen(false)
+                        }}
+                      >
+                        {m.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Статистика справа */}
+          <div className={styles.chatHeaderRight}>
+            {runStats && runStats.elapsedSec > 0 && (
+              <span className={styles.headerStat} title="Время выполнения">
+                {formatElapsed(runStats.elapsedSec)}
+              </span>
+            )}
+            {runStats && runStats.tokens > 0 && (
+              <span className={styles.headerStat} title="Токены">
+                {formatTokenCount(runStats.tokens)}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className={styles.messages} ref={scrollRef}>
         {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
         {chatId && !projectPath && !messages.length && (
