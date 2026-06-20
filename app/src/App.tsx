@@ -11,7 +11,7 @@ import type {
 } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
-import { formatElapsed, formatTokenCount } from '../shared/generationMetrics'
+import { formatTokenCount } from '../shared/generationMetrics'
 import { useMemo } from 'react'
 import { AgentProvider, useAgentState } from './contexts/AgentContext'
 import { ChatContext } from './contexts/ChatContext'
@@ -507,11 +507,8 @@ function AppContent() {
               onOpenSettings={() => setSettingsOpen(true)}
             />
           </div>
-          {runStats && (
-            <div className="topbar-run-stats">
-              {formatElapsed(runStats.elapsedSec)}
-              {runStats.tokens > 0 && <> · {formatTokenCount(runStats.tokens)} tok</>}
-            </div>
+          {runStats && runStats.tokens > 0 && (
+            <div className="topbar-run-stats">{formatTokenCount(runStats.tokens)} tok</div>
           )}
 
           <div className="topbar-actions">
