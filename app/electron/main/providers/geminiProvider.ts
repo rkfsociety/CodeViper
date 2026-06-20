@@ -44,34 +44,54 @@ export class GeminiProvider implements ModelProvider {
 
   async listModels(): Promise<LoadedModel[]> {
     try {
-      const res = await fetch(`${this.baseUrl}/models?key=${encodeURIComponent(this.apiKey)}`)
+      const res = await fetch(
+        `${this.baseUrl}/models?key=${encodeURIComponent(this.apiKey)}&pageSize=100`
+      )
       if (!res.ok) return []
 
-      const data = (await res.json()) as { models?: Array<{ name?: string }> }
+      const data = (await res.json()) as {
+        models?: Array<{
+          name?: string
+          displayName?: string
+          supportedGenerationMethods?: string[]
+          inputTokenLimit?: number
+          outputTokenLimit?: number
+        }>
+      }
+
       return (data.models ?? [])
-        .map((model) => model.name || '')
-        .filter(Boolean)
-        .map((name) => ({ name }))
+        .filter((m) => {
+          const methods = m.supportedGenerationMethods ?? []
+          // Оставляем только модели, поддерживающие generateContent (для tool calling)
+          return methods.includes('generateContent')
+        })
+        .map((m) => {
+          const name = (m.name ?? '').replace(/^models\//, '')
+          const ctx = m.inputTokenLimit
+          return { name, contextLength: ctx }
+        })
+        .filter((m) => m.name)
     } catch {
       return []
     }
   }
 
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
-    const model = this.genAI.getGenerativeModel({
-      model: options.model || this.modelName,
-      tools: options.tools?.length
-        ? ([
-            {
-              functionDeclarations: options.tools.map((tool) => ({
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.input_schema as any
-              }))
-            }
-          ] as any)
-        : undefined
-    } as any)
+    const modelName = options.model || this.modelName
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const modelInit: any = { model: modelName }
+    if (options.tools?.length) {
+      modelInit.tools = [
+        {
+          functionDeclarations: options.tools.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.input_schema
+          }))
+        }
+      ]
+    }
+    const model = this.genAI.getGenerativeModel(modelInit)
 
     const systemMessages = options.messages.filter((msg) => msg.role === 'system' && msg.content)
     const systemInstruction = systemMessages
@@ -82,8 +102,11 @@ export class GeminiProvider implements ModelProvider {
     const toolNameById = new Map<string, string>()
     const history: GeminiContent[] = []
 
-    for (const msg of options.messages) {
-      if (msg.role === 'system') continue
+    const nonSystemMessages = options.messages.filter((m) => m.role !== 'system')
+
+    // Все сообщения кроме последнего пользовательского — в историю
+    for (let i = 0; i < nonSystemMessages.length - 1; i++) {
+      const msg = nonSystemMessages[i]
 
       if (msg.role === 'assistant') {
         const parts: GeminiPart[] = []
@@ -123,42 +146,63 @@ export class GeminiProvider implements ModelProvider {
       }
     }
 
-    const chat = model.startChat(
-      history.length
-        ? ({ history, systemInstruction: systemInstruction || undefined } as any)
+    const lastMsg = nonSystemMessages.at(-1)
+    const lastContent = lastMsg?.content || ''
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chatInit: any =
+      history.length || systemInstruction
+        ? { history, systemInstruction: systemInstruction || undefined }
         : undefined
-    )
+    const chat = model.startChat(chatInit)
 
-    const result = await chat.sendMessage(options.messages.at(-1)?.content || '')
-    const response = result.response
-    const candidate = response.candidates?.[0]
-    const parts = candidate?.content?.parts ?? []
+    const result = await chat.sendMessageStream(lastContent)
 
-    let content = ''
     const toolCalls: ChatChunk['tool_calls'] = []
 
-    for (const part of parts) {
-      if (part.text) content += part.text
+    for await (const chunk of result.stream) {
+      const candidate = chunk.candidates?.[0]
+      const parts = candidate?.content?.parts ?? []
 
-      const functionCall = part.functionCall
-      if (functionCall?.name) {
-        const id = (functionCall as any).id || randomUUID()
-        toolCalls.push({
-          id,
-          type: 'function' as const,
-          function: {
-            name: functionCall.name,
-            arguments: JSON.stringify(functionCall.args ?? {})
-          }
-        })
+      let text = ''
+      for (const part of parts) {
+        if (part.text) text += part.text
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const functionCall = (part as any).functionCall
+        if (functionCall?.name) {
+          const id = (functionCall.id as string) || randomUUID()
+          toolCalls.push({
+            id,
+            type: 'function' as const,
+            function: {
+              name: functionCall.name as string,
+              arguments: JSON.stringify(functionCall.args ?? {})
+            }
+          })
+        }
+      }
+
+      if (text) {
+        yield {
+          content: text,
+          model: modelName
+        }
       }
     }
 
-    yield {
-      content,
-      tool_calls: toolCalls.length ? toolCalls : undefined,
-      model: options.model || this.modelName,
-      total_tokens: (response as any).usageMetadata?.totalTokenCount
+    const finalResponse = await result.response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const totalTokens = (finalResponse as any).usageMetadata?.totalTokenCount as number | undefined
+
+    // Tool calls отдаём в конце (они не стримятся)
+    if (toolCalls.length || totalTokens !== undefined) {
+      yield {
+        content: '',
+        tool_calls: toolCalls.length ? toolCalls : undefined,
+        model: modelName,
+        total_tokens: totalTokens
+      }
     }
   }
 
