@@ -1125,6 +1125,38 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         {chatId && (
           <div className={styles.inputMeta}>
             <div className={styles.metaLeft}>
+              {/* Проект */}
+              <button
+                type="button"
+                className={styles.metaBtn}
+                title={
+                  projectLocked
+                    ? `Проект зафиксирован — чат уже содержит сообщения (${projectPath})`
+                    : projectPath || 'Выбрать проект'
+                }
+                onClick={!projectLocked ? onPickProject : undefined}
+                style={projectLocked ? { cursor: 'default' } : undefined}
+                disabled={busy && !projectLocked}
+              >
+                📁 {projectPath ? formatProjectLabel(projectPath) : 'Выбрать проект'}
+                {projectLocked && (
+                  <span style={{ opacity: 0.45, fontSize: 9, marginLeft: 2 }}>🔒</span>
+                )}
+              </button>
+            </div>
+
+            <div className={styles.metaRight}>
+              {/* Быстрые промпты */}
+              <button
+                type="button"
+                className={`${styles.metaBtn}${showQuickBar ? ' ' + styles.metaBtnActive : ''}`}
+                title="Быстрые промпты"
+                onClick={() => setShowQuickBar((v) => !v)}
+                disabled={!projectPath}
+              >
+                /
+              </button>
+
               {/* Выбор модели */}
               <div className={styles.modelPicker} ref={modelPickerRef}>
                 <button
@@ -1184,38 +1216,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                   </div>
                 )}
               </div>
-
-              {/* Проект */}
-              <button
-                type="button"
-                className={styles.metaBtn}
-                title={
-                  projectLocked
-                    ? `Проект зафиксирован — чат уже содержит сообщения (${projectPath})`
-                    : projectPath || 'Выбрать проект'
-                }
-                onClick={!projectLocked ? onPickProject : undefined}
-                style={projectLocked ? { cursor: 'default' } : undefined}
-                disabled={busy && !projectLocked}
-              >
-                📁 {projectPath ? formatProjectLabel(projectPath) : 'Выбрать проект'}
-                {projectLocked && (
-                  <span style={{ opacity: 0.45, fontSize: 9, marginLeft: 2 }}>🔒</span>
-                )}
-              </button>
-            </div>
-
-            <div className={styles.metaRight}>
-              {/* Быстрые промпты */}
-              <button
-                type="button"
-                className={`${styles.metaBtn}${showQuickBar ? ' ' + styles.metaBtnActive : ''}`}
-                title="Быстрые промпты"
-                onClick={() => setShowQuickBar((v) => !v)}
-                disabled={!projectPath}
-              >
-                /
-              </button>
 
               {/* Кружок контекста с визуальным прогрессом */}
               <div className={styles.contextPopoverWrap} ref={contextPopoverRef}>
