@@ -255,6 +255,7 @@ export class AgentRunner {
 
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
     this.throwIfAborted()
+    this.clearEditSnapshots?.()
 
     const runStartMs = Date.now()
     void agentLogger.write({
@@ -1141,18 +1142,20 @@ export class AgentRunner {
   }
 
   private toolHandlers?: ToolHandlers
+  private clearEditSnapshots?: () => void
 
   private getToolHandlers(): ToolHandlers {
     if (this.toolHandlers) return this.toolHandlers
 
+    const projectResult = createProjectToolHandlers(
+      this.projectPath,
+      this.settings.commandTimeoutSec != null ? this.settings.commandTimeoutSec * 1000 : undefined,
+      { readonlyMode: this.settings.readonlyMode }
+    )
+    this.clearEditSnapshots = projectResult.clearEditSnapshots
+
     this.toolHandlers = {
-      ...createProjectToolHandlers(
-        this.projectPath,
-        this.settings.commandTimeoutSec != null
-          ? this.settings.commandTimeoutSec * 1000
-          : undefined,
-        { readonlyMode: this.settings.readonlyMode }
-      ),
+      ...projectResult.handlers,
       ...createCodeViperToolHandlers(),
       ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
       ...createSkillsToolHandlers(this.projectPath, this.emit),

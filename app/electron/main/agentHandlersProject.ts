@@ -34,7 +34,7 @@ export function createProjectToolHandlers(
   projectPath: string,
   commandTimeoutMs?: number,
   options?: { readonlyMode?: boolean }
-): Partial<ToolHandlers> {
+): { handlers: Partial<ToolHandlers>; clearEditSnapshots: () => void } {
   const editSnapshots = new Map<string, string>()
 
   // Проверяет, что путь (относительный или абсолютный) после resolve остаётся
@@ -64,7 +64,7 @@ export function createProjectToolHandlers(
     }
   }
 
-  return {
+  const handlers: Partial<ToolHandlers> = {
     list_directory: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
       const target = args.path?.trim() || projectPath
@@ -260,4 +260,6 @@ export function createProjectToolHandlers(
         oneline: args.oneline
       })
   }
+
+  return { handlers, clearEditSnapshots: () => editSnapshots.clear() }
 }
