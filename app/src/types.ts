@@ -158,6 +158,8 @@ export interface AgentSettings {
   gitSyncStrategy?: GitSyncStrategy
   /** GitHub Personal Access Token для создания Gist (экспорт памяти и навыков) */
   githubToken?: string
+  /** Исключать thinking из истории контекста (экономия 20-50% для think-моделей) */
+  excludeThinkingFromHistory?: boolean
   /** Включить облачный API параллельно с Ollama (для суммаризации или запасного канала) */
   cloudEnabled?: boolean
   /** Тип облачного провайдера: deepseek или openai-совместимый */

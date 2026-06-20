@@ -17,6 +17,7 @@ export interface PersistedSettings {
   permissionMode: PermissionMode
   clarifyMode: boolean
   deepReasoning: boolean
+  excludeThinkingFromHistory: boolean
   autoPushSelfEdits: boolean
   summarizeModel: string
   modelProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter'
@@ -42,6 +43,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   permissionMode: 'acceptEdits',
   clarifyMode: false,
   deepReasoning: false,
+  excludeThinkingFromHistory: true,
   autoPushSelfEdits: true,
   summarizeModel: '',
   modelProvider: DEFAULT_MODEL_PROVIDER,
@@ -81,6 +83,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ),
     clarifyMode: settings.clarifyMode === true,
     deepReasoning: settings.deepReasoning === true,
+    excludeThinkingFromHistory: settings.excludeThinkingFromHistory !== false,
     autoPushSelfEdits: settings.autoPushSelfEdits !== false,
     summarizeModel: settings.summarizeModel?.trim() ?? '',
     modelProvider: provider,

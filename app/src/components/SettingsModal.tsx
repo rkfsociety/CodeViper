@@ -490,6 +490,26 @@ export function SettingsModal({
                 <label className={styles.toggle}>
                   <input
                     type="checkbox"
+                    checked={settings.excludeThinkingFromHistory !== false}
+                    onChange={(e) =>
+                      onSettingsChange({ excludeThinkingFromHistory: e.target.checked })
+                    }
+                  />
+                  <span className={styles.track} aria-hidden="true">
+                    <span className={styles.thumb} />
+                  </span>
+                  <span className={styles.content}>
+                    <span className={styles.title}>Исключать reasoning из истории</span>
+                    <span className={styles.desc}>
+                      Убирает блоки &lt;think&gt;…&lt;/think&gt; из истории при построении
+                      контекста. Экономит 20–50% токенов для think-моделей (DeepSeek-R1, QwQ, Qwen3)
+                    </span>
+                  </span>
+                </label>
+
+                <label className={styles.toggle}>
+                  <input
+                    type="checkbox"
                     checked={settings.readonlyMode === true}
                     onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
                   />

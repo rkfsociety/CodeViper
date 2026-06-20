@@ -130,16 +130,23 @@ async function buildAgentContext(projectPath: string, taskHint: string): Promise
   return [memoryContext, skillsContext].filter(Boolean).join('\n\n')
 }
 
+function stripThinkingTags(content: string): string {
+  return content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+}
+
 function mapHistoryMessageToOllama(
   message: ChatMessage,
-  maxToolChars = MAX_TOOL_MESSAGE_CHARS
+  maxToolChars = MAX_TOOL_MESSAGE_CHARS,
+  excludeThinking = true
 ): OllamaMessage | null {
   switch (message.role) {
     case 'user':
       return { role: 'user', content: message.content }
     case 'assistant': {
-      const cleaned = sanitizeAssistantContent(message.content)
-      if (!cleaned || looksLikeEmbeddedToolCall(message.content)) return null
+      let raw = message.content
+      if (excludeThinking) raw = stripThinkingTags(raw)
+      const cleaned = sanitizeAssistantContent(raw)
+      if (!cleaned || looksLikeEmbeddedToolCall(raw)) return null
       return { role: 'assistant', content: cleaned }
     }
     case 'tool': {
@@ -181,6 +188,8 @@ export interface PrepareAgentContextOptions {
   clarifyMode?: boolean
   deepReasoning?: boolean
   summarizeModel?: string
+  /** Стрипить <think>...</think> из assistant-контента при построении истории */
+  excludeThinkingFromHistory?: boolean
 }
 
 function section(
@@ -256,7 +265,13 @@ export async function buildAgentContextPreview(
   const adaptiveLimits = computeAdaptiveLimits(model)
   const slicedHistory = history.slice(-adaptiveLimits.maxHistoryMessages)
   const mappedHistory = slicedHistory
-    .map((m) => mapHistoryMessageToOllama(m, adaptiveLimits.maxToolMessageChars))
+    .map((m) =>
+      mapHistoryMessageToOllama(
+        m,
+        adaptiveLimits.maxToolMessageChars,
+        options.excludeThinkingFromHistory !== false
+      )
+    )
     .filter((m): m is OllamaMessage => m !== null)
 
   const toolsJsonChars = JSON.stringify(AGENT_TOOLS).length
