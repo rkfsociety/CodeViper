@@ -71,11 +71,15 @@ let tokenFlushTimer: ReturnType<typeof setTimeout> | null = null
 
 function flushTokenBatch(): void {
   tokenFlushTimer = null
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    pendingTokenBuf.clear()
+    return
+  }
   for (const [chatId, buf] of pendingTokenBuf) {
     if (buf.token)
-      mainWindow?.webContents.send('agent-stream', { chatId, type: 'token', content: buf.token })
+      mainWindow.webContents.send('agent-stream', { chatId, type: 'token', content: buf.token })
     if (buf.thinking)
-      mainWindow?.webContents.send('agent-stream', {
+      mainWindow.webContents.send('agent-stream', {
         chatId,
         type: 'thinking',
         content: buf.thinking
@@ -87,10 +91,14 @@ function flushTokenBatch(): void {
 function flushChatTokens(chatId: string): void {
   const buf = pendingTokenBuf.get(chatId)
   if (!buf) return
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    pendingTokenBuf.delete(chatId)
+    return
+  }
   if (buf.token)
-    mainWindow?.webContents.send('agent-stream', { chatId, type: 'token', content: buf.token })
+    mainWindow.webContents.send('agent-stream', { chatId, type: 'token', content: buf.token })
   if (buf.thinking)
-    mainWindow?.webContents.send('agent-stream', {
+    mainWindow.webContents.send('agent-stream', {
       chatId,
       type: 'thinking',
       content: buf.thinking
