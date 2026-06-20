@@ -652,7 +652,7 @@ function AppContent() {
                   </button>
                 </div>
                 <Suspense fallback={null}>
-                  <PrStatusPanel isOpen={prPanelOpen} manualRefresh={settings.prManualRefresh} />
+                  <PrStatusPanel isOpen={prPanelOpen} />
                 </Suspense>
               </div>
             )}
