@@ -374,21 +374,21 @@ button {
 }
 
 .message {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  margin-bottom: 4px;
   animation: message-fadein 0.28s ease both;
-  /* Перенос длинного текста/URL, чтобы сообщение не вылезало за панель */
   min-width: 0;
   overflow-wrap: anywhere;
+  /* Без бокса по умолчанию */
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
 }
 
 @keyframes message-fadein {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -396,19 +396,27 @@ button {
   }
 }
 
+/* Сообщение пользователя — пузырёк справа */
 .message.user {
-  border-color: color-mix(in srgb, var(--blue) 33%, transparent);
-  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-msg-user) 100%);
+  align-self: flex-end;
+  max-width: 78%;
+  margin-bottom: 12px;
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: 18px 18px 4px 18px;
+  background: var(--bg-msg-user);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
 }
 
+/* Ответ модели — без бокса, только отступ */
 .message.assistant {
-  border-color: color-mix(in srgb, var(--green-dark) 33%, transparent);
-  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-msg-asst) 100%);
+  padding: 2px 4px;
+  background: none;
+  border: none;
 }
 
 .message.assistant.draft {
-  opacity: 0.92;
-  border-style: dashed;
+  opacity: 0.85;
 }
 
 .message.tool {
@@ -504,6 +512,36 @@ button {
 
 .message-header .message-role {
   margin-bottom: 0;
+}
+
+/* У user-сообщения хедер скрыт — кнопки показываем при hover справа */
+.message.user .message-header {
+  display: none;
+}
+.message.user:hover .message-header {
+  display: flex;
+  margin-bottom: 0;
+  margin-top: 4px;
+  justify-content: flex-end;
+}
+
+/* У assistant-сообщения хедер (роль) скрыт, только кнопки по hover */
+.message.assistant .message-header .message-role {
+  display: none;
+}
+.message.assistant .message-header {
+  margin-bottom: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  height: 0;
+  overflow: hidden;
+}
+.message.assistant:hover .message-header {
+  opacity: 1;
+  pointer-events: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .message-copy-btn {
@@ -1526,13 +1564,9 @@ button.topbar-pill.topbar-download-error {
   flex-shrink: 0;
 }
 
-/* Карточки сообщений — мягкая тень и приподнятие активного черновика */
-.message {
-  box-shadow: 0 1px 2px #01040933;
-}
-
-.message.assistant.draft {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--green-dark) 20%, transparent);
+/* Тень только для пузырька пользователя */
+.message.user {
+  box-shadow: 0 1px 3px #01040944;
 }
 
 /* Модалки — глубина и плавное появление */
