@@ -5,7 +5,7 @@
 ## Быстрый старт для разработки
 
 ```powershell
-git clone https://github.com/rkfsociety/CodeViper.git
+git clone https://github.com/CodeViperAI/CodeViper.git
 cd CodeViper/app
 npm install
 npm run dev        # Запуск в режиме разработки (hot reload)
@@ -60,4 +60,4 @@ npm run build       # Сборка (папка out/ должна быть акт
 
 ## Вопросы
 
-Пишите в [Discussions](https://github.com/rkfsociety/CodeViper/discussions) или создавайте [Issue](https://github.com/rkfsociety/CodeViper/issues).
+Пишите в [Discussions](https://github.com/CodeViperAI/CodeViper/discussions) или создавайте [Issue](https://github.com/CodeViperAI/CodeViper/issues).

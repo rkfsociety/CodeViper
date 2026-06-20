@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rkfsociety/CodeViper/master/app/resources/icon.png" alt="CodeViper" width="80" />
+  <img src="https://raw.githubusercontent.com/CodeViperAI/CodeViper/master/app/resources/icon.png" alt="CodeViper" width="80" />
 </p>
 
 <h2 align="center">CodeViper</h2>
@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/rkfsociety/CodeViper">📦 Репозиторий</a> ·
-  <a href="https://github.com/rkfsociety/CodeViper/releases">⬇️ Скачать</a> ·
-  <a href="https://github.com/rkfsociety/CodeViper/issues">🐛 Баги</a> ·
-  <a href="https://github.com/rkfsociety/CodeViper/discussions">💬 Обсуждения</a>
+  <a href="https://github.com/CodeViperAI/CodeViper">📦 Репозиторий</a> ·
+  <a href="https://github.com/CodeViperAI/CodeViper/releases">⬇️ Скачать</a> ·
+  <a href="https://github.com/CodeViperAI/CodeViper/issues">🐛 Баги</a> ·
+  <a href="https://github.com/CodeViperAI/CodeViper/discussions">💬 Обсуждения</a>
 </p>
 
 ---
