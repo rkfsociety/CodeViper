@@ -608,6 +608,7 @@ function AppContent() {
               onModelChange={(model, auto) =>
                 setSettings((prev) => ({ ...prev, model, autoModel: auto }))
               }
+              onSettingsChange={(partial) => setSettings((prev) => ({ ...prev, ...partial }))}
               onOpenSettings={() => setSettingsOpen(true)}
               onEnqueueModel={downloadQueue.enqueue}
               onRefreshOllama={refreshOllama}

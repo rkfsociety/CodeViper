@@ -65,6 +65,7 @@ interface Props {
   models?: OllamaModel[]
   onModelChange?: (model: string, auto: boolean) => void
   onActiveModelChange?: (model: string) => void
+  onSettingsChange?: (partial: Partial<AgentSettings>) => void
   onOpenSettings?: () => void
   onEnqueueModel?: (modelName: string) => void
   onRefreshOllama?: () => Promise<void>
@@ -245,6 +246,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     models = [],
     onModelChange,
     onActiveModelChange,
+    onSettingsChange,
     onOpenSettings,
     onEnqueueModel,
     onRefreshOllama
@@ -1094,6 +1096,38 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             </button>
           </div>
         </div>
+
+        {/* Режимы работы агента */}
+        {chatId && (
+          <div className={styles.permissionModeBar}>
+            <div className={styles.permissionModes}>
+              <button
+                type="button"
+                className={`${styles.permModeBtn}${settings.permissionMode === 'ask' ? ' ' + styles.permModeBtnActive : ''}`}
+                title="Спрашивать перед каждым действием"
+                onClick={() => onSettingsChange?.({ permissionMode: 'ask' })}
+              >
+                Ask
+              </button>
+              <button
+                type="button"
+                className={`${styles.permModeBtn}${settings.permissionMode === 'acceptEdits' ? ' ' + styles.permModeBtnActive : ''}`}
+                title="Автоматически применять правки"
+                onClick={() => onSettingsChange?.({ permissionMode: 'acceptEdits' })}
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                className={`${styles.permModeBtn}${settings.permissionMode === 'bypass' ? ' ' + styles.permModeBtnActive : ''}`}
+                title="Полная автономия"
+                onClick={() => onSettingsChange?.({ permissionMode: 'bypass' })}
+              >
+                Bypass
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Нижняя строка: контекст + модель + проект */}
         {chatId && (

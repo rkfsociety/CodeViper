@@ -600,3 +600,42 @@
   padding: 4px 16px 8px;
   text-align: right;
 }
+
+/* ── Режимы работы агента ─────────────────────────────── */
+.permissionModeBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--border, #30363d);
+  background: var(--bg-secondary, #161b22);
+}
+
+.permissionModes {
+  display: flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.permModeBtn {
+  padding: 3px 8px;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted, #8b949e);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.permModeBtn:hover {
+  border-color: var(--border-secondary, #444c56);
+  color: var(--text-secondary, #c9d1d9);
+}
+
+.permModeBtnActive {
+  background: var(--blue, #0969da);
+  border-color: var(--blue, #0969da);
+  color: white;
+}
