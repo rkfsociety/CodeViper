@@ -139,7 +139,7 @@ export interface AgentSettings {
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */
-  modelProvider?: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
+  modelProvider?: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini' | 'anthropic'
   /** @deprecated Используй deepseekApiKey / openaiApiKey / openrouterApiKey */
   providerApiKey?: string
   /** API ключ DeepSeek */
@@ -150,6 +150,8 @@ export interface AgentSettings {
   openrouterApiKey?: string
   /** API ключ Gemini */
   geminiApiKey?: string
+  /** API ключ Claude (Anthropic) */
+  claudeApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
   commandTimeoutSec?: number
   /** Режим только чтение: блокирует все инструменты записи */

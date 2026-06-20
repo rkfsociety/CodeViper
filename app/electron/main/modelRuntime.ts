@@ -9,6 +9,7 @@ import type {
 import { OllamaProvider } from './providers/ollamaProvider'
 import { GeminiProvider } from './providers/geminiProvider'
 import { OpenAIProvider } from './providers/openaiProvider'
+import { ClaudeProvider } from './providers/claudeProvider'
 import {
   DEEPSEEK_API_BASE_URL,
   GEMINI_API_BASE_URL,
@@ -63,6 +64,12 @@ export class ModelRuntime {
         },
         `${OPENROUTER_API_BASE_URL}/models?supported_parameters=tools&order=most-popular`
       )
+    }
+
+    if (config.type === 'anthropic') {
+      const apiKey = config.apiKey || ''
+      const model = config.model || 'claude-3-5-sonnet-20241022'
+      return new ClaudeProvider(apiKey, model)
     }
 
     // Fallback на Ollama

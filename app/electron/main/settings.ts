@@ -11,7 +11,14 @@ import { writeJsonAtomic } from './fsUtil'
 
 const PermissionModeSchema = z.enum(['ask', 'acceptEdits', 'bypass'])
 const GitSyncStrategySchema = z.enum(['stash', 'rebase', 'ff-only'])
-const ModelProviderSchema = z.enum(['ollama', 'deepseek', 'openai', 'openrouter', 'gemini'])
+const ModelProviderSchema = z.enum([
+  'ollama',
+  'deepseek',
+  'openai',
+  'openrouter',
+  'gemini',
+  'anthropic'
+])
 
 export const PersistedSettingsSchema = z.object({
   version: z.literal(1),
@@ -31,6 +38,7 @@ export const PersistedSettingsSchema = z.object({
   openaiApiKey: z.string(),
   openrouterApiKey: z.string(),
   geminiApiKey: z.string(),
+  claudeApiKey: z.string(),
   gitSyncOnStartup: z.boolean(),
   gitSyncStrategy: GitSyncStrategySchema,
   modelContextLength: z.number().int().positive().optional(),
@@ -67,6 +75,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   openaiApiKey: '',
   openrouterApiKey: '',
   geminiApiKey: '',
+  claudeApiKey: '',
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash',
   qdrantUrl: '',
@@ -80,6 +89,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     | 'openai'
     | 'openrouter'
     | 'gemini'
+    | 'anthropic'
 
   // Миграция: если есть старый providerApiKey, переносим в нужное поле
   const legacyKey = settings.providerApiKey?.trim() ?? ''
@@ -89,6 +99,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
   const openrouterApiKey =
     settings.openrouterApiKey?.trim() ?? (provider === 'openrouter' ? legacyKey : '')
   const geminiApiKey = settings.geminiApiKey?.trim() ?? (provider === 'gemini' ? legacyKey : '')
+  const claudeApiKey = settings.claudeApiKey?.trim() ?? (provider === 'anthropic' ? legacyKey : '')
 
   return {
     version: 1,
@@ -112,6 +123,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     openaiApiKey,
     openrouterApiKey,
     geminiApiKey,
+    claudeApiKey,
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)

@@ -117,7 +117,7 @@ export function SettingsModal({
   }
 
   function handleProviderChange(
-    newProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
+    newProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini' | 'anthropic'
   ) {
     const patch: Partial<AgentSettings> = { modelProvider: newProvider }
     if (newProvider === 'deepseek') {
@@ -129,6 +129,9 @@ export function SettingsModal({
     }
     if (newProvider === 'gemini' && !/^gemini/i.test(settings.model || '')) {
       patch.model = GEMINI_MODEL_DEFAULT
+    }
+    if (newProvider === 'anthropic' && !/^claude/i.test(settings.model || '')) {
+      patch.model = 'claude-3-5-sonnet-20241022'
     }
     onSettingsChange(patch)
   }
@@ -192,11 +195,18 @@ export function SettingsModal({
                     value={provider}
                     onChange={(e) =>
                       handleProviderChange(
-                        e.target.value as 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
+                        e.target.value as
+                          | 'ollama'
+                          | 'deepseek'
+                          | 'openai'
+                          | 'openrouter'
+                          | 'gemini'
+                          | 'anthropic'
                       )
                     }
                   >
                     <option value="ollama">Ollama (локально)</option>
+                    <option value="anthropic">Claude (Anthropic API)</option>
                     <option value="deepseek">DeepSeek API</option>
                     <option value="gemini">Gemini API</option>
                     <option value="openai">OpenAI-совместимый API</option>
@@ -290,6 +300,50 @@ export function SettingsModal({
                           className="btn btn-sm"
                           onClick={() => void handlePing()}
                           disabled={pingState === 'checking' || !settings.geminiApiKey}
+                          title="Проверить подключение"
+                        >
+                          {pingState === 'checking'
+                            ? '⏳'
+                            : pingState === 'ok'
+                              ? '✅'
+                              : pingState === 'fail'
+                                ? '❌'
+                                : '🔌'}
+                        </button>
+                      </div>
+                    </label>
+                  </>
+                )}
+
+                {provider === 'anthropic' && (
+                  <>
+                    <div className={styles.hint}>
+                      Используется <strong>Claude API (Anthropic)</strong>. Модель по умолчанию:{' '}
+                      <code>claude-3-5-sonnet-20241022</code>.
+                    </div>
+                    <label>
+                      Claude API ключ
+                      <div className="settings-api-key-row">
+                        <input
+                          type={apiKeyVisible['claude'] ? 'text' : 'password'}
+                          placeholder="sk-ant-..."
+                          value={settings.claudeApiKey ?? ''}
+                          onChange={(e) => onSettingsChange({ claudeApiKey: e.target.value })}
+                          autoComplete="off"
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => toggleKeyVisible('claude')}
+                          title={apiKeyVisible['claude'] ? 'Скрыть' : 'Показать'}
+                        >
+                          {apiKeyVisible['claude'] ? '🙈' : '👁'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => void handlePing()}
+                          disabled={pingState === 'checking' || !settings.claudeApiKey}
                           title="Проверить подключение"
                         >
                           {pingState === 'checking'
