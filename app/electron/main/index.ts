@@ -143,6 +143,14 @@ async function createWindow(): Promise<void> {
 
   trackWindowState(mainWindow)
 
+  // Автоперезагрузка при падении рендерера (GPU crash, OOM и т.п.).
+  // appState уже сохранён на диске → CrashRecoveryDialog восстановит сессию.
+  mainWindow.webContents.on('render-process-gone', (_e, details) => {
+    if (details.reason !== 'clean-exit' && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.reload()
+    }
+  })
+
   if (process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
@@ -168,6 +176,12 @@ function stream(chatId: string, event: AgentStreamPayload): void {
   mainWindow?.webContents.send('agent-stream', payload)
 }
 
+// Флаги устойчивости GPU: снижают вероятность краша при смене DPI/монитора.
+// --disable-gpu-process-crash-limit: не отключать GPU после серии крашей (дефолт — 3 краша/мин).
+// --in-process-gpu: GPU работает в процессе рендерера; нет отдельного процесса, которому не с чего упасть.
+app.commandLine.appendSwitch('disable-gpu-process-crash-limit')
+app.commandLine.appendSwitch('in-process-gpu')
+
 app.whenReady().then(async () => {
   await ensureDefaultSkills()
   await createWindow()
@@ -177,6 +191,14 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()
   })
+})
+
+// Если рендерер упал (краш GPU → renderer reload), перезагружаем страницу.
+// appState сохраняется каждые 30 с — после reload CrashRecoveryDialog восстановит сессию.
+app.on('child-process-gone', (_event, details) => {
+  if (details.type === 'GPU' && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.reload()
+  }
 })
 
 app.on('window-all-closed', () => {
