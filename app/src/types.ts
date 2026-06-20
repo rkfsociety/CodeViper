@@ -138,8 +138,14 @@ export interface AgentSettings {
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */
   modelProvider?: 'ollama' | 'deepseek' | 'openai' | 'openrouter'
-  /** API ключ для облачных провайдеров (DeepSeek, OpenAI и т.д.) */
+  /** @deprecated Используй deepseekApiKey / openaiApiKey / openrouterApiKey */
   providerApiKey?: string
+  /** API ключ DeepSeek */
+  deepseekApiKey?: string
+  /** API ключ OpenAI-совместимого провайдера */
+  openaiApiKey?: string
+  /** API ключ OpenRouter */
+  openrouterApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
   commandTimeoutSec?: number
   /** Режим только чтение: блокирует все инструменты записи */

@@ -19,8 +19,12 @@ export interface PersistedSettings {
   deepReasoning: boolean
   autoPushSelfEdits: boolean
   summarizeModel: string
-  modelProvider: 'ollama' | 'deepseek' | 'openai'
+  modelProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter'
+  /** @deprecated Заменено на deepseekApiKey/openaiApiKey/openrouterApiKey */
   providerApiKey: string
+  deepseekApiKey: string
+  openaiApiKey: string
+  openrouterApiKey: string
   gitSyncOnStartup: boolean
   gitSyncStrategy: GitSyncStrategy
 }
@@ -42,11 +46,28 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   summarizeModel: '',
   modelProvider: DEFAULT_MODEL_PROVIDER,
   providerApiKey: '',
+  deepseekApiKey: '',
+  openaiApiKey: '',
+  openrouterApiKey: '',
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash'
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
+  const provider = (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as
+    | 'ollama'
+    | 'deepseek'
+    | 'openai'
+    | 'openrouter'
+
+  // Миграция: если есть старый providerApiKey, переносим в нужное поле
+  const legacyKey = settings.providerApiKey?.trim() ?? ''
+  const deepseekApiKey =
+    settings.deepseekApiKey?.trim() ?? (provider === 'deepseek' ? legacyKey : '')
+  const openaiApiKey = settings.openaiApiKey?.trim() ?? (provider === 'openai' ? legacyKey : '')
+  const openrouterApiKey =
+    settings.openrouterApiKey?.trim() ?? (provider === 'openrouter' ? legacyKey : '')
+
   return {
     version: 1,
     ollamaUrl: settings.ollamaUrl?.trim() || DEFAULT_SETTINGS.ollamaUrl,
@@ -62,11 +83,11 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     deepReasoning: settings.deepReasoning === true,
     autoPushSelfEdits: settings.autoPushSelfEdits !== false,
     summarizeModel: settings.summarizeModel?.trim() ?? '',
-    modelProvider: (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as
-      | 'ollama'
-      | 'deepseek'
-      | 'openai',
-    providerApiKey: settings.providerApiKey?.trim() ?? '',
+    modelProvider: provider,
+    providerApiKey: '',
+    deepseekApiKey,
+    openaiApiKey,
+    openrouterApiKey,
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)
@@ -105,10 +126,11 @@ export async function loadSettings(): Promise<PersistedSettings> {
   try {
     const raw = await readFile(path, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<PersistedSettings>
-    // Расшифровать API-ключ перед возвратом
-    if (parsed.providerApiKey) {
-      parsed.providerApiKey = decryptApiKey(parsed.providerApiKey)
-    }
+    // Расшифровать API-ключи перед возвратом
+    if (parsed.providerApiKey) parsed.providerApiKey = decryptApiKey(parsed.providerApiKey)
+    if (parsed.deepseekApiKey) parsed.deepseekApiKey = decryptApiKey(parsed.deepseekApiKey)
+    if (parsed.openaiApiKey) parsed.openaiApiKey = decryptApiKey(parsed.openaiApiKey)
+    if (parsed.openrouterApiKey) parsed.openrouterApiKey = decryptApiKey(parsed.openrouterApiKey)
     return normalize(parsed)
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -117,10 +139,13 @@ export async function loadSettings(): Promise<PersistedSettings> {
 
 export async function saveSettings(settings: AgentSettings): Promise<PersistedSettings> {
   const normalized = normalize(settings)
-  // Зашифровать API-ключ перед сохранением
+  // Зашифровать API-ключи перед сохранением
   const toSave = {
     ...normalized,
-    providerApiKey: encryptApiKey(normalized.providerApiKey)
+    providerApiKey: '',
+    deepseekApiKey: encryptApiKey(normalized.deepseekApiKey),
+    openaiApiKey: encryptApiKey(normalized.openaiApiKey),
+    openrouterApiKey: encryptApiKey(normalized.openrouterApiKey)
   }
   await writeJsonAtomic(storePath(), toSave)
   // Продублировать настройки git-sync в config.json для лаунчера (start-dev.ps1).

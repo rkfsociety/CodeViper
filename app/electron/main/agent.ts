@@ -151,10 +151,18 @@ export class AgentRunner {
       providerType === 'deepseek' && !/^deepseek/i.test(this.settings.model || '')
         ? DEEPSEEK_MODEL_DEFAULT
         : this.settings.model
+    const providerApiKey =
+      providerType === 'deepseek'
+        ? (this.settings.deepseekApiKey ?? this.settings.providerApiKey)
+        : providerType === 'openrouter'
+          ? (this.settings.openrouterApiKey ?? this.settings.providerApiKey)
+          : providerType === 'openai'
+            ? (this.settings.openaiApiKey ?? this.settings.providerApiKey)
+            : undefined
     this.providerConfig = {
       type: providerType,
       baseUrl: providerBaseUrl,
-      apiKey: this.settings.providerApiKey,
+      apiKey: providerApiKey,
       model: providerModel
     }
     this.modelRuntime = new ModelRuntime(this.providerConfig)

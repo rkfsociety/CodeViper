@@ -56,8 +56,12 @@ export function SettingsModal({
   onRefreshOllama,
   onSelfLearningChange
 }: Props) {
-  const [apiKeyVisible, setApiKeyVisible] = useState(false)
+  const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({})
   const [pingState, setPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
+
+  function toggleKeyVisible(key: string) {
+    setApiKeyVisible((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
   const [tab, setTab] = useState<SettingsTab>('model')
   const modalRef = useModalA11y<HTMLDivElement>(open)
 
@@ -174,25 +178,25 @@ export function SettingsModal({
                     DeepSeek API ключ
                     <div className="settings-api-key-row">
                       <input
-                        type={apiKeyVisible ? 'text' : 'password'}
+                        type={apiKeyVisible['deepseek'] ? 'text' : 'password'}
                         placeholder="sk-..."
-                        value={settings.providerApiKey ?? ''}
-                        onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                        value={settings.deepseekApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ deepseekApiKey: e.target.value })}
                         autoComplete="off"
                       />
                       <button
                         type="button"
                         className="btn btn-sm"
-                        onClick={() => setApiKeyVisible((v) => !v)}
-                        title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                        onClick={() => toggleKeyVisible('deepseek')}
+                        title={apiKeyVisible['deepseek'] ? 'Скрыть' : 'Показать'}
                       >
-                        {apiKeyVisible ? '🙈' : '👁'}
+                        {apiKeyVisible['deepseek'] ? '🙈' : '👁'}
                       </button>
                       <button
                         type="button"
                         className="btn btn-sm"
                         onClick={() => void handlePing()}
-                        disabled={pingState === 'checking' || !settings.providerApiKey}
+                        disabled={pingState === 'checking' || !settings.deepseekApiKey}
                         title="Проверить подключение"
                       >
                         {pingState === 'checking'
@@ -222,19 +226,19 @@ export function SettingsModal({
                     API ключ
                     <div className="settings-api-key-row">
                       <input
-                        type={apiKeyVisible ? 'text' : 'password'}
+                        type={apiKeyVisible['openai'] ? 'text' : 'password'}
                         placeholder="sk-..."
-                        value={settings.providerApiKey ?? ''}
-                        onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                        value={settings.openaiApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ openaiApiKey: e.target.value })}
                         autoComplete="off"
                       />
                       <button
                         type="button"
                         className="btn btn-sm"
-                        onClick={() => setApiKeyVisible((v) => !v)}
-                        title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                        onClick={() => toggleKeyVisible('openai')}
+                        title={apiKeyVisible['openai'] ? 'Скрыть' : 'Показать'}
                       >
-                        {apiKeyVisible ? '🙈' : '👁'}
+                        {apiKeyVisible['openai'] ? '🙈' : '👁'}
                       </button>
                       <button
                         type="button"
@@ -267,25 +271,25 @@ export function SettingsModal({
                     OpenRouter API ключ
                     <div className="settings-api-key-row">
                       <input
-                        type={apiKeyVisible ? 'text' : 'password'}
+                        type={apiKeyVisible['openrouter'] ? 'text' : 'password'}
                         placeholder="sk-or-..."
-                        value={settings.providerApiKey ?? ''}
-                        onChange={(e) => onSettingsChange({ providerApiKey: e.target.value })}
+                        value={settings.openrouterApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ openrouterApiKey: e.target.value })}
                         autoComplete="off"
                       />
                       <button
                         type="button"
                         className="btn btn-sm"
-                        onClick={() => setApiKeyVisible((v) => !v)}
-                        title={apiKeyVisible ? 'Скрыть' : 'Показать'}
+                        onClick={() => toggleKeyVisible('openrouter')}
+                        title={apiKeyVisible['openrouter'] ? 'Скрыть' : 'Показать'}
                       >
-                        {apiKeyVisible ? '🙈' : '👁'}
+                        {apiKeyVisible['openrouter'] ? '🙈' : '👁'}
                       </button>
                       <button
                         type="button"
                         className="btn btn-sm"
                         onClick={() => void handlePing()}
-                        disabled={pingState === 'checking' || !settings.providerApiKey}
+                        disabled={pingState === 'checking' || !settings.openrouterApiKey}
                         title="Проверить подключение"
                       >
                         {pingState === 'checking'
