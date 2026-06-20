@@ -327,8 +327,6 @@ export class AgentRunner {
     let lastToolName: string | null = null
     let consecutiveSameToolCount = 0
     const toolCallCounts = new Map<string, number>()
-    let loopRecoveryCount = 0
-    const MAX_LOOP_RECOVERY = 3
 
     try {
       let step = 0
@@ -740,42 +738,21 @@ export class AgentRunner {
 
             // Проверяем лимит на одинаковые подряд идущие вызовы (с точными теми же аргументами)
             if (consecutiveSameToolCount > MAX_CONSECUTIVE_SAME_TOOL) {
-              loopRecoveryCount++
               consecutiveSameToolCount = 0
               lastToolName = null
-              if (loopRecoveryCount > MAX_LOOP_RECOVERY) {
-                // Исчерпаны попытки направления — просим дать финальный текстовый ответ без инструментов
-                requireToolNext = false
-                messages.push({
-                  role: 'user',
-                  content: `Ты несколько раз пытался использовать инструменты, но застрял в цикле. Пожалуйста, подведи итог на основе уже собранных данных и дай финальный ответ пользователю без вызова инструментов.`
-                })
-                loopRecoveryCount = 0
-              } else {
-                messages.push({
-                  role: 'user',
-                  content: `Ты вызываешь инструмент "${name}" с теми же аргументами несколько раз подряд и не продвигаешься вперёд. Попробуй другой подход: измени запрос, используй другой инструмент или обоснуй вывод на основе уже полученных данных.`
-                })
-              }
+              messages.push({
+                role: 'user',
+                content: `Ты вызываешь инструмент "${name}" с теми же аргументами несколько раз подряд и не продвигаешься вперёд. Попробуй другой подход: измени запрос, используй другой инструмент или обоснуй вывод на основе уже полученных данных.`
+              })
               break
             }
 
             if (totalCount > MAX_SAME_TOOL_TOTAL) {
-              loopRecoveryCount++
               toolCallCounts.set(name, 0)
-              if (loopRecoveryCount > MAX_LOOP_RECOVERY) {
-                requireToolNext = false
-                messages.push({
-                  role: 'user',
-                  content: `Ты несколько раз пытался использовать инструменты, но застрял в цикле. Пожалуйста, подведи итог на основе уже собранных данных и дай финальный ответ пользователю без вызова инструментов.`
-                })
-                loopRecoveryCount = 0
-              } else {
-                messages.push({
-                  role: 'user',
-                  content: `Ты слишком часто используешь инструмент "${name}". Попробуй другой подход или подведи итог на основе уже собранных данных.`
-                })
-              }
+              messages.push({
+                role: 'user',
+                content: `Ты слишком часто используешь инструмент "${name}". Попробуй другой подход или подведи итог на основе уже собранных данных.`
+              })
               break
             }
 
