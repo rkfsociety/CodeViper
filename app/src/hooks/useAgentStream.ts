@@ -204,6 +204,10 @@ export function useAgentStream({
         flushPending()
         genStartRef.current = null
         setDraft('')
+        setDraftThinking('')
+        draftRef.current = ''
+        draftThinkingRef.current = ''
+        draftMessageIdRef.current = null
         dispatchRef.current({ type: 'SET_PHASE', phase: 'tool', toolName: event.toolName })
         activeToolNameRef.current = event.toolName
         const id = makeId()
