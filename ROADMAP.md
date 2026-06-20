@@ -10,9 +10,8 @@
 
 ### 🟡 Средние — несколько файлов, полдня–день
 
-- [ ] **1. PR-панель: опрос только при открытой панели** — `PrStatusPanel` принимает `isOpen`; `setInterval` запускается только при `isOpen === true`; интервал с 60 с до 300 с
-- [ ] **2. AbortSignal-таймаут в diffUtil.ts** — передавать `AbortSignal` в `createUnifiedDiff()`; LCS-алгоритм проверяет `signal.aborted` каждые N итераций; fallback на построчный diff; предотвращает зависание на файлах >5000 строк
-- [ ] **3. Zod-схема для AgentSettings** — валидация при загрузке конфига через `z.parse()`; понятные сообщения об ошибках вместо runtime-падений; TypeScript-тип генерируется из схемы
+- [ ] **1. AbortSignal-таймаут в diffUtil.ts** — передавать `AbortSignal` в `createUnifiedDiff()`; LCS-алгоритм проверяет `signal.aborted` каждые N итераций; fallback на построчный diff; предотвращает зависание на файлах >5000 строк
+- [ ] **2. Zod-схема для AgentSettings** — валидация при загрузке конфига через `z.parse()`; понятные сообщения об ошибках вместо runtime-падений; TypeScript-тип генерируется из схемы
 - [ ] **4. Retry + backoff в selfCommit.ts** — обернуть git-операции в retry с задержкой 1→2→4 с, до 3 попыток; аналог логики в очереди агента
 - [ ] **5. Батчинг запросов в embeddings.ts** — объединять конкурентные вызовы в `batchEmbeddings(texts[], limit=4)`; воркер уже есть, нет группировки входящих запросов
 - [ ] **6. LRU-кэш grep_files в fileSearchInWorker.ts** — кэш по ключу `{pattern, dir, glob}` с инвалидацией по `mtime`; аналог LRU 500 записей для эмбеддингов
@@ -155,4 +154,4 @@
 - `run_command` без `shell: true`; `assertInsideProject`; blocklist; шифрование API-ключей (`safeStorage`)
 - ESLint + Prettier + lint-staged + husky; vitest 37+ тестов; E2E Playwright+Electron; нагрузочные тесты
 - Семантическое версионирование; GitHub Actions CI; branch protection; доступность (WCAG AA)
-- Статус PR в UI (CI-статус, опрос 60 с); автодополнение в терминале; метрики (tok/s, NDJSON-лог)
+- Статус PR в UI (CI-статус); `PrStatusPanel` опрашивает только при открытой панели (`isOpen`), интервал 300 с; автодополнение в терминале; метрики (tok/s, NDJSON-лог)
