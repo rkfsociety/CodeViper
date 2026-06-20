@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import logoUrl from '../resources/icon.png'
 import type {
   AgentConfirmRequest,
   AgentSettings,
@@ -462,7 +463,8 @@ function AppContent() {
       <div className="app">
         <header className="topbar">
           <div className="logo">
-            <span>🐍 CodeViper</span>
+            <img src={logoUrl} alt="CodeViper" className="logo-img" />
+            <span>CodeViper</span>
           </div>
           <div
             className={`status-dot ${ollamaOnline ? 'online' : 'offline'}`}

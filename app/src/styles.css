@@ -121,6 +121,12 @@ button {
   font-size: 18px;
 }
 
+.logo-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
 .status-dot {
   width: 8px;
   height: 8px;
