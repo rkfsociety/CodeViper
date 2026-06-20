@@ -65,6 +65,28 @@ async function summarizeWithProvider(
   return summaryContent.trim()
 }
 
+/**
+ * Заменяет содержимое tool-сообщений, оставляя только последние keepLast результатов.
+ * Более старые → «[результат обрезан]», инструмент сохраняется по названию.
+ */
+function truncateOldToolResults(messages: OllamaMessage[], keepLast: number): OllamaMessage[] {
+  const toolIndices: number[] = []
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === 'tool') toolIndices.push(i)
+  }
+  if (toolIndices.length <= keepLast) return messages
+
+  const cutoff = toolIndices.length - keepLast
+  const toTruncate = new Set(toolIndices.slice(0, cutoff))
+
+  return messages.map((msg, i) => {
+    if (!toTruncate.has(i)) return msg
+    const nameMatch = msg.content.match(/^Инструмент ([^:]+):/)
+    const label = nameMatch ? `Инструмент ${nameMatch[1]}` : 'Инструмент'
+    return { ...msg, content: `${label}: [результат обрезан]` }
+  })
+}
+
 function dropOldestNonSystem(messages: OllamaMessage[], count: number): OllamaMessage[] {
   if (count <= 0 || messages.length <= 1) return messages
 
@@ -93,10 +115,12 @@ export async function compressContextMessages(options: {
   onCompressStart?: () => void
   /** Порог суммаризации в процентах (50–85); по умолчанию — глобальная константа (85) */
   summarizeThresholdPercent?: number
+  /** Оставлять результаты только последних N tool-вызовов; более старые → [результат обрезан]. Дефолт 5. */
+  maxRecentToolResults?: number
 }): Promise<ContextCompressionResult> {
   const minRecent = options.minRecentMessages ?? MIN_RECENT_CONTEXT_MESSAGES
   const summarizeModel = options.summarizeModel?.trim() || options.model
-  let messages = [...options.messages]
+  let messages = truncateOldToolResults([...options.messages], options.maxRecentToolResults ?? 5)
   let truncated = false
   let summarized = false
   let droppedMessageCount = 0
