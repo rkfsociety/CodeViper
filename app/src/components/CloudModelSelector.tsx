@@ -19,7 +19,7 @@ interface Props {
   defaultModel: string
   /** Список моделей от API (заполняется для openrouter и openai) */
   models?: OllamaModel[]
-  onChange: (model: string) => void
+  onChange: (model: string, contextLength?: number) => void
 }
 
 export function CloudModelSelector({
@@ -55,7 +55,10 @@ export function CloudModelSelector({
               />
               <select
                 value={effectiveModel}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => {
+                  const selected = models.find((m) => m.name === e.target.value)
+                  onChange(e.target.value, selected?.contextLength)
+                }}
                 size={Math.min(8, filtered.length || 1)}
                 style={{ height: 'auto' }}
               >
@@ -101,7 +104,8 @@ export function CloudModelSelector({
           value={isCustom ? '__custom__' : effectiveModel}
           onChange={(e) => {
             if (e.target.value !== '__custom__') {
-              onChange(e.target.value)
+              const selected = models.find((m) => m.name === e.target.value)
+              onChange(e.target.value, selected?.contextLength)
             }
           }}
         >

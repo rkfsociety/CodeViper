@@ -28,6 +28,7 @@ export interface PersistedSettings {
   openrouterApiKey: string
   gitSyncOnStartup: boolean
   gitSyncStrategy: GitSyncStrategy
+  modelContextLength?: number
 }
 
 function storePath(): string {
@@ -94,7 +95,8 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)
-      : DEFAULT_SETTINGS.gitSyncStrategy
+      : DEFAULT_SETTINGS.gitSyncStrategy,
+    ...(settings.modelContextLength ? { modelContextLength: settings.modelContextLength } : {})
   }
 }
 

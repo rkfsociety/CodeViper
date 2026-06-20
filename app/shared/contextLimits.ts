@@ -3,12 +3,26 @@ import { CONTEXT_SUMMARIZE_THRESHOLD } from './constants'
 export const MIN_RECENT_CONTEXT_MESSAGES = 8
 export const MAX_TOOL_MESSAGE_CHARS = 4_000
 
-export function getModelContextLimitTokens(model: string): number {
+export function getModelContextLimitTokens(model: string, knownContextLength?: number): number {
+  if (knownContextLength && knownContextLength > 0) return knownContextLength
+
   const name = model.toLowerCase()
 
+  // Локальные модели — по размеру параметров
   if (/\b(70b|72b|671b)\b/.test(name)) return 128_000
   if (/\b(32b|30b|22b)\b/.test(name)) return 64_000
   if (/\b(14b|12b|9b|8b|7b)\b/.test(name)) return 32_000
+
+  // Облачные модели — по имени
+  if (name.startsWith('deepseek-')) return 64_000
+  if (name.startsWith('gpt-4o') || name.includes('gpt-4-turbo') || name.includes('gpt-4-1106'))
+    return 128_000
+  if (name.startsWith('gpt-3.5')) return 16_000
+  if (name.startsWith('gpt-4')) return 128_000
+  if (name.startsWith('claude-')) return 200_000
+  if (name.startsWith('gemini-1.5') || name.startsWith('gemini-2')) return 128_000
+  if (name.startsWith('gemini-')) return 32_000
+
   return 16_000
 }
 
@@ -22,14 +36,15 @@ export function estimateCharsFromTokens(tokenCount: number): number {
 
 export function computeContextUsage(
   totalChars: number,
-  model: string
+  model: string,
+  knownContextLength?: number
 ): {
   limitTokens: number
   estimatedTokens: number
   usagePercent: number
   shouldSummarize: boolean
 } {
-  const limitTokens = getModelContextLimitTokens(model)
+  const limitTokens = getModelContextLimitTokens(model, knownContextLength)
   const estimatedTokens = estimateTokensFromChars(totalChars)
   const ratio = limitTokens > 0 ? estimatedTokens / limitTokens : 1
   const usagePercent = Math.min(100, Math.round(ratio * 100))
@@ -65,8 +80,8 @@ export interface AdaptiveLimits {
  *   64k  → 8 000 chars | 48 сообщений   (32B)
  *  128k  → 16 000 chars | 80 сообщений  (70B)
  */
-export function computeAdaptiveLimits(model: string): AdaptiveLimits {
-  const limitTokens = getModelContextLimitTokens(model)
+export function computeAdaptiveLimits(model: string, knownContextLength?: number): AdaptiveLimits {
+  const limitTokens = getModelContextLimitTokens(model, knownContextLength)
 
   const maxToolMessageChars = Math.max(1_500, Math.min(16_000, Math.floor(limitTokens / 8)))
 

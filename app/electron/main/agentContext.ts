@@ -190,6 +190,8 @@ export interface PrepareAgentContextOptions {
   summarizeModel?: string
   /** Стрипить <think>...</think> из assistant-контента при построении истории */
   excludeThinkingFromHistory?: boolean
+  /** Реальный размер контекста модели в токенах (если известен из API провайдера) */
+  modelContextLength?: number
 }
 
 function section(
@@ -262,7 +264,7 @@ export async function buildAgentContextPreview(
     cotReasoning
   )
 
-  const adaptiveLimits = computeAdaptiveLimits(model)
+  const adaptiveLimits = computeAdaptiveLimits(model, options.modelContextLength)
   const slicedHistory = history.slice(-adaptiveLimits.maxHistoryMessages)
   const mappedHistory = slicedHistory
     .map((m) =>
@@ -360,7 +362,7 @@ export async function buildAgentContextPreview(
   const totalChars =
     ollamaMessages.reduce((sum, message) => sum + estimateMessageCharsLocal(message), 0) +
     toolsJsonChars
-  const usage = computeContextUsage(totalChars, model)
+  const usage = computeContextUsage(totalChars, model, options.modelContextLength)
 
   return {
     model,

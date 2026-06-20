@@ -162,6 +162,8 @@ export interface AgentSettings {
   githubToken?: string
   /** Исключать thinking из истории контекста (экономия 20-50% для think-моделей) */
   excludeThinkingFromHistory?: boolean
+  /** Размер контекста выбранной модели в токенах (сохраняется при выборе модели) */
+  modelContextLength?: number
   /** Включить облачный API параллельно с Ollama (для суммаризации или запасного канала) */
   cloudEnabled?: boolean
   /** Тип облачного провайдера: deepseek или openai-совместимый */

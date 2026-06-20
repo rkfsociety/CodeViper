@@ -692,7 +692,12 @@ export function SettingsModal({
                   model={settings.model}
                   defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
                   models={models}
-                  onChange={(model) => onSettingsChange({ model })}
+                  onChange={(model, contextLength) =>
+                    onSettingsChange({
+                      model,
+                      ...(contextLength ? { modelContextLength: contextLength } : {})
+                    })
+                  }
                 />
               )}
             </>

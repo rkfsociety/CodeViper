@@ -283,7 +283,8 @@ export class AgentRunner {
         clarifyMode: this.settings.clarifyMode,
         deepReasoning: this.settings.deepReasoning,
         summarizeModel: this.summarizeModelResolved,
-        excludeThinkingFromHistory: this.settings.excludeThinkingFromHistory !== false
+        excludeThinkingFromHistory: this.settings.excludeThinkingFromHistory !== false,
+        modelContextLength: this.settings.modelContextLength
       }
     )
     this.throwIfAborted()
