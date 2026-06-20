@@ -122,6 +122,7 @@
 - Оптимизация токенов: `getAgentTools(selfImproveMode)` исключает 19 инструментов (codeviper_*, ollama model, self-improve plan) в обычном режиме — экономия ~35% tools JSON на каждый запрос; `buildSelfEditContext()` тоже добавляется только в self-improve
 - Новый инструмент `search_in_file`: поиск текста в одном конкретном файле без ограничения по размеру (включает файлы >512KB)
 - `grep_files` теперь явно сообщает о пропущенных файлах >512KB и предлагает использовать `search_in_file`
+- Скилл Todo List для агента: инструменты `set_todo_list`, `complete_todo_item`, `clear_todo_list`; компактная панель `TodoPanel` прикреплена над полем ввода, обновляется через stream-событие `todo_update`
 - Черновики при обрыве стрима: `interruptedDraft`, баннер «Повторить»
 
 **UI/UX**

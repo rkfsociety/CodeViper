@@ -174,7 +174,7 @@ export interface AgentSettings {
   cloudBaseUrl?: string
   /** Модель облачного провайдера (по умолчанию deepseek-chat) */
   cloudModel?: string
-  /** Максимальное количество шагов агента (tool call → ответ) за один запрос; по умолчанию 50 */
+  /** Максимальное количество шагов агента (tool call → ответ) за один запрос; не задано — безлимитно */
   maxSteps?: number
 }
 
@@ -255,6 +255,12 @@ export interface SelfImprovementPlanItem {
   blockReason?: string
 }
 
+export interface TodoItem {
+  id: string
+  title: string
+  done: boolean
+}
+
 export interface AdaptiveLimits {
   maxToolMessageChars: number
   maxHistoryMessages: number
@@ -296,6 +302,7 @@ export interface AgentStreamPayload {
     | 'skill_saved'
     | 'context'
     | 'self_improve_plan'
+    | 'todo_update'
     | 'model_selected'
     | 'generation_metrics'
     | 'preview'
@@ -312,6 +319,7 @@ export interface AgentStreamPayload {
   memoryId?: string
   skillId?: string
   planItems?: SelfImprovementPlanItem[]
+  todoItems?: TodoItem[]
   selectedModel?: string
   modelReason?: string
   contextPreview?: AgentContextPreview

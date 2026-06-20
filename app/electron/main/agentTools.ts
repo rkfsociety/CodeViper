@@ -344,6 +344,50 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'set_todo_list',
+      description:
+        'Создать или обновить todo-лист задач. Список отображается над полем ввода в чате. Вызывай в начале многошаговой задачи.',
+      parameters: {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'string',
+            description: 'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Сделать X"}]'
+          },
+          title: {
+            type: 'string',
+            description: 'Заголовок списка (необязательно, по умолч. «Todo List»)'
+          }
+        },
+        required: ['items']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'complete_todo_item',
+      description: 'Отметить пункт todo-листа выполненным по id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'id пункта из set_todo_list' }
+        },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'clear_todo_list',
+      description: 'Скрыть todo-лист (задача полностью выполнена или отменена)',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'list_skills',
       description: 'Список навыков (skills), которые агент создал для себя',
       parameters: { type: 'object', properties: {} }
@@ -815,6 +859,9 @@ export interface ToolArgs {
   remember: { content: string; category: string; tags?: string; scope?: string }
   search_memory: { query: string }
   forget: { id: string }
+  set_todo_list: { items: string; title?: string }
+  complete_todo_item: { id: string }
+  clear_todo_list: Record<string, never>
   list_skills: Record<string, never>
   read_skill: { id: string }
   create_skill: {

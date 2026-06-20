@@ -12,9 +12,17 @@ import {
 } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, SystemStats } from '../types'
+import type {
+  AgentSettings,
+  ChatMessage,
+  OllamaModel,
+  ProgressInfo,
+  SystemStats,
+  TodoItem
+} from '../types'
 import { filterToolCallingModels } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
+import { TodoPanel } from './TodoPanel'
 import styles from './ChatPanel.module.css'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
@@ -266,6 +274,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     import('../types').AgentContextPreview | null
   >(null)
   const [contextLoading, setContextLoading] = useState(false)
+  const [todoItems, setTodoItems] = useState<TodoItem[] | null>(null)
+  const [todoTitle, setTodoTitle] = useState<string | undefined>(undefined)
+  const setTodoItemsRef = useRef<((items: TodoItem[] | null, title?: string) => void) | undefined>(
+    undefined
+  )
+  setTodoItemsRef.current = (items, title) => {
+    setTodoItems(items)
+    if (title !== undefined) setTodoTitle(title)
+  }
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -354,6 +371,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     upsertMessage,
     setContextPreview,
     onAgentDoneRef,
+    setTodoItemsRef,
     dispatch
   })
 
@@ -489,6 +507,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setClipboardImages([])
     setPrerequisiteBlock(null)
     setContextPreview(null)
+    setTodoItems(null)
+    setTodoTitle(undefined)
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -912,6 +932,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             systemStats={systemStats}
             progress={progress}
           />
+        )}
+
+        {todoItems && todoItems.length > 0 && (
+          <TodoPanel items={todoItems} title={todoTitle} onClose={() => setTodoItems(null)} />
         )}
 
         {showQuickBar && chatId && projectPath && (

@@ -52,6 +52,7 @@ import { createMemoryToolHandlers } from './agentHandlersMemory'
 import { createSkillsToolHandlers } from './agentHandlersSkills'
 import { createSelfImprovementToolHandlers } from './agentHandlersSelfImprovement'
 import { createModelToolHandlers } from './agentHandlersModels'
+import { createTodoToolHandlers } from './agentHandlersTodo'
 
 interface ToolCall {
   function: {
@@ -331,17 +332,9 @@ export class AgentRunner {
 
     try {
       let step = 0
-      const maxSteps = this.settings.maxSteps ?? 50
       while (true) {
         this.throwIfAborted()
         step++
-
-        if (step > maxSteps) {
-          this.emit({ type: 'clear_draft' })
-          this.emit({ type: 'error', content: `Достигнут лимит шагов агента (${maxSteps})` })
-          this.emit({ type: 'done' })
-          return
-        }
 
         const stepStartMs = Date.now()
         let response
@@ -1173,6 +1166,7 @@ export class AgentRunner {
       ...createSelfImprovementToolHandlers(this.selfImprovementPlan, (items) =>
         this.emitSelfImprovementPlan(items)
       ),
+      ...createTodoToolHandlers(this.emit),
       ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
       preview_edit: (args) => this.handlePreviewEdit(args)
     } as ToolHandlers
