@@ -14,6 +14,20 @@ import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, TodoItem } from '../types'
 import { filterToolCallingModels } from '../types'
+
+// Список моделей для облачных провайдеров
+const CLOUD_KNOWN_MODELS: Record<string, string[]> = {
+  deepseek: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
+  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o3-mini'],
+  gemini: [
+    'gemini-2.5-pro',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite-preview-06-17',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite'
+  ],
+  openrouter: []
+}
 import { AgentStatusBar } from './AgentStatusBar'
 import { TodoPanel } from './TodoPanel'
 import styles from './ChatPanel.module.css'
@@ -26,6 +40,7 @@ import { ThinkingBlock } from './ThinkingBlock'
 import { InterruptedDraftBanner } from './InterruptedDraftBanner'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
+import { AllToolsGroup } from './AllToolsGroup'
 
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
@@ -324,6 +339,29 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   setMessagesRef.current = setMessages
   onLearningSavedRef.current = onLearningSaved
   onActiveModelChangeRef.current = onActiveModelChange
+
+  // Выбрать модели для селектора: локальные (Ollama) или облачные (Gemini, DeepSeek и т.д.)
+  const pickerModels = useMemo(() => {
+    const provider = settings.modelProvider ?? 'ollama'
+    const isCloud = provider !== 'ollama'
+    if (isCloud && provider in CLOUD_KNOWN_MODELS) {
+      // Преобразуем строки в OllamaModel для совместимости с рендером
+      return CLOUD_KNOWN_MODELS[provider as keyof typeof CLOUD_KNOWN_MODELS].map(
+        (name: string) => ({
+          name,
+          size: 0,
+          modifiedAt: ''
+        })
+      )
+    }
+    return models
+  }, [settings.modelProvider, models])
+
+  // Не фильтровать облачные модели (они всегда поддерживают tool calling)
+  const displayModels = useMemo(() => {
+    const isCloud = settings.modelProvider !== 'ollama'
+    return isCloud ? pickerModels : filterToolCallingModels(pickerModels)
+  }, [pickerModels, settings.modelProvider])
 
   function commitMessages(next: ChatMessage[]) {
     messagesRef.current = next
@@ -841,7 +879,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           <div className="pinned-messages-section">
             <div className="pinned-messages-title">📌 Закреплённые</div>
             {pinnedDisplayItems.map((item) =>
-              item.kind === 'all-tools' ? null : (
+              item.kind === 'all-tools' ? (
+                <AllToolsGroup key="pinned-all-tools" items={item.items} />
+              ) : (
                 <div key={item.message.id} className={`message ${item.message.role} pinned`}>
                   <div className="message-header">
                     <MessageRoleBadge role={item.message.role} toolName={item.message.toolName} />
@@ -871,7 +911,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         )}
 
         {displayItems.map((item) => {
-          if (item.kind === 'all-tools') return null
+          if (item.kind === 'all-tools') {
+            return <AllToolsGroup key="all-tools" items={item.items} />
+          }
           const msg = item.message
           if (msg.previewId && msg.previewDiff !== undefined) {
             return (
@@ -1090,10 +1132,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                         <span className={styles.modelPickerCheck}>✓</span>
                       )}
                     </button>
-                    {filterToolCallingModels(models).length > 0 && (
-                      <div className={styles.modelPickerSep} />
-                    )}
-                    {filterToolCallingModels(models).map((m) => {
+                    {displayModels.length > 0 && <div className={styles.modelPickerSep} />}
+                    {displayModels.map((m: OllamaModel) => {
                       const isActive = settings.autoModel === false && settings.model === m.name
                       const shortName = m.name.split(':')[0]
                       const tag = m.name.includes(':') ? m.name.split(':')[1] : undefined
