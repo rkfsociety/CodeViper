@@ -29,13 +29,36 @@ function runGit(cwd: string, args: string[]): Promise<GitResult> {
   return runCmd('git', cwd, args)
 }
 
+/**
+ * Выполняет git-операцию с retry + exponential backoff.
+ * Задержки: 1с → 2с → 4с, до 3 попыток.
+ * Retry только при ненулевом коде возврата (ошибка git/сеть).
+ */
+async function runGitWithRetry(cwd: string, args: string[], _label: string): Promise<GitResult> {
+  const maxAttempts = 3
+  const delays = [1000, 2000, 4000]
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = await runGit(cwd, args)
+    if (result.code === 0) return result
+
+    if (attempt < maxAttempts) {
+      const delay = delays[attempt - 1] ?? 4000
+      await new Promise((r) => setTimeout(r, delay))
+    }
+  }
+
+  // последняя попытка — возвращаем как есть
+  return await runGit(cwd, args)
+}
+
 export interface SelfCommitResult {
   ok: boolean
   message: string
 }
 
 async function getCurrentBranch(cwd: string): Promise<string | null> {
-  const result = await runGit(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'])
+  const result = await runGitWithRetry(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'], 'rev-parse')
   return result.code === 0 ? result.stdout.trim() || null : null
 }
 
@@ -57,7 +80,7 @@ const PROTECTED_BRANCHES = new Set(['master', 'main', 'develop', 'release'])
 export async function createCodeViperBranch(name: string): Promise<SelfCommitResult> {
   const source = getCodeViperSourceRoot()
 
-  const top = await runGit(source, ['rev-parse', '--show-toplevel'])
+  const top = await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
   if (top.code !== 0) return { ok: false, message: 'не git-репозиторий — создание ветки пропущено' }
 
   const slug = sanitizeBranchName(name)
@@ -70,7 +93,7 @@ export async function createCodeViperBranch(name: string): Promise<SelfCommitRes
 
   const branchName = `agent/${slug}`
 
-  const result = await runGit(source, ['checkout', '-b', branchName])
+  const result = await runGitWithRetry(source, ['checkout', '-b', branchName], 'checkout')
   if (result.code !== 0) {
     return {
       ok: false,
@@ -88,7 +111,7 @@ export async function createCodeViperBranch(name: string): Promise<SelfCommitRes
 export async function pushCodeViperBranch(): Promise<SelfCommitResult> {
   const source = getCodeViperSourceRoot()
 
-  const top = await runGit(source, ['rev-parse', '--show-toplevel'])
+  const top = await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
   if (top.code !== 0) return { ok: false, message: 'не git-репозиторий — push пропущен' }
 
   const branch = await getCurrentBranch(source)
@@ -101,7 +124,7 @@ export async function pushCodeViperBranch(): Promise<SelfCommitResult> {
     }
   }
 
-  const push = await runGit(source, ['push', '--set-upstream', 'origin', branch])
+  const push = await runGitWithRetry(source, ['push', '--set-upstream', 'origin', branch], 'push')
   if (push.code !== 0) {
     return {
       ok: false,
@@ -114,7 +137,11 @@ export async function pushCodeViperBranch(): Promise<SelfCommitResult> {
 
 /** Определяет базовую ветку репозитория (origin/HEAD); fallback — master. */
 async function getDefaultBaseBranch(cwd: string): Promise<string> {
-  const result = await runGit(cwd, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'])
+  const result = await runGitWithRetry(
+    cwd,
+    ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'],
+    'symbolic-ref'
+  )
   if (result.code === 0) {
     const match = result.stdout.trim().match(/refs\/remotes\/origin\/(.+)$/)
     if (match) return match[1]!
@@ -130,7 +157,7 @@ async function getDefaultBaseBranch(cwd: string): Promise<string> {
 export async function createCodeViperPr(title?: string, body?: string): Promise<SelfCommitResult> {
   const source = getCodeViperSourceRoot()
 
-  const top = await runGit(source, ['rev-parse', '--show-toplevel'])
+  const top = await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
   if (top.code !== 0) return { ok: false, message: 'не git-репозиторий — PR не создан' }
 
   const branch = await getCurrentBranch(source)
@@ -153,7 +180,7 @@ export async function createCodeViperPr(title?: string, body?: string): Promise<
   }
 
   // Убеждаемся, что ветка есть на origin (идемпотентно).
-  const push = await runGit(source, ['push', '--set-upstream', 'origin', branch])
+  const push = await runGitWithRetry(source, ['push', '--set-upstream', 'origin', branch], 'push')
   if (push.code !== 0) {
     return {
       ok: false,
@@ -204,17 +231,17 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
   // через pathspec '.', чтобы не затронуть прочие файлы репозитория.
   const source = getCodeViperSourceRoot()
 
-  const top = await runGit(source, ['rev-parse', '--show-toplevel'])
+  const top = await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
   if (top.code !== 0) {
     return { ok: false, message: 'не git-репозиторий — автокоммит пропущен' }
   }
 
-  const status = await runGit(source, ['status', '--porcelain', '--', '.'])
+  const status = await runGitWithRetry(source, ['status', '--porcelain', '--', '.'], 'status')
   if (!status.stdout.trim()) {
     return { ok: true, message: 'нет изменений для коммита' }
   }
 
-  const add = await runGit(source, ['add', '-A', '--', '.'])
+  const add = await runGitWithRetry(source, ['add', '-A', '--', '.'], 'add')
   if (add.code !== 0) {
     return { ok: false, message: `git add: ${(add.stderr || add.stdout).trim()}` }
   }
@@ -222,7 +249,7 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
   const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 80) || 'правки агента'
   const message = `chore(self): автоправки агента — ${shortSummary}\n\nCo-authored-by: CodeViper <295331836+CodeViperApp@users.noreply.github.com>`
 
-  const commit = await runGit(source, ['commit', '-m', message, '--', '.'])
+  const commit = await runGitWithRetry(source, ['commit', '-m', message, '--', '.'], 'commit')
   if (commit.code !== 0) {
     return {
       ok: false,
@@ -230,7 +257,7 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
     }
   }
 
-  const push = await runGit(source, ['push'])
+  const push = await runGitWithRetry(source, ['push'], 'push')
   if (push.code !== 0) {
     return {
       ok: false,
@@ -249,7 +276,7 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
 export async function stageSelfEditsForRestart(summary: string): Promise<SelfCommitResult> {
   const source = getCodeViperSourceRoot()
 
-  const top = await runGit(source, ['rev-parse', '--show-toplevel'])
+  const top = await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
   if (top.code !== 0) {
     return {
       ok: false,
@@ -257,7 +284,7 @@ export async function stageSelfEditsForRestart(summary: string): Promise<SelfCom
     }
   }
 
-  const status = await runGit(source, ['status', '--porcelain', '--', '.'])
+  const status = await runGitWithRetry(source, ['status', '--porcelain', '--', '.'], 'status')
   if (!status.stdout.trim()) {
     return { ok: true, message: 'нет изменений для отложенного применения' }
   }
@@ -266,7 +293,11 @@ export async function stageSelfEditsForRestart(summary: string): Promise<SelfCom
   const label = `agent-pending: ${shortSummary}`
 
   // pathspec '.' ограничивает stash только файлами в app/ (текущий каталог)
-  const stash = await runGit(source, ['stash', 'push', '-u', '-m', label, '--', '.'])
+  const stash = await runGitWithRetry(
+    source,
+    ['stash', 'push', '-u', '-m', label, '--', '.'],
+    'stash'
+  )
   if (stash.code !== 0) {
     return {
       ok: false,
