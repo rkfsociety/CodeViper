@@ -10,6 +10,16 @@ interface PendingRequest {
 let worker: Worker | null = null
 let nextId = 0
 const pending = new Map<number, PendingRequest>()
+let ready = false
+const queue: Array<{ id: number; text: string; ollamaUrl: string }> = []
+
+function flushQueue(): void {
+  if (!worker || !ready) return
+  while (queue.length > 0) {
+    const msg = queue.shift()!
+    worker.postMessage(msg)
+  }
+}
 
 function getWorker(): Worker {
   if (worker) return worker
@@ -24,7 +34,13 @@ function getWorker(): Worker {
       msg:
         | { id: number; type: 'result'; vec: number[] | null }
         | { id: number; type: 'error'; message: string }
+        | { type: 'ready' }
     ) => {
+      if (msg.type === 'ready') {
+        ready = true
+        flushQueue()
+        return
+      }
       const req = pending.get(msg.id)
       if (!req) return
       pending.delete(msg.id)
@@ -39,7 +55,9 @@ function getWorker(): Worker {
   worker.on('error', (err) => {
     for (const req of pending.values()) req.reject(err)
     pending.clear()
+    queue.length = 0
     worker = null
+    ready = false
   })
 
   worker.on('exit', (code) => {
@@ -48,7 +66,9 @@ function getWorker(): Worker {
         req.reject(new Error(`embeddingWorker завершился с кодом ${code}`))
       pending.clear()
     }
+    queue.length = 0
     worker = null
+    ready = false
   })
 
   return worker
@@ -59,6 +79,12 @@ export function computeEmbeddingQueued(text: string, ollamaUrl: string): Promise
   return new Promise((resolve, reject) => {
     const id = nextId++
     pending.set(id, { resolve, reject })
-    getWorker().postMessage({ id, type: 'compute', text, ollamaUrl })
+    const msg = { id, type: 'compute' as const, text, ollamaUrl }
+    if (ready) {
+      getWorker().postMessage(msg)
+    } else {
+      queue.push(msg)
+      getWorker() // гарантируем, что воркер создан
+    }
   })
 }
