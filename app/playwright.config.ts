@@ -14,12 +14,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
-  use: {
-    // Путь к скомпилированному main-процессу Electron
-    executablePath: undefined
-  },
-  // Electron не использует браузерные проекты — конфиг projects не нужен
-  projects: []
+  projects: [{ name: 'electron' }]
 })
 
 // Хелпер для тестов: путь к main-entry Electron
