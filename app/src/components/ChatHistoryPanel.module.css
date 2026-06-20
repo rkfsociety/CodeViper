@@ -110,8 +110,8 @@
 }
 
 .item {
-  display: grid;
-  gap: 6px;
+  position: relative;
+  display: block;
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -165,9 +165,21 @@
 }
 
 .actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
   display: flex;
   gap: 4px;
   align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  background: var(--bg-base);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.item:hover .actions {
+  opacity: 1;
 }
 
 .actions select {
@@ -188,8 +200,8 @@
 }
 
 .itemMain {
-  flex: 1;
   min-width: 0;
+  padding-right: 60px;
 }
 
 .pinIcon {
