@@ -1,0 +1,48 @@
+name: Баг
+description: Что-то работает не так
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо, что сообщаете о проблеме! Заполните поля ниже — это поможет быстрее разобраться.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Что происходит
+      description: Опишите проблему. Что ожидалось и что случилось на самом деле?
+      placeholder: "Например: агент завис при попытке отредактировать файл больше 1000 строк"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги для воспроизведения
+      placeholder: |
+        1. Открыть проект ...
+        2. Написать в чат ...
+        3. Увидеть ошибку ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Окружение
+      value: |
+        - ОС: Windows 11
+        - Провайдер: Ollama / DeepSeek / OpenAI / OpenRouter
+        - Модель:
+        - Версия CodeViper (из заголовка окна или git log):
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи / скриншоты
+      description: Запустите `CodeViper.cmd console` и прикрепите вывод консоли, если есть ошибки. Скриншоты тоже приветствуются.
+    validations:
+      required: false

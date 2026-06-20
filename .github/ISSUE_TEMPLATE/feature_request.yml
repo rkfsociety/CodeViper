@@ -1,0 +1,35 @@
+name: Предложение
+description: Идея для новой функции или улучшения
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Перед отправкой проверьте [ROADMAP.md](../blob/master/ROADMAP.md) — возможно, идея уже запланирована.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решает эта функция?
+      placeholder: "Например: приходится вручную копировать путь к файлу, было бы удобнее кликнуть по нему в чате"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Какое решение вы предлагаете?
+      placeholder: "Например: сделать имена файлов в сообщениях агента кликабельными — открывать в редакторе по умолчанию"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Насколько важно для вас?
+      options:
+        - Было бы приятно
+        - Заметно улучшит работу
+        - Без этого сложно работать
+    validations:
+      required: true
