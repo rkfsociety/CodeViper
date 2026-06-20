@@ -32,6 +32,7 @@ interface ChatIndexEntry {
   updatedAt: string
   pinned?: boolean
   tags?: string[]
+  mode?: 'chat' | 'code'
 }
 
 interface ChatsIndex {
@@ -135,7 +136,8 @@ function indexEntryFromChat(chat: SavedChat): ChatIndexEntry {
     createdAt: chat.createdAt,
     updatedAt: chat.updatedAt,
     ...(chat.pinned !== undefined ? { pinned: chat.pinned } : {}),
-    ...(chat.tags?.length ? { tags: chat.tags } : {})
+    ...(chat.tags?.length ? { tags: chat.tags } : {}),
+    ...(chat.mode ? { mode: chat.mode } : {})
   }
 }
 
@@ -215,7 +217,10 @@ export async function getChatStore(): Promise<ChatStore> {
   }
 }
 
-export async function createChat(folderId: string | null = null): Promise<SavedChat> {
+export async function createChat(
+  folderId: string | null = null,
+  mode?: 'chat' | 'code'
+): Promise<SavedChat> {
   const index = await loadIndex()
   const now = new Date().toISOString()
 
@@ -232,7 +237,8 @@ export async function createChat(folderId: string | null = null): Promise<SavedC
     projectPath: lastProjectPath,
     messages: [],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    ...(mode ? { mode } : {})
   }
 
   index.chats.unshift(indexEntryFromChat(chat))

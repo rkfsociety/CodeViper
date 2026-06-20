@@ -192,7 +192,8 @@ export function ChatHistoryPanel({
     const chats = store?.chats ?? []
     const query = searchQuery.trim().toLowerCase()
     const tag = tagFilter.trim().toLowerCase()
-    let filtered = query ? chats.filter((chat) => chatMatchesQuery(chat, query)) : chats
+    let filtered = chats.filter((chat) => (chat.mode ?? 'code') === mode)
+    if (query) filtered = filtered.filter((chat) => chatMatchesQuery(chat, query))
     if (tag) {
       filtered = filtered.filter((chat) => chat.tags?.some((t) => t.toLowerCase().includes(tag)))
     }
@@ -201,7 +202,7 @@ export function ChatHistoryPanel({
       if (!a.pinned && b.pinned) return 1
       return 0
     })
-  }, [store, searchQuery, tagFilter])
+  }, [store, searchQuery, tagFilter, mode])
 
   const chatsByFolder = useMemo(() => {
     const map = new Map<string | null, SavedChat[]>()
@@ -566,7 +567,7 @@ export function ChatHistoryPanel({
           <div className="empty">
             {searchQuery.trim()
               ? 'Ничего не найдено.'
-              : 'Нет чатов. Создай первый — кнопка «+ Чат».'}
+              : `Нет чатов в режиме ${mode === 'chat' ? 'Chat' : 'Code'}. Создай первый — кнопка «+ Чат».`}
           </div>
         )}
 

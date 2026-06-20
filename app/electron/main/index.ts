@@ -376,7 +376,9 @@ ipcMain.handle(
 
 ipcMain.handle('get-chat-store', async () => getChatStore())
 
-ipcMain.handle('create-chat', async (_e, folderId?: string | null) => createChat(folderId ?? null))
+ipcMain.handle('create-chat', async (_e, folderId?: string | null, mode?: 'chat' | 'code') =>
+  createChat(folderId ?? null, mode)
+)
 
 ipcMain.handle(
   'update-chat',

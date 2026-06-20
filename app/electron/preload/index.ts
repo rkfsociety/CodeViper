@@ -158,8 +158,12 @@ const codeviper = {
   getChatStore: () =>
     withTimeout(ipcRenderer.invoke('get-chat-store'), IPC_TIMEOUT_MS, 'getChatStore'),
 
-  createChat: (folderId?: string | null) =>
-    withTimeout(ipcRenderer.invoke('create-chat', folderId ?? null), IPC_TIMEOUT_MS, 'createChat'),
+  createChat: (folderId?: string | null, mode?: 'chat' | 'code') =>
+    withTimeout(
+      ipcRenderer.invoke('create-chat', folderId ?? null, mode),
+      IPC_TIMEOUT_MS,
+      'createChat'
+    ),
 
   updateChat: (
     id: string,

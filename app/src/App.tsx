@@ -80,6 +80,9 @@ function AppContent() {
   const [showSecurityNotice, setShowSecurityNotice] = useState(false)
   const [crashRecovery, setCrashRecovery] = useState<AppState | null>(null)
   const [agentMode, setAgentMode] = useState<AgentMode>('code')
+  const lastActiveChatPerMode = useRef<Record<AgentMode, string | null>>({ chat: null, code: null })
+  const agentModeRef = useRef<AgentMode>('code')
+  agentModeRef.current = agentMode
   const activeChatIdRef = useRef(activeChatId)
   const messagesRef = useRef(messages)
   const chatPanelRef = useRef<ChatPanelHandle>(null)
@@ -384,12 +387,34 @@ function AppContent() {
     async (folderId: string | null = null) => {
       await flushCurrentChat()
 
-      const chat = await window.codeviper.createChat(folderId)
+      const chat = await window.codeviper.createChat(folderId, agentModeRef.current)
       await refreshChatStore()
+      lastActiveChatPerMode.current[agentModeRef.current] = chat.id
       setActiveChatId(chat.id)
       setMessages([])
     },
     [flushCurrentChat, refreshChatStore]
+  )
+
+  const handleModeChange = useCallback(
+    async (newMode: AgentMode) => {
+      lastActiveChatPerMode.current[agentModeRef.current] = activeChatIdRef.current
+      setAgentMode(newMode)
+      await flushCurrentChat()
+      const store = await refreshChatStore()
+      const lastId = lastActiveChatPerMode.current[newMode]
+      const chats = store?.chats ?? []
+      const modeChats = chats.filter((c) => (c.mode ?? 'code') === newMode)
+      const target =
+        lastId && modeChats.find((c) => c.id === lastId) ? lastId : (modeChats[0]?.id ?? null)
+      if (target) {
+        await selectChat(target)
+      } else {
+        setActiveChatId(null)
+        setMessages([])
+      }
+    },
+    [flushCurrentChat, refreshChatStore, selectChat]
   )
 
   const createFolder = useCallback(
@@ -548,7 +573,7 @@ function AppContent() {
             <div className="panel-header">История чатов</div>
             <ChatHistoryPanel
               mode={agentMode}
-              onModeChange={setAgentMode}
+              onModeChange={handleModeChange}
               onSelectChat={selectChat}
               onCreateChat={createChat}
               onCreateFolder={createFolder}

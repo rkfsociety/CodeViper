@@ -66,6 +66,8 @@ export interface SavedChat {
   tags?: string[]
   /** Черновик, сохранённый при обрыве стрима */
   interruptedDraft?: InterruptedDraft | null
+  /** Режим агента, в котором создан чат */
+  mode?: 'chat' | 'code'
 }
 
 export interface ChatStore {
@@ -423,7 +425,7 @@ export interface CodeViperAPI {
   listSkills: (projectPath: string) => Promise<AgentSkill[]>
   deleteSkill: (projectPath: string, id: string) => Promise<boolean>
   getChatStore: () => Promise<ChatStore>
-  createChat: (folderId?: string | null) => Promise<SavedChat>
+  createChat: (folderId?: string | null, mode?: 'chat' | 'code') => Promise<SavedChat>
   updateChat: (
     id: string,
     patch: Partial<
