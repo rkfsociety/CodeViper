@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# Автоматически добавляет Co-authored-by: CodeViper в каждый коммит.
+
+COMMIT_MSG_FILE="$1"
+COMMIT_SOURCE="$2"
+
+# Пропускаем merge и amend (чтобы не дублировать трейлер)
+[ "$COMMIT_SOURCE" = "merge" ] && exit 0
+[ "$COMMIT_SOURCE" = "commit" ] && exit 0
+
+TRAILER="Co-authored-by: CodeViper <295331836+CodeViperApp@users.noreply.github.com>"
+
+# Не добавляем, если трейлер уже есть
+grep -qF "$TRAILER" "$COMMIT_MSG_FILE" && exit 0
+
+git interpret-trailers --in-place \
+  --trailer "$TRAILER" \
+  "$COMMIT_MSG_FILE"
