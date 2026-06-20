@@ -99,37 +99,60 @@ function shouldShowAssistantMessage(message: ChatMessage): boolean {
   return hasContent || hasThinking
 }
 
-// Все подряд идущие tool-вызовы сворачиваются в один блок.
+// Все подряд идущие tool-вызовы + thinking сворачиваются в один блок.
 type DisplayItem =
   | { kind: 'message'; message: ChatMessage }
-  | { kind: 'all-tools'; items: ChatMessage[]; key: string }
+  | {
+      kind: 'all-tools'
+      items: ChatMessage[]
+      key: string
+      reasoning?: { thinking: string; assistant: ChatMessage }
+    }
 
 function groupToolMessages(messages: ChatMessage[]): DisplayItem[] {
   const result: DisplayItem[] = []
   let pendingTools: ChatMessage[] = []
+  let pendingReasoning: { thinking: string; assistant: ChatMessage } | null = null
 
   function flushTools() {
-    if (pendingTools.length > 0) {
-      const key = `tools-${pendingTools[0].id}`
-      result.push({ kind: 'all-tools', items: pendingTools, key })
+    if (pendingTools.length > 0 || pendingReasoning) {
+      const key = `tools-${pendingTools[0]?.id || 'reasoning'}`
+      result.push({
+        kind: 'all-tools',
+        items: pendingTools,
+        key,
+        reasoning: pendingReasoning || undefined
+      })
       pendingTools = []
+      pendingReasoning = null
     }
   }
 
   for (const msg of messages) {
     if (msg.role === 'tool') {
       pendingTools.push(msg)
-    } else {
-      // Сбрасываем накопленные tool-сообщения перед любым не-tool сообщением
-      // (assistant, user, system), чтобы они не «прилипали» к следующей группе
-      if (pendingTools.length > 0) {
-        flushTools()
+    } else if (msg.role === 'assistant') {
+      // Если у assistant есть thinking, копим его вместе с tools
+      if (msg.thinking && msg.thinking.trim()) {
+        if (pendingReasoning === null) {
+          pendingReasoning = { thinking: msg.thinking, assistant: msg }
+        } else {
+          pendingReasoning.thinking += '\n' + msg.thinking
+        }
+        // Не добавляем сообщение в result пока не увидим non-tool/non-assistant
+        continue
       }
+      // Иначе сбрасываем и добавляем обычное сообщение
+      flushTools()
+      result.push({ kind: 'message', message: msg })
+    } else {
+      // system/user — сбрасываем и добавляем
+      flushTools()
       result.push({ kind: 'message', message: msg })
     }
   }
 
-  // Оставшиеся tool-сообщения в конце
+  // Оставшиеся tool-сообщения и reasoning в конце
   flushTools()
 
   return result
@@ -874,7 +897,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             <div className="pinned-messages-title">📌 Закреплённые</div>
             {pinnedDisplayItems.map((item) =>
               item.kind === 'all-tools' ? (
-                <AllToolsGroup key="pinned-all-tools" items={item.items} />
+                <div key={item.key}>
+                  {item.reasoning && <ThinkingBlock content={item.reasoning.thinking} />}
+                  {item.items.length > 0 && <AllToolsGroup items={item.items} />}
+                </div>
               ) : (
                 <div key={item.message.id} className={`message ${item.message.role} pinned`}>
                   <div className="message-header">
@@ -906,7 +932,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
         {displayItems.map((item) => {
           if (item.kind === 'all-tools') {
-            return <AllToolsGroup key="all-tools" items={item.items} />
+            return (
+              <div key={item.key}>
+                {item.reasoning && <ThinkingBlock content={item.reasoning.thinking} />}
+                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
+              </div>
+            )
           }
           const msg = item.message
           if (msg.previewId && msg.previewDiff !== undefined) {
