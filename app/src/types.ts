@@ -139,7 +139,7 @@ export interface AgentSettings {
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */
-  modelProvider?: 'ollama' | 'deepseek' | 'openai' | 'openrouter'
+  modelProvider?: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
   /** @deprecated Используй deepseekApiKey / openaiApiKey / openrouterApiKey */
   providerApiKey?: string
   /** API ключ DeepSeek */
@@ -148,6 +148,8 @@ export interface AgentSettings {
   openaiApiKey?: string
   /** API ключ OpenRouter */
   openrouterApiKey?: string
+  /** API ключ Gemini */
+  geminiApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
   commandTimeoutSec?: number
   /** Режим только чтение: блокирует все инструменты записи */
@@ -167,7 +169,7 @@ export interface AgentSettings {
   /** Включить облачный API параллельно с Ollama (для суммаризации или запасного канала) */
   cloudEnabled?: boolean
   /** Тип облачного провайдера: deepseek или openai-совместимый */
-  cloudProvider?: 'deepseek' | 'openai' | 'openrouter'
+  cloudProvider?: 'deepseek' | 'openai' | 'openrouter' | 'gemini'
   /** API ключ облачного провайдера */
   cloudApiKey?: string
   /** Базовый URL для OpenAI-совместимых облачных провайдеров */
@@ -468,6 +470,11 @@ export interface CodeViperAPI {
   onSystemStats: (cb: (stats: SystemStats) => void) => () => void
   onProgressEvent: (cb: (progress: ProgressInfo | null) => void) => () => void
   listPullRequests: () => Promise<PullRequestListResult>
+  createIssue: (title: string, body?: string, labels?: string) => Promise<string>
+  createPr: (title?: string, body?: string) => Promise<string>
+  listIssues: () => Promise<string>
+  openIssue: (number: string) => Promise<string>
+  triggerGithubWorkflow: (workflowId: string, ref?: string, fields?: string) => Promise<string>
   openExternal: (url: string) => void
   showItemInFolder: (filePath: string) => void
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void

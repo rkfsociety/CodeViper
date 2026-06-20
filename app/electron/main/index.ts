@@ -47,6 +47,7 @@ import { startSystemStatsPush, stopSystemStatsPush, getSystemCapabilities } from
 import { enrichModelCapabilities } from './modelSelection'
 import { setProgressTarget, clearProgress } from './progress'
 import { listPullRequests } from './githubPr'
+import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
 import { startUpdateChecks } from './updateChecker'
 import type {
   AgentSettings,
@@ -477,6 +478,22 @@ ipcMain.handle(
 )
 
 ipcMain.handle('list-pull-requests', async () => listPullRequests())
+
+ipcMain.handle('create-issue', async (_e, title: string, body?: string, labels?: string) =>
+  createIssue(title, body, labels)
+)
+
+ipcMain.handle('create-pr', async (_e, title?: string, body?: string) => createPr(title, body))
+
+ipcMain.handle('list-issues', async () => listIssues())
+
+ipcMain.handle('open-issue', async (_e, number: string) => openIssue(number))
+
+ipcMain.handle(
+  'trigger-github-workflow',
+  async (_e, workflowId: string, ref?: string, fields?: string) =>
+    triggerGithubWorkflow(workflowId, ref, fields)
+)
 
 ipcMain.on('restart-app', () => {
   // Перезапуск: лаунчер start-dev.ps1 при старте подтянет origin и пересоберёт.

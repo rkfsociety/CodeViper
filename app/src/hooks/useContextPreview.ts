@@ -7,6 +7,12 @@ interface Callbacks {
   onLoading: (loading: boolean) => void
 }
 
+interface CacheEntry {
+  messagesKey: string
+  model: string
+  preview: AgentContextPreview | null
+}
+
 export function useContextPreview(
   chatId: string | null,
   projectPath: string,
@@ -24,6 +30,8 @@ export function useContextPreview(
   const onLoadingRef = useRef(onLoading)
   onLoadingRef.current = onLoading
 
+  const cacheRef = useRef<CacheEntry | null>(null)
+
   // Стабильный ключ: не перезапускаем на каждый токен стриминга,
   // только когда меняется число сообщений или id последнего.
   const lastMsgId = messages[messages.length - 1]?.id ?? ''
@@ -32,6 +40,13 @@ export function useContextPreview(
   useEffect(() => {
     if (busy || !chatId || !model || !input.trim()) {
       onLoadingRef.current(false)
+      return
+    }
+
+    // Кэш-хит: те же сообщения и та же модель — возвращаем сохранённый результат
+    const cached = cacheRef.current
+    if (cached && cached.messagesKey === messagesKey && cached.model === model) {
+      onPreviewRef.current(cached.preview)
       return
     }
 
@@ -45,7 +60,10 @@ export function useContextPreview(
           input.trim(),
           model
         )
-        if (active) onPreviewRef.current(preview)
+        if (active) {
+          cacheRef.current = { messagesKey, model, preview }
+          onPreviewRef.current(preview)
+        }
       } catch (err) {
         if (!active) return
         console.error('[useContextPreview]', err instanceof Error ? err.message : String(err))

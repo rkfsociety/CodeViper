@@ -65,6 +65,35 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'file_info',
+      description:
+        'Показать метаданные файла: размер, число строк, символов, слов, дату изменения и признак бинарности.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'путь к файлу' }
+        },
+        required: ['path']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'project_stats',
+      description:
+        'Краткая сводка по проекту: число файлов и папок, размер, верхнеуровневые папки и последние изменения git.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Подпапка проекта (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_in_file',
       description:
         'Поиск текста внутри одного файла (включая файлы >512KB, которые grep_files пропускает). Возвращает строки с совпадениями и их номера.',
@@ -85,6 +114,22 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'file_search_summary',
+      description:
+        'Краткая сводка поиска по файлам: сколько совпадений найдено и где они находятся',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Текст или /regex/i для поиска' },
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'show_file_history',
       description:
         'Показать историю правок файла: список всех изменений, внесённых агентом, с датой и unified diff каждого изменения.',
@@ -94,6 +139,51 @@ export const AGENT_TOOLS = [
           path: { type: 'string', description: 'путь к файлу относительно корня проекта' }
         },
         required: ['path']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'copy_file',
+      description: 'Скопировать файл проекта в другое место внутри проекта',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'Текущий путь файла' },
+          to: { type: 'string', description: 'Новый путь файла' }
+        },
+        required: ['from', 'to']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'rename_folder',
+      description: 'Переименовать или переместить папку внутри проекта',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'Текущий путь папки' },
+          to: { type: 'string', description: 'Новый путь папки' }
+        },
+        required: ['from', 'to']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'copy_folder',
+      description: 'Скопировать папку внутри проекта',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'Текущий путь папки' },
+          to: { type: 'string', description: 'Новый путь папки' }
+        },
+        required: ['from', 'to']
       }
     }
   },
@@ -296,6 +386,91 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'recent_changes',
+      description: 'Краткая сводка последних изменений git по проекту или папке',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Путь для фильтрации истории (необязательно)' },
+          limit: { type: 'string', description: 'Число коммитов 1–20 (по умолчанию 5)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_issue',
+      description: 'Создать GitHub Issue через gh CLI',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Заголовок issue' },
+          body: { type: 'string', description: 'Описание issue (необязательно)' },
+          labels: { type: 'string', description: 'Список labels через запятую (необязательно)' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_pr',
+      description: 'Создать GitHub Pull Request через gh CLI',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Заголовок PR (необязательно)' },
+          body: { type: 'string', description: 'Описание PR в Markdown (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_issues',
+      description: 'Показать список GitHub Issues через gh CLI',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'open_issue',
+      description: 'Открыть GitHub Issue в браузере через gh issue view --web',
+      parameters: {
+        type: 'object',
+        properties: {
+          number: { type: 'string', description: 'Номер issue' }
+        },
+        required: ['number']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'trigger_github_workflow',
+      description: 'Запустить GitHub Actions workflow через gh workflow run',
+      parameters: {
+        type: 'object',
+        properties: {
+          workflow_id: { type: 'string', description: 'Имя или id workflow' },
+          ref: { type: 'string', description: 'Ветка или тег (необязательно)' },
+          fields: {
+            type: 'string',
+            description: 'Поля workflow через запятую key=value (необязательно)'
+          }
+        },
+        required: ['workflow_id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'remember',
       description: 'Сохранить знание в память агента',
       parameters: {
@@ -310,6 +485,62 @@ export const AGENT_TOOLS = [
           scope: { type: 'string', description: 'global | project (по умолчанию auto)' }
         },
         required: ['content', 'category']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'package_info',
+      description: 'Краткая сводка по package.json: скрипты, зависимости и базовые метаданные',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Путь к package.json или папке проекта (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'read_package_lock',
+      description: 'Прочитать package-lock.json или получить его краткую сводку',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Путь к package-lock.json или папке проекта' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'dependency_summary',
+      description: 'Краткая сводка зависимостей: direct/dev, количество и основные пакеты',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Путь к package.json или папке проекта' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'test_summary',
+      description:
+        'Коротко показать доступные тестовые команды из package.json и подсказать, как запускать',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Папка проекта или package.json (необязательно)' }
+        }
       }
     }
   },
@@ -842,6 +1073,8 @@ export interface ToolArgs {
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
+  file_info: { path: string }
+  project_stats: { path?: string }
   search_in_file: { path: string; query: string; context_lines?: string }
   show_file_history: { path: string }
   preview_edit: { path: string; content: string }
@@ -852,13 +1085,27 @@ export interface ToolArgs {
   append_file: { path: string; content: string }
   delete_file: { path: string }
   move_file: { from: string; to: string }
+  copy_file: { from: string; to: string }
+  rename_folder: { from: string; to: string }
+  copy_folder: { from: string; to: string }
   run_command: { command: string }
   git_status: { path?: string }
   git_diff: { path?: string; staged?: string; commit?: string }
   git_log: { limit?: string; path?: string; oneline?: string }
+  create_issue: { title: string; body?: string; labels?: string }
+  create_pr: { title?: string; body?: string }
+  list_issues: Record<string, never>
+  open_issue: { number: string }
+  trigger_github_workflow: { workflow_id: string; ref?: string; fields?: string }
+  recent_changes: { path?: string; limit?: string }
   remember: { content: string; category: string; tags?: string; scope?: string }
+  package_info: { path?: string }
+  read_package_lock: { path?: string }
+  dependency_summary: { path?: string }
+  test_summary: { path?: string }
   search_memory: { query: string }
   forget: { id: string }
+  file_search_summary: { query: string; path?: string }
   set_todo_list: { items: string; title?: string }
   complete_todo_item: { id: string }
   clear_todo_list: Record<string, never>

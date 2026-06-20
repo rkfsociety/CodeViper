@@ -20,12 +20,13 @@ export interface PersistedSettings {
   excludeThinkingFromHistory: boolean
   autoPushSelfEdits: boolean
   summarizeModel: string
-  modelProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter'
+  modelProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
   /** @deprecated Заменено на deepseekApiKey/openaiApiKey/openrouterApiKey */
   providerApiKey: string
   deepseekApiKey: string
   openaiApiKey: string
   openrouterApiKey: string
+  geminiApiKey: string
   gitSyncOnStartup: boolean
   gitSyncStrategy: GitSyncStrategy
   modelContextLength?: number
@@ -52,6 +53,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   deepseekApiKey: '',
   openaiApiKey: '',
   openrouterApiKey: '',
+  geminiApiKey: '',
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash'
 }
@@ -62,6 +64,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     | 'deepseek'
     | 'openai'
     | 'openrouter'
+    | 'gemini'
 
   // Миграция: если есть старый providerApiKey, переносим в нужное поле
   const legacyKey = settings.providerApiKey?.trim() ?? ''
@@ -70,6 +73,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
   const openaiApiKey = settings.openaiApiKey?.trim() ?? (provider === 'openai' ? legacyKey : '')
   const openrouterApiKey =
     settings.openrouterApiKey?.trim() ?? (provider === 'openrouter' ? legacyKey : '')
+  const geminiApiKey = settings.geminiApiKey?.trim() ?? (provider === 'gemini' ? legacyKey : '')
 
   return {
     version: 1,
@@ -92,6 +96,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     deepseekApiKey,
     openaiApiKey,
     openrouterApiKey,
+    geminiApiKey,
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)
@@ -136,6 +141,7 @@ export async function loadSettings(): Promise<PersistedSettings> {
     if (parsed.deepseekApiKey) parsed.deepseekApiKey = decryptApiKey(parsed.deepseekApiKey)
     if (parsed.openaiApiKey) parsed.openaiApiKey = decryptApiKey(parsed.openaiApiKey)
     if (parsed.openrouterApiKey) parsed.openrouterApiKey = decryptApiKey(parsed.openrouterApiKey)
+    if (parsed.geminiApiKey) parsed.geminiApiKey = decryptApiKey(parsed.geminiApiKey)
     return normalize(parsed)
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -150,7 +156,8 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     providerApiKey: '',
     deepseekApiKey: encryptApiKey(normalized.deepseekApiKey),
     openaiApiKey: encryptApiKey(normalized.openaiApiKey),
-    openrouterApiKey: encryptApiKey(normalized.openrouterApiKey)
+    openrouterApiKey: encryptApiKey(normalized.openrouterApiKey),
+    geminiApiKey: encryptApiKey(normalized.geminiApiKey)
   }
   await writeJsonAtomic(storePath(), toSave)
   // Продублировать настройки git-sync в config.json для лаунчера (start-dev.ps1).

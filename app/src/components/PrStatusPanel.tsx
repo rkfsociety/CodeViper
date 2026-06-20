@@ -3,7 +3,7 @@ import { Skeleton } from './Skeleton'
 import type { CiStatus, PullRequestListResult } from '../types'
 import styles from './PrStatusPanel.module.css'
 
-const POLL_INTERVAL_MS = 60_000
+const POLL_INTERVAL_MS = 300_000
 
 const CI_LABEL: Record<CiStatus, string> = {
   success: '✓ CI прошёл',
@@ -12,7 +12,7 @@ const CI_LABEL: Record<CiStatus, string> = {
   none: '— нет CI'
 }
 
-export function PrStatusPanel() {
+export function PrStatusPanel({ isOpen }: { isOpen: boolean }) {
   const [result, setResult] = useState<PullRequestListResult | null>(null)
   const [loading, setLoading] = useState(false)
   const inFlight = useRef(false)
@@ -32,10 +32,11 @@ export function PrStatusPanel() {
   }, [])
 
   useEffect(() => {
+    if (!isOpen) return
     void load()
     const timer = setInterval(() => void load(), POLL_INTERVAL_MS)
     return () => clearInterval(timer)
-  }, [load])
+  }, [isOpen, load])
 
   const prs = result?.prs ?? []
 

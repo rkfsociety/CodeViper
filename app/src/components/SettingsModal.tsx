@@ -7,7 +7,9 @@ import {
   COMMAND_TIMEOUT_SEC_MIN,
   COMMAND_TIMEOUT_SEC_MAX,
   DEEPSEEK_API_BASE_URL,
-  DEEPSEEK_MODEL_DEFAULT
+  DEEPSEEK_MODEL_DEFAULT,
+  GEMINI_API_BASE_URL,
+  GEMINI_MODEL_DEFAULT
 } from '../../shared/constants'
 import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
 import { ModelPanel } from './ModelPanel'
@@ -89,7 +91,9 @@ export function SettingsModal({
     setTimeout(() => setPingState('idle'), 3000)
   }
 
-  function handleProviderChange(newProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter') {
+  function handleProviderChange(
+    newProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
+  ) {
     const patch: Partial<AgentSettings> = { modelProvider: newProvider }
     if (newProvider === 'deepseek') {
       if (!settings.providerApiKey) patch.providerApiKey = ''
@@ -97,6 +101,9 @@ export function SettingsModal({
       if (!/^deepseek/i.test(settings.model || '')) {
         patch.model = DEEPSEEK_MODEL_DEFAULT
       }
+    }
+    if (newProvider === 'gemini' && !/^gemini/i.test(settings.model || '')) {
+      patch.model = GEMINI_MODEL_DEFAULT
     }
     onSettingsChange(patch)
   }
@@ -145,12 +152,13 @@ export function SettingsModal({
                   value={provider}
                   onChange={(e) =>
                     handleProviderChange(
-                      e.target.value as 'ollama' | 'deepseek' | 'openai' | 'openrouter'
+                      e.target.value as 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini'
                     )
                   }
                 >
                   <option value="ollama">Ollama (локально)</option>
                   <option value="deepseek">DeepSeek API</option>
+                  <option value="gemini">Gemini API</option>
                   <option value="openai">OpenAI-совместимый API</option>
                   <option value="openrouter">OpenRouter</option>
                 </select>
@@ -197,6 +205,51 @@ export function SettingsModal({
                         className="btn btn-sm"
                         onClick={() => void handlePing()}
                         disabled={pingState === 'checking' || !settings.deepseekApiKey}
+                        title="Проверить подключение"
+                      >
+                        {pingState === 'checking'
+                          ? '⏳'
+                          : pingState === 'ok'
+                            ? '✅'
+                            : pingState === 'fail'
+                              ? '❌'
+                              : '🔌'}
+                      </button>
+                    </div>
+                  </label>
+                </>
+              )}
+
+              {provider === 'gemini' && (
+                <>
+                  <div className={styles.hint}>
+                    Используется <strong>Gemini API</strong> через{' '}
+                    <code>{GEMINI_API_BASE_URL}</code>. Модель по умолчанию:{' '}
+                    <code>{GEMINI_MODEL_DEFAULT}</code>.
+                  </div>
+                  <label>
+                    Gemini API ключ
+                    <div className="settings-api-key-row">
+                      <input
+                        type={apiKeyVisible['gemini'] ? 'text' : 'password'}
+                        placeholder="AIza..."
+                        value={settings.geminiApiKey ?? ''}
+                        onChange={(e) => onSettingsChange({ geminiApiKey: e.target.value })}
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => toggleKeyVisible('gemini')}
+                        title={apiKeyVisible['gemini'] ? 'Скрыть' : 'Показать'}
+                      >
+                        {apiKeyVisible['gemini'] ? '🙈' : '👁'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => void handlePing()}
+                        disabled={pingState === 'checking' || !settings.geminiApiKey}
                         title="Проверить подключение"
                       >
                         {pingState === 'checking'
@@ -366,11 +419,16 @@ export function SettingsModal({
                         value={settings.cloudProvider ?? 'deepseek'}
                         onChange={(e) =>
                           onSettingsChange({
-                            cloudProvider: e.target.value as 'deepseek' | 'openai' | 'openrouter'
+                            cloudProvider: e.target.value as
+                              | 'deepseek'
+                              | 'openai'
+                              | 'openrouter'
+                              | 'gemini'
                           })
                         }
                       >
                         <option value="deepseek">DeepSeek API</option>
+                        <option value="gemini">Gemini API</option>
                         <option value="openai">OpenAI-совместимый API</option>
                         <option value="openrouter">OpenRouter</option>
                       </select>
@@ -392,7 +450,9 @@ export function SettingsModal({
                           placeholder={
                             (settings.cloudProvider ?? 'openai') === 'openrouter'
                               ? 'https://openrouter.ai/api/v1'
-                              : 'https://api.openai.com/v1'
+                              : (settings.cloudProvider ?? 'deepseek') === 'gemini'
+                                ? 'https://generativelanguage.googleapis.com/v1beta'
+                                : 'https://api.openai.com/v1'
                           }
                           value={settings.cloudBaseUrl ?? ''}
                           onChange={(e) => onSettingsChange({ cloudBaseUrl: e.target.value })}
@@ -417,7 +477,9 @@ export function SettingsModal({
                         placeholder={
                           (settings.cloudProvider ?? 'deepseek') === 'deepseek'
                             ? 'deepseek-chat'
-                            : 'gpt-4o-mini'
+                            : (settings.cloudProvider ?? 'deepseek') === 'gemini'
+                              ? 'gemini-2.5-flash'
+                              : 'gpt-4o-mini'
                         }
                         value={settings.cloudModel ?? ''}
                         onChange={(e) => onSettingsChange({ cloudModel: e.target.value })}

@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { OllamaModel } from '../types'
 
 const KNOWN_MODELS: Record<string, string[]> = {
   deepseek: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
-  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o3-mini']
+  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o3-mini'],
+  gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-pro']
 }
 
 function fmtContext(ctx?: number): string {
@@ -17,7 +18,6 @@ interface Props {
   provider: string
   model: string
   defaultModel: string
-  /** Список моделей от API (заполняется для openrouter и openai) */
   models?: OllamaModel[]
   onChange: (model: string, contextLength?: number) => void
 }
@@ -39,16 +39,15 @@ export function CloudModelSelector({
     return models.filter((m) => m.name.toLowerCase().includes(q))
   }, [models, search])
 
-  // Для openrouter — показываем загруженный список с поиском
-  if (provider === 'openrouter') {
+  if (provider === 'openrouter' || provider === 'gemini') {
     return (
       <div className="cloud-model-selector">
         <label>
-          Модель
+          Model
           {models.length > 0 ? (
             <>
               <input
-                placeholder="Поиск модели…"
+                placeholder="Search models..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{ marginBottom: 4 }}
@@ -73,33 +72,34 @@ export function CloudModelSelector({
           ) : (
             <input
               value={effectiveModel}
-              placeholder="openai/gpt-4o-mini"
+              placeholder={provider === 'gemini' ? 'gemini-2.5-flash' : 'openai/gpt-4o-mini'}
               onChange={(e) => onChange(e.target.value)}
             />
           )}
         </label>
         {models.length === 0 && (
           <div className="settings-hint">
-            Введите API ключ OpenRouter и нажмите «Обновить» — загрузится список моделей с
-            поддержкой tool calling.
+            Enter the API key and press refresh to load the list of models with tool calling
+            support.
           </div>
         )}
         {models.length > 0 && filtered.length === 0 && (
-          <div className="settings-hint">Нет моделей по запросу «{search}»</div>
+          <div className="settings-hint">No models found for "{search}"</div>
         )}
       </div>
     )
   }
 
-  // Для DeepSeek и OpenAI-совместимых — статичный список + кастом
   const apiModels =
-    provider === 'openai' && models.length > 0 ? models.map((m) => m.name) : knownModels
+    (provider === 'openai' || provider === 'gemini') && models.length > 0
+      ? models.map((m) => m.name)
+      : knownModels
   const isCustom = effectiveModel && !apiModels.includes(effectiveModel)
 
   return (
     <div className="cloud-model-selector">
       <label>
-        Модель
+        Model
         <select
           value={isCustom ? '__custom__' : effectiveModel}
           onChange={(e) => {
@@ -114,13 +114,13 @@ export function CloudModelSelector({
               {m}
             </option>
           ))}
-          <option value="__custom__">Другая (ввести вручную)…</option>
+          <option value="__custom__">Other (type manually)...</option>
         </select>
       </label>
 
       {isCustom && (
         <label>
-          Название модели
+          Model name
           <input
             value={effectiveModel}
             placeholder={defaultModel || 'model-name'}
@@ -131,7 +131,7 @@ export function CloudModelSelector({
 
       {!isCustom && (
         <div className="settings-hint">
-          Введите название модели вручную, если нужной нет в списке.
+          Type a custom model name if the one you need is not listed.
         </div>
       )}
     </div>

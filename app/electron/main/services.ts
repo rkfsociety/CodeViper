@@ -1,6 +1,7 @@
 import {
   access,
   appendFile,
+  cp,
   mkdir,
   readdir,
   readFile,
@@ -344,6 +345,75 @@ export async function safeMoveFile(
   if (targetExists) throw new Error('Целевой файл уже существует')
 
   await mkdir(targetDir, { recursive: true })
+  await rename(fromPath, toPath)
+}
+
+export async function safeCopyFile(
+  projectPath: string,
+  fromPath: string,
+  toPath: string
+): Promise<void> {
+  assertPathInsideProject(projectPath, fromPath, 'исходный файл')
+  assertPathInsideProject(projectPath, toPath, 'целевой файл')
+
+  const info = await stat(fromPath).catch(() => null)
+  if (!info) throw new Error('Исходный файл не найден')
+  if (!info.isFile()) throw new Error('Это не файл (копирование папок не поддерживается)')
+
+  const targetDir = dirname(toPath)
+  assertPathInsideProject(projectPath, targetDir, 'целевая папка')
+
+  const targetExists = await access(toPath, constants.F_OK).then(
+    () => true,
+    () => false
+  )
+  if (targetExists) throw new Error('Целевой файл уже существует')
+
+  await mkdir(targetDir, { recursive: true })
+  await cp(fromPath, toPath, { force: false, errorOnExist: true })
+}
+
+export async function safeCopyFolder(
+  projectPath: string,
+  fromPath: string,
+  toPath: string
+): Promise<void> {
+  assertPathInsideProject(projectPath, fromPath, 'исходная папка')
+  assertPathInsideProject(projectPath, toPath, 'целeвая папка')
+
+  const info = await stat(fromPath).catch(() => null)
+  if (!info) throw new Error('Исходная папка не найдена')
+  if (!info.isDirectory()) throw new Error('Это не папка')
+
+  const targetExists = await access(toPath, constants.F_OK).then(
+    () => true,
+    () => false
+  )
+  if (targetExists) throw new Error('Целевая папка уже существует')
+
+  await mkdir(dirname(toPath), { recursive: true })
+  await cp(fromPath, toPath, { recursive: true, force: false, errorOnExist: true })
+}
+
+export async function safeMoveFolder(
+  projectPath: string,
+  fromPath: string,
+  toPath: string
+): Promise<void> {
+  assertPathInsideProject(projectPath, fromPath, 'исходная папка')
+  assertPathInsideProject(projectPath, toPath, 'целeвая папка')
+
+  const info = await stat(fromPath).catch(() => null)
+  if (!info) throw new Error('Исходная папка не найдена')
+  if (!info.isDirectory()) throw new Error('Это не папка')
+
+  const targetExists = await access(toPath, constants.F_OK).then(
+    () => true,
+    () => false
+  )
+  if (targetExists) throw new Error('Целевая папка уже существует')
+
+  await mkdir(dirname(toPath), { recursive: true })
   await rename(fromPath, toPath)
 }
 

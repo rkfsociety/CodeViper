@@ -40,6 +40,8 @@ import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
 import {
   DEEPSEEK_API_BASE_URL,
   DEEPSEEK_MODEL_DEFAULT,
+  GEMINI_API_BASE_URL,
+  GEMINI_MODEL_DEFAULT,
   OPENROUTER_API_BASE_URL,
   MAX_CONSECUTIVE_SAME_TOOL,
   MAX_SAME_TOOL_TOTAL
@@ -47,6 +49,7 @@ import {
 import { readNdjsonLines } from './ndjson'
 import { parseReflectionLearnings, addMemory } from './memory'
 import { createProjectToolHandlers } from './agentHandlersProject'
+import { createGitHubToolHandlers } from './agentHandlersGitHub'
 import { createCodeViperToolHandlers } from './agentHandlersCodeViper'
 import { createMemoryToolHandlers } from './agentHandlersMemory'
 import { createSkillsToolHandlers } from './agentHandlersSkills'
@@ -88,6 +91,9 @@ const OLLAMA_KEEP_ALIVE = '5m'
 // Read-only инструменты — безопасно запускать параллельно (Promise.all).
 const PARALLEL_SAFE_TOOLS = new Set([
   'read_file',
+  'file_info',
+  'project_stats',
+  'file_search_summary',
   'grep_files',
   'find_files',
   'list_directory',
@@ -98,6 +104,11 @@ const PARALLEL_SAFE_TOOLS = new Set([
   'git_status',
   'git_diff',
   'git_log',
+  'recent_changes',
+  'package_info',
+  'read_package_lock',
+  'dependency_summary',
+  'test_summary',
   'search_memory',
   'list_skills',
   'read_skill',
@@ -145,22 +156,28 @@ export class AgentRunner {
     const providerBaseUrl =
       providerType === 'deepseek'
         ? DEEPSEEK_API_BASE_URL
-        : providerType === 'openrouter'
-          ? OPENROUTER_API_BASE_URL
-          : this.settings.ollamaUrl
+        : providerType === 'gemini'
+          ? GEMINI_API_BASE_URL
+          : providerType === 'openrouter'
+            ? OPENROUTER_API_BASE_URL
+            : this.settings.ollamaUrl
     // Если провайдер — DeepSeek, но модель выглядит как Ollama-модель — подставляем дефолт
     const providerModel =
       providerType === 'deepseek' && !/^deepseek/i.test(this.settings.model || '')
         ? DEEPSEEK_MODEL_DEFAULT
-        : this.settings.model
+        : providerType === 'gemini' && !/^gemini/i.test(this.settings.model || '')
+          ? GEMINI_MODEL_DEFAULT
+          : this.settings.model
     const providerApiKey =
       providerType === 'deepseek'
         ? (this.settings.deepseekApiKey ?? this.settings.providerApiKey)
-        : providerType === 'openrouter'
-          ? (this.settings.openrouterApiKey ?? this.settings.providerApiKey)
-          : providerType === 'openai'
-            ? (this.settings.openaiApiKey ?? this.settings.providerApiKey)
-            : undefined
+        : providerType === 'gemini'
+          ? (this.settings.geminiApiKey ?? this.settings.providerApiKey)
+          : providerType === 'openrouter'
+            ? (this.settings.openrouterApiKey ?? this.settings.providerApiKey)
+            : providerType === 'openai'
+              ? (this.settings.openaiApiKey ?? this.settings.providerApiKey)
+              : undefined
     this.providerConfig = {
       type: providerType,
       baseUrl: providerBaseUrl,
@@ -186,11 +203,15 @@ export class AgentRunner {
       const defaultUrl =
         cloudType === 'deepseek'
           ? DEEPSEEK_API_BASE_URL
-          : cloudType === 'openrouter'
-            ? OPENROUTER_API_BASE_URL
-            : 'https://api.openai.com/v1'
+          : cloudType === 'gemini'
+            ? GEMINI_API_BASE_URL
+            : cloudType === 'openrouter'
+              ? OPENROUTER_API_BASE_URL
+              : 'https://api.openai.com/v1'
       const cloudBaseUrl = this.settings.cloudBaseUrl || defaultUrl
-      const cloudModel = this.settings.cloudModel || DEEPSEEK_MODEL_DEFAULT
+      const cloudModel =
+        this.settings.cloudModel ||
+        (cloudType === 'gemini' ? GEMINI_MODEL_DEFAULT : DEEPSEEK_MODEL_DEFAULT)
       return {
         providerConfig: {
           type: cloudType,
@@ -1148,6 +1169,7 @@ export class AgentRunner {
 
     this.toolHandlers = {
       ...projectResult.handlers,
+      ...createGitHubToolHandlers(),
       ...createCodeViperToolHandlers(),
       ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
       ...createSkillsToolHandlers(this.projectPath, this.emit),

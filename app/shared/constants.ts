@@ -40,6 +40,10 @@ export const DEEPSEEK_API_BASE_URL = 'https://api.deepseek.com/v1'
 /** Модель DeepSeek по умолчанию */
 export const DEEPSEEK_MODEL_DEFAULT = 'deepseek-chat'
 /** URL OpenRouter API (OpenAI-совместимый, агрегатор моделей) */
+/** URL Gemini API */
+export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
+/** Модель Gemini по умолчанию */
+export const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash'
 export const OPENROUTER_API_BASE_URL = 'https://openrouter.ai/api/v1'
 /** Провайдер по умолчанию */
 export const DEFAULT_MODEL_PROVIDER = 'ollama' as const

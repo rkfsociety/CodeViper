@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'fs/promises'
+import { readFile, stat, writeFile } from 'fs/promises'
 import { join, resolve } from 'path'
 import { appendFileHistory, readFileHistory } from './fileHistory'
 import { createUnifiedDiff } from './diffUtil'
@@ -12,7 +12,10 @@ import {
   safeEditFile,
   safeAppendFile,
   safeDeleteFile,
+  safeCopyFile,
+  safeCopyFolder,
   safeMoveFile,
+  safeMoveFolder,
   runCommand,
   buildFileTree,
   isInsideProject
@@ -64,6 +67,61 @@ export function createProjectToolHandlers(
     }
   }
 
+  function countTree(
+    nodes: Array<{
+      isDirectory: boolean
+      children?: Array<{ isDirectory: boolean; children?: never[] }>
+    }>
+  ): { files: number; dirs: number } {
+    let files = 0
+    let dirs = 0
+    const walk = (items: typeof nodes): void => {
+      for (const item of items) {
+        if (item.isDirectory) {
+          dirs += 1
+          if (item.children?.length) walk(item.children as typeof nodes)
+        } else {
+          files += 1
+        }
+      }
+    }
+    walk(nodes)
+    return { files, dirs }
+  }
+
+  function resolveProjectFile(pathArg: string | undefined, fallback: string): string {
+    const trimmed = pathArg?.trim()
+    if (!trimmed) return fallback
+    return resolve(projectPath, trimmed)
+  }
+
+  async function readPackageJson(
+    pathArg: string | undefined
+  ): Promise<{ path: string; data: any } | null> {
+    const target = resolveProjectFile(pathArg, join(projectPath, 'package.json'))
+    assertInsideProject(target, 'package.json')
+    try {
+      const raw = await readFile(target, 'utf-8')
+      return { path: target, data: JSON.parse(raw) }
+    } catch {
+      return null
+    }
+  }
+
+  async function readPackageLock(
+    pathArg: string | undefined
+  ): Promise<{ path: string; data: any } | null> {
+    const fallback = join(projectPath, 'package-lock.json')
+    const target = resolveProjectFile(pathArg, fallback)
+    assertInsideProject(target, 'package-lock.json')
+    try {
+      const raw = await readFile(target, 'utf-8')
+      return { path: target, data: JSON.parse(raw) }
+    } catch {
+      return null
+    }
+  }
+
   const handlers: Partial<ToolHandlers> = {
     list_directory: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
@@ -107,6 +165,138 @@ export function createProjectToolHandlers(
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
       return safeReadFilePartial(projectPath, args.path, offset, limit)
+    },
+
+    file_info: async (args) => {
+      assertInsideProject(args.path, 'файл')
+      const absPath = resolve(projectPath, args.path)
+      const info = await stat(absPath)
+      if (!info.isFile()) return `Это не файл: ${args.path}`
+
+      const maxPreviewBytes = 128 * 1024
+      let text = ''
+      let binary = false
+      try {
+        const buffer = await readFile(absPath)
+        binary = buffer.includes(0)
+        if (!binary) text = buffer.toString('utf8')
+      } catch {
+        return `Ошибка чтения файла: ${args.path}`
+      }
+
+      const lines = binary ? null : text.split('\n').length
+      const words = binary ? null : (text.match(/\S+/g)?.length ?? 0)
+      const chars = binary ? null : text.length
+      const truncated = info.size > maxPreviewBytes ? 'да' : 'нет'
+
+      return [
+        `Файл: ${args.path}`,
+        `Размер: ${info.size} байт`,
+        `Изменён: ${info.mtime.toLocaleString('ru-RU')}`,
+        `Бинарный: ${binary ? 'да' : 'нет'}`,
+        `Показывать как большой: ${truncated}`,
+        ...(lines != null ? [`Строк: ${lines}`] : []),
+        ...(words != null ? [`Слов: ${words}`] : []),
+        ...(chars != null ? [`Символов: ${chars}`] : [])
+      ].join('\n')
+    },
+
+    project_stats: async (args) => {
+      assertInsideProject(args.path, 'папка', { allowEmpty: true })
+      const target = args.path?.trim() || projectPath
+      const tree = await buildFileTree(target, 0, 5)
+      const counts = countTree(tree as Array<{ isDirectory: boolean; children?: any[] }>)
+      const topLevel = tree.slice(0, 12).map((node) => `${node.name}${node.isDirectory ? '/' : ''}`)
+      const recentCommits = await gitLog(projectPath, { limit: '5', oneline: 'true' }).catch(
+        () => '(git log недоступен)'
+      )
+
+      return [
+        `Проект: ${target}`,
+        `Папок: ${counts.dirs}`,
+        `Файлов: ${counts.files}`,
+        `Верхний уровень: ${topLevel.join(', ') || '(пусто)'}`,
+        '',
+        'Последние коммиты:',
+        recentCommits
+      ].join('\n')
+    },
+
+    package_info: async (args) => {
+      const pkg = await readPackageJson(args.path)
+      if (!pkg) return 'package.json не найден или не удалось его прочитать.'
+
+      const scripts = Object.entries(pkg.data.scripts ?? {})
+        .slice(0, 20)
+        .map(([name, cmd]) => `- ${name}: ${String(cmd)}`)
+        .join('\n')
+      const deps = Object.keys({
+        ...(pkg.data.dependencies ?? {}),
+        ...(pkg.data.devDependencies ?? {})
+      })
+      const depsText = deps.slice(0, 20).join(', ') || '(нет)'
+
+      return [
+        `Файл: ${pkg.path}`,
+        `name: ${pkg.data.name ?? '(нет)'}`,
+        `version: ${pkg.data.version ?? '(нет)'}`,
+        `type: ${pkg.data.type ?? '(нет)'}`,
+        '',
+        'Scripts:',
+        scripts || '(нет)',
+        '',
+        `Dependencies: ${depsText}`
+      ].join('\n')
+    },
+
+    read_package_lock: async (args) => {
+      const lock = await readPackageLock(args.path)
+      if (!lock) return 'package-lock.json не найден или не удалось его прочитать.'
+      const packages = lock.data.packages ? Object.keys(lock.data.packages) : []
+      return [
+        `Файл: ${lock.path}`,
+        `lockfileVersion: ${lock.data.lockfileVersion ?? '(нет)'}`,
+        `packages: ${packages.length}`,
+        packages.length ? `Первый пакет: ${packages[0]}` : ''
+      ]
+        .filter(Boolean)
+        .join('\n')
+    },
+
+    dependency_summary: async (args) => {
+      const pkg = await readPackageJson(args.path)
+      if (!pkg) return 'package.json не найден или не удалось его прочитать.'
+      const direct = Object.keys(pkg.data.dependencies ?? {})
+      const dev = Object.keys(pkg.data.devDependencies ?? {})
+      return [
+        `Файл: ${pkg.path}`,
+        `direct: ${direct.length}`,
+        `dev: ${dev.length}`,
+        `Основные direct: ${direct.slice(0, 12).join(', ') || '(нет)'}`,
+        `Основные dev: ${dev.slice(0, 12).join(', ') || '(нет)'}`
+      ].join('\n')
+    },
+
+    test_summary: async (args) => {
+      const pkg = await readPackageJson(args.path)
+      if (!pkg) return 'package.json не найден или не удалось его прочитать.'
+
+      const scripts = pkg.data.scripts ?? {}
+      const testScripts = Object.entries(scripts).filter(([name]) =>
+        /test|check|lint|type/i.test(name)
+      )
+      const summary = testScripts
+        .slice(0, 12)
+        .map(([name, cmd]) => `- ${name}: ${String(cmd)}`)
+        .join('\n')
+
+      return [
+        `Файл: ${pkg.path}`,
+        'Тестовые команды:',
+        summary || '- (не найдено)',
+        '',
+        'Подсказка: запускай наиболее точную команду из scripts, а не полный набор без нужды.'
+      ].join('\n')
     },
 
     search_in_file: async (args) => {
@@ -162,6 +352,28 @@ export function createProjectToolHandlers(
       if (!results.length) return `Совпадений не найдено в ${args.path} (строк: ${lines.length}).`
       const header = `Найдено: ${count}${truncated ? '+' : ''} совпадений в ${args.path} (строк в файле: ${lines.length})\nЗапрос: ${args.query}`
       return `${header}\n\n${results.join('\n')}`
+    },
+
+    file_search_summary: async (args) => {
+      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      const result = await grepInTreeWorker(projectPath, args.query, {
+        subpath: args.path?.trim()
+      })
+      const topMatches = result.matches.slice(0, 8).map((m) => {
+        const rel = m.path.startsWith(projectPath) ? m.path.slice(projectPath.length + 1) : m.path
+        return `${rel}:${m.line}`
+      })
+      return [
+        `Запрос: ${args.query}`,
+        `Совпадений: ${result.matches.length}${result.truncated ? '+' : ''}`,
+        `Файлов просмотрено: ${result.filesScanned}`,
+        ...(result.skippedLargeFiles.length
+          ? [`Пропущено больших файлов: ${result.skippedLargeFiles.length}`]
+          : []),
+        '',
+        'Топ совпадения:',
+        topMatches.length ? topMatches.join('\n') : '(нет)'
+      ].join('\n')
     },
 
     write_file: guardWrite(async (args) => {
@@ -268,6 +480,27 @@ export function createProjectToolHandlers(
       return `Файл перемещён: ${args.from} → ${args.to}`
     }),
 
+    copy_file: guardWrite(async (args) => {
+      assertInsideProject(args.from, 'исходный путь')
+      assertInsideProject(args.to, 'целевой путь')
+      await safeCopyFile(projectPath, args.from, args.to)
+      return `Файл скопирован: ${args.from} → ${args.to}`
+    }),
+
+    rename_folder: guardWrite(async (args) => {
+      assertInsideProject(args.from, 'исходная папка')
+      assertInsideProject(args.to, 'целевая папка')
+      await safeMoveFolder(projectPath, args.from, args.to)
+      return `Папка перемещена: ${args.from} → ${args.to}`
+    }),
+
+    copy_folder: guardWrite(async (args) => {
+      assertInsideProject(args.from, 'исходная папка')
+      assertInsideProject(args.to, 'целевая папка')
+      await safeCopyFolder(projectPath, args.from, args.to)
+      return `Папка скопирована: ${args.from} → ${args.to}`
+    }),
+
     show_file_history: async (args) => {
       assertInsideProject(args.path)
       const entries = await readFileHistory(projectPath, args.path)
@@ -313,6 +546,13 @@ export function createProjectToolHandlers(
         limit: args.limit,
         path: args.path,
         oneline: args.oneline
+      }),
+
+    recent_changes: async (args) =>
+      gitLog(projectPath, {
+        limit: args.limit ?? '5',
+        path: args.path,
+        oneline: 'true'
       })
   }
 

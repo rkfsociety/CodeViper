@@ -37,12 +37,21 @@ export class OpenAIProvider implements ModelProvider {
       if (!res.ok) return []
 
       const data = (await res.json()) as {
-        data?: Array<{ id: string; context_length?: number; name?: string }>
+        data?: Array<{
+          id?: string
+          slug?: string
+          name?: string
+          context_length?: number
+          context_length_tokens?: number
+        }>
       }
-      return (data.data ?? []).map((item) => ({
-        name: item.id,
-        contextLength: item.context_length
-      }))
+      return (data.data ?? [])
+        .map((item) => {
+          const name = item.id || item.slug || item.name || ''
+          const contextLength = item.context_length ?? item.context_length_tokens
+          return name ? { name, contextLength } : null
+        })
+        .filter(Boolean) as LoadedModel[]
     } catch {
       return []
     }

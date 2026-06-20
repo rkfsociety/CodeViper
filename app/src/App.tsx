@@ -31,7 +31,7 @@ const SettingsModal = lazy(() =>
 )
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
-import { DEEPSEEK_API_BASE_URL } from '../shared/constants'
+import { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 
 const DEFAULT_SETTINGS: AgentSettings = {
@@ -181,6 +181,20 @@ function AppContent() {
       return
     }
 
+    if (provider === 'gemini') {
+      try {
+        const list = await window.codeviper.listProviderModels({
+          type: 'gemini',
+          baseUrl: GEMINI_API_BASE_URL,
+          apiKey: settings.geminiApiKey
+        })
+        setModels(list.map((m) => ({ name: m.name, size: m.size ?? 0, modifiedAt: '' })))
+      } catch {
+        setModels([])
+      }
+      return
+    }
+
     if (online) {
       const list = await window.codeviper.listOllamaModels(settings.ollamaUrl)
       setModels(list)
@@ -201,7 +215,8 @@ function AppContent() {
     settings.modelProvider,
     settings.deepseekApiKey,
     settings.openaiApiKey,
-    settings.openrouterApiKey
+    settings.openrouterApiKey,
+    settings.geminiApiKey
   ])
 
   const downloadQueue = useOllamaDownloadQueue({
@@ -636,7 +651,7 @@ function AppContent() {
                   </button>
                 </div>
                 <Suspense fallback={null}>
-                  <PrStatusPanel />
+                  <PrStatusPanel isOpen={prPanelOpen} />
                 </Suspense>
               </div>
             )}

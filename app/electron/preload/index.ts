@@ -252,6 +252,28 @@ const codeviper = {
   listPullRequests: () =>
     withTimeout(ipcRenderer.invoke('list-pull-requests'), 30_000, 'listPullRequests'),
 
+  createIssue: (title: string, body?: string, labels?: string) =>
+    withTimeout(
+      ipcRenderer.invoke('create-issue', title, body, labels),
+      IPC_TIMEOUT_MS,
+      'createIssue'
+    ),
+
+  createPr: (title?: string, body?: string) =>
+    withTimeout(ipcRenderer.invoke('create-pr', title, body), IPC_TIMEOUT_MS, 'createPr'),
+
+  listIssues: () => withTimeout(ipcRenderer.invoke('list-issues'), IPC_TIMEOUT_MS, 'listIssues'),
+
+  openIssue: (number: string) =>
+    withTimeout(ipcRenderer.invoke('open-issue', number), IPC_TIMEOUT_MS, 'openIssue'),
+
+  triggerGithubWorkflow: (workflowId: string, ref?: string, fields?: string) =>
+    withTimeout(
+      ipcRenderer.invoke('trigger-github-workflow', workflowId, ref, fields),
+      IPC_TIMEOUT_MS,
+      'triggerGithubWorkflow'
+    ),
+
   openExternal: (url: string) => ipcRenderer.send('open-external', url),
 
   showItemInFolder: (filePath: string) => ipcRenderer.send('show-item-in-folder', filePath),

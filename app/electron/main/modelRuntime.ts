@@ -7,8 +7,14 @@ import type {
   ModelPlacement
 } from '../../shared/modelProvider'
 import { OllamaProvider } from './providers/ollamaProvider'
+import { GeminiProvider } from './providers/geminiProvider'
 import { OpenAIProvider } from './providers/openaiProvider'
-import { DEEPSEEK_API_BASE_URL, OPENROUTER_API_BASE_URL } from '../../shared/constants'
+import {
+  DEEPSEEK_API_BASE_URL,
+  GEMINI_API_BASE_URL,
+  GEMINI_MODEL_DEFAULT,
+  OPENROUTER_API_BASE_URL
+} from '../../shared/constants'
 
 /** Фасад для выбора провайдера моделей по конфигурации. */
 export class ModelRuntime {
@@ -31,6 +37,16 @@ export class ModelRuntime {
       const apiKey = config.apiKey || ''
       const model = config.model || 'gpt-3.5-turbo'
       return new OpenAIProvider(baseUrl, apiKey, model)
+    }
+
+    if (config.type === 'gemini') {
+      const apiKey = config.apiKey || ''
+      const model = config.model || GEMINI_MODEL_DEFAULT
+      return new GeminiProvider(
+        apiKey,
+        model,
+        (config.baseUrl || GEMINI_API_BASE_URL).replace(/\/$/, '')
+      )
     }
 
     if (config.type === 'openrouter') {
