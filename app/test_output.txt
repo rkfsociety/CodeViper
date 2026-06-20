@@ -1,0 +1,293 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.8 [39m[90mF:/github/CodeViper/app[39m
+
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mсоздаёт воркер при первом вызове computeEmbeddingQueued[32m 6[2mms[22m[39m
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mотправляет сообщение сразу, если воркер уже ready[32m 0[2mms[22m[39m
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mобрабатывает ошибку от воркера[32m 1[2mms[22m[39m
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mобрабатывает exit воркера с ненулевым кодом[32m 0[2mms[22m[39m
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mсоздаёт новый воркер после того, как старый упал[32m 0[2mms[22m[39m
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mвозвращает null, если воркер вернул null-вектор[32m 0[2mms[22m[39m
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mкорректно обрабатывает несколько параллельных запросов[32m 1[2mms[22m[39m
+ [32m✓[39m tests/embeddingQueue.test.ts[2m > [22membeddingQueue[2m > [22mне дублирует воркер при повторных вызовах[32m 0[2mms[22m[39m
+ [32m✓[39m tests/fileSearch.test.ts[2m > [22mfileSearch[2m > [22mнаходит текст grep_files[32m 20[2mms[22m[39m
+ [32m✓[39m tests/fileSearch.test.ts[2m > [22mfileSearch[2m > [22mнаходит файлы find_files[32m 3[2mms[22m[39m
+ [32m✓[39m tests/buildSkillsContext.test.ts[2m > [22mbuildSkillsContext[2m > [22mавтоматически инжектит инструкции при совпадении триггера[32m 15[2mms[22m[39m
+ [32m✓[39m tests/buildSkillsContext.test.ts[2m > [22mbuildSkillsContext[2m > [22mне инжектит инструкции без совпадения триггера[32m 11[2mms[22m[39m
+ [32m✓[39m tests/skills.test.ts[2m > [22mViperSkills.md[2m > [22mсохраняет навык в ViperSkills.md с scope global по умолчанию[32m 11[2mms[22m[39m
+ [32m✓[39m tests/skills.test.ts[2m > [22mViperSkills.md[2m > [22mroundtrip parse/render[32m 2[2mms[22m[39m
+ [32m✓[39m tests/skills.test.ts[2m > [22mViperSkills.md[2m > [22mмигрирует legacy skills.json[32m 8[2mms[22m[39m
+ [32m✓[39m tests/skills.test.ts[2m > [22mViperSkills.md[2m > [22mигнорирует scope project — навык всегда global[32m 6[2mms[22m[39m
+ [32m✓[39m tests/skills.test.ts[2m > [22mViperSkills.md[2m > [22mнельзя удалить встроенный системный навык[32m 3[2mms[22m[39m
+ [32m✓[39m tests/skills.test.ts[2m > [22mViperSkills.md[2m > [22mобновление навыка сохраняется на диск[32m 9[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22misInsideProject[2m > [22mразрешает сам корень и вложенные пути[32m 2[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22misInsideProject[2m > [22mзапрещает пути вне проекта[32m 0[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22misInsideProject[2m > [22mне зависит от регистра[32m 0[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mvalidateCommand[2m > [22mпропускает обычные команды[32m 1[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mvalidateCommand[2m > [22mотклоняет пустую и слишком длинную[32m 1[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mvalidateCommand[2m > [22mблокирует опасные команды[32m 1[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mrunCommand[2m > [22mвозвращает ошибку без запуска для заблокированной команды[32m 0[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mrunCommand[2m > [22mвыполняет простую команду[32m 47[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mViperMemory.md[2m > [22mсохраняет записи в ViperMemory.md[32m 10[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mViperMemory.md[2m > [22mroundtrip parse/render[32m 4[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mViperMemory.md[2m > [22mмигрирует legacy memory.json[32m 5[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22maddMemory / listMemories[2m > [22mсохраняет и читает глобальное знание[32m 9[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22maddMemory / listMemories[2m > [22mдедуплицирует по содержимому и увеличивает useCount[32m 6[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22maddMemory / listMemories[2m > [22mнормализует теги из строки[32m 4[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22maddMemory / listMemories[2m > [22mбросает ошибку на пустое знание[32m 3[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22msearchMemories[2m > [22mищет по содержимому и тегам[32m 31[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mdeleteMemory[2m > [22mудаляет по id[32m 11[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mparseReflectionLearnings[2m > [22mпарсит валидный JSON-массив[32m 1[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mparseReflectionLearnings[2m > [22mподменяет неизвестную категорию на pattern[32m 0[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mparseReflectionLearnings[2m > [22mберёт максимум 2 элемента и пропускает пустые[32m 0[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mparseReflectionLearnings[2m > [22mвозвращает [] на мусоре[32m 0[2mms[22m[39m
+ [32m✓[39m tests/memory.test.ts[2m > [22mзащита от потери при повреждении[2m > [22mповреждённый ViperMemory.md бэкапится, не затирается пустым[32m 8[2mms[22m[39m
+ [32m✓[39m tests/contextSummarizer.test.ts[2m > [22mcontextSummarizer[2m > [22mвызывает fetch при суммаризации через ollamaUrl[32m 15[2mms[22m[39m
+ [32m✓[39m tests/contextSummarizer.test.ts[2m > [22mcontextSummarizer[2m > [22mиспользует summarizeModel вместо основной модели агента[32m 1[2mms[22m[39m
+ [32m✓[39m tests/contextSummarizer.test.ts[2m > [22mcontextSummarizer[2m > [22mсуммаризирует старую историю при ~85%+ лимита[32m 1[2mms[22m[39m
+ [32m✓[39m tests/contextSummarizer.test.ts[2m > [22mcontextSummarizer[2m > [22mобрезает историю без Ollama URL[32m 1[2mms[22m[39m
+ [32m✓[39m tests/contextSummarizer.test.ts[2m > [22mcontextSummarizer[2m > [22mзовёт onCompressStart, когда сжатие реально началось[32m 1[2mms[22m[39m
+ [32m✓[39m tests/contextSummarizer.test.ts[2m > [22mcontextSummarizer[2m > [22mне зовёт onCompressStart, когда контекст в пределах лимита[32m 0[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mсоздаёт все встроенные навыки[32m 65[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mсоздаёт viper-files с инструкциями по read_file[32m 65[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mсоздание и обновление чатов[2m > [22mсоздаёт чат и делает его активным[32m 14[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mсоздание и обновление чатов[2m > [22mобновляет поля чата[32m 17[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mсоздание и обновление чатов[2m > [22mудаляет чат и переносит активность[32m 25[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mпапки[2m > [22mсоздаёт, переименовывает и удаляет папку (чаты остаются)[32m 41[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mtoolCalls[2m > [22mизвлекает встроенный вызов из json-блока[32m 5[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mtoolCalls[2m > [22mизвлекает вызов из префикса tool_response[32m 3[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mtoolCalls[2m > [22mигнорирует неизвестные имена инструментов[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mtoolCalls[2m > [22msanitizeAssistantContent убирает json-вызов и оставляет текст[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mtoolCalls[2m > [22mlooksLikeEmbeddedToolCall отличает чистый вызов от текста[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mfileEdit[2m > [22mзаменяет одно вхождение[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mfileEdit[2m > [22mreplace_all заменяет все вхождения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mfileEdit[2m > [22mбросает при пустом/совпадающем/ненайденном/неоднозначном[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mfileEdit[2m > [22mparseToolBool распознаёт истинные значения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mmodelRouter[2m > [22mnormalizeModelName и modelsMatch[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mmodelRouter[2m > [22manalyzeTask повышает сложность для самоулучшения и мутаций[32m 9[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mmodelRouter[2m > [22mselectModelForTask: null без моделей, единственная — она же[32m 2[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mmodelRouter[2m > [22mselectModelForTask выбирает coder-модель для кода[32m 2[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mmodelRouter[2m > [22mshouldUseAutoModel учитывает флаг и число моделей[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mactionVerification[2m > [22mMUTATING_TOOLS содержит мутирующие инструменты[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mactionVerification[2m > [22mtaskLikelyNeedsMutation / taskLikelyNeedsTools[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mactionVerification[2m > [22mclaimsActionCompleted ловит заявления о готовности, но не будущее время[32m 2[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mactionVerification[2m > [22mlooksLikeAdviceInsteadOfAction ловит совет про Figma[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mactionVerification[2m > [22mshouldRetryForMissingTools требует повтор при заявлении без инструментов[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mcontextLimits[2m > [22mgetModelContextLimitTokens по размеру модели[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mcontextLimits[2m > [22mcomputeContextUsage помечает необходимость суммаризации[32m 2[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mskillMatching[2m > [22mscoreSkill повышает балл при совпадении триггера[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mskillMatching[2m > [22mshouldApplySkill: не применяет встроенные и не-global[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mskillMatching[2m > [22mtruncateSkillInstructions обрезает длинный текст[32m 1[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mpermissions[2m > [22mnormalizePermissionMode валидирует значение[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mpermissions[2m > [22mtoolRequiresConfirm: bypass никогда не спрашивает[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mpermissions[2m > [22mtoolRequiresConfirm: ask спрашивает все мутации, но не чтение[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mpermissions[2m > [22mtoolRequiresConfirm: acceptEdits принимает правки, спрашивает команды[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mreasoning[2m > [22misThinkingModel распознаёт think-модели[32m 0[2mms[22m[39m
+ [32m✓[39m tests/shared.test.ts[2m > [22mreasoning[2m > [22misThinkingModel: обычные модели — нет[32m 0[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mпапки[2m > [22mпереносит чат между папками[32m 12[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mзаголовки[2m > [22mmakeChatTitle обрезает и подставляет дефолт[32m 2[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mзаголовки[2m > [22mderiveChatTitle берёт первое сообщение пользователя[32m 1[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mtrimChatMessages[2m > [22mобрезает по количеству сообщений[32m 1[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mtrimChatMessages[2m > [22mсохраняет сообщения при нормальном размере[32m 2[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mзащита от потери при повреждении[2m > [22mповреждённый файл чата бэкапится, сообщения не затираются[32m 29[2mms[22m[39m
+ [32m✓[39m tests/chats.test.ts[2m > [22mзащита от потери при повреждении[2m > [22mповреждённый индекс бэкапится, не затирается пустым[32m 15[2mms[22m[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mблокирует write_file за пределами проекта (AgentError readonly)[32m 8[2mms[22m[39m
+[31m   → handlers.write_file is not a function[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mблокирует traversal через ../ в относительном пути[32m 2[2mms[22m[39m
+[31m   → handlers.create_file is not a function[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mблокирует move_file, если to вне проекта[32m 2[2mms[22m[39m
+[31m   → handlers.move_file is not a function[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mпропускает путь внутри проекта[32m 1[2mms[22m[39m
+[31m   → handlers.create_file is not a function[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mблокирует read_file за пределами проекта[32m 1[2mms[22m[39m
+[31m   → handlers.read_file is not a function[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mблокирует grep_files за пределами проекта[32m 1[2mms[22m[39m
+[31m   → handlers.grep_files is not a function[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mблокирует find_files за пределами проекта[32m 1[2mms[22m[39m
+[31m   → handlers.find_files is not a function[39m
+ [31m×[39m tests/agentHandlersProject.test.ts[2m > [22mcreateProjectToolHandlers — санитизация путей[2m > [22mразрешает read/grep/find с пустым path (везде в проекте)[32m 1[2mms[22m[39m
+[31m   → handlers.create_file is not a function[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mсоздаёт viper-codebase с grep и find[32m 45[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mсоздаёт viper-agent-core со списком инструментов[32m 52[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mсоздаёт viper-memory при первом запуске[32m 44[2mms[22m[39m
+ [32m✓[39m tests/gitTools.test.ts[2m > [22mgitTools[2m > [22mgit_status возвращает статус репозитория[32m 191[2mms[22m[39m
+ [31m×[39m tests/executeTool.test.ts[2m > [22mexecuteTool — read_file[2m > [22mчитает существующий файл[32m 9[2mms[22m[39m
+[31m   → handlers.read_file is not a function[39m
+ [31m×[39m tests/executeTool.test.ts[2m > [22mexecuteTool — read_file[2m > [22mбросает ошибку для несуществующего файла[32m 2[2mms[22m[39m
+[31m   → handlers.read_file is not a function[39m
+ [31m×[39m tests/executeTool.test.ts[2m > [22mexecuteTool — read_file[2m > [22mблокирует чтение вне проекта[32m 2[2mms[22m[39m
+[31m   → handlers.read_file is not a function[39m
+ [31m×[39m tests/executeTool.test.ts[2m > [22mexecuteTool — write_file + readonlyMode[2m > [22mпишет файл[32m 1[2mms[22m[39m
+[31m   → handlers.write_file is not a function[39m
+ [31m×[39m tests/executeTool.test.ts[2m > [22mexecuteTool — write_file + readonlyMode[2m > [22mreadonlyMode блокирует запись[32m 1[2mms[22m[39m
+[31m   → handlers.write_file is not a function[39m
+ [32m✓[39m tests/executeTool.test.ts[2m > [22mexecuteTool — неизвестный инструмент[2m > [22mвозвращает "Неизвестный инструмент"[32m 1[2mms[22m[39m
+ [32m✓[39m tests/executeTool.test.ts[2m > [22mcreateSelfImprovementToolHandlers[2m > [22mset_self_improvement_plan устанавливает план и возвращает summary[32m 3[2mms[22m[39m
+ [32m✓[39m tests/executeTool.test.ts[2m > [22mcreateSelfImprovementToolHandlers[2m > [22mcomplete_self_improvement_item отмечает пункт выполненным[32m 3[2mms[22m[39m
+ [32m✓[39m tests/executeTool.test.ts[2m > [22mcreateSelfImprovementToolHandlers[2m > [22mcomplete последнего пункта сообщает о завершении плана[32m 4[2mms[22m[39m
+ [32m✓[39m tests/executeTool.test.ts[2m > [22mcreateSelfImprovementToolHandlers[2m > [22mget_self_improvement_plan возвращает сообщение при отсутствии плана[32m 2[2mms[22m[39m
+ [32m✓[39m tests/executeTool.test.ts[2m > [22mcreateSelfImprovementToolHandlers[2m > [22mget_self_improvement_plan возвращает summary активного плана[32m 1[2mms[22m[39m
+ [32m✓[39m tests/executeTool.test.ts[2m > [22mcreateSelfImprovementToolHandlers[2m > [22mcomplete несуществующего id бросает ошибку[32m 3[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mсоздаёт viper-model-training при первом запуске[32m 38[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mне дублирует навыки при повторном вызове[32m 65[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mrunCommand[2m > [22mпрерывает по таймауту с кодом 124[33m 336[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mfile operations[2m > [22mcreate_file создаёт новый файл[32m 13[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mfile operations[2m > [22mcreate_file не перезаписывает существующий[32m 6[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mfile operations[2m > [22medit_file заменяет фрагмент[32m 8[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mfile operations[2m > [22mappend_file дописывает в конец[32m 6[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mfile operations[2m > [22mdelete_file удаляет файл и запрещает выход за проект[32m 5[2mms[22m[39m
+ [32m✓[39m tests/services.test.ts[2m > [22mfile operations[2m > [22mmove_file переименовывает и не перезаписывает существующий[32m 9[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mопределяет задачу с изменениями[32m 3[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mопределяет задачи, требующие инструментов[32m 1[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mраспознаёт совет вместо действия[32m 1[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mне считает планирование завершением[32m 2[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mтребует повтор при советах без инструментов[32m 1[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mтребует повтор на read-обзоре при коротком намерении без инструментов[32m 0[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mтребует проверку без mutating tools[32m 0[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mне требует проверку если инструмент уже вызывался[32m 0[2mms[22m[39m
+ [32m✓[39m tests/actionVerification.test.ts[2m > [22mactionVerification[2m > [22mсчитает «изучи код и улучшай себя» задачей с изменениями (но режим самоулучшения обходит fail)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/gitTools.test.ts[2m > [22mgitTools[2m > [22mgit_log возвращает историю коммитов[32m 182[2mms[22m[39m
+ [32m✓[39m tests/selfImprovement.test.ts[2m > [22mselfImprovement[2m > [22mраспознаёт запрос на самоулучшение[32m 8[2mms[22m[39m
+ [32m✓[39m tests/selfImprovement.test.ts[2m > [22mselfImprovement[2m > [22mувеличивает лимит шагов для самоулучшения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/selfImprovement.test.ts[2m > [22mselfImprovement[2m > [22mпарсит JSON плана[32m 1[2mms[22m[39m
+ [32m✓[39m tests/selfImprovement.test.ts[2m > [22mselfImprovement[2m > [22mпарсит JSON план из текста ответа[32m 2[2mms[22m[39m
+ [32m✓[39m tests/selfImprovement.test.ts[2m > [22mselfImprovement[2m > [22mпарсит markdown checklist[32m 0[2mms[22m[39m
+ [32m✓[39m tests/selfImprovement.test.ts[2m > [22mselfImprovement[2m > [22mсинхронизирует статус из checklist[32m 0[2mms[22m[39m
+ [32m✓[39m tests/selfImprovement.test.ts[2m > [22mselfImprovement[2m > [22mформатирует план и nudge[32m 1[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22mextractEmbeddedToolCalls[2m > [22mпарсит JSON tool call без markdown[32m 5[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22mextractEmbeddedToolCalls[2m > [22mпарсит tool call в markdown-блоке[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22mextractEmbeddedToolCalls[2m > [22mоставляет обычный текст[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22mextractEmbeddedToolCalls[2m > [22mигнорирует JSON с неизвестным инструментом[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22mextractEmbeddedToolCalls[2m > [22mпарсит tool_response с вложенными arguments[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22mlooksLikeEmbeddedToolCall[2m > [22mраспознаёт сырой JSON tool call[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22mlooksLikeEmbeddedToolCall[2m > [22mне помечает обычный ответ[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22msanitizeAssistantContent[2m > [22mубирает битый префикс {"name[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22msanitizeAssistantContent[2m > [22mразворачивает prose из ```json блока[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolCalls.test.ts[2m > [22msanitizeAssistantContent[2m > [22mубирает валидный tool call JSON[32m 0[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mоценивает самоулучшение как сложную задачу[32m 8[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mвыбирает лёгкую модель для короткого вопроса[32m 3[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mвыбирает крупную coder-модель для сложной правки[32m 1[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mвыбирает крупную модель для самоулучшения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mвозвращает единственную модель без сравнения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mигнорирует модели без tool calling[32m 2[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mselectLightestModelForSummarization выбирает самую лёгкую[32m 1[2mms[22m[39m
+ [32m✓[39m tests/modelRouter.test.ts[2m > [22mmodelRouter[2m > [22mselectLightestModelForSummarization пропускает embed-модели[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentPrerequisites.integration.test.ts[2m > [22mcheckProjectNodeDependencies[2m > [22mтребует npm install если есть package.json без node_modules[32m 4[2mms[22m[39m
+ [32m✓[39m tests/agentPrerequisites.integration.test.ts[2m > [22mcheckProjectNodeDependencies[2m > [22mне требует install если node_modules есть[32m 17[2mms[22m[39m
+ [32m✓[39m tests/agentPrerequisites.integration.test.ts[2m > [22mcheckAgentPrerequisites[2m > [22mok когда ollama и node_modules на месте[32m 4[2mms[22m[39m
+ [32m✓[39m tests/recommendedModels.test.ts[2m > [22mrecommendedModels[2m > [22mсодержит модели для разных уровней RAM[32m 3[2mms[22m[39m
+ [32m✓[39m tests/recommendedModels.test.ts[2m > [22mrecommendedModels[2m > [22mвсе модели каталога считаются tool calling[32m 2[2mms[22m[39m
+ [32m✓[39m tests/recommendedModels.test.ts[2m > [22mrecommendedModels[2m > [22mотклоняет модели без tool calling[32m 2[2mms[22m[39m
+ [32m✓[39m tests/recommendedModels.test.ts[2m > [22mrecommendedModels[2m > [22mразрешает скачивание только из каталога[32m 0[2mms[22m[39m
+ [32m✓[39m tests/recommendedModels.test.ts[2m > [22mrecommendedModels[2m > [22mскрывает установленные модели из каталога скачивания[32m 0[2mms[22m[39m
+ [32m✓[39m tests/recommendedModels.test.ts[2m > [22mrecommendedModels[2m > [22mгруппирует по tier без пустых секций[32m 0[2mms[22m[39m
+ [32m✓[39m tests/recommendedModels.test.ts[2m > [22mrecommendedModels[2m > [22mпомечает featured модели для 8 и 16 GB[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentRunner.integration.test.ts[2m > [22mAgentRunner — интеграционный прогон[2m > [22mпростой текстовый ответ — emit assistant + done[32m 15[2mms[22m[39m
+ [32m✓[39m tests/agentRunner.integration.test.ts[2m > [22mAgentRunner — интеграционный прогон[2m > [22mtool call list_directory → результат идёт в следующий запрос → финальный ответ[32m 27[2mms[22m[39m
+ [32m✓[39m tests/agentRunner.integration.test.ts[2m > [22mAgentRunner — интеграционный прогон[2m > [22mtool call read_file → результат содержит содержимое файла[32m 10[2mms[22m[39m
+ [32m✓[39m tests/agentRunner.integration.test.ts[2m > [22mAgentRunner — интеграционный прогон[2m > [22mотклонённый confirm останавливает инструмент, агент продолжает[32m 8[2mms[22m[39m
+ [32m✓[39m tests/agentRunner.integration.test.ts[2m > [22mAgentRunner — интеграционный прогон[2m > [22mAbortSignal во время чата — emit Остановлено + done[32m 5[2mms[22m[39m
+ [31m×[39m tests/agentRunner.integration.test.ts[2m > [22mAgentRunner — интеграционный прогон[2m > [22mдостижение лимита шагов (maxSteps=2) — emit error лимита + done[32m 44[2mms[22m[39m
+[31m   → expected [ 'context', 'tool_start', …(48) ] to include 'error'[39m
+ [32m✓[39m tests/agentRunner.integration.test.ts[2m > [22mAgentRunner — интеграционный прогон[2m > [22mневалидный JSON в аргументах tool call не крашит прогон[32m 8[2mms[22m[39m
+[90mstdout[2m | tests/load.test.ts[2m > [22m[2mНагрузка: 60 сообщений подряд[2m > [22m[2m60 прогонов — heap не растёт более чем на 100 МБ
+[22m[39m[load] seq: before=18.1 MB  after=18.0 MB  delta=-0.1 MB
+
+ [32m✓[39m tests/gitTools.test.ts[2m > [22mgitTools[2m > [22mgit_diff работает для рабочей копии[32m 241[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mобновляет инструкции встроенных навыков при повторном вызове[32m 91[2mms[22m[39m
+ [32m✓[39m tests/defaultSkills.test.ts[2m > [22mensureDefaultSkills[2m > [22mсохраняет ViperSkills.md в userData[32m 159[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mTOOL_VERIFICATION_NUDGE[2m > [22mсодержит требование использовать инструменты[32m 2[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mnudge при JSON-плане самоулучшения[2m > [22mCREATE_SELF_IMPROVEMENT_PLAN_NUDGE требует вызов set_self_improvement_plan[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mnudge при JSON-плане самоулучшения[2m > [22mSTART_SELF_IMPROVEMENT_EXPLORATION_NUDGE требует изучить код перед планом[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mnudge при JSON-плане самоулучшения[2m > [22mbuildSelfImprovementContinueNudge включает следующий невыполненный пункт[32m 1[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mnudge при JSON-плане самоулучшения[2m > [22mbuildSelfImprovementContinueNudge при всех выполненных упоминает завершение[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mnudge при JSON-плане самоулучшения[2m > [22mагент распознаёт JSON-план в тексте ассистента[32m 3[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mnudge при JSON-плане самоулучшения[2m > [22mвозвращает null при отсутствии JSON-плана в тексте[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentNudge.test.ts[2m > [22mnudge при JSON-плане самоулучшения[2m > [22mигнорирует короткие JSON-массивы (не план)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/deleteOllamaModel.test.ts[2m > [22mdeleteOllamaModel[2m > [22mвызывает Ollama DELETE /api/delete[32m 7[2mms[22m[39m
+ [32m✓[39m tests/deleteOllamaModel.test.ts[2m > [22mdeleteOllamaModel[2m > [22mбросает ошибку при пустом имени[32m 2[2mms[22m[39m
+ [32m✓[39m tests/gitTools.test.ts[2m > [22mgitTools[2m > [22mотклоняет path вне проекта[32m 91[2mms[22m[39m
+[90mstdout[2m | tests/load.test.ts[2m > [22m[2mНагрузка: 10 параллельных чатов[2m > [22m[2m10 агентов × 5 сообщений параллельно — все завершаются успешно
+[22m[39m[load] par: before=17.8 MB  after=22.5 MB  delta=4.8 MB
+
+ [32m✓[39m tests/load.test.ts[2m > [22mНагрузка: 60 сообщений подряд[2m > [22m60 прогонов — heap не растёт более чем на 100 МБ[32m 126[2mms[22m[39m
+ [32m✓[39m tests/load.test.ts[2m > [22mНагрузка: 60 сообщений подряд[2m > [22m60 прогонов — все завершаются без исключений[32m 80[2mms[22m[39m
+[90mstdout[2m | tests/load.test.ts[2m > [22m[2mНагрузка: длинная история[2m > [22m[2mистория из 200 пар сообщений (400 записей) — агент запускается без OOM
+[22m[39m[load] hist400: before=22.7 MB  after=22.8 MB  delta=0.1 MB
+
+[90mstdout[2m | tests/load.test.ts[2m > [22m[2mНагрузка: длинная история[2m > [22m[2mистория из 400 пар (800 записей) — агент не зависает, завершается за разумное время
+[22m[39m[load] hist800: elapsed=2 ms
+
+[90mstdout[2m | tests/load.test.ts[2m > [22m[2mОтчёт о памяти main-процесса[2m > [22m[2mснять baseline метрики памяти
+[22m[39m[memory] heapUsed=23.2 MB  heapTotal=33.7 MB  rss=80.3 MB  external=2.2 MB
+
+ [32m✓[39m tests/load.test.ts[2m > [22mНагрузка: 10 параллельных чатов[2m > [22m10 агентов × 5 сообщений параллельно — все завершаются успешно[32m 71[2mms[22m[39m
+ [32m✓[39m tests/load.test.ts[2m > [22mНагрузка: длинная история[2m > [22mистория из 200 пар сообщений (400 записей) — агент запускается без OOM[32m 5[2mms[22m[39m
+ [32m✓[39m tests/load.test.ts[2m > [22mНагрузка: длинная история[2m > [22mистория из 400 пар (800 записей) — агент не зависает, завершается за разумное время[32m 3[2mms[22m[39m
+ [32m✓[39m tests/load.test.ts[2m > [22mОтчёт о памяти main-процесса[2m > [22mснять baseline метрики памяти[32m 1[2mms[22m[39m
+ [32m✓[39m tests/ollamaModels.test.ts[2m > [22mparseTrainingData[2m > [22mпарсит JSON-массив[32m 4[2mms[22m[39m
+ [32m✓[39m tests/ollamaModels.test.ts[2m > [22mparseTrainingData[2m > [22mпарсит JSONL[32m 0[2mms[22m[39m
+ [32m✓[39m tests/ollamaModels.test.ts[2m > [22mparseTrainingData[2m > [22mвозвращает [] для пустого ввода[32m 1[2mms[22m[39m
+ [32m✓[39m tests/ollamaModels.test.ts[2m > [22mbuildModelfile[2m > [22mсобирает Modelfile с SYSTEM и MESSAGE[32m 1[2mms[22m[39m
+ [32m✓[39m tests/gitTools.test.ts[2m > [22mgitTools[2m > [22mотклоняет недопустимую ссылку коммита[32m 83[2mms[22m[39m
+ [32m✓[39m tests/gitTools.test.ts[2m > [22mgitTools[2m > [22mсообщает если не git-репозиторий[32m 87[2mms[22m[39m
+ [32m✓[39m tests/ansi.test.ts[2m > [22mparseAnsi[2m > [22mвозвращает один сегмент для текста без кодов[32m 3[2mms[22m[39m
+ [32m✓[39m tests/ansi.test.ts[2m > [22mparseAnsi[2m > [22mприменяет цвет к части текста[32m 2[2mms[22m[39m
+ [32m✓[39m tests/ansi.test.ts[2m > [22mparseAnsi[2m > [22mсбрасывает стиль по ESC[0m[32m 0[2mms[22m[39m
+ [32m✓[39m tests/ansi.test.ts[2m > [22mparseAnsi[2m > [22mпустой ESC[m эквивалентен сбросу[32m 0[2mms[22m[39m
+ [32m✓[39m tests/ansi.test.ts[2m > [22mparseAnsi[2m > [22mразбирает truecolor 38;2;r;g;b[32m 0[2mms[22m[39m
+ [32m✓[39m tests/permissions.test.ts[2m > [22mtoolRequiresConfirm[2m > [22mbypass — всегда false[32m 3[2mms[22m[39m
+ [32m✓[39m tests/permissions.test.ts[2m > [22mtoolRequiresConfirm[2m > [22mask — все мутирующие инструменты требуют подтверждения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/permissions.test.ts[2m > [22mtoolRequiresConfirm[2m > [22mask — read-only инструменты не требуют подтверждения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/permissions.test.ts[2m > [22mtoolRequiresConfirm[2m > [22macceptEdits — правки файлов не требуют подтверждения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/permissions.test.ts[2m > [22mtoolRequiresConfirm[2m > [22macceptEdits — команды и создание модели требуют подтверждения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/permissions.test.ts[2m > [22mtoolRequiresConfirm[2m > [22macceptEdits — навыки и память не требуют подтверждения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/fileEdit.test.ts[2m > [22mapplySearchReplace[2m > [22mзаменяет одно вхождение[32m 2[2mms[22m[39m
+ [32m✓[39m tests/fileEdit.test.ts[2m > [22mapplySearchReplace[2m > [22mзаменяет все вхождения с replace_all[32m 0[2mms[22m[39m
+ [32m✓[39m tests/fileEdit.test.ts[2m > [22mapplySearchReplace[2m > [22mошибка при нескольких вхождениях без replace_all[32m 1[2mms[22m[39m
+ [32m✓[39m tests/fileEdit.test.ts[2m > [22mapplySearchReplace[2m > [22mошибка если old_string не найден[32m 1[2mms[22m[39m
+ [32m✓[39m tests/fileEdit.test.ts[2m > [22mapplySearchReplace[2m > [22mошибка при пустом old_string[32m 0[2mms[22m[39m
+ [32m✓[39m tests/fileEdit.test.ts[2m > [22mparseToolBool[2m > [22mраспознаёт true-значения[32m 0[2mms[22m[39m
+ [32m✓[39m tests/fileEdit.test.ts[2m > [22mparseToolBool[2m > [22mfalse по умолчанию[32m 0[2mms[22m[39m
+ [32m✓[39m tests/generationMetrics.test.ts[2m > [22mparseOllamaGenerationMetrics[2m > [22mсчитает tok/s и длительность из наносекунд Ollama[32m 3[2mms[22m[39m
+ [32m✓[39m tests/generationMetrics.test.ts[2m > [22mparseOllamaGenerationMetrics[2m > [22mвозвращает null при отсутствии данных[32m 0[2mms[22m[39m
+ [32m✓[39m tests/generationMetrics.test.ts[2m > [22mformatGenerationMetricsHint[2m > [22mформатирует подсказку для статус-бара[32m 0[2mms[22m[39m
+ [32m✓[39m tests/windowState.test.ts[2m > [22mnormalizeWindowState[2m > [22mподставляет значения по умолчанию[32m 3[2mms[22m[39m
+ [32m✓[39m tests/windowState.test.ts[2m > [22mnormalizeWindowState[2m > [22mограничивает минимальный размер[32m 0[2mms[22m[39m
+ [32m✓[39m tests/windowState.test.ts[2m > [22mnormalizeWindowState[2m > [22mсохраняет координаты и maximize[32m 0[2mms[22m[39m
+ [32m✓[39m tests/windowState.test.ts[2m > [22misWindowStateOnScreen[2m > [22mtrue для окна внутри экрана[32m 1[2mms[22m[39m
+ [32m✓[39m tests/windowState.test.ts[2m > [22misWindowStateOnScreen[2m > [22mfalse для окна полностью вне экрана[32m 0[2mms[22m[39m
+ [32m✓[39m tests/skillMatching.test.ts[2m > [22mskillMatching[2m > [22mповышает score при совпадении триггера[32m 3[2mms[22m[39m
+ [32m✓[39m tests/skillMatching.test.ts[2m > [22mskillMatching[2m > [22mне применяет builtin навыки автоматически[32m 0[2mms[22m[39m
+ [32m✓[39m tests/skillMatching.test.ts[2m > [22mskillMatching[2m > [22mприменяет global user skill при совпадении триггера[32m 1[2mms[22m[39m
+ [32m✓[39m tests/skillMatching.test.ts[2m > [22mskillMatching[2m > [22mне применяет project skill[32m 0[2mms[22m[39m
+ [32m✓[39m tests/skillMatching.test.ts[2m > [22mskillMatching[2m > [22mformatAppliedSkillsBlock включает инструкции[32m 1[2mms[22m[39m
+ [32m✓[39m tests/codeviperSource.test.ts[2m > [22mcodeviperSource[2m > [22mнаходит корень с agent.ts[32m 3[2mms[22m[39m
+ [32m✓[39m tests/codeviperSource.test.ts[2m > [22mcodeviperSource[2m > [22mзапрещает node_modules[32m 1[2mms[22m[39m
+ [32m✓[39m tests/codeviperSource.test.ts[2m > [22mcodeviperSource[2m > [22mзапрещает out[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentContext.test.ts[2m > [22mestimateTokens[2m > [22mоценивает токены из символов[32m 3[2mms[22m[39m
+ [32m✓[39m tests/agentContext.test.ts[2m > [22mbuildAgentContextPreview[2m > [22mсобирает секции и сообщения[32m 3[2mms[22m[39m
+ [32m✓[39m tests/contextLimits.test.ts[2m > [22mcontextLimits[2m > [22mвозвращает лимит токенов по размеру модели[32m 3[2mms[22m[39m
+ [32m✓[39m tests/contextLimits.test.ts[2m > [22mcontextLimits[2m > [22mсчитает процент использования контекста[32m 1[2mms[22m[39m
+ [32m✓[39m tests/contextLimits.test.ts[2m > [22mcontextLimits[2m > [22mне требует суммаризацию при низкой загрузке[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentStatusBar.test.ts[2m > [22magentStatusLabel[2m > [22mпоказывает фазу размышления[32m 2[2mms[22m[39m
+ [32m✓[39m tests/agentStatusBar.test.ts[2m > [22magentStatusLabel[2m > [22mпоказывает фазу записи[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentStatusBar.test.ts[2m > [22magentStatusLabel[2m > [22mпереводит имя инструмента[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentStatusBar.test.ts[2m > [22magentStatusLabel[2m > [22mпоказывает размер очереди[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentStatusBar.test.ts[2m > [22magentStatusLabel[2m > [22mпоказывает метрики генерации[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agent.test.ts[2m > [22mparseToolArgs[2m > [22mвозвращает объект как есть[32m 2[2mms[22m[39m
+ [32m✓[39m tests/agent.test.ts[2m > [22mparseToolArgs[2m > [22mпарсит JSON-строку аргументов[32m 1[2mms[22m[39m
+ [32m✓[39m tests/agent.test.ts[2m > [22mparseToolArgs[2m > [22mпри невалидном JSON возвращает { _raw } вместо краша[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agent.test.ts[2m > [22mparseToolArgs[2m > [22mпри пустой строке возвращает { _raw }[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolDisplay.test.ts[2m > [22mcompactToolChatLine[2m > [22mпоказывает короткую строку для list_directory[32m 2[2mms[22m[39m
+ [32m✓[39m tests/toolDisplay.test.ts[2m > [22mcompactToolChatLine[2m > [22mпоказывает фазу запуска[32m 0[2mms[22m[39m
+ [32m✓[39m tests/toolDisplay.test.ts[2m > [22mcompactToolChatLine[2m > [22mпоказывает код выхода для run_command[32m 0[2mms[22m[39m
+ [32m✓[39m tests/agentPrerequisites.test.ts[2m > [22magentPrerequisites[2m > [22mdetectPackageManager выбирает pnpm/yarn/npm[32m 2[2mms[22m[39m
+ [32m✓[39m tests/agentPrerequisites.test.ts[2m > [22magentPrerequisites[2m > [22mformatPrerequisitesMessage описывает проблемы[32m 0[2mms[22m[39m
+ [32m✓[39m tests/selfImprovementStore.test.ts[2m > [22mSelfImprovementPlanStore[2m > [22mхранит и завершает пункты плана[32m 2[2mms[22m[39m
+ [32m✓[39m tests/selfImprovementStore.test.ts[2m > [22mSelfImprovementPlanStore[2m > [22mизолирован между экземплярами[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m35 passed[39m[22m[90m (38)[39m
+[2m      Tests [22m [1m[31m14 failed[39m[22m[2m | [22m[1m[32m241 passed[39m[22m[90m (255)[39m
+[2m   Start at [22m 11:43:49
+[2m   Duration [22m 1.79s[2m (transform 4.33s, setup 0ms, import 6.84s, tests 3.15s, environment 6ms)[22m
+

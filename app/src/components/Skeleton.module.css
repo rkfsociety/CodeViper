@@ -1,0 +1,42 @@
+.skeleton {
+  display: inline-block;
+  height: 1em;
+  width: 1em;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-element) 25%,
+    var(--border) 50%,
+    var(--bg-element) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.skeletonInline {
+  display: inline-block;
+  height: 0.85em;
+  width: 0.85em;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-element) 25%,
+    var(--border) 50%,
+    var(--bg-element) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

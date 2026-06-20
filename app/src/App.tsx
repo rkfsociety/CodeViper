@@ -11,9 +11,8 @@ import type {
 } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
-import { formatTokenCount } from '../shared/generationMetrics'
 import { useMemo } from 'react'
-import { AgentProvider, useAgentState } from './contexts/AgentContext'
+import { AgentProvider } from './contexts/AgentContext'
 import { ChatContext } from './contexts/ChatContext'
 import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
@@ -66,7 +65,6 @@ function AppContent() {
   const [chatStore, setChatStore] = useState<ChatStore | null>(null)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const { runStats } = useAgentState()
   const { chatBusy } = useChatBusy()
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
@@ -507,10 +505,6 @@ function AppContent() {
               onOpenSettings={() => setSettingsOpen(true)}
             />
           </div>
-          {runStats && runStats.tokens > 0 && (
-            <div className="topbar-run-stats">{formatTokenCount(runStats.tokens)} tok</div>
-          )}
-
           <div className="topbar-actions">
             <button className="btn" onClick={refreshOllama}>
               Обновить Ollama

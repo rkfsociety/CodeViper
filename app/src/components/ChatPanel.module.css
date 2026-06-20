@@ -600,3 +600,10 @@
 .inputButtons {
   display: none;
 }
+
+.runMeta {
+  font-size: 11px;
+  color: var(--text-muted, #8b949e);
+  padding: 4px 16px 8px;
+  text-align: right;
+}

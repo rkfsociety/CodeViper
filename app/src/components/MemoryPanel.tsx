@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { MemoryEntry } from '../types'
+import { Skeleton } from './Skeleton'
 import styles from './MemorySkills.module.css'
 
 interface Props {
@@ -88,7 +89,7 @@ export function MemoryPanel({
       </label>
 
       <div className={styles.sectionTitle}>
-        Память агента {loading ? '…' : `(${entries.length})`}
+        Память агента {loading ? <Skeleton inline width={28} height={14} /> : `(${entries.length})`}
         <button
           type="button"
           className={`btn ${styles.shareBtn}`}
@@ -98,7 +99,7 @@ export function MemoryPanel({
             githubToken ? 'Создать Gist и скопировать ссылку' : 'Нужен GitHub Token в настройках'
           }
         >
-          {sharing ? '…' : '⬆ Поделиться'}
+          {sharing ? <Skeleton inline width={20} height={14} /> : '⬆ Поделиться'}
         </button>
       </div>
       {shareResult && <div className={styles.shareResult}>{shareResult}</div>}

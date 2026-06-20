@@ -376,11 +376,24 @@ export function SettingsModal({
                       </select>
                     </label>
 
-                    {(settings.cloudProvider ?? 'deepseek') === 'openai' && (
+                    {(settings.cloudProvider ?? 'deepseek') === 'deepseek' ? (
                       <label>
                         Базовый URL
                         <input
-                          placeholder="https://api.openai.com/v1"
+                          placeholder="https://api.deepseek.com"
+                          value={settings.cloudBaseUrl || 'https://api.deepseek.com'}
+                          disabled
+                        />
+                      </label>
+                    ) : (
+                      <label>
+                        Базовый URL
+                        <input
+                          placeholder={
+                            (settings.cloudProvider ?? 'openai') === 'openrouter'
+                              ? 'https://openrouter.ai/api/v1'
+                              : 'https://api.openai.com/v1'
+                          }
                           value={settings.cloudBaseUrl ?? ''}
                           onChange={(e) => onSettingsChange({ cloudBaseUrl: e.target.value })}
                         />

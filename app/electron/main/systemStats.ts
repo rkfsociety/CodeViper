@@ -56,7 +56,7 @@ export function startSystemStatsPush(webContents: WebContents): void {
         if (target && !target.isDestroyed()) target.send('system-stats', stats)
       })
       .catch(() => {})
-  }, 2000)
+  }, 3000)
 }
 
 export function stopSystemStatsPush(): void {

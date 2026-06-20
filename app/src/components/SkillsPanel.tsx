@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { AgentSkill } from '../types'
 import { isBuiltinSkill } from '../types'
+import { Skeleton } from './Skeleton'
 import styles from './MemorySkills.module.css'
 
 interface Props {
@@ -91,7 +92,8 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
   return (
     <div className={styles.skillsPanel}>
       <div className={styles.sectionTitle}>
-        Навыки агента {loading ? '…' : `(${globalSkills.length})`}
+        Навыки агента{' '}
+        {loading ? <Skeleton inline width={28} height={14} /> : `(${globalSkills.length})`}
         <button
           type="button"
           className={`btn ${styles.shareBtn}`}
@@ -101,7 +103,7 @@ export function SkillsPanel({ projectPath, githubToken, refreshKey = 0 }: Props)
             githubToken ? 'Создать Gist и скопировать ссылку' : 'Нужен GitHub Token в настройках'
           }
         >
-          {sharing ? '…' : '⬆ Поделиться'}
+          {sharing ? <Skeleton inline width={20} height={14} /> : '⬆ Поделиться'}
         </button>
       </div>
       {shareResult && <div className={styles.shareResult}>{shareResult}</div>}

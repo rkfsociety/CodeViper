@@ -12,14 +12,7 @@ import {
 } from 'react'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type {
-  AgentSettings,
-  ChatMessage,
-  OllamaModel,
-  ProgressInfo,
-  SystemStats,
-  TodoItem
-} from '../types'
+import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, TodoItem } from '../types'
 import { filterToolCallingModels } from '../types'
 import { AgentStatusBar } from './AgentStatusBar'
 import { TodoPanel } from './TodoPanel'
@@ -43,6 +36,7 @@ import { useChatBusy } from '../contexts/QueueContext'
 import { useAppStateSync } from '../hooks/useAppStateSync'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditPreviewBlock } from './EditPreviewBlock'
+import { formatElapsed, formatTokenCount } from '../../shared/generationMetrics'
 
 export interface ChatPanelHandle {
   insertPath: (path: string) => void
@@ -261,7 +255,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
   const [contextModalOpen, setContextModalOpen] = useState(false)
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())
-  const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
   const [showQuickBar, setShowQuickBar] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
@@ -298,7 +291,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   // Координационные рефы между хуками — созданы здесь, переданы в оба.
   const dispatch = useAgentDispatch()
-  const { runModel } = useAgentState()
+  const { runModel, runStats } = useAgentState()
 
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
@@ -532,14 +525,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages.length, queueSize])
-
-  useEffect(() => {
-    if (!busy) {
-      setSystemStats(null)
-      return
-    }
-    return window.codeviper.onSystemStats(setSystemStats)
-  }, [busy])
 
   useEffect(() => {
     if (!busy) {
@@ -914,6 +899,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           )
         })}
 
+        {!busy && runStats && runStats.tokens > 0 && (
+          <div className={styles.runMeta}>
+            {formatElapsed(runStats.elapsedSec)} · {formatTokenCount(runStats.tokens)} токенов
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -926,12 +917,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
       <div className={styles.input}>
         {busy && (
-          <AgentStatusBar
-            model={settings.model}
-            queueSize={queueSize}
-            systemStats={systemStats}
-            progress={progress}
-          />
+          <AgentStatusBar model={settings.model} queueSize={queueSize} progress={progress} />
         )}
 
         {todoItems && todoItems.length > 0 && (

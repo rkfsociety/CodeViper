@@ -1,5 +1,4 @@
 .container {
-  display: none; /* Скрываем окошко с инструментами - оно отвлекает и не несёт полезной информации */
   margin: 4px 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { OllamaPullProgress } from '../types'
 import { isRecommendedModelInstalled } from '../types'
 
@@ -135,17 +135,22 @@ export function useOllamaDownloadQueue({
     [pulling, syncQueue]
   )
 
+  const clearError = useCallback(() => setError(''), [])
+
   const active = pulling !== null || queued.length > 0
 
-  return {
-    pulling,
-    queued,
-    progress,
-    error,
-    active,
-    percent: pullPercent(progress),
-    enqueue,
-    removeFromQueue,
-    clearError: () => setError('')
-  }
+  return useMemo(
+    () => ({
+      pulling,
+      queued,
+      progress,
+      error,
+      active,
+      percent: pullPercent(progress),
+      enqueue,
+      removeFromQueue,
+      clearError
+    }),
+    [pulling, queued, progress, error, active, enqueue, removeFromQueue, clearError]
+  )
 }

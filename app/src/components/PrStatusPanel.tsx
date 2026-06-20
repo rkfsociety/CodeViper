@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Skeleton } from './Skeleton'
 import type { CiStatus, PullRequestListResult } from '../types'
 import styles from './PrStatusPanel.module.css'
 
@@ -41,7 +42,9 @@ export function PrStatusPanel() {
   return (
     <div className={styles.panel}>
       <div className={styles.head}>
-        <span className={styles.title}>Pull Requests {loading ? '…' : `(${prs.length})`}</span>
+        <span className={styles.title}>
+          Pull Requests {loading ? <Skeleton inline width={28} height={14} /> : `(${prs.length})`}
+        </span>
         <button type="button" className="btn" onClick={() => void load()} disabled={loading}>
           Обновить
         </button>

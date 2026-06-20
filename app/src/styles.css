@@ -842,28 +842,27 @@ button {
 
 .agent-status-fill {
   height: 100%;
-  width: 35%;
+  width: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, var(--green-light), var(--green), transparent);
-  animation: agent-bar-slide 1.4s ease-in-out infinite;
-  will-change: transform;
+  background: var(--green);
+  animation: agent-bar-pulse 1.6s ease-in-out infinite;
+  opacity: 0.5;
 }
 
 .agent-status-fill-determinate {
   width: 0;
   animation: none;
+  opacity: 1;
   background: linear-gradient(90deg, var(--green), var(--green-light));
   transition: width 0.3s ease;
 }
 
 .agent-status-bar.phase-writing .agent-status-fill {
-  background: linear-gradient(90deg, transparent, var(--blue-light), var(--blue), transparent);
-  animation-duration: 1.1s;
+  background: var(--blue);
 }
 
 .agent-status-bar.phase-tool .agent-status-fill {
-  background: linear-gradient(90deg, transparent, var(--yellow), var(--yellow-light), transparent);
-  animation-duration: 1.8s;
+  background: var(--yellow);
 }
 
 .agent-status-bar.summarizing .agent-status-pulse {
@@ -905,13 +904,13 @@ button {
   }
 }
 
-@keyframes agent-bar-slide {
-  0% {
-    transform: translateX(-120%);
-  }
-
+@keyframes agent-bar-pulse {
+  0%,
   100% {
-    transform: translateX(320%);
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
   }
 }
 
@@ -1948,6 +1947,234 @@ button.topbar-pill.topbar-download-error {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   TodoPanel — панель задач агента
+   ══════════════════════════════════════════════════════════════════════════ */
+.todo-panel {
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+}
+
+.todo-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.todo-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.todo-panel-clear {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-element);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.todo-panel-clear:hover {
+  background: color-mix(in srgb, var(--green-dark) 12%, var(--bg-element));
+  border-color: var(--green-dark);
+  color: var(--green-dark);
+}
+
+.todo-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.todo-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.todo-panel-item:hover {
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.todo-panel-item.todo-done {
+  opacity: 0.55;
+}
+
+.todo-panel-item.todo-done .todo-panel-text {
+  text-decoration: line-through;
+}
+
+.todo-panel-checkbox {
+  accent-color: var(--green-dark);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.todo-panel-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Toast-уведомления
+   ══════════════════════════════════════════════════════════════════════════ */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 360px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--bg-surface, #161b22);
+  border: 1px solid var(--border, #30363d);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary, #e6edf3);
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: toast-slidein 0.25s ease both;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.toast:hover {
+  opacity: 0.9;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.toast-success .toast-icon {
+  background: rgba(63, 185, 80, 0.2);
+  color: #3fb950;
+}
+
+.toast-error .toast-icon {
+  background: rgba(248, 81, 73, 0.2);
+  color: #f85149;
+}
+
+.toast-info .toast-icon {
+  background: rgba(88, 166, 255, 0.2);
+  color: #58a6ff;
+}
+
+.toast-message {
+  flex: 1;
+  min-width: 0;
+}
+
+@keyframes toast-slidein {
+  from {
+    opacity: 0;
+    transform: translateX(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Анимация fade-out для удаления чата
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes chat-fadeout {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    max-height: 200px;
+    margin-bottom: 4px;
+    padding: 8px;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0 8px;
+  }
+}
+
+.chat-deleting {
+  animation: chat-fadeout 0.3s ease forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Тень при перетаскивании (drag)
+   ══════════════════════════════════════════════════════════════════════════ */
+.chat-dragging {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 0 0 2px var(--blue-bright, #1f6feb) !important;
+  transform: rotate(1deg) scale(1.02) !important;
+  opacity: 0.85 !important;
+  z-index: 100;
+  position: relative;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Анимация смены иконки закрепления
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes pin-bounce {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.3);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pin-animate {
+  animation: pin-bounce 0.35s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    Уважение к prefers-reduced-motion (вестибулярные нарушения)
    ══════════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
@@ -1959,4 +2186,60 @@ button.topbar-pill.topbar-download-error {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TodoPanel
+   ══════════════════════════════════════════════════════════════════════════ */
+.todo-panel-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+  text-align: center;
+}
+
+.todo-panel-divider {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.todo-panel-input {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.todo-panel-input input {
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.todo-panel-input input:focus {
+  outline: none;
+  border-color: var(--blue-bright);
+}
+
+.todo-panel-delete {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.todo-panel-delete:hover {
+  opacity: 1;
+  color: var(--red);
 }
