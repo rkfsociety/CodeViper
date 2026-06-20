@@ -1,23 +1,20 @@
 import { useCallback, useRef, useState } from 'react'
+import { tronStorage } from '../lib/tron'
 
 const STORAGE_KEY = 'codeviper:terminal:history'
 const MAX_HISTORY = 200
 
 function loadHistory(): string[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as string[]) : []
+    const data = tronStorage.getItem(STORAGE_KEY)
+    return Array.isArray(data) ? (data as string[]) : []
   } catch {
     return []
   }
 }
 
 function saveHistory(history: string[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history))
-  } catch {
-    // ignore quota errors
-  }
+  tronStorage.setItem(STORAGE_KEY, history)
 }
 
 export function useCommandHistory() {

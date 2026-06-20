@@ -33,6 +33,7 @@ import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
 import { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL } from '../shared/constants'
 import { makeId } from '../shared/makeId'
+import { tronStorage } from './lib/tron'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -265,9 +266,9 @@ function AppContent() {
         setSettings(saved)
         setSettingsReady(true)
         // Показать предупреждение о дефолтах безопасности при первом запуске
-        if (!localStorage.getItem('cv-security-notice-seen')) {
+        if (!tronStorage.getItem('cv-security-notice-seen')) {
           setShowSecurityNotice(true)
-          localStorage.setItem('cv-security-notice-seen', 'true')
+          tronStorage.setItem('cv-security-notice-seen', true)
         }
       }
     })

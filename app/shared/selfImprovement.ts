@@ -179,31 +179,24 @@ export function formatPlanSummary(plan: SelfImprovementItem[]): string {
   return `План самоулучшения (${done}/${total}):\n${lines.join('\n')}`
 }
 
-export const SELF_IMPROVEMENT_MODE_PROMPT = `## Режим автономного самоулучшения (АКТИВЕН)
+export const SELF_IMPROVEMENT_MODE_PROMPT = `## Самоулучшение (АКТИВНО)
+Изучай → loop до done.
+1. list_codeviper_directory + read_codeviper_file (agent.ts, agentTools.ts, skills.ts)
+2. set_self_improvement_plan → 3–8 item'ов (skills/UI/tools/tests/prompt)
+3. item: edit → complete_self_improvement_item(id)
+4. После edit: run_codeviper_command → npm run typecheck && npm test
+5. Done = get_self_improvement_plan все done.
+Без steps пользователю — tool_calling.`
 
-Пользователь просил **изучить код и улучшать себя до конца** — не останавливайся после одного ответа.
-
-Обязательный workflow:
-1. \`list_codeviper_directory\` + \`read_codeviper_file\` — изучи agent.ts, agentTools.ts, skills.ts
-2. \`set_self_improvement_plan\` — зафиксируй **3–8 конкретных** пунктов (skills, UI, инструменты, тесты, промпт)
-3. Для **каждого** пункта: инструменты правки → \`complete_self_improvement_item\` с id пункта
-4. После правок кода: \`run_codeviper_command\` → \`npm run typecheck\` и \`npm test\`
-5. Завершай только когда \`get_self_improvement_plan\` показывает все пункты done
-
-Не давай пользователю пошаговый план — **выполняй** через tool calling.`
-
-export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `STOP. Нужен план самоулучшения через инструмент set_self_improvement_plan.
-
-Пример items:
-[{"id":"1","title":"Изучить agent.ts и agentTools.ts"},{"id":"2","title":"Добавить skill для code review"},{"id":"3","title":"Улучшить UI чата"}]
-
-Не пиши JSON план и tool_response текстом — только официальный tool calling set_self_improvement_plan.
-После set_self_improvement_plan сразу начни пункт 1 — вызывай read_codeviper_file / edit_codeviper_file / create_skill.`
+export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен plan = set_self_improvement_plan.
+[{"id":"1","title":"Изучить agent.ts и agentTools.ts"},...]
+Только tool_calling, без JSON-текста.
+После set_self_improvement_plan → пункт 1 (read_codeviper_file / edit / create_skill).`
 
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
-  'Самоулучшение застряло: модель повторяет план текстом вместо set_self_improvement_plan. Попробуй qwen2.5-coder:7b или llama3.1:8b, либо переформулируй задачу.'
+  'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'
 
-export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Начни автономное самоулучшение: вызови list_codeviper_directory и read_codeviper_file (agent.ts, agentTools.ts), затем set_self_improvement_plan.`
+export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: list_codeviper_directory + read_codeviper_file (agent.ts, agentTools.ts) → set_self_improvement_plan.`
 
 export function buildSelfImprovementContinueNudge(plan: SelfImprovementItem[]): string {
   const { done, total, pending } = planProgress(plan)
