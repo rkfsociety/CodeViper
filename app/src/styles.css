@@ -147,15 +147,6 @@ button {
   flex-shrink: 0;
 }
 
-.topbar-path {
-  flex: 1;
-  color: var(--text-muted);
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .topbar-actions {
   display: flex;
   gap: 8px;
@@ -1779,11 +1770,6 @@ button.topbar-pill.topbar-download-error {
     height: auto;
     min-height: 52px;
     padding: 6px 12px;
-  }
-
-  .topbar-path {
-    order: 10;
-    flex-basis: 100%;
   }
 
   .context-modal-body {

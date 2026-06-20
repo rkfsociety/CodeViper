@@ -448,7 +448,7 @@ function AppContent() {
               {runStats.tokens > 0 && <> · {formatTokenCount(runStats.tokens)} tok</>}
             </div>
           )}
-          <div className="topbar-path">{activeChat?.title ?? 'Новый чат'}</div>
+
           <div className="topbar-actions">
             <button className="btn" onClick={refreshOllama}>
               Обновить Ollama
