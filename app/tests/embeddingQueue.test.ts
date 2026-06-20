@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import { EventEmitter } from 'events'
 
 // Используем vi.hoisted для создания мока до hoisting vi.mock
@@ -120,9 +120,9 @@ describe('embeddingQueue', () => {
   it('корректно обрабатывает несколько параллельных запросов', async () => {
     const worker = MockWorker._lastInstance!
 
-    const p1 = computeEmbeddingQueued('a', 'http://localhost:11434')
-    const p2 = computeEmbeddingQueued('b', 'http://localhost:11434')
-    const p3 = computeEmbeddingQueued('c', 'http://localhost:11434')
+    const p1 = computeEmbeddingQueued('parallel-a', 'http://localhost:11434')
+    const p2 = computeEmbeddingQueued('parallel-b', 'http://localhost:11434')
+    const p3 = computeEmbeddingQueued('parallel-c', 'http://localhost:11434')
 
     const msgs = worker.postMessage.mock.calls
       .slice(-3)
