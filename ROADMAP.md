@@ -82,7 +82,7 @@
 ---
 
 ## ✅ Сделано
-- Провайдер Gemini на `@google/generative-ai` с адаптером `geminiProvider.ts` и маппингом tool calling
+- Провайдер Gemini: REST SSE стриминг (`streamGenerateContent`), thinking, `tool_config` (AUTO/ANY), убран SDK
 
 **UI**
 - Убран заголовок активного чата из топбара (показывал внутренние задачи самоулучшения); иконка приложения из `resources/icon.png`; логотип PNG в топбаре вместо эмодзи
@@ -119,7 +119,7 @@
 - Корректный контекст для облачных моделей: `getModelContextLimitTokens` распознаёт deepseek-*, gpt-*, claude-*, gemini-*; `modelContextLength` из API сохраняется в настройках и прокидывается до `computeContextUsage`
 - Оптимизация токенов: `getAgentTools(selfImproveMode)` исключает 19 инструментов (codeviper_*, ollama model, self-improve plan) в обычном режиме — экономия ~35% tools JSON на каждый запрос; `buildSelfEditContext()` тоже добавляется только в self-improve
 - Инструменты GitHub: `create_issue` (title, body, labels), `create_pr`, `list_issues`, `open_issue`, `trigger_github_workflow` — через `gh` CLI
-- Провайдер Gemini (`@google/generative-ai`): адаптер `geminiProvider.ts`, маппинг tool calling
+- Провайдер Gemini: прямой REST (`streamGenerateContent?alt=sse`), thinking chunks, `tool_config`, id в function calls/responses
 - Новый инструмент `search_in_file`: поиск текста в одном конкретном файле без ограничения по размеру (включает файлы >512KB)
 - `grep_files` теперь явно сообщает о пропущенных файлах >512KB и предлагает использовать `search_in_file`
 - Скилл Todo List для агента: инструменты `set_todo_list`, `complete_todo_item`, `clear_todo_list`; компактная панель `TodoPanel` прикреплена над полем ввода, обновляется через stream-событие `todo_update`
