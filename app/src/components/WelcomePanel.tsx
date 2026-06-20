@@ -1,3 +1,5 @@
+import logoUrl from '../../resources/icon.png'
+
 interface QuickPrompt {
   title: string
   description: string
@@ -53,7 +55,7 @@ export function WelcomePanel({ onSelect }: Props) {
     <div className="welcome-panel">
       <div className="welcome-hero">
         <div className="welcome-hero-icon" aria-hidden="true">
-          🐍
+          <img src={logoUrl} alt="CodeViper" width={64} height={64} />
         </div>
         <h2 className="welcome-title">CodeViper готов к работе</h2>
         <p className="welcome-subtitle">
