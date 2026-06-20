@@ -42,9 +42,31 @@ interface GeminiChunk {
   usageMetadata?: { totalTokenCount?: number }
 }
 
+// ── Rate Limiter ──────────────────────────────────────────────────────────────
+
+// Защита от превышения Gemini API квот (free tier: 5 req/min = 12 sec между запросами)
+class RateLimiter {
+  private lastRequestTime = 0
+  private minIntervalMs = 12_000 // 12 секунд для free tier (5 requests/min)
+
+  async waitForSlot(): Promise<void> {
+    const now = Date.now()
+    const timeSinceLastRequest = now - this.lastRequestTime
+    const delayNeeded = this.minIntervalMs - timeSinceLastRequest
+
+    if (delayNeeded > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayNeeded))
+    }
+
+    this.lastRequestTime = Date.now()
+  }
+}
+
 // ── Provider ───────────────────────────────────────────────────────────────────
 
 export class GeminiProvider implements ModelProvider {
+  private rateLimiter = new RateLimiter()
+
   constructor(
     private apiKey: string,
     private modelName: string,
@@ -53,6 +75,7 @@ export class GeminiProvider implements ModelProvider {
 
   async ping(signal?: AbortSignal): Promise<boolean> {
     try {
+      await this.rateLimiter.waitForSlot()
       const res = await fetch(this.modelsUrl(), {
         signal: signal ?? AbortSignal.timeout(5_000)
       })
@@ -64,6 +87,7 @@ export class GeminiProvider implements ModelProvider {
 
   async listModels(): Promise<LoadedModel[]> {
     try {
+      await this.rateLimiter.waitForSlot()
       const res = await fetch(`${this.modelsUrl()}&pageSize=100`)
       if (!res.ok) return []
 
@@ -94,18 +118,71 @@ export class GeminiProvider implements ModelProvider {
     const body = this.buildRequest(options, isThinkingModel)
     const url = `${this.baseUrl}/models/${modelName}:streamGenerateContent?key=${encodeURIComponent(this.apiKey)}&alt=sse`
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: options.signal
-    })
+    // Exponential backoff для обработки rate limits (429)
+    let lastError: Error | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.rateLimiter.waitForSlot()
 
-    if (!res.ok) {
-      const err = await res.text().catch(() => res.statusText)
-      throw new Error(`Gemini API error ${res.status}: ${err}`)
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: options.signal
+        })
+
+        if (res.status === 429) {
+          // Parse Gemini's retry-after header or error message
+          const retryAfter = this.parseRetryAfter(res, await res.text())
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, retryAfter * 1_000))
+            continue
+          }
+          throw new Error(
+            `Gemini API rate limit exceeded. Please retry in ${Math.ceil(retryAfter)} seconds.`
+          )
+        }
+
+        if (!res.ok) {
+          const err = await res.text().catch(() => res.statusText)
+          throw new Error(`Gemini API error ${res.status}: ${err}`)
+        }
+
+        // Success
+        yield* this.processStream(res, modelName)
+        return
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        if (!(error instanceof Error) || !error.message.includes('429')) {
+          throw lastError
+        }
+        // Continue retry loop on 429
+      }
     }
 
+    if (lastError) throw lastError
+  }
+
+  private parseRetryAfter(res: any, body: string): number {
+    // Проверяем заголовок Retry-After
+    const retryAfterHeader = res.headers.get('retry-after')
+    if (retryAfterHeader) {
+      const seconds = parseInt(retryAfterHeader, 10)
+      if (!isNaN(seconds)) return Math.max(seconds, 1)
+    }
+
+    // Пытаемся извлечь из сообщения об ошибке Gemini
+    const match = body.match(/retry in ([\d.]+)s/i)
+    if (match) {
+      const seconds = parseFloat(match[1])
+      return Math.max(Math.ceil(seconds), 1)
+    }
+
+    // Default: 35 секунд (стандартный free tier limit)
+    return 35
+  }
+
+  private async *processStream(res: any, modelName: string): AsyncGenerator<ChatChunk> {
     const reader = res.body!.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
