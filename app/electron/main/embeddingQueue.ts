@@ -2,6 +2,26 @@ import { Worker } from 'worker_threads'
 import { join } from 'path'
 import { EMBED_MODEL } from './embeddings'
 
+// LRU-кэш эмбеддингов: text → vector
+const EMBED_CACHE_MAX = 500
+const embedCache = new Map<string, number[]>()
+
+function embedCacheGet(text: string): number[] | undefined {
+  const vec = embedCache.get(text)
+  if (vec !== undefined) {
+    embedCache.delete(text)
+    embedCache.set(text, vec)
+  }
+  return vec
+}
+
+function embedCacheSet(text: string, vec: number[]): void {
+  if (embedCache.size >= EMBED_CACHE_MAX) {
+    embedCache.delete(embedCache.keys().next().value!)
+  }
+  embedCache.set(text, vec)
+}
+
 interface PendingRequest {
   resolve: (vec: number[] | null) => void
   reject: (err: Error) => void
@@ -74,11 +94,20 @@ function getWorker(): Worker {
   return worker
 }
 
-/** Вычислить эмбеддинг через воркер (с LRU-кешем 500 записей). */
+/** Вычислить эмбеддинг через воркер с LRU-кэшем 500 записей. */
 export function computeEmbeddingQueued(text: string, ollamaUrl: string): Promise<number[] | null> {
+  const cached = embedCacheGet(text)
+  if (cached) return Promise.resolve(cached)
+
   return new Promise((resolve, reject) => {
     const id = nextId++
-    pending.set(id, { resolve, reject })
+    pending.set(id, {
+      resolve: (vec) => {
+        if (vec) embedCacheSet(text, vec)
+        resolve(vec)
+      },
+      reject
+    })
     const msg = { id, type: 'compute' as const, text, ollamaUrl }
     if (ready) {
       getWorker().postMessage(msg)
