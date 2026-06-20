@@ -42,7 +42,6 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
   const { agentPhase, activeToolName, summarizing, generationMetrics, runModel } = useAgentState()
   const displayModel = runModel || model
 
-  const hasPercent = progress != null && progress.percent != null
   const label = progress
     ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
     : summarizing
@@ -60,16 +59,6 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
       <div className="agent-status-bar-head">
         <span className="agent-status-pulse" aria-hidden="true" />
         <span className="agent-status-label">{label}</span>
-      </div>
-      <div className="agent-status-track" aria-hidden="true">
-        {hasPercent ? (
-          <div
-            className="agent-status-fill agent-status-fill-determinate"
-            style={{ width: `${progress!.percent}%` }}
-          />
-        ) : (
-          <div className="agent-status-fill" />
-        )}
       </div>
     </div>
   )

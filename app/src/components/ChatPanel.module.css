@@ -587,18 +587,11 @@
   color: var(--text-primary);
 }
 
-/* Старые классы (не используются) */
-.footerChip {
-  display: none;
-}
 .footerChipWarn {
   color: var(--yellow, #d29922);
 }
 .footerChipDanger {
   color: var(--red, #f85149);
-}
-.inputButtons {
-  display: none;
 }
 
 .runMeta {

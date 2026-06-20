@@ -833,51 +833,11 @@ button {
   color: var(--text-primary);
 }
 
-.agent-status-track {
-  display: none;
-}
-
-.agent-status-fill {
-  height: 100%;
-  width: 100%;
-  border-radius: inherit;
-  background: var(--green);
-  animation: agent-bar-pulse 1.6s ease-in-out infinite;
-  opacity: 0.5;
-}
-
-.agent-status-fill-determinate {
-  width: 0;
-  animation: none;
-  opacity: 1;
-  background: linear-gradient(90deg, var(--green), var(--green-light));
-  transition: width 0.3s ease;
-}
-
-.agent-status-bar.phase-writing .agent-status-fill {
-  background: var(--blue);
-}
-
-.agent-status-bar.phase-tool .agent-status-fill {
-  background: var(--yellow);
-}
-
 .agent-status-bar.summarizing .agent-status-pulse {
   background: var(--purple-light);
 }
 .agent-status-bar.summarizing .agent-status-pulse::after {
   background: var(--purple-light);
-}
-
-.agent-status-bar.summarizing .agent-status-fill {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--purple-light),
-    var(--purple-medium),
-    transparent
-  );
-  animation-duration: 1.2s;
 }
 
 @keyframes agent-pulse-dot {
