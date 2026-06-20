@@ -335,6 +335,11 @@ function AppContent() {
 
   useEffect(() => {
     if (!settingsReady) return
+    void refreshOllama()
+  }, [settings.modelProvider]) // eslint-disable-line react-hooks/exhaustive-deps -- refreshOllama стабильна внутри сессии
+
+  useEffect(() => {
+    if (!settingsReady) return
 
     const timer = window.setTimeout(() => {
       void window.codeviper.saveSettings(settings)
