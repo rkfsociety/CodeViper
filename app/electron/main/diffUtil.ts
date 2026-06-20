@@ -6,7 +6,9 @@ interface Edit {
   line: string
 }
 
-function computeEdits(oldLines: string[], newLines: string[]): Edit[] {
+const CHECK_ABORT_EVERY = 500
+
+function computeEdits(oldLines: string[], newLines: string[], signal?: AbortSignal): Edit[] {
   const m = oldLines.length
   const n = newLines.length
 
@@ -16,10 +18,15 @@ function computeEdits(oldLines: string[], newLines: string[]): Edit[] {
   const no = Math.min(n, MAX)
 
   const dp: Uint16Array[] = Array.from({ length: mo + 1 }, () => new Uint16Array(no + 1))
+  let iters = 0
   for (let i = 1; i <= mo; i++) {
     for (let j = 1; j <= no; j++) {
       if (oldLines[i - 1] === newLines[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1
       else dp[i][j] = dp[i - 1][j] > dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1]
+
+      if (++iters % CHECK_ABORT_EVERY === 0 && signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError')
+      }
     }
   }
 
@@ -51,17 +58,36 @@ function computeEdits(oldLines: string[], newLines: string[]): Edit[] {
   return edits
 }
 
+/** Простой построчный diff без LCS — O(n) по памяти, используется как fallback. */
+function computeEditsLinear(oldLines: string[], newLines: string[]): Edit[] {
+  const edits: Edit[] = []
+  for (const line of oldLines) edits.push({ op: '-', line })
+  for (const line of newLines) edits.push({ op: '+', line })
+  return edits
+}
+
 export function createUnifiedDiff(
   oldText: string,
   newText: string,
   filePath: string,
-  contextLines = 3
+  contextLines = 3,
+  signal?: AbortSignal
 ): string {
   if (oldText === newText) return ''
 
   const oldLines = oldText.split('\n')
   const newLines = newText.split('\n')
-  const edits = computeEdits(oldLines, newLines)
+
+  let edits: Edit[]
+  try {
+    edits = computeEdits(oldLines, newLines, signal)
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      edits = computeEditsLinear(oldLines, newLines)
+    } else {
+      throw e
+    }
+  }
 
   // Build hunks: find ranges of non-equal edits with context
   interface Hunk {

@@ -10,8 +10,7 @@
 
 ### 🟡 Средние — несколько файлов, полдня–день
 
-- [ ] **1. AbortSignal-таймаут в diffUtil.ts** — передавать `AbortSignal` в `createUnifiedDiff()`; LCS-алгоритм проверяет `signal.aborted` каждые N итераций; fallback на построчный diff; предотвращает зависание на файлах >5000 строк
-- [ ] **2. Zod-схема для AgentSettings** — валидация при загрузке конфига через `z.parse()`; понятные сообщения об ошибках вместо runtime-падений; TypeScript-тип генерируется из схемы
+- [ ] **1. Zod-схема для AgentSettings** — валидация при загрузке конфига через `z.parse()`; понятные сообщения об ошибках вместо runtime-падений; TypeScript-тип генерируется из схемы
 - [ ] **4. Retry + backoff в selfCommit.ts** — обернуть git-операции в retry с задержкой 1→2→4 с, до 3 попыток; аналог логики в очереди агента
 - [ ] **5. Батчинг запросов в embeddings.ts** — объединять конкурентные вызовы в `batchEmbeddings(texts[], limit=4)`; воркер уже есть, нет группировки входящих запросов
 - [ ] **6. LRU-кэш grep_files в fileSearchInWorker.ts** — кэш по ключу `{pattern, dir, glob}` с инвалидацией по `mtime`; аналог LRU 500 записей для эмбеддингов
@@ -146,7 +145,7 @@
 
 **Git и проекты**
 - Параллельные агенты per-chat (`Map<chatId, ...>`); git-sync (stash/rebase/ff-only)
-- Diff перед правками (`preview_edit`): LCS → unified diff → UI с «Применить»/«Отмена»
+- Diff перед правками (`preview_edit`): LCS → unified diff → UI с «Применить»/«Отмена»; `AbortSignal` в `createUnifiedDiff()` — проверка каждые 500 итераций LCS, fallback на построчный diff при отмене
 - История изменений файлов (NDJSON-лог, `show_file_history`); ветки и PR агента
 - Отложенное применение правок вне режима самоулучшения (git stash); автовосстановление после краша
 
