@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/CodeViperAI/CodeViper/releases"><img src="https://img.shields.io/github/v/release/CodeViperAI/CodeViper?style=flat-square&color=7EE787&label=релиз" alt="Release" /></a>
+  <a href="https://github.com/Code-Viper-AI/CodeViper/releases"><img src="https://img.shields.io/github/v/release/Code-Viper-AI/CodeViper?style=flat-square&color=7EE787&label=релиз" alt="Release" /></a>
   <img src="https://img.shields.io/badge/платформа-Windows-0078D4?style=flat-square" alt="Windows" />
   <img src="https://img.shields.io/badge/Electron-36-47848F?style=flat-square" alt="Electron" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square" alt="React" />
@@ -47,7 +47,7 @@
 Для локальных моделей — [Ollama](https://ollama.com). Для облака — API-ключ провайдера.
 
 ```powershell
-git clone https://github.com/CodeViperAI/CodeViper.git
+git clone https://github.com/Code-Viper-AI/CodeViper.git
 cd CodeViper/app
 npm install
 ```
@@ -90,19 +90,19 @@ CodeViper/
 
 ## Документация
 
-- [🚀 Быстрый старт](https://github.com/CodeViperAI/CodeViper/wiki/Быстрый-старт)
-- [🤖 Провайдеры моделей](https://github.com/CodeViperAI/CodeViper/wiki/Провайдеры-моделей)
-- [🛠 Инструменты агента](https://github.com/CodeViperAI/CodeViper/wiki/Инструменты-агента)
-- [🧠 Память и самообучение](https://github.com/CodeViperAI/CodeViper/wiki/Память-и-самообучение)
-- [🔒 Безопасность](https://github.com/CodeViperAI/CodeViper/wiki/Безопасность)
-- [✏️ Саморедактирование](https://github.com/CodeViperAI/CodeViper/wiki/Саморедактирование)
-- [🏗 Архитектура](https://github.com/CodeViperAI/CodeViper/wiki/Архитектура)
+- [🚀 Быстрый старт](https://github.com/Code-Viper-AI/CodeViper/wiki/Быстрый-старт)
+- [🤖 Провайдеры моделей](https://github.com/Code-Viper-AI/CodeViper/wiki/Провайдеры-моделей)
+- [🛠 Инструменты агента](https://github.com/Code-Viper-AI/CodeViper/wiki/Инструменты-агента)
+- [🧠 Память и самообучение](https://github.com/Code-Viper-AI/CodeViper/wiki/Память-и-самообучение)
+- [🔒 Безопасность](https://github.com/Code-Viper-AI/CodeViper/wiki/Безопасность)
+- [✏️ Саморедактирование](https://github.com/Code-Viper-AI/CodeViper/wiki/Саморедактирование)
+- [🏗 Архитектура](https://github.com/Code-Viper-AI/CodeViper/wiki/Архитектура)
 - [👨‍💻 Для разработчиков](CONTRIBUTING.md)
 - [📋 Дорожная карта](ROADMAP.md)
 
 ## Участие в разработке
 
-Баги и предложения — в [Issues](https://github.com/CodeViperAI/CodeViper/issues).
+Баги и предложения — в [Issues](https://github.com/Code-Viper-AI/CodeViper/issues).
 Pull requests приветствуются, см. [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Лицензия
