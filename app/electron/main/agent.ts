@@ -150,7 +150,8 @@ export class AgentRunner {
     private signal?: AbortSignal,
     private confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
     private summarizeModel?: string,
-    private previewFn?: (previewId: string) => Promise<boolean>
+    private previewFn?: (previewId: string) => Promise<boolean>,
+    private chatId?: string
   ) {
     const providerType = this.settings.modelProvider || 'ollama'
     const providerBaseUrl =
@@ -318,7 +319,9 @@ export class AgentRunner {
         excludeThinkingFromHistory: this.settings.excludeThinkingFromHistory !== false,
         modelContextLength: this.settings.modelContextLength,
         summarizeThresholdPercent: this.resolveSummarizeThreshold(),
-        chatMode: this.settings.chatMode === true
+        chatMode: this.settings.chatMode === true,
+        chatId: this.chatId,
+        enableRAG: true
       }
     )
     this.throwIfAborted()

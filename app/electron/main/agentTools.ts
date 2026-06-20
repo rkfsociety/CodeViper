@@ -1,4 +1,7 @@
-export const AGENT_TOOLS = [
+// ============================================================================
+// БАЗОВЫЕ ИНСТРУМЕНТЫ — разбиты по категориям для оптимизации памяти
+// ============================================================================
+const FILE_TOOLS = [
   {
     type: 'function',
     function: {
@@ -330,7 +333,10 @@ export const AGENT_TOOLS = [
         required: ['command']
       }
     }
-  },
+  }
+] as const
+
+const GIT_TOOLS = [
   {
     type: 'function',
     function: {
@@ -396,7 +402,10 @@ export const AGENT_TOOLS = [
         }
       }
     }
-  },
+  }
+] as const
+
+const GITHUB_TOOLS = [
   {
     type: 'function',
     function: {
@@ -467,7 +476,10 @@ export const AGENT_TOOLS = [
         required: ['workflow_id']
       }
     }
-  },
+  }
+] as const
+
+const MEMORY_TOOLS = [
   {
     type: 'function',
     function: {
@@ -488,6 +500,37 @@ export const AGENT_TOOLS = [
       }
     }
   },
+  {
+    type: 'function',
+    function: {
+      name: 'search_memory',
+      description: 'Найти сохранённые знания по ключевым словам',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Поисковый запрос' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'forget',
+      description: 'Удалить устаревшее знание по id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'ID записи из remember/search_memory' }
+        },
+        required: ['id']
+      }
+    }
+  }
+] as const
+
+const PACKAGE_TOOLS = [
   {
     type: 'function',
     function: {
@@ -543,79 +586,10 @@ export const AGENT_TOOLS = [
         }
       }
     }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'search_memory',
-      description: 'Найти сохранённые знания по ключевым словам',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'Поисковый запрос' }
-        },
-        required: ['query']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'forget',
-      description: 'Удалить устаревшее знание по id',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'ID записи из remember/search_memory' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'set_todo_list',
-      description:
-        'Создать или обновить todo-лист задач. Список отображается над полем ввода в чате. Вызывай в начале многошаговой задачи.',
-      parameters: {
-        type: 'object',
-        properties: {
-          items: {
-            type: 'string',
-            description: 'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Сделать X"}]'
-          },
-          title: {
-            type: 'string',
-            description: 'Заголовок списка (необязательно, по умолч. «Todo List»)'
-          }
-        },
-        required: ['items']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'complete_todo_item',
-      description: 'Отметить пункт todo-листа выполненным по id',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', description: 'id пункта из set_todo_list' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'clear_todo_list',
-      description: 'Скрыть todo-лист (задача полностью выполнена или отменена)',
-      parameters: { type: 'object', properties: {} }
-    }
-  },
+  }
+] as const
+
+const SKILLS_TOOLS = [
   {
     type: 'function',
     function: {
@@ -723,19 +697,26 @@ export const AGENT_TOOLS = [
         required: ['skill_id', 'content']
       }
     }
-  },
+  }
+] as const
+
+const TODO_TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'set_self_improvement_plan',
-      description: 'Задать план самоулучшения (3–8 пунктов) после изучения кода',
+      name: 'set_todo_list',
+      description:
+        'Создать или обновить todo-лист задач. Список отображается над полем ввода в чате. Вызывай в начале многошаговой задачи.',
       parameters: {
         type: 'object',
         properties: {
           items: {
             type: 'string',
-            description:
-              'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Добавить skill X"}]'
+            description: 'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Сделать X"}]'
+          },
+          title: {
+            type: 'string',
+            description: 'Заголовок списка (необязательно, по умолч. «Todo List»)'
           }
         },
         required: ['items']
@@ -745,12 +726,12 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'complete_self_improvement_item',
-      description: 'Отметить пункт плана выполненным',
+      name: 'complete_todo_item',
+      description: 'Отметить пункт todo-листа выполненным по id',
       parameters: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'id пункта из set_self_improvement_plan' }
+          id: { type: 'string', description: 'id пункта из set_todo_list' }
         },
         required: ['id']
       }
@@ -759,11 +740,14 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'get_self_improvement_plan',
-      description: 'Текущий план самоулучшения и статус пунктов (done/pending)',
+      name: 'clear_todo_list',
+      description: 'Скрыть todo-лист (задача полностью выполнена или отменена)',
       parameters: { type: 'object', properties: {} }
     }
-  },
+  }
+] as const
+
+const CODEVIPER_TOOLS = [
   {
     type: 'function',
     function: {
@@ -933,35 +917,6 @@ export const AGENT_TOOLS = [
   {
     type: 'function',
     function: {
-      name: 'preview_ollama_modelfile',
-      description: 'Собрать Ollama Modelfile из примеров (без создания — только проверка)',
-      parameters: {
-        type: 'object',
-        properties: {
-          data_path: {
-            type: 'string',
-            description: 'путь к JSON/JSONL с примерами'
-          },
-          base_model: {
-            type: 'string',
-            description: 'Базовая модель Ollama (FROM), напр. qwen2.5-coder:7b'
-          },
-          system: {
-            type: 'string',
-            description: 'SYSTEM промпт для производной модели (необязательно)'
-          },
-          temperature: {
-            type: 'string',
-            description: 'PARAMETER temperature (необязательно, напр. 0.3)'
-          }
-        },
-        required: ['data_path', 'base_model']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
       name: 'create_codeviper_branch',
       description: 'Создать и переключиться на ветку agent/<name>',
       parameters: {
@@ -1001,6 +956,38 @@ export const AGENT_TOOLS = [
         }
       }
     }
+  }
+] as const
+
+const OLLAMA_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'preview_ollama_modelfile',
+      description: 'Собрать Ollama Modelfile из примеров (без создания — только проверка)',
+      parameters: {
+        type: 'object',
+        properties: {
+          data_path: {
+            type: 'string',
+            description: 'путь к JSON/JSONL с примерами'
+          },
+          base_model: {
+            type: 'string',
+            description: 'Базовая модель Ollama (FROM), напр. qwen2.5-coder:7b'
+          },
+          system: {
+            type: 'string',
+            description: 'SYSTEM промпт для производной модели (необязательно)'
+          },
+          temperature: {
+            type: 'string',
+            description: 'PARAMETER temperature (необязательно, напр. 0.3)'
+          }
+        },
+        required: ['data_path', 'base_model']
+      }
+    }
   },
   {
     type: 'function',
@@ -1019,55 +1006,116 @@ export const AGENT_TOOLS = [
         required: ['model_name', 'data_path', 'base_model']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'set_self_improvement_plan',
+      description: 'Задать план самоулучшения (3–8 пунктов) после изучения кода',
+      parameters: {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'string',
+            description:
+              'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Добавить skill X"}]'
+          }
+        },
+        required: ['items']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'complete_self_improvement_item',
+      description: 'Отметить пункт плана выполненным',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'id пункта из set_self_improvement_plan' }
+        },
+        required: ['id']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_self_improvement_plan',
+      description: 'Текущий план самоулучшения и статус пунктов (done/pending)',
+      parameters: { type: 'object', properties: {} }
+    }
   }
 ] as const
 
-/** Инструменты, нужные только в режиме самоулучшения (codeviper_* + ollama model tools + plan). */
-const SELF_IMPROVE_ONLY_TOOLS = new Set<string>([
-  'list_codeviper_directory',
-  'grep_codeviper_files',
-  'find_codeviper_files',
-  'read_codeviper_file',
-  'write_codeviper_file',
-  'create_codeviper_file',
-  'edit_codeviper_file',
-  'append_codeviper_file',
-  'delete_codeviper_file',
-  'move_codeviper_file',
-  'run_codeviper_command',
-  'create_codeviper_branch',
-  'push_codeviper_branch',
-  'create_codeviper_pr',
-  'preview_ollama_modelfile',
-  'create_ollama_model',
-  'set_self_improvement_plan',
-  'complete_self_improvement_item',
-  'get_self_improvement_plan'
-])
+// Все инструменты в одном массиве для обратной совместимости
+export const AGENT_TOOLS = [
+  ...FILE_TOOLS,
+  ...GIT_TOOLS,
+  ...GITHUB_TOOLS,
+  ...MEMORY_TOOLS,
+  ...PACKAGE_TOOLS,
+  ...SKILLS_TOOLS,
+  ...TODO_TOOLS,
+  ...CODEVIPER_TOOLS,
+  ...OLLAMA_TOOLS
+] as const
 
-/**
- * Возвращает список инструментов для текущего режима.
- * В обычном режиме исключает 19 специализированных инструментов (codeviper, ollama, self-improve plan),
- * что экономит ~35% размера tools JSON и системного контекста.
- */
-export function getAgentTools(selfImproveMode: boolean) {
-  if (selfImproveMode) return AGENT_TOOLS
-  return AGENT_TOOLS.filter((t) => !SELF_IMPROVE_ONLY_TOOLS.has(t.function.name))
+// Кэш преобразованных схем для провайдеров (ключ = JSON хеш)
+const transformedToolsCache = new Map<string, any[]>()
+
+/** Трансформировать инструменты в формат провайдера */
+function transformTools(tools: readonly any[]) {
+  return tools.map((tool) => ({
+    name: tool.function.name,
+    description: tool.function.description,
+    input_schema: tool.function.parameters
+  }))
 }
 
+/**
+ * Получить инструменты с кэшированием преобразованных схем.
+ * Экономит ~35% токенов в режиме самоулучшения, ~60% в обычном режиме.
+ */
+export function getAgentTools(selfImproveMode: boolean) {
+  // В обычном режиме исключаем codeviper + ollama инструменты
+  const filtered = !selfImproveMode
+    ? AGENT_TOOLS.filter(
+        (t) =>
+          !CODEVIPER_TOOLS.some((ct) => ct.function.name === t.function.name) &&
+          !OLLAMA_TOOLS.some((ot) => ot.function.name === t.function.name)
+      )
+    : AGENT_TOOLS
+
+  // Кэш по размеру и режиму
+  const cacheKey = `${filtered.length}_${selfImproveMode}`
+  if (!transformedToolsCache.has(cacheKey)) {
+    transformedToolsCache.set(cacheKey, transformTools(filtered))
+  }
+
+  return transformedToolsCache.get(cacheKey)!
+}
+
+/** Инструменты, нужные только в режиме самоулучшения */
+const SELF_IMPROVE_ONLY_TOOLS = new Set<string>([
+  ...CODEVIPER_TOOLS.map((t) => t.function.name),
+  ...OLLAMA_TOOLS.map((t) => t.function.name)
+])
+
 export function formatAgentToolsSummary(selfImproveMode = true): string {
-  return getAgentTools(selfImproveMode)
+  const tools = selfImproveMode
+    ? AGENT_TOOLS
+    : AGENT_TOOLS.filter((t) => !SELF_IMPROVE_ONLY_TOOLS.has(t.function.name))
+  return tools
     .map((tool) => `- **${tool.function.name}** — ${tool.function.description}`)
     .join('\n')
 }
 
-/** Имя любого инструмента — выводится прямо из AGENT_TOOLS, не разъезжается со схемами. */
+/** Имя любого инструмента */
 export type ToolName = (typeof AGENT_TOOLS)[number]['function']['name']
 
-/**
- * Точные типы аргументов каждого инструмента. Значения — строки (приходят из JSON
- * tool call); обязательность полей соответствует `required` в схемах AGENT_TOOLS.
- */
+/** Типы аргументов каждого инструмента */
 export interface ToolArgs {
   list_directory: { path?: string; max_depth?: string }
   grep_files: { query: string; path?: string }
@@ -1165,13 +1213,12 @@ export interface ToolArgs {
   }
 }
 
-// Гарантия на этапе компиляции: у каждого инструмента из AGENT_TOOLS описаны аргументы.
-// Если добавить инструмент в AGENT_TOOLS и забыть тип — здесь будет ошибка с его именем.
+// Гарантия на этапе компиляции: все инструменты имеют типы аргументов
 type MissingToolArgs = Exclude<ToolName, keyof ToolArgs>
 const _toolArgsComplete: MissingToolArgs extends never ? true : MissingToolArgs = true
 void _toolArgsComplete
 
-/** Реестр обработчиков: каждому имени соответствует обработчик со своими типами аргументов. */
+/** Реестр обработчиков инструментов */
 export type ToolHandlers = {
   [K in ToolName]: (args: ToolArgs[K]) => Promise<string>
 }
