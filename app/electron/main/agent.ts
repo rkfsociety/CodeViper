@@ -317,7 +317,8 @@ export class AgentRunner {
         summarizeModel: this.summarizeModelResolved,
         excludeThinkingFromHistory: this.settings.excludeThinkingFromHistory !== false,
         modelContextLength: this.settings.modelContextLength,
-        summarizeThresholdPercent: this.resolveSummarizeThreshold()
+        summarizeThresholdPercent: this.resolveSummarizeThreshold(),
+        chatMode: this.settings.chatMode === true
       }
     )
     this.throwIfAborted()
@@ -1026,11 +1027,14 @@ export class AgentRunner {
     }))
 
     // Трансформируем AGENT_TOOLS в формат провайдеров (name + description + input_schema)
-    const toolsForProvider = getAgentTools(this.selfImproveMode).map((tool) => ({
-      name: tool.function.name,
-      description: tool.function.description,
-      input_schema: tool.function.parameters
-    }))
+    // В режиме Chat инструменты не нужны — экономим токены на схемах.
+    const toolsForProvider = this.settings.chatMode
+      ? []
+      : getAgentTools(this.selfImproveMode).map((tool) => ({
+          name: tool.function.name,
+          description: tool.function.description,
+          input_schema: tool.function.parameters
+        }))
 
     // Используем ModelRuntime для универсальной поддержки разных провайдеров
     const chatOptions = {

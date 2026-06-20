@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import { Skeleton } from './Skeleton'
 import type { CiStatus, PullRequestListResult } from '../types'
 import styles from './PrStatusPanel.module.css'
@@ -12,13 +12,7 @@ const CI_LABEL: Record<CiStatus, string> = {
   none: '— нет CI'
 }
 
-export function PrStatusPanel({
-  isOpen,
-  manualRefresh
-}: {
-  isOpen: boolean
-  manualRefresh?: boolean
-}) {
+export function PrStatusPanel({ isOpen }: { isOpen: boolean }) {
   const [result, setResult] = useState<PullRequestListResult | null>(null)
   const [loading, setLoading] = useState(false)
   const inFlight = useRef(false)
@@ -40,10 +34,9 @@ export function PrStatusPanel({
   useEffect(() => {
     if (!isOpen) return
     void load()
-    if (manualRefresh) return
     const timer = setInterval(() => void load(), POLL_INTERVAL_MS)
     return () => clearInterval(timer)
-  }, [isOpen, manualRefresh, load])
+  }, [isOpen, load])
 
   const prs = result?.prs ?? []
 
