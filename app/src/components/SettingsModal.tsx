@@ -398,36 +398,42 @@ export function SettingsModal({
                   </>
                 )}
 
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
-                    checked={settings.autoModel !== false}
-                    onChange={(e) => onSettingsChange({ autoModel: e.target.checked })}
-                  />
-                  <span>
-                    <strong>Автовыбор модели</strong> — подбирать модель под задачу, выгружать
-                    другие из RAM (если установлено несколько)
-                  </span>
-                </label>
+                {settings.modelProvider === 'ollama' && (
+                  <label className={styles.toggle}>
+                    <input
+                      type="checkbox"
+                      checked={settings.autoModel !== false}
+                      onChange={(e) => onSettingsChange({ autoModel: e.target.checked })}
+                    />
+                    <span>
+                      <strong>Автовыбор модели</strong> — подбирать модель под задачу, выгружать
+                      другие из RAM (если установлено несколько)
+                    </span>
+                  </label>
+                )}
 
-                <label>
-                  Модель для суммаризации
-                  <select
-                    value={settings.summarizeModel ?? ''}
-                    onChange={(e) => onSettingsChange({ summarizeModel: e.target.value })}
-                  >
-                    <option value="">Авто — самая лёгкая установленная</option>
-                    {models.map((model) => (
-                      <option key={model.name} value={model.name}>
-                        {model.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className={styles.hint}>
-                  Сжатие длинной истории чата при достижении порога. По умолчанию берётся самая
-                  лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
-                </div>
+                {settings.modelProvider === 'ollama' && (
+                  <>
+                    <label>
+                      Модель для суммаризации
+                      <select
+                        value={settings.summarizeModel ?? ''}
+                        onChange={(e) => onSettingsChange({ summarizeModel: e.target.value })}
+                      >
+                        <option value="">Авто — самая лёгкая установленная</option>
+                        {models.map((model) => (
+                          <option key={model.name} value={model.name}>
+                            {model.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className={styles.hint}>
+                      Сжатие длинной истории чата при достижении порога. По умолчанию берётся самая
+                      лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
+                    </div>
+                  </>
+                )}
 
                 <label>
                   Порог суммаризации:{' '}
