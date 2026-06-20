@@ -16,6 +16,7 @@ import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
 import { readLargeFileQueued } from './largeFileQueue'
+import { loadIgnorePatterns, shouldIgnorePath, clearIgnorePatternsCache } from './ignorePatterns'
 import {
   FILE_SIZE_LIMIT_BYTES,
   READ_DEFAULT_LINE_LIMIT,
@@ -104,8 +105,10 @@ export function invalidateFileTreeCache(dirPath?: string): void {
     for (const key of fileTreeCache.keys()) {
       if (key.startsWith(dirPath)) fileTreeCache.delete(key)
     }
+    clearIgnorePatternsCache(dirPath)
   } else {
     fileTreeCache.clear()
+    clearIgnorePatternsCache()
   }
 }
 
@@ -126,15 +129,32 @@ export function watchProjectForCacheInvalidation(dirPath: string): void {
 async function buildFileTreeRaw(
   dirPath: string,
   depth: number,
-  maxDepth: number
+  maxDepth: number,
+  rootPath?: string,
+  ignoreRulesPromise?: Promise<any>
 ): Promise<FileNode[]> {
   if (depth > maxDepth) return []
 
   const entries = await readdir(dirPath, { withFileTypes: true })
   const nodes: FileNode[] = []
 
+  // Загружаем ignore-правила один раз из корня проекта
+  let ignoreRules: any = null
+  if (depth === 0) {
+    ignoreRules = await loadIgnorePatterns(dirPath)
+  } else if (ignoreRulesPromise) {
+    ignoreRules = await ignoreRulesPromise
+  }
+
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-    if (entry.name.startsWith('.') || IGNORED.has(entry.name)) continue
+    // Пропускаем скрытые файлы и папки (кроме .codeviper)
+    if (entry.name.startsWith('.') && entry.name !== '.codeviper') continue
+
+    // Проверяем hardcoded ignored
+    if (IGNORED.has(entry.name)) continue
+
+    // Проверяем ignore-файлы (.gitignore, .claudeignore, .cursorignore)
+    if (ignoreRules && shouldIgnorePath(entry.name, ignoreRules)) continue
 
     const fullPath = join(dirPath, entry.name)
     const node: FileNode = {
@@ -144,7 +164,13 @@ async function buildFileTreeRaw(
     }
 
     if (entry.isDirectory()) {
-      node.children = await buildFileTreeRaw(fullPath, depth + 1, maxDepth)
+      node.children = await buildFileTreeRaw(
+        fullPath,
+        depth + 1,
+        maxDepth,
+        rootPath,
+        ignoreRulesPromise
+      )
     }
 
     nodes.push(node)
@@ -161,7 +187,10 @@ export async function buildFileTree(dirPath: string, depth = 0, maxDepth = 3): P
     watchProjectForCacheInvalidation(dirPath)
   }
 
-  const nodes = await buildFileTreeRaw(dirPath, depth, maxDepth)
+  // Загружаем ignore-правила заранее для использования в buildFileTreeRaw
+  const ignoreRulesPromise = depth === 0 ? loadIgnorePatterns(dirPath) : undefined
+
+  const nodes = await buildFileTreeRaw(dirPath, depth, maxDepth, dirPath, ignoreRulesPromise)
 
   if (depth === 0) {
     fileTreeCache.set(cacheKey, { nodes, expiresAt: Date.now() + FILE_TREE_CACHE_TTL_MS })
