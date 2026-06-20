@@ -329,9 +329,17 @@ export class AgentRunner {
 
     try {
       let step = 0
+      const maxSteps = this.settings.maxSteps ?? 50
       while (true) {
         this.throwIfAborted()
         step++
+
+        if (step > maxSteps) {
+          this.emit({ type: 'clear_draft' })
+          this.emit({ type: 'error', content: `Достигнут лимит шагов агента (${maxSteps})` })
+          this.emit({ type: 'done' })
+          return
+        }
 
         const stepStartMs = Date.now()
         let response
