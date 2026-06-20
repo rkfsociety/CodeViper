@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type {
   ModelProvider,
   ChatOptions,
@@ -9,32 +8,53 @@ import type {
 } from '../../../shared/modelProvider'
 import { GEMINI_API_BASE_URL } from '../../../shared/constants'
 
-type GeminiPart = {
+// ── Gemini REST types ──────────────────────────────────────────────────────────
+
+interface GeminiPart {
   text?: string
-  functionCall?: { name?: string; args?: Record<string, unknown>; id?: string }
-  functionResponse?: { name?: string; response?: Record<string, unknown>; id?: string }
+  thought?: boolean
+  functionCall?: { id?: string; name: string; args?: Record<string, unknown> }
+  functionResponse?: { id?: string; name: string; response: Record<string, unknown> }
 }
 
-type GeminiContent = {
+interface GeminiContent {
   role: 'user' | 'model'
   parts: GeminiPart[]
 }
 
-export class GeminiProvider implements ModelProvider {
-  private genAI: GoogleGenerativeAI
+interface GeminiRequest {
+  contents: GeminiContent[]
+  systemInstruction?: { parts: [{ text: string }] }
+  tools?: Array<{ functionDeclarations: unknown[] }>
+  toolConfig?: { functionCallingConfig: { mode: 'AUTO' | 'ANY' | 'NONE' } }
+  generationConfig?: {
+    temperature?: number
+    maxOutputTokens?: number
+    thinkingConfig?: { includeThoughts: boolean; thinkingBudget?: number }
+  }
+}
 
+interface GeminiChunk {
+  candidates?: Array<{
+    content?: { parts?: GeminiPart[] }
+    finishReason?: string
+  }>
+  usageMetadata?: { totalTokenCount?: number }
+}
+
+// ── Provider ───────────────────────────────────────────────────────────────────
+
+export class GeminiProvider implements ModelProvider {
   constructor(
     private apiKey: string,
     private modelName: string,
     private baseUrl: string = GEMINI_API_BASE_URL
-  ) {
-    this.genAI = new GoogleGenerativeAI(apiKey)
-  }
+  ) {}
 
   async ping(signal?: AbortSignal): Promise<boolean> {
     try {
-      const res = await fetch(`${this.baseUrl}/models?key=${encodeURIComponent(this.apiKey)}`, {
-        signal: signal || AbortSignal.timeout(5_000)
+      const res = await fetch(this.modelsUrl(), {
+        signal: signal ?? AbortSignal.timeout(5_000)
       })
       return res.ok
     } catch {
@@ -44,32 +64,23 @@ export class GeminiProvider implements ModelProvider {
 
   async listModels(): Promise<LoadedModel[]> {
     try {
-      const res = await fetch(
-        `${this.baseUrl}/models?key=${encodeURIComponent(this.apiKey)}&pageSize=100`
-      )
+      const res = await fetch(`${this.modelsUrl()}&pageSize=100`)
       if (!res.ok) return []
 
       const data = (await res.json()) as {
         models?: Array<{
           name?: string
-          displayName?: string
           supportedGenerationMethods?: string[]
           inputTokenLimit?: number
-          outputTokenLimit?: number
         }>
       }
 
       return (data.models ?? [])
-        .filter((m) => {
-          const methods = m.supportedGenerationMethods ?? []
-          // Оставляем только модели, поддерживающие generateContent (для tool calling)
-          return methods.includes('generateContent')
-        })
-        .map((m) => {
-          const name = (m.name ?? '').replace(/^models\//, '')
-          const ctx = m.inputTokenLimit
-          return { name, contextLength: ctx }
-        })
+        .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+        .map((m) => ({
+          name: (m.name ?? '').replace(/^models\//, ''),
+          contextLength: m.inputTokenLimit
+        }))
         .filter((m) => m.name)
     } catch {
       return []
@@ -78,35 +89,119 @@ export class GeminiProvider implements ModelProvider {
 
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
     const modelName = options.model || this.modelName
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const modelInit: any = { model: modelName }
-    if (options.tools?.length) {
-      modelInit.tools = [
-        {
-          functionDeclarations: options.tools.map((tool) => ({
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.input_schema
-          }))
-        }
-      ]
-    }
-    const model = this.genAI.getGenerativeModel(modelInit)
+    const isThinkingModel = /2\.5/.test(modelName)
 
-    const systemMessages = options.messages.filter((msg) => msg.role === 'system' && msg.content)
-    const systemInstruction = systemMessages
-      .map((msg) => msg.content)
+    const body = this.buildRequest(options, isThinkingModel)
+    const url = `${this.baseUrl}/models/${modelName}:streamGenerateContent?key=${encodeURIComponent(this.apiKey)}&alt=sse`
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: options.signal
+    })
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.statusText)
+      throw new Error(`Gemini API error ${res.status}: ${err}`)
+    }
+
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    const toolCalls: ChatChunk['tool_calls'] = []
+    let totalTokens: number | undefined
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const raw = line.slice(6).trim()
+        if (!raw || raw === '[DONE]') continue
+
+        let chunk: GeminiChunk
+        try {
+          chunk = JSON.parse(raw) as GeminiChunk
+        } catch {
+          continue
+        }
+
+        if (chunk.usageMetadata?.totalTokenCount) {
+          totalTokens = chunk.usageMetadata.totalTokenCount
+        }
+
+        const parts = chunk.candidates?.[0]?.content?.parts ?? []
+        let text = ''
+        let thinking = ''
+
+        for (const part of parts) {
+          if (part.thought && part.text) {
+            thinking += part.text
+          } else if (part.text) {
+            text += part.text
+          } else if (part.functionCall?.name) {
+            const id = part.functionCall.id ?? randomUUID()
+            toolCalls.push({
+              id,
+              type: 'function' as const,
+              function: {
+                name: part.functionCall.name,
+                arguments: JSON.stringify(part.functionCall.args ?? {})
+              }
+            })
+          }
+        }
+
+        if (text || thinking) {
+          yield {
+            content: text,
+            thinking: thinking || undefined,
+            model: modelName
+          }
+        }
+      }
+    }
+
+    // Финальный чанк: tool calls + токены
+    if (toolCalls.length || totalTokens !== undefined) {
+      yield {
+        content: '',
+        tool_calls: toolCalls.length ? toolCalls : undefined,
+        model: modelName,
+        total_tokens: totalTokens
+      }
+    }
+  }
+
+  async getModelPlacement(): Promise<ModelPlacement> {
+    return 'unknown'
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  private modelsUrl(): string {
+    return `${this.baseUrl}/models?key=${encodeURIComponent(this.apiKey)}`
+  }
+
+  private buildRequest(options: ChatOptions, isThinkingModel: boolean): GeminiRequest {
+    const systemText = options.messages
+      .filter((m) => m.role === 'system' && m.content)
+      .map((m) => m.content)
       .join('\n')
       .trim()
 
     const toolNameById = new Map<string, string>()
     const history: GeminiContent[] = []
+    const nonSystem = options.messages.filter((m) => m.role !== 'system')
 
-    const nonSystemMessages = options.messages.filter((m) => m.role !== 'system')
-
-    // Все сообщения кроме последнего пользовательского — в историю
-    for (let i = 0; i < nonSystemMessages.length - 1; i++) {
-      const msg = nonSystemMessages[i]
+    for (let i = 0; i < nonSystem.length - 1; i++) {
+      const msg = nonSystem[i]
 
       if (msg.role === 'assistant') {
         const parts: GeminiPart[] = []
@@ -115,9 +210,9 @@ export class GeminiProvider implements ModelProvider {
           toolNameById.set(call.id, call.function.name)
           parts.push({
             functionCall: {
+              id: call.id,
               name: call.function.name,
-              args: safeJsonParse(call.function.arguments),
-              id: call.id
+              args: safeJsonParse(call.function.arguments)
             }
           })
         }
@@ -126,13 +221,14 @@ export class GeminiProvider implements ModelProvider {
       }
 
       if (msg.role === 'tool') {
+        const name = toolNameById.get(msg.tool_call_id ?? '') || 'tool'
         history.push({
           role: 'user',
           parts: [
             {
               functionResponse: {
-                name: toolNameById.get(msg.tool_call_id ?? '') || 'tool',
                 id: msg.tool_call_id,
+                name,
                 response: safeJsonParse(msg.content ?? '{}')
               }
             }
@@ -146,68 +242,39 @@ export class GeminiProvider implements ModelProvider {
       }
     }
 
-    const lastMsg = nonSystemMessages.at(-1)
-    const lastContent = lastMsg?.content || ''
+    const lastMsg = nonSystem.at(-1)
+    const lastText = lastMsg?.content ?? ''
+    const contents: GeminiContent[] = [...history, { role: 'user', parts: [{ text: lastText }] }]
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const chatInit: any =
-      history.length || systemInstruction
-        ? { history, systemInstruction: systemInstruction || undefined }
-        : undefined
-    const chat = model.startChat(chatInit)
+    const req: GeminiRequest = { contents }
 
-    const result = await chat.sendMessageStream(lastContent)
-
-    const toolCalls: ChatChunk['tool_calls'] = []
-
-    for await (const chunk of result.stream) {
-      const candidate = chunk.candidates?.[0]
-      const parts = candidate?.content?.parts ?? []
-
-      let text = ''
-      for (const part of parts) {
-        if (part.text) text += part.text
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const functionCall = (part as any).functionCall
-        if (functionCall?.name) {
-          const id = (functionCall.id as string) || randomUUID()
-          toolCalls.push({
-            id,
-            type: 'function' as const,
-            function: {
-              name: functionCall.name as string,
-              arguments: JSON.stringify(functionCall.args ?? {})
-            }
-          })
-        }
-      }
-
-      if (text) {
-        yield {
-          content: text,
-          model: modelName
-        }
-      }
+    if (systemText) {
+      req.systemInstruction = { parts: [{ text: systemText }] }
     }
 
-    const finalResponse = await result.response
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const totalTokens = (finalResponse as any).usageMetadata?.totalTokenCount as number | undefined
-
-    // Tool calls отдаём в конце (они не стримятся)
-    if (toolCalls.length || totalTokens !== undefined) {
-      yield {
-        content: '',
-        tool_calls: toolCalls.length ? toolCalls : undefined,
-        model: modelName,
-        total_tokens: totalTokens
-      }
+    if (options.tools?.length) {
+      req.tools = [
+        {
+          functionDeclarations: options.tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            parameters: t.input_schema
+          }))
+        }
+      ]
+      const mode = options.tool_choice === 'required' ? 'ANY' : 'AUTO'
+      req.toolConfig = { functionCallingConfig: { mode } }
     }
-  }
 
-  async getModelPlacement(): Promise<ModelPlacement> {
-    return 'unknown'
+    const genConfig: GeminiRequest['generationConfig'] = {}
+    if (options.temperature !== undefined) genConfig.temperature = options.temperature
+    if (options.max_tokens !== undefined) genConfig.maxOutputTokens = options.max_tokens
+    if (isThinkingModel) {
+      genConfig.thinkingConfig = { includeThoughts: true }
+    }
+    if (Object.keys(genConfig).length) req.generationConfig = genConfig
+
+    return req
   }
 }
 
