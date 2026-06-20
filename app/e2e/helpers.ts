@@ -1,6 +1,8 @@
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const MAIN_PATH = path.resolve(__dirname, '../out/main/index.js')
 
 export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
