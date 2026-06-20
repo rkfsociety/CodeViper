@@ -1077,6 +1077,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                   type="button"
                   className={`${styles.metaBtn} ${styles.metaModelBtn}`}
                   title={settings.model}
+                  data-testid="model-picker-btn"
                   onClick={() => setModelPickerOpen((v) => !v)}
                 >
                   {settings.autoModel !== false && (
