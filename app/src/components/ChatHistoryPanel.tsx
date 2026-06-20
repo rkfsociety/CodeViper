@@ -261,12 +261,12 @@ export function ChatHistoryPanel({
 
   const handleDragStart = useCallback(
     (chatId: string, e: React.DragEvent) => {
-      if (chatBusy) return
+      if (chatBusy && chatId === activeChatId) return
       e.dataTransfer.setData('text/plain', chatId)
       e.dataTransfer.effectAllowed = 'move'
       setDraggingChatId(chatId)
     },
-    [chatBusy]
+    [chatBusy, activeChatId]
   )
 
   const handleDragEnd = useCallback(() => {
@@ -322,10 +322,10 @@ export function ChatHistoryPanel({
       <div
         key={chat.id}
         className={`${styles.item} ${isActive ? styles.active : ''} ${isDragging ? styles.dragging : ''} ${chat.pinned ? styles.pinned : ''}`}
-        draggable={!chatBusy}
+        draggable={!(chatBusy && chat.id === activeChatId)}
         onDragStart={(e) => handleDragStart(chat.id, e)}
         onDragEnd={handleDragEnd}
-        onClick={() => !chatBusy && onSelectChat(chat.id)}
+        onClick={() => !(chatBusy && chat.id === activeChatId) && onSelectChat(chat.id)}
       >
         <div className={styles.itemMain}>
           <div className={styles.title}>
@@ -444,7 +444,6 @@ export function ChatHistoryPanel({
           className={`btn ${styles.historyBtn}`}
           title="Новый чат в папке"
           aria-label="Новый чат в папке"
-          disabled={chatBusy}
           onClick={() => onCreateChat(folder.id)}
         >
           +
@@ -487,7 +486,7 @@ export function ChatHistoryPanel({
       </div>
 
       <div className={styles.toolbar}>
-        <button className="btn primary" onClick={() => onCreateChat(null)} disabled={chatBusy}>
+        <button className="btn primary" onClick={() => onCreateChat(null)}>
           + Чат
         </button>
         <button
