@@ -242,9 +242,9 @@ if ($needBuild) {
   Write-Log 'build успешен'
 }
 
-Write-Log 'npm run dev...'
+Write-Log 'npm run start...'
 $devProc = Start-Process -FilePath 'cmd.exe' `
-  -ArgumentList @('/c', "npm run dev >> `"$devLogFile`" 2>&1") `
+  -ArgumentList @('/c', "npm run start >> `"$devLogFile`" 2>&1") `
   -WorkingDirectory $root `
   -PassThru `
   -WindowStyle Hidden
@@ -257,7 +257,7 @@ while ((Get-Date) -lt $deadline) {
     exit 0
   }
   if ($devProc.HasExited -and $devProc.ExitCode -ne 0) {
-    Show-Error "npm run dev завершился с кодом $($devProc.ExitCode).`nЛог: $devLogFile`nПопробуйте: CodeViper.cmd console"
+    Show-Error "npm run start завершился с кодом $($devProc.ExitCode).`nЛог: $devLogFile`nПопробуйте: CodeViper.cmd console"
     exit 1
   }
 }

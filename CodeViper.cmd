@@ -30,6 +30,11 @@ if defined NEEDINSTALL (
   if errorlevel 1 exit /b 1
   if defined CURHASH >"%STAMP%" echo %CURHASH%
 )
-call npm run dev
+if not exist "out\main\index.js" (
+  echo [CodeViper] Сборка...
+  call npm run build
+  if errorlevel 1 pause & exit /b 1
+)
+call npm run start
 if errorlevel 1 pause
 exit /b %ERRORLEVEL%
