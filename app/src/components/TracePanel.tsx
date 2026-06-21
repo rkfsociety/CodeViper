@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AgentTraceEvent } from '../types'
+import { getTraceEvents, clearTraceEvents, onTraceUpdate } from '../traceBuffer'
 import styles from './TracePanel.module.css'
 
 interface Props {
@@ -16,23 +17,23 @@ const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
 }
 
 export function TracePanel({ chatId }: Props) {
-  const [events, setEvents] = useState<AgentTraceEvent[]>([])
+  const [events, setEvents] = useState<AgentTraceEvent[]>(() =>
+    chatId ? getTraceEvents(chatId) : []
+  )
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
 
   useEffect(() => {
-    setEvents([])
+    setEvents(chatId ? getTraceEvents(chatId) : [])
     setExpanded(new Set())
   }, [chatId])
 
   useEffect(() => {
-    const unsub = window.codeviper.onAgentStream((event) => {
-      if (event.chatId !== chatId) return
-      if (event.type !== 'trace' || !event.traceEvent) return
-      setEvents((prev) => [...prev, event.traceEvent!])
+    return onTraceUpdate((updatedChatId) => {
+      if (updatedChatId !== chatId) return
+      setEvents([...getTraceEvents(chatId!)])
     })
-    return unsub
   }, [chatId])
 
   useEffect(() => {
@@ -64,8 +65,7 @@ export function TracePanel({ chatId }: Props) {
             <button
               className={styles.clearBtn}
               onClick={() => {
-                setEvents([])
-                setExpanded(new Set())
+                if (chatId) clearTraceEvents(chatId)
               }}
             >
               Очистить

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { initTraceBuffer } from './traceBuffer'
 import logoUrl from '../resources/icon.png'
 import type {
   AgentConfirmRequest,
@@ -79,6 +80,8 @@ function AppContent() {
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [prPanelOpen, setPrPanelOpen] = useState(false)
   const [tracePanelOpen, setTracePanelOpen] = useState(false)
+
+  useEffect(() => initTraceBuffer(), [])
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [settingsReady, setSettingsReady] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
