@@ -10,6 +10,7 @@ import {
   useRef,
   useState
 } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, TodoItem } from '../types'
@@ -320,7 +321,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     if (title !== undefined) setTodoTitle(title)
   }
 
-  const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const atBottomRef = useRef(true)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -610,14 +610,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
-  // draft убран из deps: он встроен в messages через upsertMessage,
-  // поэтому messages.length уже меняется при новых сообщениях.
-  // Скролл при токенах стриминга (обновление последнего сообщения)
-  // обрабатывается отдельным эффектом ниже через messages.
+  const scrollToBottomRef = useRef<(() => void) | null>(null)
+
   useEffect(() => {
-    if (atBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
+    scrollToBottomRef.current?.()
   }, [messages.length, queueSize])
 
   useEffect(() => {
@@ -807,7 +803,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setDroppedFiles([])
     setClipboardImages([])
     atBottomRef.current = true
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    scrollToBottomRef.current?.()
     await submitMessage(userMessage.id, fullText)
   }
 
@@ -846,6 +842,24 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         : [],
     [messages, pinnedMessageIds]
   )
+
+  const virtualizer = useVirtualizer({
+    count: displayItems.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 80,
+    overscan: 5,
+    measureElement:
+      typeof window !== 'undefined' && navigator.userAgent.includes('Firefox')
+        ? undefined
+        : (el) => el.getBoundingClientRect().height
+  })
+
+  // Обновляем колбэк скролла при каждом рендере — чтобы эффекты выше видели актуальные значения
+  scrollToBottomRef.current = () => {
+    if (atBottomRef.current && displayItems.length > 0) {
+      virtualizer.scrollToIndex(displayItems.length - 1, { align: 'end', behavior: 'smooth' })
+    }
+  }
 
   const lastVisibleMessage = useMemo(
     () => [...messages].reverse().find(shouldShowAssistantMessage),
@@ -961,50 +975,70 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           </div>
         )}
 
-        {displayItems.map((item) => {
-          if (item.kind === 'all-tools') {
+        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+          {virtualizer.getVirtualItems().map((vItem) => {
+            const item = displayItems[vItem.index]!
+            let content: React.ReactNode
+
+            if (item.kind === 'all-tools') {
+              content = (
+                <div>
+                  {item.reasoning && <ThinkingBlock content={item.reasoning.thinking} />}
+                  {item.items.length > 0 && <AllToolsGroup items={item.items} />}
+                </div>
+              )
+            } else {
+              const msg = item.message
+              if (msg.previewId && msg.previewDiff !== undefined) {
+                content = (
+                  <EditPreviewBlock
+                    messageId={msg.id}
+                    previewId={msg.previewId}
+                    path={msg.previewPath ?? ''}
+                    diff={msg.previewDiff}
+                    status={msg.previewStatus ?? 'cancelled'}
+                    onRespond={respondPreview}
+                  />
+                )
+              } else {
+                content = (
+                  <MessageRow
+                    message={msg}
+                    pinned={pinnedMessageIds.has(msg.id)}
+                    busy={busy}
+                    isStreaming={msg.id === draftMessageIdRef.current}
+                    onPin={togglePinMessage}
+                    onRetry={retryUserMessage}
+                    onEdit={editUserMessage}
+                  />
+                )
+              }
+            }
+
             return (
-              <div key={item.key}>
-                {item.reasoning && <ThinkingBlock content={item.reasoning.thinking} />}
-                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
+              <div
+                key={vItem.key}
+                data-index={vItem.index}
+                ref={virtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${vItem.start}px)`
+                }}
+              >
+                {content}
               </div>
             )
-          }
-          const msg = item.message
-          if (msg.previewId && msg.previewDiff !== undefined) {
-            return (
-              <EditPreviewBlock
-                key={msg.id}
-                messageId={msg.id}
-                previewId={msg.previewId}
-                path={msg.previewPath ?? ''}
-                diff={msg.previewDiff}
-                status={msg.previewStatus ?? 'cancelled'}
-                onRespond={respondPreview}
-              />
-            )
-          }
-          return (
-            <MessageRow
-              key={msg.id}
-              message={msg}
-              pinned={pinnedMessageIds.has(msg.id)}
-              busy={busy}
-              isStreaming={msg.id === draftMessageIdRef.current}
-              onPin={togglePinMessage}
-              onRetry={retryUserMessage}
-              onEdit={editUserMessage}
-            />
-          )
-        })}
+          })}
+        </div>
 
         {!busy && runStats && runStats.tokens > 0 && (
           <div className={styles.runMeta}>
             {formatElapsed(runStats.elapsedSec)} · {formatTokenCount(runStats.tokens)} токенов
           </div>
         )}
-
-        <div ref={bottomRef} />
       </div>
 
       {awaitingClarification && (
