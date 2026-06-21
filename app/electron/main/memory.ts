@@ -15,6 +15,55 @@ const MAX_GLOBAL = 100
 const MAX_PROJECT = 50
 const MAX_INJECT = 15
 
+// ---------------------------------------------------------------------------
+// MemoryStorage abstraction
+// ---------------------------------------------------------------------------
+
+export interface MemoryStorage {
+  read(): Promise<MemoryStore>
+  write(store: MemoryStore): Promise<void>
+}
+
+export class InMemoryStorage implements MemoryStorage {
+  private store: MemoryStore = emptyStore()
+
+  async read(): Promise<MemoryStore> {
+    return { ...this.store, entries: this.store.entries.map((e) => ({ ...e })) }
+  }
+
+  async write(store: MemoryStore): Promise<void> {
+    this.store = { ...store, entries: store.entries.map((e) => ({ ...e })) }
+  }
+}
+
+export class FsMemoryStorage implements MemoryStorage {
+  constructor(
+    private mdPath: string,
+    private legacyPath: string
+  ) {}
+
+  async read(): Promise<MemoryStore> {
+    return loadStoreFromFs(this.mdPath, this.legacyPath)
+  }
+
+  async write(store: MemoryStore): Promise<void> {
+    return saveStoreToFs(this.mdPath, store)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Storages pair — one for each scope
+// ---------------------------------------------------------------------------
+
+export interface MemoryStorages {
+  global: MemoryStorage
+  project: MemoryStorage
+}
+
+// ---------------------------------------------------------------------------
+// Path helpers (only used by FsMemoryStorage factory below)
+// ---------------------------------------------------------------------------
+
 function globalMemoryPath(): string {
   return join(app.getPath('userData'), MEMORY_FILENAME)
 }
@@ -38,6 +87,19 @@ function legacyProjectMemoryPath(projectPath: string): string {
 function projectRulesPath(projectPath: string): string {
   return join(projectDir(projectPath), 'rules.md')
 }
+
+export function defaultStorages(projectPath: string): MemoryStorages {
+  return {
+    global: new FsMemoryStorage(globalMemoryPath(), legacyGlobalMemoryPath()),
+    project: projectPath
+      ? new FsMemoryStorage(projectMemoryPath(projectPath), legacyProjectMemoryPath(projectPath))
+      : new InMemoryStorage()
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pure helpers
+// ---------------------------------------------------------------------------
 
 function emptyStore(): MemoryStore {
   return { version: 1, entries: [] }
@@ -91,6 +153,29 @@ export function renderMemoryMarkdown(store: MemoryStore): string {
   return lines.join('\n')
 }
 
+function trimStore(store: MemoryStore, max: number): MemoryStore {
+  if (store.entries.length <= max) return store
+
+  const sorted = [...store.entries].sort(
+    (a, b) => b.useCount - a.useCount || b.lastUsedAt.localeCompare(a.lastUsedAt)
+  )
+
+  return { ...store, entries: sorted.slice(0, max) }
+}
+
+function normalizeTags(tags?: string[] | string): string[] {
+  if (!tags) return []
+  if (Array.isArray(tags)) return tags.map((t) => t.trim()).filter(Boolean)
+  return tags
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+}
+
+// ---------------------------------------------------------------------------
+// FS-level load / save (used only by FsMemoryStorage)
+// ---------------------------------------------------------------------------
+
 async function loadLegacyJson(path: string): Promise<MemoryStore | null> {
   if (!existsSync(path)) return null
 
@@ -104,7 +189,7 @@ async function loadLegacyJson(path: string): Promise<MemoryStore | null> {
   }
 }
 
-async function loadStore(mdPath: string, legacyPath: string): Promise<MemoryStore> {
+async function loadStoreFromFs(mdPath: string, legacyPath: string): Promise<MemoryStore> {
   if (existsSync(mdPath)) {
     let raw: string
     try {
@@ -130,37 +215,22 @@ async function loadStore(mdPath: string, legacyPath: string): Promise<MemoryStor
 
   const legacy = await loadLegacyJson(legacyPath)
   if (legacy) {
-    await saveStore(mdPath, legacy)
+    await saveStoreToFs(mdPath, legacy)
     return legacy
   }
 
   return emptyStore()
 }
 
-async function saveStore(filePath: string, store: MemoryStore): Promise<void> {
+async function saveStoreToFs(filePath: string, store: MemoryStore): Promise<void> {
   const dir = join(filePath, '..')
   await mkdir(dir, { recursive: true })
   await writeFile(filePath, renderMemoryMarkdown(store), 'utf-8')
 }
 
-function trimStore(store: MemoryStore, max: number): MemoryStore {
-  if (store.entries.length <= max) return store
-
-  const sorted = [...store.entries].sort(
-    (a, b) => b.useCount - a.useCount || b.lastUsedAt.localeCompare(a.lastUsedAt)
-  )
-
-  return { ...store, entries: sorted.slice(0, max) }
-}
-
-function normalizeTags(tags?: string[] | string): string[] {
-  if (!tags) return []
-  if (Array.isArray(tags)) return tags.map((t) => t.trim()).filter(Boolean)
-  return tags
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
-}
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export async function readProjectRules(projectPath: string): Promise<string> {
   if (!projectPath) return ''
@@ -174,11 +244,13 @@ export async function readProjectRules(projectPath: string): Promise<string> {
   }
 }
 
-export async function listMemories(projectPath: string): Promise<MemoryEntry[]> {
-  const global = await loadStore(globalMemoryPath(), legacyGlobalMemoryPath())
-  const project = projectPath
-    ? await loadStore(projectMemoryPath(projectPath), legacyProjectMemoryPath(projectPath))
-    : emptyStore()
+export async function listMemories(
+  projectPath: string,
+  storages?: MemoryStorages
+): Promise<MemoryEntry[]> {
+  const s = storages ?? defaultStorages(projectPath)
+  const global = await s.global.read()
+  const project = projectPath ? await s.project.read() : emptyStore()
 
   return [...global.entries, ...project.entries].sort((a, b) => {
     const dateCmp = b.lastUsedAt.localeCompare(a.lastUsedAt)
@@ -196,21 +268,18 @@ export async function addMemory(
     source?: string
     scope?: MemoryScope
   },
-  ollamaUrl?: string
+  ollamaUrl?: string,
+  storages?: MemoryStorages
 ): Promise<MemoryEntry> {
   const content = input.content.trim()
   if (!content) throw new Error('Пустое знание')
 
+  const s = storages ?? defaultStorages(projectPath)
   const scope: MemoryScope =
     input.scope ?? (input.category === 'project' && projectPath ? 'project' : 'global')
-  const filePath =
-    scope === 'project' && projectPath ? projectMemoryPath(projectPath) : globalMemoryPath()
-  const legacyPath =
-    scope === 'project' && projectPath
-      ? legacyProjectMemoryPath(projectPath)
-      : legacyGlobalMemoryPath()
+  const storage = scope === 'project' && projectPath ? s.project : s.global
   const max = scope === 'project' ? MAX_PROJECT : MAX_GLOBAL
-  const store = await loadStore(filePath, legacyPath)
+  const store = await storage.read()
   const tags = normalizeTags(input.tags)
   const now = new Date().toISOString()
 
@@ -222,7 +291,7 @@ export async function addMemory(
     duplicate.useCount += 1
     duplicate.lastUsedAt = now
     if (input.source) duplicate.source = input.source
-    await saveStore(filePath, store)
+    await storage.write(store)
     return duplicate
   }
 
@@ -239,7 +308,7 @@ export async function addMemory(
   }
 
   store.entries.unshift(entry)
-  await saveStore(filePath, trimStore(store, max))
+  await storage.write(trimStore(store, max))
 
   if (ollamaUrl) {
     void upsertEmbedding(entry.id, entry.content, scope, projectPath, ollamaUrl)
@@ -251,31 +320,26 @@ export async function addMemory(
 export async function deleteMemory(
   projectPath: string,
   id: string,
-  scope?: MemoryScope
+  scope?: MemoryScope,
+  storages?: MemoryStorages
 ): Promise<boolean> {
+  const s = storages ?? defaultStorages(projectPath)
+
   const targets =
     scope === 'project' && projectPath
-      ? [{ md: projectMemoryPath(projectPath), legacy: legacyProjectMemoryPath(projectPath) }]
+      ? [s.project]
       : scope === 'global'
-        ? [{ md: globalMemoryPath(), legacy: legacyGlobalMemoryPath() }]
-        : [
-            { md: globalMemoryPath(), legacy: legacyGlobalMemoryPath() },
-            ...(projectPath
-              ? [
-                  {
-                    md: projectMemoryPath(projectPath),
-                    legacy: legacyProjectMemoryPath(projectPath)
-                  }
-                ]
-              : [])
-          ]
+        ? [s.global]
+        : projectPath
+          ? [s.global, s.project]
+          : [s.global]
 
-  for (const { md, legacy } of targets) {
-    const store = await loadStore(md, legacy)
+  for (const storage of targets) {
+    const store = await storage.read()
     const index = store.entries.findIndex((entry) => entry.id === id)
     if (index >= 0) {
       store.entries.splice(index, 1)
-      await saveStore(md, store)
+      await storage.write(store)
       void removeEmbedding(id, projectPath)
       return true
     }
@@ -288,9 +352,10 @@ export async function searchMemories(
   projectPath: string,
   query: string,
   limit = 10,
-  ollamaUrl?: string
+  ollamaUrl?: string,
+  storages?: MemoryStorages
 ): Promise<MemoryEntry[]> {
-  const all = await listMemories(projectPath)
+  const all = await listMemories(projectPath, storages)
   const q = query.trim().toLowerCase()
   if (!q) return all.slice(0, limit)
 
@@ -327,8 +392,13 @@ function scoreEntry(entry: MemoryEntry, query: string): number {
   return score
 }
 
-export async function buildMemoryContext(projectPath: string, taskHint = ''): Promise<string> {
-  const all = await listMemories(projectPath)
+export async function buildMemoryContext(
+  projectPath: string,
+  taskHint = '',
+  storages?: MemoryStorages
+): Promise<string> {
+  const s = storages ?? defaultStorages(projectPath)
+  const all = await listMemories(projectPath, s)
   const rules = projectPath ? await readProjectRules(projectPath) : ''
   if (!all.length && !rules) return ''
 
@@ -344,10 +414,8 @@ export async function buildMemoryContext(projectPath: string, taskHint = ''): Pr
   }
 
   if (ranked.length) {
-    const globalStore = await loadStore(globalMemoryPath(), legacyGlobalMemoryPath())
-    const projectStore = projectPath
-      ? await loadStore(projectMemoryPath(projectPath), legacyProjectMemoryPath(projectPath))
-      : emptyStore()
+    const globalStore = await s.global.read()
+    const projectStore = await s.project.read()
 
     for (const entry of ranked) {
       const store = entry.scope === 'project' ? projectStore : globalStore
@@ -358,8 +426,8 @@ export async function buildMemoryContext(projectPath: string, taskHint = ''): Pr
       }
     }
 
-    await saveStore(globalMemoryPath(), globalStore)
-    if (projectPath) await saveStore(projectMemoryPath(projectPath), projectStore)
+    await s.global.write(globalStore)
+    if (projectPath) await s.project.write(projectStore)
   }
 
   const blocks: string[] = []
