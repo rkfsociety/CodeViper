@@ -12,13 +12,23 @@ type GrepResult = {
 }
 type FindResult = { paths: string[]; truncated: boolean; filesScanned: number }
 
-// LRU-кэш grep: ключ {query, root, subpath}, инвалидация по mtime директории поиска
-const GREP_CACHE_MAX = 100
+// LRU-кэш grep: ключ {query, root, subpath}, 500 записей.
+// Инвалидация: либо явный вызов invalidateGrepCache() из вотчера services.ts,
+// либо fallback по mtime директории при отсутствии вотчера.
+const GREP_CACHE_MAX = 500
 type GrepCacheEntry = { result: GrepResult; mtime: number }
 const grepCache = new Map<string, GrepCacheEntry>()
 
 function grepCacheKey(root: string, query: string, subpath?: string): string {
   return `${root}\0${query}\0${subpath ?? ''}`
+}
+
+/** Инвалидировать все записи кэша для проекта root (или subpath внутри него). */
+export function invalidateGrepCache(root: string, subpath?: string): void {
+  const prefix = subpath ? `${root}\0` : root
+  for (const key of grepCache.keys()) {
+    if (key.startsWith(prefix)) grepCache.delete(key)
+  }
 }
 
 async function grepCacheGet(

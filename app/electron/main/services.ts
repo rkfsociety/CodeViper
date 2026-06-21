@@ -16,6 +16,7 @@ import { spawn, type ChildProcess } from 'child_process'
 import type { FileNode, TerminalResult } from '../../src/types'
 import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
 import { readLargeFileQueued } from './largeFileQueue'
+import { invalidateGrepCache } from './fileSearchInWorker'
 import { loadIgnorePatterns, shouldIgnorePath, clearIgnorePatternsCache } from './ignorePatterns'
 import {
   FILE_SIZE_LIMIT_BYTES,
@@ -122,6 +123,7 @@ export function watchProjectForCacheInvalidation(dirPath: string): void {
   try {
     fsWatch(dirPath, { recursive: true }, () => {
       invalidateFileTreeCache(dirPath)
+      invalidateGrepCache(dirPath)
     })
   } catch {
     // fs.watch may fail on some network drives or permission-restricted paths
