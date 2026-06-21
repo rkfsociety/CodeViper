@@ -50,6 +50,7 @@ describe('embeddingQueue', () => {
     expect(worker.postMessage).not.toHaveBeenCalled()
 
     worker.emit('message', { type: 'ready' })
+    await Promise.resolve() // scheduleFlush использует микротаск — ждём его выполнения
     expect(worker.postMessage).toHaveBeenCalledTimes(1)
     const sentMsg = worker.postMessage.mock.calls[0][0]
     expect(sentMsg).toMatchObject({
@@ -68,6 +69,7 @@ describe('embeddingQueue', () => {
     // воркер уже ready от предыдущего теста
 
     const promise = computeEmbeddingQueued('second', 'http://localhost:11434')
+    await Promise.resolve()
     expect(worker.postMessage).toHaveBeenCalledTimes(2)
     const sentMsg = worker.postMessage.mock.calls[1][0]
     expect(sentMsg.text).toBe('second')
@@ -80,6 +82,7 @@ describe('embeddingQueue', () => {
     const worker = MockWorker._lastInstance!
 
     const promise = computeEmbeddingQueued('test', 'http://localhost:11434')
+    await Promise.resolve()
     const sentMsg = worker.postMessage.mock.calls[2][0]
 
     worker.emit('message', { id: sentMsg.id, type: 'error', message: 'Ollama недоступен' })
@@ -102,6 +105,7 @@ describe('embeddingQueue', () => {
     expect(worker2).not.toBe(worker1)
 
     worker2.emit('message', { type: 'ready' })
+    await Promise.resolve()
     const sentMsg = worker2.postMessage.mock.calls[0][0]
     worker2.emit('message', { id: sentMsg.id, type: 'result', vec: [42.0] })
     await expect(p2).resolves.toEqual([42.0])
@@ -111,6 +115,7 @@ describe('embeddingQueue', () => {
     const worker = MockWorker._lastInstance!
 
     const promise = computeEmbeddingQueued('empty', 'http://localhost:11434')
+    await Promise.resolve()
     const sentMsg = worker.postMessage.mock.calls[1][0]
 
     worker.emit('message', { id: sentMsg.id, type: 'result', vec: null })
@@ -123,6 +128,7 @@ describe('embeddingQueue', () => {
     const p1 = computeEmbeddingQueued('parallel-a', 'http://localhost:11434')
     const p2 = computeEmbeddingQueued('parallel-b', 'http://localhost:11434')
     const p3 = computeEmbeddingQueued('parallel-c', 'http://localhost:11434')
+    await Promise.resolve()
 
     const msgs = worker.postMessage.mock.calls
       .slice(-3)
@@ -152,6 +158,7 @@ describe('embeddingQueue', () => {
 
     // Только один элемент в очереди (старые устаревшие — не должны протечь)
     newWorker.emit('message', { type: 'ready' })
+    await Promise.resolve()
     expect(newWorker.postMessage).toHaveBeenCalledTimes(1)
     const msg = newWorker.postMessage.mock.calls[0][0]
     expect(msg.text).toBe('after-crash')
