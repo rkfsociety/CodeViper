@@ -69,6 +69,7 @@ export function useMessageQueue({
   const onResetRef = useRef(onReset)
   const onPrerequisiteIssueRef = useRef(onPrerequisiteIssue)
   const onDangerWarningRef = useRef(onDangerWarning)
+  const onBusyChangeRef = useRef(onBusyChange)
   const [queueSize, setQueueSize] = useState(0)
   const [agentRunning, setAgentRunning] = useState(false)
 
@@ -77,12 +78,13 @@ export function useMessageQueue({
   onResetRef.current = onReset
   onPrerequisiteIssueRef.current = onPrerequisiteIssue
   onDangerWarningRef.current = onDangerWarning
+  onBusyChangeRef.current = onBusyChange
 
   const busy = agentRunning || queueSize > 0
 
   useEffect(() => {
-    onBusyChange?.(busy)
-  }, [busy, onBusyChange])
+    onBusyChangeRef.current?.(busy)
+  }, [busy]) // onBusyChange через ref — не нужен в deps, чтобы не зациклиться
 
   function setRunning(value: boolean) {
     agentRunningRef.current = value
@@ -90,7 +92,7 @@ export function useMessageQueue({
   }
 
   function syncBusyState(running: boolean, queued: number) {
-    onBusyChange?.(running || queued > 0)
+    onBusyChangeRef.current?.(running || queued > 0)
   }
 
   async function executeRun(userMessageId: string, text: string) {
