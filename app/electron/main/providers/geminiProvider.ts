@@ -132,14 +132,13 @@ export class GeminiProvider implements ModelProvider {
         })
 
         if (res.status === 429) {
-          // Parse Gemini's retry-after header or error message
           const retryAfter = this.parseRetryAfter(res, await res.text())
           if (attempt < 2) {
             await new Promise((resolve) => setTimeout(resolve, retryAfter * 1_000))
             continue
           }
           throw new Error(
-            `Gemini API rate limit exceeded. Please retry in ${Math.ceil(retryAfter)} seconds.`
+            `Превышен лимит запросов Gemini API. Подожди ${Math.ceil(retryAfter)} сек. и попробуй снова.`
           )
         }
 
@@ -171,8 +170,8 @@ export class GeminiProvider implements ModelProvider {
       if (!isNaN(seconds)) return Math.max(seconds, 1)
     }
 
-    // Пытаемся извлечь из сообщения об ошибке Gemini
-    const match = body.match(/retry in ([\d.]+)s/i)
+    // Пытаемся извлечь из сообщения об ошибке Gemini: "retry in 60s" или "retry in 60 seconds"
+    const match = body.match(/retry in ([\d.]+)\s*s(?:ec(?:onds?)?)?/i)
     if (match) {
       const seconds = parseFloat(match[1])
       return Math.max(Math.ceil(seconds), 1)
