@@ -208,6 +208,60 @@ async function dispatchChunk(chunk: PendingGrep[]): Promise<void> {
   }
 }
 
+// ─── LRU-кэш find_files: ключ {pattern, root}, инвалидация по mtime root ─────
+
+const FIND_CACHE_MAX = 200
+type FindCacheEntry = { result: FindResult; mtime: number }
+const findCache = new Map<string, FindCacheEntry>()
+
+function findCacheKey(root: string, pattern: string, subpath?: string): string {
+  return `${root}\0${pattern}\0${subpath ?? ''}`
+}
+
+async function findCacheGet(
+  root: string,
+  pattern: string,
+  subpath?: string
+): Promise<FindResult | undefined> {
+  const key = findCacheKey(root, pattern, subpath)
+  const entry = findCache.get(key)
+  if (!entry) return undefined
+  try {
+    const dir = subpath ? join(root, subpath) : root
+    const { mtimeMs } = await stat(dir)
+    if (mtimeMs !== entry.mtime) {
+      findCache.delete(key)
+      return undefined
+    }
+  } catch {
+    findCache.delete(key)
+    return undefined
+  }
+  // обновляем позицию в LRU
+  findCache.delete(key)
+  findCache.set(key, entry)
+  return entry.result
+}
+
+async function findCacheSet(
+  root: string,
+  pattern: string,
+  subpath: string | undefined,
+  result: FindResult
+): Promise<void> {
+  try {
+    const dir = subpath ? join(root, subpath) : root
+    const { mtimeMs } = await stat(dir)
+    const key = findCacheKey(root, pattern, subpath)
+    if (findCache.size >= FIND_CACHE_MAX) {
+      findCache.delete(findCache.keys().next().value!)
+    }
+    findCache.set(key, { result, mtime: mtimeMs })
+  } catch {
+    // если не удалось stat — не кэшируем
+  }
+}
+
 // ─── Публичный API ────────────────────────────────────────────────────────────
 
 export function grepInTreeWorker(
@@ -229,13 +283,18 @@ export function grepInTreeWorker(
   })
 }
 
-export function findFilesInTreeWorker(
+export async function findFilesInTreeWorker(
   root: string,
   pattern: string,
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<FindResult> {
-  return runWorker<FindResult>(
+  const cached = await findCacheGet(root, pattern, options?.subpath)
+  if (cached) return cached
+
+  const result = await runWorker<FindResult>(
     { type: 'find', root, pattern, subpath: options?.subpath, maxResults: options?.maxResults },
     options?.onProgress
   )
+  await findCacheSet(root, pattern, options?.subpath, result)
+  return result
 }
