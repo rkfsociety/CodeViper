@@ -86,6 +86,9 @@ export function SettingsModal({
   const [qdrantPingState, setQdrantPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>(
     'idle'
   )
+  const [milvusPingState, setMilvusPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>(
+    'idle'
+  )
 
   function toggleKeyVisible(key: string) {
     setApiKeyVisible((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -148,6 +151,19 @@ export function SettingsModal({
       setQdrantPingState('fail')
     }
     setTimeout(() => setQdrantPingState('idle'), 3000)
+  }
+
+  async function handleMilvusPing() {
+    const url = settings.milvusUrl?.trim()
+    if (!url) return
+    setMilvusPingState('checking')
+    try {
+      const ok = await window.codeviper.checkMilvus(url, settings.milvusApiKey || undefined)
+      setMilvusPingState(ok ? 'ok' : 'fail')
+    } catch {
+      setMilvusPingState('fail')
+    }
+    setTimeout(() => setMilvusPingState('idle'), 3000)
   }
 
   if (!open) return null
@@ -1127,58 +1143,138 @@ export function SettingsModal({
                   </div>
                 </div>
 
-                {/* ── Qdrant ── */}
+                {/* ── Векторное хранилище (RAG) ── */}
                 <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Qdrant</div>
+                  <div className={styles.sectionLabel}>Векторное хранилище (RAG)</div>
                   <label>
-                    URL
-                    <div className="settings-api-key-row">
-                      <input
-                        placeholder="http://localhost:6333"
-                        value={settings.qdrantUrl ?? ''}
-                        onChange={(e) => onSettingsChange({ qdrantUrl: e.target.value })}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        onClick={() => void handleQdrantPing()}
-                        disabled={qdrantPingState === 'checking' || !settings.qdrantUrl?.trim()}
-                        title="Проверить подключение"
-                      >
-                        {qdrantPingState === 'checking'
-                          ? '⏳'
-                          : qdrantPingState === 'ok'
-                            ? '✅'
-                            : qdrantPingState === 'fail'
-                              ? '❌'
-                              : '🔌'}
-                      </button>
-                    </div>
+                    Провайдер
+                    <select
+                      value={settings.ragProvider ?? 'local'}
+                      onChange={(e) =>
+                        onSettingsChange({
+                          ragProvider: e.target.value as 'local' | 'qdrant' | 'milvus'
+                        })
+                      }
+                    >
+                      <option value="local">Локальный JSON (встроенный)</option>
+                      <option value="qdrant">Qdrant</option>
+                      <option value="milvus">Milvus</option>
+                    </select>
                   </label>
-                  <label>
-                    API ключ
-                    <div className="settings-api-key-row">
-                      <input
-                        type={apiKeyVisible['qdrant'] ? 'text' : 'password'}
-                        placeholder="(опционально)"
-                        value={settings.qdrantApiKey ?? ''}
-                        onChange={(e) => onSettingsChange({ qdrantApiKey: e.target.value })}
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        onClick={() => toggleKeyVisible('qdrant')}
-                        title={apiKeyVisible['qdrant'] ? 'Скрыть' : 'Показать'}
-                      >
-                        {apiKeyVisible['qdrant'] ? '🙈' : '👁'}
-                      </button>
+
+                  {(settings.ragProvider ?? 'local') === 'qdrant' && (
+                    <>
+                      <label>
+                        URL Qdrant
+                        <div className="settings-api-key-row">
+                          <input
+                            placeholder="http://localhost:6333"
+                            value={settings.qdrantUrl ?? ''}
+                            onChange={(e) => onSettingsChange({ qdrantUrl: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => void handleQdrantPing()}
+                            disabled={qdrantPingState === 'checking' || !settings.qdrantUrl?.trim()}
+                            title="Проверить подключение"
+                          >
+                            {qdrantPingState === 'checking'
+                              ? '⏳'
+                              : qdrantPingState === 'ok'
+                                ? '✅'
+                                : qdrantPingState === 'fail'
+                                  ? '❌'
+                                  : '🔌'}
+                          </button>
+                        </div>
+                      </label>
+                      <label>
+                        API ключ Qdrant
+                        <div className="settings-api-key-row">
+                          <input
+                            type={apiKeyVisible['qdrant'] ? 'text' : 'password'}
+                            placeholder="(опционально)"
+                            value={settings.qdrantApiKey ?? ''}
+                            onChange={(e) => onSettingsChange({ qdrantApiKey: e.target.value })}
+                            autoComplete="off"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => toggleKeyVisible('qdrant')}
+                            title={apiKeyVisible['qdrant'] ? 'Скрыть' : 'Показать'}
+                          >
+                            {apiKeyVisible['qdrant'] ? '🙈' : '👁'}
+                          </button>
+                        </div>
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        API ключ нужен только для защищённых инстансов Qdrant Cloud.
+                      </div>
+                    </>
+                  )}
+
+                  {(settings.ragProvider ?? 'local') === 'milvus' && (
+                    <>
+                      <label>
+                        URL Milvus
+                        <div className="settings-api-key-row">
+                          <input
+                            placeholder="http://localhost:19530"
+                            value={settings.milvusUrl ?? ''}
+                            onChange={(e) => onSettingsChange({ milvusUrl: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => void handleMilvusPing()}
+                            disabled={milvusPingState === 'checking' || !settings.milvusUrl?.trim()}
+                            title="Проверить подключение"
+                          >
+                            {milvusPingState === 'checking'
+                              ? '⏳'
+                              : milvusPingState === 'ok'
+                                ? '✅'
+                                : milvusPingState === 'fail'
+                                  ? '❌'
+                                  : '🔌'}
+                          </button>
+                        </div>
+                      </label>
+                      <label>
+                        API ключ Milvus
+                        <div className="settings-api-key-row">
+                          <input
+                            type={apiKeyVisible['milvus'] ? 'text' : 'password'}
+                            placeholder="(опционально)"
+                            value={settings.milvusApiKey ?? ''}
+                            onChange={(e) => onSettingsChange({ milvusApiKey: e.target.value })}
+                            autoComplete="off"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => toggleKeyVisible('milvus')}
+                            title={apiKeyVisible['milvus'] ? 'Скрыть' : 'Показать'}
+                          >
+                            {apiKeyVisible['milvus'] ? '🙈' : '👁'}
+                          </button>
+                        </div>
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Требуется Milvus 2.4+ с REST API v2. Токен нужен только для защищённых
+                        инстансов (Zilliz Cloud).
+                      </div>
+                    </>
+                  )}
+
+                  {(settings.ragProvider ?? 'local') === 'local' && (
+                    <div className={`${styles.hint} ${styles.hintInline}`}>
+                      Векторы хранятся в JSON-файле рядом с данными приложения. Подходит для
+                      большинства пользователей — внешний сервер не нужен.
                     </div>
-                  </label>
-                  <div className={`${styles.hint} ${styles.hintInline}`}>
-                    Векторная база данных для семантического поиска по коду и памяти агента. API
-                    ключ нужен только для защищённых инстансов Qdrant Cloud.
-                  </div>
+                  )}
                 </div>
               </>
             )}

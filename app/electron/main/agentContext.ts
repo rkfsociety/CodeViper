@@ -24,6 +24,7 @@ import {
 } from '../../shared/contextLimits'
 import { compressContextMessages } from './contextSummarizer'
 import { searchRAGMessages } from './contextRAG'
+import type { VectorStoreConfig } from './vectorStore'
 import type { ProviderConfig } from '../../shared/modelProvider'
 
 export interface OllamaMessage {
@@ -139,9 +140,9 @@ async function getMergedHistoryWithRAG(
   history: ChatMessage[],
   userMessage: string,
   chatId: string,
-  projectPath: string,
   ollamaUrl: string,
-  maxHistoryMessages: number
+  maxHistoryMessages: number,
+  storeConfig: VectorStoreConfig
 ): Promise<ChatMessage[]> {
   const recentMessages = history.slice(-maxHistoryMessages)
 
@@ -149,10 +150,10 @@ async function getMergedHistoryWithRAG(
   const ragResults = await searchRAGMessages(
     userMessage,
     chatId,
-    projectPath,
     ollamaUrl,
     Math.floor(maxHistoryMessages / 2),
-    0.25
+    0.25,
+    storeConfig
   ).catch(() => [])
 
   if (ragResults.length === 0) {
@@ -266,6 +267,8 @@ export interface PrepareAgentContextOptions {
   chatId?: string
   /** Включить RAG поиск релевантных сообщений из истории */
   enableRAG?: boolean
+  /** Конфиг векторного хранилища для RAG (провайдер + реквизиты) */
+  ragStoreConfig?: VectorStoreConfig
 }
 
 function section(
@@ -349,14 +352,15 @@ export async function buildAgentContextPreview(
       const ragTimeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('RAG timeout')), 5000)
       )
+      const storeConfig = options.ragStoreConfig ?? { provider: 'local' as const, projectPath }
       slicedHistory = await Promise.race([
         getMergedHistoryWithRAG(
           history,
           userMessage,
           options.chatId,
-          projectPath,
           options.ollamaUrl,
-          adaptiveLimits.maxHistoryMessages
+          adaptiveLimits.maxHistoryMessages,
+          storeConfig
         ),
         ragTimeout
       ])

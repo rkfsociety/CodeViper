@@ -5,6 +5,7 @@ import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
 import { clearChatFromRAG, addMessageToRAG } from './contextRAG'
+import type { VectorStoreConfig } from './vectorStore'
 import type {
   ChatFolder,
   ChatMessage,
@@ -260,7 +261,7 @@ export async function updateChat(
     >
   >,
   /** Параметры для RAG индексирования новых сообщений */
-  ragOptions?: { ollamaUrl: string; projectPath: string }
+  ragOptions?: { ollamaUrl: string; storeConfig: VectorStoreConfig }
 ): Promise<SavedChat | null> {
   const index = await loadIndex()
   const entry = index.chats.find((item) => item.id === id)
@@ -290,7 +291,7 @@ export async function updateChat(
           role: msg.role as 'user' | 'assistant' | 'tool',
           content: msg.content
         }
-        addMessageToRAG(msg.id, ollamaMsg, id, ragOptions.projectPath, ragOptions.ollamaUrl).catch(
+        addMessageToRAG(msg.id, ollamaMsg, id, ragOptions.ollamaUrl, ragOptions.storeConfig).catch(
           () => {
             /* Ошибки RAG индексирования не критичны */
           }
@@ -303,7 +304,11 @@ export async function updateChat(
   return hydrateChat(entry)
 }
 
-export async function deleteChat(id: string, projectPath?: string): Promise<void> {
+export async function deleteChat(
+  id: string,
+  projectPath?: string,
+  storeConfig?: VectorStoreConfig
+): Promise<void> {
   const index = await loadIndex()
   index.chats = index.chats.filter((chat) => chat.id !== id)
   if (index.activeChatId === id) {
@@ -313,11 +318,9 @@ export async function deleteChat(id: string, projectPath?: string): Promise<void
   await unlink(chatDataPath(id)).catch(() => {})
 
   // Очищаем RAG индекс для удалённого чата
-  if (projectPath) {
-    clearChatFromRAG(id, projectPath).catch(() => {
-      /* Ошибки очистки RAG не критичны */
-    })
-  }
+  clearChatFromRAG(id, storeConfig ?? { provider: 'local', projectPath }).catch(() => {
+    /* Ошибки очистки RAG не критичны */
+  })
 }
 
 export async function createFolder(name: string): Promise<ChatFolder> {

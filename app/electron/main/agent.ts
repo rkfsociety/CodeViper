@@ -16,6 +16,7 @@ import {
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
 import { prepareAgentRunContext, type OllamaMessage } from './agentContext'
+import { buildVectorStoreConfig } from './vectorStore'
 import { getAgentTools, type ToolHandlers, type ToolName } from './agentTools'
 import {
   isSelfImprovementTask,
@@ -342,7 +343,8 @@ export class AgentRunner {
         summarizeThresholdPercent: this.resolveSummarizeThreshold(),
         chatMode: this.settings.chatMode === true,
         chatId: this.chatId,
-        enableRAG: true
+        enableRAG: true,
+        ragStoreConfig: buildVectorStoreConfig(this.settings, this.projectPath)
       }
     )
     this.throwIfAborted()

@@ -46,6 +46,9 @@ export const PersistedSettingsSchema = z.object({
   modelContextLength: z.number().int().positive().optional(),
   qdrantUrl: z.string().optional(),
   qdrantApiKey: z.string().optional(),
+  milvusUrl: z.string().optional(),
+  milvusApiKey: z.string().optional(),
+  ragProvider: z.enum(['local', 'qdrant', 'milvus']).optional(),
   powerSaveMode: z.boolean().optional(),
   disableSystemStats: z.boolean().optional(),
   prManualRefresh: z.boolean().optional(),
@@ -83,7 +86,10 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash',
   qdrantUrl: '',
-  qdrantApiKey: ''
+  qdrantApiKey: '',
+  milvusUrl: '',
+  milvusApiKey: '',
+  ragProvider: 'local' as const
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {
@@ -137,6 +143,9 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.modelContextLength ? { modelContextLength: settings.modelContextLength } : {}),
     qdrantUrl: settings.qdrantUrl?.trim() ?? '',
     qdrantApiKey: settings.qdrantApiKey?.trim() ?? '',
+    milvusUrl: settings.milvusUrl?.trim() ?? '',
+    milvusApiKey: settings.milvusApiKey?.trim() ?? '',
+    ...(settings.ragProvider ? { ragProvider: settings.ragProvider } : {}),
     ...(settings.powerSaveMode ? { powerSaveMode: true } : {}),
     ...(settings.disableSystemStats ? { disableSystemStats: true } : {}),
     ...(settings.prManualRefresh ? { prManualRefresh: true } : {}),
@@ -188,6 +197,7 @@ export async function loadSettings(): Promise<PersistedSettings> {
       if (obj.openrouterApiKey) obj.openrouterApiKey = decryptApiKey(obj.openrouterApiKey as string)
       if (obj.geminiApiKey) obj.geminiApiKey = decryptApiKey(obj.geminiApiKey as string)
       if (obj.qdrantApiKey) obj.qdrantApiKey = decryptApiKey(obj.qdrantApiKey as string)
+      if (obj.milvusApiKey) obj.milvusApiKey = decryptApiKey(obj.milvusApiKey as string)
     }
 
     const result = PersistedSettingsSchema.safeParse(json)
@@ -213,7 +223,8 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     openaiApiKey: encryptApiKey(normalized.openaiApiKey),
     openrouterApiKey: encryptApiKey(normalized.openrouterApiKey),
     geminiApiKey: encryptApiKey(normalized.geminiApiKey),
-    qdrantApiKey: encryptApiKey(normalized.qdrantApiKey ?? '')
+    qdrantApiKey: encryptApiKey(normalized.qdrantApiKey ?? ''),
+    milvusApiKey: encryptApiKey(normalized.milvusApiKey ?? '')
   }
   await writeJsonAtomic(storePath(), toSave)
   // Продублировать настройки git-sync в config.json для лаунчера (start-dev.ps1).

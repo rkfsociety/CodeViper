@@ -39,6 +39,7 @@ import {
   updateChat
 } from './chats'
 import { loadSettings, saveSettings } from './settings'
+import { buildVectorStoreConfig } from './vectorStore'
 import { createGist, formatMemoriesAsMarkdown, formatSkillsAsMarkdown } from './gist'
 import { makeId } from '../../shared/makeId'
 import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
@@ -352,6 +353,22 @@ ipcMain.handle('check-qdrant', async (_e, url: string, apiKey?: string) => {
   }
 })
 
+ipcMain.handle('check-milvus', async (_e, url: string, apiKey?: string) => {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
+    const res = await fetch(`${url.replace(/\/$/, '')}/v2/vectordb/collections/list`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({}),
+      signal: AbortSignal.timeout(5000)
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+})
+
 ipcMain.handle('list-ollama-models', async (_e, url = 'http://127.0.0.1:11434') => {
   const models = await fetchOllamaModelsWithDetails(url)
   const systemCaps = await getSystemCapabilities()
@@ -447,16 +464,17 @@ ipcMain.handle(
       projectPath && ollamaUrl
         ? {
             ollamaUrl,
-            projectPath
+            storeConfig: buildVectorStoreConfig(settings, projectPath)
           }
         : undefined
     )
   }
 )
 
-ipcMain.handle('delete-chat', async (_e, id: string, projectPath?: string) =>
-  deleteChat(id, projectPath)
-)
+ipcMain.handle('delete-chat', async (_e, id: string, projectPath?: string) => {
+  const settings = await loadSettings()
+  return deleteChat(id, projectPath, buildVectorStoreConfig(settings, projectPath))
+})
 
 ipcMain.handle('create-chat-folder', async (_e, name: string) => createFolder(name))
 

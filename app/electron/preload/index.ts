@@ -68,6 +68,8 @@ const codeviper = {
     withTimeout(ipcRenderer.invoke('check-ollama', url), IPC_TIMEOUT_MS, 'checkOllama'),
   checkQdrant: (url: string, apiKey?: string) =>
     withTimeout(ipcRenderer.invoke('check-qdrant', url, apiKey), IPC_TIMEOUT_MS, 'checkQdrant'),
+  checkMilvus: (url: string, apiKey?: string) =>
+    withTimeout(ipcRenderer.invoke('check-milvus', url, apiKey), IPC_TIMEOUT_MS, 'checkMilvus'),
 
   // pullOllamaModel защищён 10-мин таймаутом в useOllamaDownloadQueue
   pullOllamaModel: (url: string, model: string) =>

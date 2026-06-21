@@ -199,6 +199,12 @@ export interface AgentSettings {
   qdrantUrl?: string
   /** API ключ Qdrant (опционально, для защищённых инстансов) */
   qdrantApiKey?: string
+  /** URL Milvus (например http://localhost:19530) */
+  milvusUrl?: string
+  /** API ключ Milvus (токен, опционально) */
+  milvusApiKey?: string
+  /** Провайдер векторного хранилища для RAG: local (JSON), qdrant, milvus */
+  ragProvider?: 'local' | 'qdrant' | 'milvus'
   /** Режим чата: только базовый промпт, без инструментов и дерева проекта (транзиентное, не сохраняется) */
   chatMode?: boolean
 }
@@ -444,6 +450,7 @@ export interface CodeViperAPI {
   }) => Promise<{ name: string; size?: number; contextLength?: number }[]>
   checkOllama: (url?: string) => Promise<boolean>
   checkQdrant: (url: string, apiKey?: string) => Promise<boolean>
+  checkMilvus: (url: string, apiKey?: string) => Promise<boolean>
   pullOllamaModel: (url: string, model: string) => Promise<void>
   deleteOllamaModel: (url: string, model: string) => Promise<void>
   onOllamaPullProgress: (callback: (progress: OllamaPullProgress) => void) => () => void
