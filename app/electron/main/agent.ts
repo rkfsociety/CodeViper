@@ -1,309 +1,91 @@
 import type { AgentSettings, AgentStreamPayload, ChatMessage } from '../../src/types'
-import { assertPullableToolModel } from '../../shared/recommendedModels'
-import { escalateModel } from '../../shared/modelRouter'
-import {
-  extractEmbeddedToolCalls,
-  sanitizeAssistantContent,
-  isRefusalResponse
-} from '../../shared/toolCalls'
+import { sanitizeAssistantContent, isRefusalResponse } from '../../shared/toolCalls'
 import {
   MUTATING_TOOLS,
-  shouldRetryForMissingTools,
-  taskLikelyNeedsMutation,
-  taskLikelyNeedsTools,
-  taskMutationLikelihood,
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
-import { prepareAgentRunContext, type OllamaMessage } from './agentContext'
+import { prepareAgentRunContext } from './agentContext'
 import { buildVectorStoreConfig } from './vectorStore'
-import { getAgentTools, type ToolHandlers, type ToolName } from './agentTools'
-import {
-  isSelfImprovementTask,
-  parsePlanFromAssistantText,
-  syncPlanFromChecklist,
-  formatPlanSummary,
-  CREATE_SELF_IMPROVEMENT_PLAN_NUDGE,
-  SELF_IMPROVE_PLAN_STUCK_MESSAGE,
-  START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
-  buildSelfImprovementContinueNudge,
-  incrementAttempt,
-  type SelfImprovementItem
-} from '../../shared/selfImprovement'
+import { isSelfImprovementTask } from '../../shared/selfImprovement'
 import { SelfImprovementPlanStore } from './selfImprovementStore'
-import { toolRequiresConfirm } from '../../shared/permissions'
-import { ModelRuntime } from './modelRuntime'
-import type { ProviderConfig } from '../../shared/modelProvider'
-import { commitAndPushSelfEdits, stageSelfEditsForRestart } from './selfCommit'
-import { createUnifiedDiff } from './diffUtil'
 import { agentLogger } from './agentLogger'
-import { compressContextMessages } from './contextSummarizer'
-import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
-import {
-  DEEPSEEK_API_BASE_URL,
-  DEEPSEEK_MODEL_DEFAULT,
-  GEMINI_API_BASE_URL,
-  GEMINI_MODEL_DEFAULT,
-  OPENROUTER_API_BASE_URL,
-  MAX_CONSECUTIVE_SAME_TOOL,
-  MAX_SAME_TOOL_TOTAL
-} from '../../shared/constants'
-import { readNdjsonLines } from './ndjson'
-import { parseReflectionLearnings, addMemory } from './memory'
-import { createProjectToolHandlers } from './agentHandlersProject'
-import { createGitHubToolHandlers } from './agentHandlersGitHub'
-import { createCodeViperToolHandlers } from './agentHandlersCodeViper'
-import { createMemoryToolHandlers } from './agentHandlersMemory'
-import { createSkillsToolHandlers } from './agentHandlersSkills'
-import { createSelfImprovementToolHandlers } from './agentHandlersSelfImprovement'
-import { createModelToolHandlers } from './agentHandlersModels'
-import { createTodoToolHandlers } from './agentHandlersTodo'
-import { createWebToolHandlers } from './agentHandlersWeb'
 
-interface ToolCall {
-  function: {
-    name: string
-    arguments: Record<string, string> | string
-  }
-  /** ID для нативного tool calling (cloud-провайдеры). */
-  id?: string
-}
+import { ResponseEmitter } from './agentResponseEmitter'
+import { LoopGuard } from './agentLoopGuard'
+import { ContextManager } from './agentContextManager'
+import { ToolExecutor, PARALLEL_SAFE_TOOLS } from './agentToolExecutor'
+import { SelfImprovementOrchestrator } from './agentSelfImprovementOrchestrator'
+import { toolRequiresConfirm } from '../../shared/permissions'
+
+export { parseToolArgs } from './agentToolExecutor'
+export {
+  fetchOllamaModels,
+  fetchOllamaModelsWithDetails,
+  pingOllama,
+  pullOllamaModel,
+  deleteOllamaModel,
+  type OllamaPullProgress
+} from './agentOllamaApi'
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-export function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
-  if (typeof args === 'string') {
-    try {
-      return JSON.parse(args) as Record<string, string>
-    } catch {
-      // Модель иногда возвращает строку-аргумент вместо JSON-объекта.
-      // Передаём как есть, чтобы обработчик мог вернуть внятную ошибку.
-      return { _raw: args }
-    }
-  }
-  return args
-}
-
-// Держим модель «тёплой» в видеопамяти между сообщениями — быстрее ответы.
-// Время, которое модель остаётся в памяти после использования.
-// На системах с малым RAM используйте '1m' (1 минута) или '30s' (30 секунд)
-const OLLAMA_KEEP_ALIVE = '5m'
-
-// Read-only инструменты — безопасно запускать параллельно (Promise.all).
-const PARALLEL_SAFE_TOOLS = new Set([
-  'read_file',
-  'file_info',
-  'project_stats',
-  'file_search_summary',
-  'grep_files',
-  'find_files',
-  'list_directory',
-  'read_codeviper_file',
-  'grep_codeviper_files',
-  'find_codeviper_files',
-  'list_codeviper_directory',
-  'git_status',
-  'git_diff',
-  'git_log',
-  'recent_changes',
-  'package_info',
-  'read_package_lock',
-  'dependency_summary',
-  'test_summary',
-  'search_memory',
-  'list_skills',
-  'read_skill',
-  'read_skill_data',
-  'get_self_improvement_plan',
-  'preview_ollama_modelfile',
-  'web_fetch',
-  'web_search'
-])
-
-// Инструменты, меняющие исходники самого CodeViper (для автокоммита самоправок).
-const SELF_EDIT_FILE_TOOLS = new Set([
-  'write_codeviper_file',
-  'create_codeviper_file',
-  'edit_codeviper_file',
-  'append_codeviper_file',
-  'delete_codeviper_file',
-  'move_codeviper_file'
-])
-
-const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
-[{"content": "краткий урок", "category": "pattern|mistake|preference|project|skill", "tags": ["тег"]}]
-Если уроков нет — верни [].
-Только JSON, без пояснений.`
-
 export class AgentRunner {
-  private selfImprovementPlan = new SelfImprovementPlanStore()
+  private readonly selfImprovementPlan = new SelfImprovementPlanStore()
   private selfImproveMode = false
-  private modelRuntime: ModelRuntime
-  private providerConfig: ProviderConfig
-  /** Конфиг провайдера для суммаризации контекста (может отличаться от основного) */
-  private summarizeProviderConfig: ProviderConfig
-  /** Модель для суммаризации (с учётом провайдера) */
-  private summarizeModelResolved: string
-  private sessionTokens = 0
+  private settings: AgentSettings
 
-  private emitTrace(
-    kind: import('../../src/types').AgentTraceEvent['kind'],
-    label: string,
-    data: Record<string, unknown>
-  ): void {
-    this.emit({ type: 'trace', traceEvent: { ts: Date.now(), kind, label, data } })
-  }
+  private readonly emitter: ResponseEmitter
+  private readonly ctx: ContextManager
+  private readonly toolExecutor: ToolExecutor
+  private readonly selfImproveOrchestrator: SelfImprovementOrchestrator
 
   constructor(
-    private settings: AgentSettings,
-    private projectPath: string,
-    private emit: (event: AgentStreamPayload) => void,
-    private signal?: AbortSignal,
-    private confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
-    private summarizeModel?: string,
-    private previewFn?: (previewId: string) => Promise<boolean>,
-    private chatId?: string
+    settings: AgentSettings,
+    private readonly projectPath: string,
+    emit: (event: AgentStreamPayload) => void,
+    signal?: AbortSignal,
+    confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
+    _summarizeModel?: string,
+    previewFn?: (previewId: string) => Promise<boolean>,
+    private readonly chatId?: string
   ) {
-    const providerType = this.settings.modelProvider || 'ollama'
-    const providerBaseUrl =
-      providerType === 'deepseek'
-        ? DEEPSEEK_API_BASE_URL
-        : providerType === 'gemini'
-          ? GEMINI_API_BASE_URL
-          : providerType === 'openrouter'
-            ? OPENROUTER_API_BASE_URL
-            : this.settings.ollamaUrl
-    // Если провайдер — DeepSeek, но модель выглядит как Ollama-модель — подставляем дефолт
-    const providerModel =
-      providerType === 'deepseek' && !/^deepseek/i.test(this.settings.model || '')
-        ? DEEPSEEK_MODEL_DEFAULT
-        : providerType === 'gemini' && !/^gemini/i.test(this.settings.model || '')
-          ? GEMINI_MODEL_DEFAULT
-          : this.settings.model
-    const providerApiKey =
-      providerType === 'deepseek'
-        ? (this.settings.deepseekApiKey ?? this.settings.providerApiKey)
-        : providerType === 'gemini'
-          ? (this.settings.geminiApiKey ?? this.settings.providerApiKey)
-          : providerType === 'openrouter'
-            ? (this.settings.openrouterApiKey ?? this.settings.providerApiKey)
-            : providerType === 'openai'
-              ? (this.settings.openaiApiKey ?? this.settings.providerApiKey)
-              : undefined
-    this.providerConfig = {
-      type: providerType,
-      baseUrl: providerBaseUrl,
-      apiKey: providerApiKey,
-      model: providerModel,
-      ...(providerType === 'gemini' && this.settings.geminiRpm != null
-        ? { rpm: this.settings.geminiRpm }
-        : {})
-    }
-    this.modelRuntime = new ModelRuntime(this.providerConfig)
+    this.settings = settings
+    this.emitter = new ResponseEmitter(emit, signal)
+    this.ctx = new ContextManager(settings, this.emitter, signal)
 
-    // Конфиг для суммаризации: используем второй провайдер, если настроен
-    const sumConfig = this.buildSummarizeConfig()
-    this.summarizeProviderConfig = sumConfig.providerConfig
-    this.summarizeModelResolved = sumConfig.model
-  }
+    this.toolExecutor = new ToolExecutor(
+      projectPath,
+      settings,
+      emit,
+      signal,
+      confirm,
+      previewFn,
+      this.selfImprovementPlan,
+      (items) => this.selfImproveOrchestrator.emitPlan(items)
+    )
 
-  /** Строим конфиг провайдера для суммаризации контекста.
-   *  Если включён cloudEnabled: Ollama-агент суммаризирует через облако, облачный — через Ollama. */
-  private buildSummarizeConfig(): { providerConfig: ProviderConfig; model: string } {
-    const primaryIsOllama = this.providerConfig.type === 'ollama'
-
-    // Ollama как основной + настроен облачный API → суммаризируем облаком
-    if (primaryIsOllama && this.settings.cloudEnabled && this.settings.cloudApiKey) {
-      const cloudType = this.settings.cloudProvider || 'deepseek'
-      const defaultUrl =
-        cloudType === 'deepseek'
-          ? DEEPSEEK_API_BASE_URL
-          : cloudType === 'gemini'
-            ? GEMINI_API_BASE_URL
-            : cloudType === 'openrouter'
-              ? OPENROUTER_API_BASE_URL
-              : 'https://api.openai.com/v1'
-      const cloudBaseUrl = this.settings.cloudBaseUrl || defaultUrl
-      const cloudModel =
-        this.settings.cloudModel ||
-        (cloudType === 'gemini' ? GEMINI_MODEL_DEFAULT : DEEPSEEK_MODEL_DEFAULT)
-      return {
-        providerConfig: {
-          type: cloudType,
-          baseUrl: cloudBaseUrl,
-          apiKey: this.settings.cloudApiKey,
-          model: cloudModel
-        },
-        model: cloudModel
-      }
-    }
-
-    // Облако как основной + настроен Ollama → суммаризируем локально
-    if (!primaryIsOllama && this.settings.ollamaUrl) {
-      const ollamaModel = this.summarizeModel || this.settings.model
-      return {
-        providerConfig: { type: 'ollama', baseUrl: this.settings.ollamaUrl },
-        model: ollamaModel
-      }
-    }
-
-    // Без второго провайдера — суммаризируем тем же провайдером
-    return {
-      providerConfig: this.providerConfig,
-      model: this.summarizeModel || this.settings.model
-    }
-  }
-
-  private resolveSummarizeThreshold(): number {
-    if (this.settings.aggressiveCompression) return 65
-    if (this.settings.contextSummarizeThreshold != null) {
-      return Math.max(50, Math.min(85, this.settings.contextSummarizeThreshold))
-    }
-    return 85
-  }
-
-  private throwIfAborted(): void {
-    if (this.signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError')
-    }
-  }
-
-  private handleAbort(): void {
-    this.emit({ type: 'error', content: 'Остановлено пользователем' })
-    this.emit({ type: 'done' })
-  }
-
-  private emitSelfImprovementPlan(plan: SelfImprovementItem[]): void {
-    this.emit({
-      type: 'self_improve_plan',
-      content: formatPlanSummary(plan),
-      planItems: plan
+    // Нужно зарегистрировать preview_edit/preview_patch через ссылку на методы ToolExecutor.
+    this.toolExecutor.overrideHandlers({
+      preview_edit: (args) => this.toolExecutor.handlePreviewEdit(args),
+      preview_patch: (args) => this.toolExecutor.handlePreviewPatch(args)
     })
-  }
 
-  private adoptPlanFromAssistantText(assistantText: string): boolean {
-    if (!this.selfImprovementPlan.has()) {
-      const parsed = parsePlanFromAssistantText(assistantText)
-      if (parsed) {
-        this.selfImprovementPlan.adopt(parsed)
-        this.emitSelfImprovementPlan(parsed)
-        return true
-      }
-      return false
-    }
-
-    const plan = this.selfImprovementPlan.get()
-    if (plan) {
-      syncPlanFromChecklist(assistantText, plan)
-    }
-    return false
+    this.selfImproveOrchestrator = new SelfImprovementOrchestrator(
+      this.selfImprovementPlan,
+      emit,
+      this.ctx.modelRuntime,
+      settings,
+      projectPath,
+      signal
+    )
   }
 
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
-    this.throwIfAborted()
-    this.clearEditSnapshots?.()
+    this.emitter.throwIfAborted()
+    this.toolExecutor.clearEditSnapshots?.()
 
     const runStartMs = Date.now()
     void agentLogger.write({
@@ -311,22 +93,19 @@ export class AgentRunner {
       model: this.settings.model,
       message: userMessage.slice(0, 200)
     })
-    this.emitTrace(
+    this.emitter.trace(
       'run_start',
-      `▶ Старт — модель: ${this.settings.model} (${this.providerConfig.type})`,
+      `▶ Старт — модель: ${this.settings.model} (${this.ctx.providerConfig.type})`,
       {
         model: this.settings.model,
-        provider: this.providerConfig.type,
+        provider: this.ctx.providerConfig.type,
         message: userMessage
       }
     )
 
     const autonomousSelfImprove = isSelfImprovementTask(userMessage)
     this.selfImproveMode = autonomousSelfImprove
-
-    if (autonomousSelfImprove) {
-      this.selfImprovementPlan.reset()
-    }
+    if (autonomousSelfImprove) this.selfImprovementPlan.reset()
 
     const prepared = await prepareAgentRunContext(
       this.projectPath,
@@ -336,61 +115,48 @@ export class AgentRunner {
       autonomousSelfImprove,
       {
         ollamaUrl: this.settings.ollamaUrl,
-        providerConfig: this.summarizeProviderConfig,
-        signal: this.signal,
+        providerConfig: this.ctx.summarizeProviderConfig,
+        signal: this.ctx.modelRuntime ? undefined : undefined,
         clarifyMode: this.settings.clarifyMode,
         deepReasoning: this.settings.deepReasoning,
-        summarizeModel: this.summarizeModelResolved,
+        summarizeModel: this.ctx.summarizeModelResolved,
         excludeThinkingFromHistory: this.settings.excludeThinkingFromHistory !== false,
         modelContextLength: this.settings.modelContextLength,
-        summarizeThresholdPercent: this.resolveSummarizeThreshold(),
+        summarizeThresholdPercent: this.ctx.resolveSummarizeThreshold(),
         chatMode: this.settings.chatMode === true,
         chatId: this.chatId,
         enableRAG: true,
         ragStoreConfig: buildVectorStoreConfig(this.settings, this.projectPath)
       }
     )
-    this.throwIfAborted()
-
-    this.emit({ type: 'context', contextPreview: prepared.preview })
+    this.emitter.throwIfAborted()
+    this.emitter.emit({ type: 'context', contextPreview: prepared.preview })
     if (prepared.preview.historySummarized) {
-      this.emit({
+      this.emitter.emit({
         type: 'context',
         content: `📋 Контекст ~${prepared.preview.contextUsagePercent}% — предыдущая история суммаризирована`
       })
     }
-
     if (autonomousSelfImprove) {
-      this.emit({
+      this.emitter.emit({
         type: 'self_improve_plan',
         content:
           '🔄 Режим автономного самоулучшения: изучу код и буду работать, пока все пункты плана не выполнены.'
       })
     }
 
-    const messages: OllamaMessage[] = prepared.messages
-
+    const messages = prepared.messages
     let usedTools = false
     let selfEdited = false
     const mutatingToolsUsed = new Set<string>()
-    let verificationRetries = 0
-    let verificationNoticeSent = false
     let requireToolNext = false
-    let escalated = false
-    const MAX_VERIFICATION_RETRIES = 1
-    let selfImprovePlanNudges = 0
-    let currentPlanItemId: string | null = null
-    const MAX_SELF_IMPROVE_PLAN_NUDGES = 20
 
-    // Защита от циклов: отслеживаем повторения одного инструмента
-    let lastToolName: string | null = null
-    let consecutiveSameToolCount = 0
-    const toolCallCounts = new Map<string, number>()
+    const loopGuard = new LoopGuard(this.settings, this.ctx.modelRuntime)
 
     try {
       let step = 0
       while (true) {
-        this.throwIfAborted()
+        this.emitter.throwIfAborted()
         step++
 
         const stepStartMs = Date.now()
@@ -398,7 +164,7 @@ export class AgentRunner {
           (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
           0
         )
-        this.emitTrace(
+        this.emitter.trace(
           'llm_request',
           `→ Запрос к модели (шаг ${step}, ${messages.length} сообщ., ~${Math.round(ctxChars / 4)} токенов)`,
           {
@@ -412,39 +178,39 @@ export class AgentRunner {
             }))
           }
         )
-        this.emit({ type: 'orchestrating', orchestrating: true })
+        this.emitter.emit({ type: 'orchestrating', orchestrating: true })
+
         let response
         try {
-          response = await this.chat(messages, { requireTool: requireToolNext })
+          response = await this.ctx.chat(messages, this.settings.model, this.selfImproveMode, {
+            requireTool: requireToolNext
+          })
         } catch (error) {
           if (isAbortError(error)) {
-            this.handleAbort()
+            this.emitter.handleAbort()
             return
           }
           throw error
         }
         requireToolNext = false
+
+        const durationMs = Date.now() - stepStartMs
         void agentLogger.write({
           event: 'llm_response',
           step,
           model: this.settings.model,
-          duration_ms: Date.now() - stepStartMs,
+          duration_ms: durationMs,
           tokens: response.metrics?.evalCount,
-          toks_per_sec:
-            response.metrics?.tokensPerSec != null
-              ? Math.round(response.metrics.tokensPerSec * 10) / 10
-              : undefined,
           has_tools: (response.message?.tool_calls?.length ?? 0) > 0,
           has_thinking: !!response.message?.thinking
         })
 
         const assistantText = sanitizeAssistantContent(response.message?.content ?? '')
         const assistantThinking = response.message?.thinking
-        const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
+        const toolCalls = response.message?.tool_calls ?? []
 
         {
           const toolNames = toolCalls.map((tc) => tc.function.name)
-          const durationMs = Date.now() - stepStartMs
           const tokens = response.metrics?.evalCount
           const tps =
             response.metrics?.tokensPerSec != null
@@ -453,7 +219,7 @@ export class AgentRunner {
           const label = toolNames.length
             ? `← Ответ (шаг ${step}, ${durationMs}ms${tokens ? `, ${tokens}tok` : ''}) → инструменты: ${toolNames.join(', ')}`
             : `← Ответ (шаг ${step}, ${durationMs}ms${tokens ? `, ${tokens}tok` : ''}) → текст (${assistantText.length} симв.)`
-          this.emitTrace('llm_response', label, {
+          this.emitter.trace('llm_response', label, {
             step,
             durationMs,
             tokens,
@@ -465,249 +231,162 @@ export class AgentRunner {
           })
         }
 
-        const isCloudProviderRun = this.providerConfig.type !== 'ollama'
-        const hasNativeToolCalls = isCloudProviderRun && toolCalls.some((tc) => tc.id)
+        const isCloud = this.ctx.providerConfig.type !== 'ollama'
+        const hasNativeToolCalls = isCloud && toolCalls.some((tc) => tc.id)
 
-        if (assistantText) {
-          const assistantMsg: OllamaMessage = { role: 'assistant', content: assistantText }
-          // Cloud: если были нативные tool calls, добавляем их к assistant-сообщению
-          if (hasNativeToolCalls) {
-            assistantMsg.tool_calls = toolCalls
-              .filter((tc) => tc.id)
-              .map((tc) => ({
-                id: tc.id!,
-                type: 'function' as const,
-                function: {
-                  name: tc.function.name,
-                  arguments:
-                    typeof tc.function.arguments === 'string'
-                      ? tc.function.arguments
-                      : JSON.stringify(tc.function.arguments)
+        // Добавляем assistant-сообщение в историю
+        if (assistantText || hasNativeToolCalls) {
+          const assistantMsg = {
+            role: 'assistant' as const,
+            content: assistantText,
+            ...(hasNativeToolCalls
+              ? {
+                  tool_calls: toolCalls
+                    .filter((tc) => tc.id)
+                    .map((tc) => ({
+                      id: tc.id!,
+                      type: 'function' as const,
+                      function: {
+                        name: tc.function.name,
+                        arguments:
+                          typeof tc.function.arguments === 'string'
+                            ? tc.function.arguments
+                            : JSON.stringify(tc.function.arguments)
+                      }
+                    }))
                 }
-              }))
+              : {})
           }
           messages.push(assistantMsg)
-        } else if (hasNativeToolCalls) {
-          // Cloud: пустой текст, только tool_calls — всё равно нужен assistant-чанк в истории
-          messages.push({
-            role: 'assistant',
-            content: '',
-            tool_calls: toolCalls
-              .filter((tc) => tc.id)
-              .map((tc) => ({
-                id: tc.id!,
-                type: 'function' as const,
-                function: {
-                  name: tc.function.name,
-                  arguments:
-                    typeof tc.function.arguments === 'string'
-                      ? tc.function.arguments
-                      : JSON.stringify(tc.function.arguments)
-                }
-              }))
-          })
         }
 
         if (!toolCalls.length) {
+          // Режим самоулучшения
           if (autonomousSelfImprove) {
-            const adoptedPlan = assistantText
-              ? this.adoptPlanFromAssistantText(assistantText)
-              : false
-
-            const plan = this.selfImprovementPlan.get()
-
-            if (this.selfImprovementPlan.isComplete()) {
-              if (assistantText && !adoptedPlan) {
-                this.emit({
+            const siAction = this.selfImproveOrchestrator.handleNoToolCalls(
+              assistantText,
+              assistantThinking,
+              usedTools
+            )
+            if (siAction.action === 'done') {
+              if (assistantText)
+                this.emitter.emit({
                   type: 'assistant',
                   content: assistantText,
                   thinking: assistantThinking
                 })
-              }
-              if (plan) this.emitSelfImprovementPlan(plan)
               if (this.settings.selfLearning !== false) {
-                await this.reflectAndLearn(messages, userMessage, usedTools)
+                await this.selfImproveOrchestrator.reflectAndLearn(messages, userMessage, usedTools)
               }
-              this.emit({ type: 'done' })
+              this.emitter.emit({ type: 'done' })
               return
             }
-
-            if (plan && this.selfImprovementPlan.hasPending()) {
-              selfImprovePlanNudges = 0
-
-              // Если не удалось завершить текущий пункт — инкрементируем попытку
-              if (currentPlanItemId && !assistantText?.includes('complete_self_improvement_item')) {
-                const currentItem = plan.find((item) => item.id === currentPlanItemId)
-                if (currentItem && !currentItem.done) {
-                  const attemptNum = incrementAttempt(currentItem)
-                  if (currentItem.blocked) {
-                    this.emit({
-                      type: 'context',
-                      content: `🚫 Пункт «${currentItem.title}» заблокирован после ${attemptNum} попыток`
-                    })
-                  }
-                }
-              }
-
-              if (assistantText && !adoptedPlan) {
-                this.emit({
+            if (siAction.action === 'error') {
+              if (assistantText) messages.pop()
+              this.emitter.emit({ type: 'clear_draft' })
+              this.emitter.emit({ type: 'error', content: siAction.content })
+              this.emitter.emit({ type: 'done' })
+              return
+            }
+            if (siAction.action === 'continue') {
+              if (siAction.clearDraft && assistantText) messages.pop()
+              if (siAction.clearDraft) this.emitter.emit({ type: 'clear_draft' })
+              if (siAction.emitAssistant) {
+                this.emitter.emit({
                   type: 'assistant',
-                  content: assistantText,
-                  thinking: assistantThinking
+                  content: siAction.emitAssistant.text,
+                  thinking: siAction.emitAssistant.thinking
                 })
               }
-              this.emitSelfImprovementPlan(plan)
-              const nextItem = plan.find((item) => !item.done && !item.blocked)
-              if (nextItem) {
-                currentPlanItemId = nextItem.id
-              }
-              messages.push({ role: 'user', content: buildSelfImprovementContinueNudge(plan) })
-              requireToolNext = true
-              continue
-            }
-
-            if (!plan && usedTools) {
-              selfImprovePlanNudges += 1
-              if (selfImprovePlanNudges >= MAX_SELF_IMPROVE_PLAN_NUDGES) {
-                if (assistantText) {
-                  messages.pop()
-                }
-                this.emit({ type: 'clear_draft' })
-                this.emit({ type: 'error', content: SELF_IMPROVE_PLAN_STUCK_MESSAGE })
-                this.emit({ type: 'done' })
-                return
-              }
-              if (assistantText && !adoptedPlan && !parsePlanFromAssistantText(assistantText)) {
-                this.emit({
-                  type: 'assistant',
-                  content: assistantText,
-                  thinking: assistantThinking
-                })
-              }
-              messages.push({ role: 'user', content: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE })
-              requireToolNext = true
-              continue
-            }
-
-            if (!plan && !usedTools) {
-              if (assistantText) {
-                messages.pop()
-              }
-              this.emit({ type: 'clear_draft' })
-              messages.push({ role: 'user', content: START_SELF_IMPROVEMENT_EXPLORATION_NUDGE })
-              requireToolNext = true
+              messages.push({ role: 'user', content: siAction.nudgeMessage })
+              requireToolNext = siAction.requireTool
               continue
             }
           }
 
-          // Явный рефьюзал («я не могу», «напрямую из чата» и т.п.) → сразу эскалируем модель
-          if (
-            !escalated &&
-            assistantText &&
-            isRefusalResponse(assistantText) &&
-            this.settings.autoModel !== false
-          ) {
-            const models = await fetchOllamaModels(this.settings.ollamaUrl).catch(() => [])
-            const nextModel = escalateModel(this.settings.model, models)
-            if (nextModel) {
-              escalated = true
-              messages.pop()
-              this.emit({ type: 'clear_draft' })
-              this.emit({
-                type: 'context',
-                content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${nextModel}**…`
-              })
-              this.settings = { ...this.settings, model: nextModel }
-              requireToolNext = true
-              continue
-            }
+          // Проверка верификации и эскалации
+          const verAction = await loopGuard.decideNoToolAction(
+            userMessage,
+            assistantText,
+            mutatingToolsUsed,
+            usedTools,
+            isRefusalResponse(assistantText)
+          )
+
+          if (verAction.action === 'escalate') {
+            messages.pop()
+            this.emitter.emit({ type: 'clear_draft' })
+            this.emitter.emit({
+              type: 'context',
+              content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${verAction.toModel}**…`
+            })
+            this.settings = { ...this.settings, model: verAction.toModel }
+            requireToolNext = true
+            continue
           }
-
-          const mutationTask = taskLikelyNeedsMutation(userMessage)
-          const noMutatingToolsYet = mutatingToolsUsed.size === 0
-          let shouldRetryWithTools =
-            shouldRetryForMissingTools(userMessage, assistantText, mutatingToolsUsed, usedTools) &&
-            verificationRetries < MAX_VERIFICATION_RETRIES
-
-          // Для неоднозначных задач (fix, update, improve...) уточняем через LLM
-          // прежде чем запускать ненужный retry-цикл.
-          if (shouldRetryWithTools && taskMutationLikelihood(userMessage) === 'uncertain') {
-            const llmSays = await this.classifyMutationNeededByLLM(userMessage)
-            if (llmSays === false) shouldRetryWithTools = false
-          }
-
-          if (shouldRetryWithTools) {
-            verificationRetries += 1
-            if (assistantText) {
-              messages.pop()
-            }
-            this.emit({ type: 'clear_draft' })
-            if (!verificationNoticeSent) {
-              verificationNoticeSent = true
-              this.emit({
-                type: 'error',
-                content:
-                  '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
-              })
-            }
+          if (verAction.action === 'retry') {
+            if (assistantText) messages.pop()
+            this.emitter.emit({ type: 'clear_draft' })
+            this.emitter.emit({
+              type: 'error',
+              content:
+                '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
+            })
             messages.push({ role: 'user', content: TOOL_VERIFICATION_NUDGE })
             requireToolNext = true
             continue
           }
-
-          // Задача требовала инструментов, но после всех повторов модель так и не
-          // вызвала ни одного (касается и мутаций, и read-обзоров) — сообщаем явно.
-          const toolTaskUnfulfilled =
-            taskLikelyNeedsTools(userMessage) && (mutationTask ? noMutatingToolsYet : !usedTools)
-          if (toolTaskUnfulfilled && verificationRetries >= MAX_VERIFICATION_RETRIES) {
-            if (assistantText) {
-              messages.pop()
-            }
-            this.emit({ type: 'clear_draft' })
-            this.emit({ type: 'error', content: TOOL_VERIFICATION_FAILED_MESSAGE })
-            this.emit({ type: 'done' })
+          if (verAction.action === 'failed') {
+            if (assistantText) messages.pop()
+            this.emitter.emit({ type: 'clear_draft' })
+            this.emitter.emit({ type: 'error', content: TOOL_VERIFICATION_FAILED_MESSAGE })
+            this.emitter.emit({ type: 'done' })
             return
           }
 
+          // passthrough — обычный конец
           if (assistantText) {
-            this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
+            this.emitter.emit({
+              type: 'assistant',
+              content: assistantText,
+              thinking: assistantThinking
+            })
           } else if (!autonomousSelfImprove) {
-            // Модель не вернула ответ и не вызвала инструменты — не молчим.
             const ctxTokensNow = Math.round(ctxChars / 4)
             const smallModelHint =
               ctxTokensNow > 2000
                 ? ` Системный промпт занимает ~${ctxTokensNow} токенов — это много для маленьких моделей (3b–7b). Попробуй модель покрупнее (qwen2.5-coder:7b, llama3.1:8b) или облачный провайдер.`
                 : ''
-            this.emit({
+            this.emitter.emit({
               type: 'error',
               content: `Модель не ответила и не вызвала инструменты.${smallModelHint} Попробуй выбрать другую модель или переформулировать задачу.`
             })
           }
           if (this.settings.selfLearning !== false) {
-            await this.reflectAndLearn(messages, userMessage, mutatingToolsUsed.size > 0)
+            await this.selfImproveOrchestrator.reflectAndLearn(
+              messages,
+              userMessage,
+              mutatingToolsUsed.size > 0
+            )
           }
-          this.emitTrace(
+          this.emitter.trace(
             'run_end',
-            `■ Завершено за ${Date.now() - runStartMs}ms, шагов: ${step}, токенов: ${this.sessionTokens}`,
+            `■ Завершено за ${Date.now() - runStartMs}ms, шагов: ${step}, токенов: ${this.ctx.sessionTokens}`,
             {
               durationMs: Date.now() - runStartMs,
               steps: step,
-              sessionTokens: this.sessionTokens
+              sessionTokens: this.ctx.sessionTokens
             }
           )
-          this.emit({ type: 'done' })
+          this.emitter.emit({ type: 'done' })
           return
         }
 
         usedTools = true
-
-        // После set_self_improvement_plan следующий шаг должен требовать tool call,
-        // чтобы модель не отвечала текстом вместо выполнения пунктов плана.
         if (toolCalls.some((call) => call.function.name === 'set_self_improvement_plan')) {
           requireToolNext = true
         }
 
-        // Все вызовы read-only и не требуют подтверждения → запускаем параллельно.
         const allParallelSafe =
           toolCalls.length > 1 &&
           toolCalls.every((call) => {
@@ -719,236 +398,45 @@ export class AgentRunner {
           })
 
         if (allParallelSafe) {
-          const parsedCalls = toolCalls.map((call) => ({
-            id: call.id,
-            name: call.function.name,
-            args: parseToolArgs(call.function.arguments ?? {})
-          }))
-
-          for (const { name, args } of parsedCalls) {
-            this.emit({
-              type: 'tool_start',
-              toolName: name,
-              toolInput: JSON.stringify(args, null, 2)
-            })
-          }
-
-          const results = await Promise.all(
-            parsedCalls.map(async ({ id, name, args }) => {
-              void agentLogger.write({ event: 'tool_call', step, tool: name, args })
-              this.emitTrace('tool_call', `🔧 ${name}`, { tool: name, args })
-              const toolStartMs = Date.now()
-              let output = ''
-              try {
-                output = await this.executeTool(name, args)
-                void agentLogger.write({
-                  event: 'tool_result',
-                  step,
-                  tool: name,
-                  ok: true,
-                  duration_ms: Date.now() - toolStartMs,
-                  output_len: output.length
-                })
-                this.emitTrace(
-                  'tool_result',
-                  `✓ ${name} (${Date.now() - toolStartMs}ms, ${output.length} симв.)`,
-                  {
-                    tool: name,
-                    ok: true,
-                    durationMs: Date.now() - toolStartMs,
-                    output: output.slice(0, 1000)
-                  }
-                )
-              } catch (error) {
-                output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
-                void agentLogger.write({
-                  event: 'tool_result',
-                  step,
-                  tool: name,
-                  ok: false,
-                  duration_ms: Date.now() - toolStartMs,
-                  error: output
-                })
-                this.emitTrace('tool_result', `✗ ${name} — ${output.slice(0, 100)}`, {
-                  tool: name,
-                  ok: false,
-                  durationMs: Date.now() - toolStartMs,
-                  error: output
-                })
-              }
-              return { id, name, output }
-            })
-          )
-
+          const results = await this.toolExecutor.executeParallel(toolCalls, step)
           for (const { id, name, output } of results) {
-            this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-            const toolMsg: OllamaMessage = {
-              role: 'tool',
-              content: `Инструмент ${name}:\n${output}`
+            this.emitter.emit({ type: 'tool_end', toolName: name, toolOutput: output })
+            const msg = {
+              role: 'tool' as const,
+              content: `Инструмент ${name}:\n${output}`,
+              ...(id ? { tool_call_id: id } : {})
             }
-            if (id) toolMsg.tool_call_id = id
-            messages.push(toolMsg)
-          }
-        } else {
-          // Параллельное выполнение инструментов для экономии API-запросов при облачных провайдерах
-          const toolResults = await Promise.all(
-            toolCalls.map(async (call) => {
-              this.throwIfAborted()
-
-              const name = call.function.name
-              const args = parseToolArgs(call.function.arguments ?? {})
-              const toolInput = JSON.stringify(args, null, 2)
-              this.emit({ type: 'tool_start', toolName: name, toolInput })
-
-              // Подтверждение мутирующих действий согласно режиму доступа.
-              if (
-                this.confirm &&
-                toolRequiresConfirm(this.settings.permissionMode ?? 'bypass', name)
-              ) {
-                const approved = await this.confirm(name, toolInput)
-                this.throwIfAborted()
-                if (!approved) {
-                  const output = '⛔ Действие отклонено пользователем'
-                  this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-                  return { call, output, name }
-                }
-              }
-
-              void agentLogger.write({ event: 'tool_call', step, tool: name, args: args })
-              this.emitTrace('tool_call', `🔧 ${name}`, { tool: name, args })
-              const toolStartMs = Date.now()
-              let output = ''
-              try {
-                output = await this.executeTool(name, args)
-                void agentLogger.write({
-                  event: 'tool_result',
-                  step,
-                  tool: name,
-                  ok: true,
-                  duration_ms: Date.now() - toolStartMs,
-                  output_len: output.length
-                })
-                this.emitTrace(
-                  'tool_result',
-                  `✓ ${name} (${Date.now() - toolStartMs}ms, ${output.length} симв.)`,
-                  {
-                    tool: name,
-                    ok: true,
-                    durationMs: Date.now() - toolStartMs,
-                    output: output.slice(0, 1000)
-                  }
-                )
-              } catch (error) {
-                output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
-                void agentLogger.write({
-                  event: 'tool_result',
-                  step,
-                  tool: name,
-                  ok: false,
-                  duration_ms: Date.now() - toolStartMs,
-                  error: output
-                })
-                this.emitTrace('tool_result', `✗ ${name} — ${output.slice(0, 100)}`, {
-                  tool: name,
-                  ok: false,
-                  durationMs: Date.now() - toolStartMs,
-                  error: output
-                })
-              }
-
-              if (MUTATING_TOOLS.has(name)) {
-                mutatingToolsUsed.add(name)
-              }
-
-              if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) {
-                selfEdited = true
-              }
-
-              this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
-              return { call, output, name }
-            })
-          )
-
-          // Добавляем результаты в сообщения в правильном порядке
-          const isCloudProviderElse = this.providerConfig.type !== 'ollama'
-          for (const { call, output, name } of toolResults) {
-            // Защита от циклов: отслеживаем повторения инструментов с одинаковыми аргументами
-            const toolSignature = `${name}:${JSON.stringify(call.function.arguments)}`
-
-            if (toolSignature === lastToolName) {
-              consecutiveSameToolCount++
-            } else {
-              consecutiveSameToolCount = 1
-              lastToolName = toolSignature
-            }
-
-            // Счётчик всех вызовов инструмента (по названию, независимо от аргументов)
-            const totalCount = (toolCallCounts.get(name) ?? 0) + 1
-            toolCallCounts.set(name, totalCount)
-
-            // Проверяем лимит на одинаковые подряд идущие вызовы (с точными теми же аргументами)
-            if (consecutiveSameToolCount > MAX_CONSECUTIVE_SAME_TOOL) {
-              consecutiveSameToolCount = 0
-              lastToolName = null
-              messages.push({
-                role: 'user',
-                content: `Ты вызываешь инструмент "${name}" с теми же аргументами несколько раз подряд и не продвигаешься вперёд. Попробуй другой подход: измени запрос, используй другой инструмент или обоснуй вывод на основе уже полученных данных.`
-              })
-              break
-            }
-
-            if (totalCount > MAX_SAME_TOOL_TOTAL) {
-              toolCallCounts.set(name, 0)
-              messages.push({
-                role: 'user',
-                content: `Ты слишком часто используешь инструмент "${name}". Попробуй другой подход или подведи итог на основе уже собранных данных.`
-              })
-              break
-            }
-
-            // Для облачных API обрезаем длинные результаты (grep/find часто возвращают много)
-            let trimmedOutput = output
-            const MAX_CLOUD_RESULT_CHARS = 2000
-            if (isCloudProviderElse && output.length > MAX_CLOUD_RESULT_CHARS) {
-              const lines = output.split('\n')
-              const truncatedLines = lines.slice(0, 50) // макс 50 строк
-              const chars = truncatedLines.join('\n')
-              if (chars.length > MAX_CLOUD_RESULT_CHARS) {
-                trimmedOutput =
-                  chars.slice(0, MAX_CLOUD_RESULT_CHARS) +
-                  `\n... (выходные данные обрезаны, всего ${lines.length} строк)`
-              } else {
-                trimmedOutput =
-                  chars +
-                  (lines.length > 50 ? `\n... (показано первых 50 из ${lines.length} строк)` : '')
-              }
-            }
-
-            const msg: OllamaMessage = {
-              role: 'tool',
-              content: `Инструмент ${name}:\n${trimmedOutput}`
-            }
-            if (call.id) msg.tool_call_id = call.id
             messages.push(msg)
           }
+        } else {
+          const batch = await this.toolExecutor.executeSequential(
+            toolCalls,
+            step,
+            isCloud,
+            loopGuard
+          )
+          for (const name of batch.mutatingToolNames) {
+            if (MUTATING_TOOLS.has(name)) mutatingToolsUsed.add(name)
+          }
+          if (batch.selfEdited) selfEdited = true
+          for (const msg of batch.toolMessages) messages.push(msg)
+          if (batch.breakLoop) continue
         }
       }
     } catch (error) {
       if (isAbortError(error)) {
-        this.handleAbort()
+        this.emitter.handleAbort()
         return
       }
       throw error
     } finally {
-      // Для Ollama: выгрузить модель сразу после завершения, чтобы освободить память
-      if (this.providerConfig.type === 'ollama') {
+      if (this.ctx.providerConfig.type === 'ollama') {
         try {
-          await this.modelRuntime.unloadModel(this.settings.model)
+          await this.ctx.modelRuntime.unloadModel(this.settings.model)
         } catch {
-          // выгрузка необязательна
+          /* необязательно */
         }
       }
-
       void agentLogger.write({
         event: 'run_end',
         model: this.settings.model,
@@ -956,643 +444,17 @@ export class AgentRunner {
       })
       if (selfEdited) {
         if (autonomousSelfImprove && this.settings.autoPushSelfEdits !== false) {
-          await this.autoCommitSelfEdits(userMessage)
+          await this.selfImproveOrchestrator.autoCommitSelfEdits(
+            userMessage,
+            this.emitter.emit.bind(this.emitter)
+          )
         } else if (!autonomousSelfImprove) {
-          await this.stageSelfEditsForRestart(userMessage)
+          await this.selfImproveOrchestrator.stageSelfEditsForRestart(
+            userMessage,
+            this.emitter.emit.bind(this.emitter)
+          )
         }
       }
     }
-  }
-
-  private async autoCommitSelfEdits(userMessage: string): Promise<void> {
-    try {
-      const result = await commitAndPushSelfEdits(userMessage)
-      this.emit({
-        type: 'context',
-        content: result.ok ? `🔁 Самоправки: ${result.message}` : `⚠️ Автокоммит: ${result.message}`
-      })
-    } catch {
-      // автокоммит необязателен — не критично для задачи
-    }
-  }
-
-  private async stageSelfEditsForRestart(userMessage: string): Promise<void> {
-    try {
-      const result = await stageSelfEditsForRestart(userMessage)
-      this.emit({
-        type: 'context',
-        content: result.ok
-          ? `⏳ Правки сохранены: ${result.message}`
-          : `⚠️ Не удалось сохранить правки: ${result.message}`
-      })
-    } catch {
-      // необязательно — не критично
-    }
-  }
-
-  private async chat(messages: OllamaMessage[], options?: { requireTool?: boolean }) {
-    this.throwIfAborted()
-
-    // Для Ollama: убедиться, что модель загружена и выгрузить остальные
-    if (this.providerConfig.type === 'ollama') {
-      try {
-        await this.modelRuntime.ensureModelLoaded(this.settings.model, this.signal)
-        // Выгрузить все остальные модели
-        const unloaded = await this.modelRuntime.prepareModel(this.settings.model)
-
-        // Логируем информацию о загруженной модели для отладки
-        const placement = await this.modelRuntime.getModelPlacement(
-          this.settings.model,
-          this.signal
-        )
-        const memoryInfo = await this.modelRuntime.getModelMemoryInfo(this.settings.model)
-        const modelMemory = memoryInfo[0]
-        void agentLogger.write({
-          event: 'model_loaded',
-          model: this.settings.model,
-          placement,
-          size_mb: modelMemory?.size ? Math.round(modelMemory.size / (1024 * 1024)) : undefined,
-          vram_mb: modelMemory?.vram ? Math.round(modelMemory.vram / (1024 * 1024)) : undefined,
-          unloaded: unloaded.unloaded
-        })
-      } catch (err) {
-        // Ошибка загрузки неблокирующая — Ollama может загрузить при запросе
-        void agentLogger.write({
-          event: 'model_load_error',
-          model: this.settings.model,
-          error: String(err)
-        })
-      }
-    }
-
-    let compressionNotified = false
-    const compression = await compressContextMessages({
-      messages,
-      model: this.settings.model,
-      summarizeModel: this.summarizeModelResolved,
-      toolsJsonChars: JSON.stringify(getAgentTools(this.selfImproveMode)).length,
-      providerConfig: this.summarizeProviderConfig,
-      signal: this.signal,
-      summarizeThresholdPercent: this.resolveSummarizeThreshold(),
-      onCompressStart: () => {
-        compressionNotified = true
-        this.emit({ type: 'context', summarizing: true })
-      }
-    })
-
-    if (compressionNotified) {
-      this.emit({ type: 'context', summarizing: false })
-    }
-
-    if (compression.summarized || compression.droppedMessageCount > 0) {
-      messages.splice(0, messages.length, ...compression.messages)
-      if (compression.summarized) {
-        this.emit({
-          type: 'context',
-          content: `📋 Контекст ~${compression.usagePercent}% — суммаризация в ходе задачи`
-        })
-      }
-    }
-
-    let content = ''
-    let thinking = ''
-    const toolCalls: ToolCall[] = []
-    let evalCount: number | undefined
-    let evalDurationNs: number | undefined
-    let nativeToolCalls: ToolCall[] | undefined
-
-    const isCloudProvider = this.providerConfig.type !== 'ollama'
-
-    // Строим массив сообщений для провайдера.
-    // Для Ollama: фильтруем ВСЕ role:tool (Ollama использует embedded JSON).
-    // Для cloud: включаем tool-результаты только из текущего прогона (с tool_call_id);
-    // история tool-сообщений без tool_call_id вызывает 400 в DeepSeek/OpenAI.
-    // Дополнительно: assistant-сообщения с tool_calls без следующего tool-результата
-    // тоже нарушают протокол → убираем их через look-ahead.
-    let filteredMessages = messages
-    if (isCloudProvider) {
-      // Проход 1: убираем tool-сообщения без tool_call_id и orphan assistant+tool_calls
-      // (тех, чьи ID не покрыты ни одним tool-результатом в messages).
-      const coveredIds = new Set(messages.filter((m) => m.tool_call_id).map((m) => m.tool_call_id!))
-      const pass1 = messages.filter((msg) => {
-        if (msg.role === 'tool') return !!msg.tool_call_id
-        if (msg.role === 'assistant' && msg.tool_calls?.length) {
-          return msg.tool_calls.every((tc) => coveredIds.has(tc.id))
-        }
-        return true
-      })
-      // Проход 2: убираем tool-сообщения, чей tool_call_id не присутствует ни в одном
-      // assistant-сообщении из pass1. Это возможно после суммаризации контекста, когда
-      // assistant+tool_calls попадает в сжатую часть, а tool-результат — в «recent».
-      const assistantCallIds = new Set<string>()
-      for (const msg of pass1) {
-        if (msg.role === 'assistant' && msg.tool_calls?.length) {
-          for (const tc of msg.tool_calls) assistantCallIds.add(tc.id)
-        }
-      }
-      let pass2 = pass1.filter(
-        (msg) =>
-          !(msg.role === 'tool' && msg.tool_call_id && !assistantCallIds.has(msg.tool_call_id))
-      )
-
-      // Для облачных API обрезаем историю до последних ~20 сообщений для экономии токенов
-      const MAX_CLOUD_MESSAGES = 20
-      if (pass2.length > MAX_CLOUD_MESSAGES) {
-        // Сохраняем всегда первое user-сообщение (исходный запрос) + последние сообщения
-        const firstUserMsg = pass2.findIndex((m) => m.role === 'user')
-        if (firstUserMsg >= 0) {
-          pass2 = [
-            pass2[firstUserMsg],
-            ...pass2.slice(Math.max(firstUserMsg + 1, pass2.length - MAX_CLOUD_MESSAGES + 1))
-          ]
-        } else {
-          pass2 = pass2.slice(-MAX_CLOUD_MESSAGES)
-        }
-
-        // После обрезки: снова удаляем сироты tool/assistant, которые могли появиться
-        // из-за того что граница среза разрезала пару assistant+tool_calls → tool_result.
-        const idsAfterSlice = new Set<string>()
-        for (const msg of pass2) {
-          if (msg.role === 'assistant' && msg.tool_calls?.length) {
-            for (const tc of msg.tool_calls) idsAfterSlice.add(tc.id)
-          }
-        }
-        pass2 = pass2.filter(
-          (msg) =>
-            !(msg.role === 'tool' && msg.tool_call_id && !idsAfterSlice.has(msg.tool_call_id))
-        )
-        // Убираем assistant+tool_calls, чьи tool-результаты тоже не попали в срез
-        const toolResultIds = new Set(
-          pass2.filter((m) => m.tool_call_id).map((m) => m.tool_call_id!)
-        )
-        pass2 = pass2.filter((msg) => {
-          if (msg.role === 'assistant' && msg.tool_calls?.length) {
-            return msg.tool_calls.every((tc) => toolResultIds.has(tc.id))
-          }
-          return true
-        })
-      }
-
-      filteredMessages = pass2
-    } else {
-      filteredMessages = messages.filter((msg) => msg.role !== 'tool')
-    }
-
-    const chatMessages = filteredMessages.map((msg) => ({
-      role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
-      content: msg.content,
-      ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
-      ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
-    }))
-
-    // Получаем инструменты в формате провайдеров (уже трансформированы в getAgentTools)
-    // В режиме Chat инструменты не нужны — экономим токены на схемах.
-    const toolsForProvider = this.settings.chatMode ? [] : getAgentTools(this.selfImproveMode)
-
-    // Используем ModelRuntime для универсальной поддержки разных провайдеров
-    const chatOptions = {
-      model: this.settings.model,
-      messages: chatMessages,
-      tools: toolsForProvider,
-      stream: true,
-      keep_alive: OLLAMA_KEEP_ALIVE as string | number,
-      signal: this.signal,
-      ...(isCloudProvider ? { max_tokens: 4096, temperature: 0.1 } : {}),
-      ...(options?.requireTool ? { tool_choice: 'required' as const } : {}),
-      ...(!isCloudProvider && this.settings.ollamaNumGpu != null
-        ? { num_gpu: this.settings.ollamaNumGpu }
-        : {})
-    }
-
-    for await (const chunk of this.modelRuntime.chat(chatOptions)) {
-      if (chunk.eval_count != null) evalCount = chunk.eval_count
-      if (chunk.eval_duration != null) evalDurationNs = chunk.eval_duration
-
-      const thinkingPiece = chunk.thinking
-      if (thinkingPiece) {
-        thinking += thinkingPiece
-        this.emit({ type: 'thinking', content: thinkingPiece })
-      }
-
-      // Нативные tool calls от cloud-провайдера (DeepSeek, OpenAI)
-      if (chunk.tool_calls?.length) {
-        nativeToolCalls = chunk.tool_calls.map((tc) => ({
-          id: tc.id,
-          function: {
-            name: tc.function.name,
-            arguments: tc.function.arguments as Record<string, string> | string
-          }
-        }))
-      }
-
-      const piece = chunk.content
-      if (piece) {
-        content += piece
-        const visible = sanitizeAssistantContent(content)
-        const embedded = extractEmbeddedToolCalls(content)
-        const isPureToolCall = embedded.toolCalls.length > 0 && !embedded.content.trim()
-        if (!isPureToolCall && visible) {
-          this.emit({ type: 'token', content: piece })
-        }
-      }
-
-      if (chunk.total_tokens != null) {
-        this.sessionTokens += chunk.total_tokens
-      }
-    }
-
-    const ollamaMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
-
-    if (ollamaMetrics) {
-      this.emit({ type: 'generation_metrics', generationMetrics: ollamaMetrics })
-    } else if (isCloudProvider && this.sessionTokens > 0) {
-      this.emit({
-        type: 'generation_metrics',
-        generationMetrics: {
-          evalCount: 0,
-          evalDurationSec: 0,
-          tokensPerSec: 0,
-          sessionTokens: this.sessionTokens
-        }
-      })
-    }
-
-    // Cloud-провайдеры: используем нативные tool calls если есть
-    if (nativeToolCalls?.length) {
-      for (const tc of nativeToolCalls) {
-        toolCalls.push(tc)
-      }
-    } else {
-      // Ollama: извлекаем tool calls из embedded JSON в тексте
-      const embedded = extractEmbeddedToolCalls(content)
-      content = sanitizeAssistantContent(embedded.content)
-      for (const call of embedded.toolCalls) {
-        toolCalls.push({
-          function: {
-            name: call.name,
-            arguments: call.arguments as Record<string, string>
-          }
-        })
-      }
-    }
-
-    return {
-      message: {
-        content: content.trim() || undefined,
-        thinking: thinking.trim() || undefined,
-        tool_calls: toolCalls.length ? toolCalls : undefined
-      },
-      metrics: parseOllamaGenerationMetrics(evalCount, evalDurationNs)
-    }
-  }
-
-  private async handlePreviewEdit(args: Record<string, string>): Promise<string> {
-    const { path: filePath, content: newContent } = args
-    if (!filePath || newContent === undefined) return 'preview_edit: нужны path и content'
-
-    const { safeReadFilePartial, safeWriteFile, isInsideProject } = await import('./services')
-    if (!isInsideProject(this.projectPath, filePath)) {
-      return `preview_edit: путь вне проекта — ${filePath}`
-    }
-
-    let oldContent = ''
-    try {
-      const raw = await safeReadFilePartial(this.projectPath, filePath, 0, 10000)
-      oldContent = typeof raw === 'string' ? raw : ''
-    } catch {
-      // Новый файл — oldContent остаётся пустым
-    }
-
-    // Защита от случайного удаления содержимого: если новый контент значительно короче
-    // старого (менее 50%) — это почти всегда ошибка (модель сгенерировала только фрагмент).
-    if (oldContent.length > 500 && newContent.length < oldContent.length * 0.5) {
-      return (
-        `❌ preview_edit отклонён: новый контент (${newContent.length} симв.) значительно короче оригинала (${oldContent.length} симв.). ` +
-        `Это защита от случайного удаления кода. ` +
-        `Для точечных правок используй preview_patch (old_string → new_string). ` +
-        `Если действительно нужна полная перезапись — передай ВСЕ содержимое файла.`
-      )
-    }
-
-    const diff = createUnifiedDiff(oldContent, newContent, filePath)
-    if (!diff) return 'Нет изменений — содержимое файла уже совпадает с предложенным.'
-
-    const autoApply = !this.previewFn || (this.settings.permissionMode ?? 'bypass') === 'bypass'
-
-    if (autoApply) {
-      await safeWriteFile(this.projectPath, filePath, newContent)
-      return `✅ Файл записан: ${filePath}`
-    }
-
-    const { makeId: mkId } = await import('../../shared/makeId')
-    const previewId = mkId()
-    // Шлём diff через stream — renderer добавит сообщение с кнопками Apply/Cancel
-    this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
-
-    const apply = await this.previewFn!(previewId)
-    if (!apply) return `❌ Правки отменены пользователем: ${filePath}`
-
-    await safeWriteFile(this.projectPath, filePath, newContent)
-    return `✅ Правки применены: ${filePath}`
-  }
-
-  /**
-   * Быстрый LLM-классификатор для граничных случаев:
-   * нужны ли реальные инструменты для этой задачи?
-   * Возвращает true если LLM уверен что нужна мутация, false — если достаточно текста.
-   * При ошибке возвращает null (не блокируем).
-   */
-  private async classifyMutationNeededByLLM(userMessage: string): Promise<boolean | null> {
-    try {
-      const messages: OllamaMessage[] = [
-        {
-          role: 'system',
-          content: 'Ты классификатор. Отвечай только JSON без пояснений.'
-        },
-        {
-          role: 'user',
-          content: `Требует ли следующее сообщение реального изменения файлов, кода или запуска команд? Или достаточно текстового ответа?\nСообщение: "${userMessage}"\nОтвет строго в формате: {"needsAction":true} или {"needsAction":false}`
-        }
-      ]
-
-      let text = ''
-      for await (const chunk of this.modelRuntime.chat({
-        messages,
-        model: this.settings.model,
-        tools: [],
-        signal: this.signal
-      })) {
-        if (chunk.content) text += chunk.content
-        if (chunk.stop_reason) break
-      }
-
-      const match = text.match(/"needsAction"\s*:\s*(true|false)/)
-      if (!match) return null
-      return match[1] === 'true'
-    } catch {
-      return null
-    }
-  }
-
-  private async handlePreviewPatch(args: Record<string, string>): Promise<string> {
-    const { path: filePath, old_string: oldStr, new_string: newStr, replace_all: replaceAll } = args
-    if (!filePath || oldStr === undefined || newStr === undefined) {
-      return 'preview_patch: нужны path, old_string и new_string'
-    }
-
-    const { safeReadFilePartial, safeWriteFile, isInsideProject } = await import('./services')
-    if (!isInsideProject(this.projectPath, filePath)) {
-      return `preview_patch: путь вне проекта — ${filePath}`
-    }
-
-    let oldContent = ''
-    try {
-      const raw = await safeReadFilePartial(this.projectPath, filePath, 0, 200000)
-      oldContent = typeof raw === 'string' ? raw : ''
-    } catch {
-      return `preview_patch: не удалось прочитать файл — ${filePath}`
-    }
-
-    const doReplaceAll = replaceAll === 'true'
-    if (!oldContent.includes(oldStr)) {
-      return `preview_patch: old_string не найден в файле. Прочитай файл заново и скопируй точный фрагмент.`
-    }
-
-    const newContent = doReplaceAll
-      ? oldContent.split(oldStr).join(newStr)
-      : oldContent.replace(oldStr, newStr)
-
-    const diff = createUnifiedDiff(oldContent, newContent, filePath)
-    if (!diff) return 'Нет изменений — old_string и new_string идентичны.'
-
-    const autoApply = !this.previewFn || (this.settings.permissionMode ?? 'bypass') === 'bypass'
-
-    if (autoApply) {
-      await safeWriteFile(this.projectPath, filePath, newContent)
-      return `✅ Правка применена: ${filePath}`
-    }
-
-    const { makeId: mkId } = await import('../../shared/makeId')
-    const previewId = mkId()
-    this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
-
-    const apply = await this.previewFn!(previewId)
-    if (!apply) return `❌ Правки отменены пользователем: ${filePath}`
-
-    await safeWriteFile(this.projectPath, filePath, newContent)
-    return `✅ Правки применены: ${filePath}`
-  }
-
-  private toolHandlers?: ToolHandlers
-  private clearEditSnapshots?: () => void
-
-  private getToolHandlers(): ToolHandlers {
-    if (this.toolHandlers) return this.toolHandlers
-
-    const projectResult = createProjectToolHandlers(
-      this.projectPath,
-      this.settings.commandTimeoutSec != null ? this.settings.commandTimeoutSec * 1000 : undefined,
-      {
-        readonlyMode: this.settings.readonlyMode,
-        ollamaUrl: this.settings.ollamaUrl,
-        qdrantUrl: this.settings.qdrantUrl,
-        qdrantApiKey: this.settings.qdrantApiKey
-      }
-    )
-    this.clearEditSnapshots = projectResult.clearEditSnapshots
-
-    this.toolHandlers = {
-      ...projectResult.handlers,
-      ...createGitHubToolHandlers(),
-      ...createCodeViperToolHandlers(),
-      ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
-      ...createSkillsToolHandlers(this.projectPath, this.emit),
-      ...createSelfImprovementToolHandlers(this.selfImprovementPlan, (items) =>
-        this.emitSelfImprovementPlan(items)
-      ),
-      ...createTodoToolHandlers(this.emit),
-      ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
-      ...createWebToolHandlers(),
-      preview_edit: (args) => this.handlePreviewEdit(args),
-      preview_patch: (args) => this.handlePreviewPatch(args)
-    } as ToolHandlers
-
-    return this.toolHandlers
-  }
-
-  private async executeTool(name: string, args: Record<string, string>): Promise<string> {
-    const handler = this.getToolHandlers()[name as ToolName] as
-      | ((args: Record<string, string>) => Promise<string>)
-      | undefined
-    if (!handler) return `Неизвестный инструмент: ${name}`
-    return handler(args)
-  }
-
-  private async reflectAndLearn(
-    messages: OllamaMessage[],
-    userMessage: string,
-    hadMutations: boolean
-  ): Promise<void> {
-    // Рефлексия (доп. запрос к модели) имеет смысл только после реальных изменений,
-    // а не после чисто исследовательских задач (read_file/grep/...).
-    if (!hadMutations) return
-
-    try {
-      let reflectionContent = ''
-
-      // Конвертируем OllamaMessage в ChatMessage для рефлексии
-      const reflectionMessages = messages
-        .filter((msg) => msg.role !== 'tool')
-        .map((msg) => ({
-          role: msg.role as 'user' | 'assistant' | 'system',
-          content: msg.content
-        }))
-
-      for await (const chunk of this.modelRuntime.chat({
-        model: this.settings.model,
-        messages: [...reflectionMessages, { role: 'user', content: REFLECTION_PROMPT }],
-        keep_alive: OLLAMA_KEEP_ALIVE as string | number,
-        signal: this.signal
-      })) {
-        reflectionContent += chunk.content
-      }
-
-      const learnings = parseReflectionLearnings(reflectionContent)
-
-      for (const learning of learnings) {
-        const entry = await addMemory(
-          this.projectPath,
-          { ...learning, source: userMessage.slice(0, 120) },
-          this.settings.ollamaUrl
-        )
-        this.emit({
-          type: 'learning_saved',
-          content: entry.content,
-          memoryId: entry.id
-        })
-      }
-    } catch {
-      // рефлексия необязательна
-    }
-  }
-}
-
-export async function fetchOllamaModels(baseUrl: string) {
-  const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(10_000) })
-  if (!res.ok) throw new Error('Ollama недоступна')
-  const data = (await res.json()) as {
-    models?: Array<{ name: string; size: number; modified_at: string }>
-  }
-  return (data.models ?? []).map((m) => ({
-    name: m.name,
-    size: m.size,
-    modifiedAt: m.modified_at
-  }))
-}
-
-/** Получить модели Ollama с деталями (параметры, контекст) для фильтрации по возможностям */
-export async function fetchOllamaModelsWithDetails(baseUrl: string) {
-  const url = baseUrl.replace(/\/$/, '')
-  const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(10_000) })
-  if (!res.ok) throw new Error('Ollama недоступна')
-  const data = (await res.json()) as {
-    models?: Array<{ name: string; size: number; modified_at: string }>
-  }
-
-  const models = data.models ?? []
-  const detailed = await Promise.all(
-    models.map(async (m) => {
-      try {
-        const detRes = await fetch(`${url}/api/show`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: m.name }),
-          signal: AbortSignal.timeout(5_000)
-        })
-        if (detRes.ok) {
-          const body = (await detRes.json()) as {
-            details?: { parameter_size?: string; context_length?: number }
-            capabilities?: string[]
-          }
-          return {
-            name: m.name,
-            size: m.size,
-            details: body.details,
-            capabilities: body.capabilities
-          }
-        }
-      } catch {
-        // пропускаем ошибку
-      }
-      return { name: m.name, size: m.size }
-    })
-  )
-
-  return detailed
-}
-
-export async function pingOllama(baseUrl: string): Promise<boolean> {
-  try {
-    const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(5_000) })
-    return res.ok
-  } catch {
-    return false
-  }
-}
-
-export interface OllamaPullProgress {
-  status: string
-  digest?: string
-  total?: number
-  completed?: number
-}
-
-export async function pullOllamaModel(
-  baseUrl: string,
-  model: string,
-  onProgress: (progress: OllamaPullProgress) => void
-): Promise<void> {
-  assertPullableToolModel(model)
-
-  const res = await fetch(`${baseUrl}/api/pull`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, stream: true })
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Ollama pull: ${res.status} ${text}`)
-  }
-
-  if (!res.body) {
-    throw new Error('Ollama: пустой ответ при скачивании')
-  }
-
-  for await (const chunk of readNdjsonLines(res.body)) {
-    onProgress({
-      status: String(chunk.status ?? ''),
-      digest: chunk.digest as string | undefined,
-      total: chunk.total as number | undefined,
-      completed: chunk.completed as number | undefined
-    })
-  }
-}
-
-export async function deleteOllamaModel(baseUrl: string, model: string): Promise<void> {
-  const trimmed = model.trim()
-  if (!trimmed) throw new Error('Укажите имя модели для удаления')
-
-  const url = baseUrl.replace(/\/$/, '')
-  const res = await fetch(`${url}/api/delete`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: trimmed }),
-    signal: AbortSignal.timeout(15_000)
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Ollama delete: ${res.status} ${text}`)
   }
 }
