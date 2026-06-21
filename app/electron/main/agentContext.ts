@@ -344,16 +344,22 @@ export async function buildAgentContextPreview(
   let slicedHistory = history.slice(-adaptiveLimits.maxHistoryMessages)
   if (options.enableRAG && options.chatId && options.ollamaUrl) {
     try {
-      slicedHistory = await getMergedHistoryWithRAG(
-        history,
-        userMessage,
-        options.chatId,
-        projectPath,
-        options.ollamaUrl,
-        adaptiveLimits.maxHistoryMessages
+      const ragTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('RAG timeout')), 5000)
       )
+      slicedHistory = await Promise.race([
+        getMergedHistoryWithRAG(
+          history,
+          userMessage,
+          options.chatId,
+          projectPath,
+          options.ollamaUrl,
+          adaptiveLimits.maxHistoryMessages
+        ),
+        ragTimeout
+      ])
     } catch {
-      // Fallback на обычную историю при ошибке RAG
+      // Fallback на обычную историю при ошибке RAG или таймауте
     }
   }
 

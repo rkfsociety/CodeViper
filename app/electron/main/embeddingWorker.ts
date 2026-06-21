@@ -48,6 +48,8 @@ async function fetchEmbedding(text: string, ollamaUrl: string): Promise<number[]
   }
 }
 
+parentPort!.postMessage({ type: 'ready' })
+
 parentPort!.on(
   'message',
   async (msg: { id: number; type: 'compute'; text: string; ollamaUrl: string }) => {
