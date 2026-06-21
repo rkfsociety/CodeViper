@@ -660,10 +660,14 @@ export class AgentRunner {
             this.emit({ type: 'assistant', content: assistantText, thinking: assistantThinking })
           } else if (!autonomousSelfImprove) {
             // Модель не вернула ответ и не вызвала инструменты — не молчим.
+            const ctxTokensNow = Math.round(ctxChars / 4)
+            const smallModelHint =
+              ctxTokensNow > 2000
+                ? ` Системный промпт занимает ~${ctxTokensNow} токенов — это много для маленьких моделей (3b–7b). Попробуй модель покрупнее (qwen2.5-coder:7b, llama3.1:8b) или облачный провайдер.`
+                : ''
             this.emit({
               type: 'error',
-              content:
-                'Модель не ответила и не вызвала инструменты. Модель может быть перегружена или неисправна. Попробуй выбрать другую модель, переформулировать задачу или перезагрузить приложение.'
+              content: `Модель не ответила и не вызвала инструменты.${smallModelHint} Попробуй выбрать другую модель или переформулировать задачу.`
             })
           }
           if (this.settings.selfLearning !== false) {
