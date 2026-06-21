@@ -312,6 +312,24 @@ export function SettingsModal({
                         </button>
                       </div>
                     </label>
+                    <label>
+                      Лимит запросов в минуту (RPM)
+                      <input
+                        type="number"
+                        min={1}
+                        max={2000}
+                        step={1}
+                        value={settings.geminiRpm ?? 5}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10)
+                          if (!isNaN(v) && v >= 1) onSettingsChange({ geminiRpm: v })
+                        }}
+                      />
+                      <span className={styles.hint}>
+                        Free tier — 5 RPM, paid tier — 15 RPM и выше. Интервал между запросами
+                        рассчитывается автоматически.
+                      </span>
+                    </label>
                   </>
                 )}
 

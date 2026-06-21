@@ -44,10 +44,14 @@ interface GeminiChunk {
 
 // ── Rate Limiter ──────────────────────────────────────────────────────────────
 
-// Защита от превышения Gemini API квот (free tier: 5 req/min = 12 sec между запросами)
 class RateLimiter {
   private lastRequestTime = 0
-  private minIntervalMs = 12_000 // 12 секунд для free tier (5 requests/min)
+  private minIntervalMs: number
+
+  constructor(rpm: number) {
+    // Добавляем 10% запас чтобы не попасть в окно между запросами
+    this.minIntervalMs = Math.ceil((60 / rpm) * 1000 * 1.1)
+  }
 
   async waitForSlot(): Promise<void> {
     const now = Date.now()
@@ -65,13 +69,16 @@ class RateLimiter {
 // ── Provider ───────────────────────────────────────────────────────────────────
 
 export class GeminiProvider implements ModelProvider {
-  private rateLimiter = new RateLimiter()
+  private rateLimiter: RateLimiter
 
   constructor(
     private apiKey: string,
     private modelName: string,
-    private baseUrl: string = GEMINI_API_BASE_URL
-  ) {}
+    private baseUrl: string = GEMINI_API_BASE_URL,
+    rpm = 5
+  ) {
+    this.rateLimiter = new RateLimiter(rpm)
+  }
 
   async ping(signal?: AbortSignal): Promise<boolean> {
     try {

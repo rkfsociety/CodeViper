@@ -555,7 +555,8 @@ export async function summarizeChatHistory(
     type: providerType,
     baseUrl: providerBaseUrl,
     apiKey: providerApiKey,
-    model: settings.model
+    model: settings.model,
+    ...(providerType === 'gemini' && settings.geminiRpm != null ? { rpm: settings.geminiRpm } : {})
   }
 
   const result = await compressContextMessages({

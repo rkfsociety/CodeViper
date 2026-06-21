@@ -43,10 +43,12 @@ export class ModelRuntime {
     if (config.type === 'gemini') {
       const apiKey = config.apiKey || ''
       const model = config.model || GEMINI_MODEL_DEFAULT
+      const rpm = typeof config.rpm === 'number' ? config.rpm : 5
       return new GeminiProvider(
         apiKey,
         model,
-        (config.baseUrl || GEMINI_API_BASE_URL).replace(/\/$/, '')
+        (config.baseUrl || GEMINI_API_BASE_URL).replace(/\/$/, ''),
+        rpm
       )
     }
 

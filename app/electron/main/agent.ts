@@ -191,7 +191,10 @@ export class AgentRunner {
       type: providerType,
       baseUrl: providerBaseUrl,
       apiKey: providerApiKey,
-      model: providerModel
+      model: providerModel,
+      ...(providerType === 'gemini' && this.settings.geminiRpm != null
+        ? { rpm: this.settings.geminiRpm }
+        : {})
     }
     this.modelRuntime = new ModelRuntime(this.providerConfig)
 

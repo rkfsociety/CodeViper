@@ -151,6 +151,8 @@ export interface AgentSettings {
   openrouterApiKey?: string
   /** API ключ Gemini */
   geminiApiKey?: string
+  /** Лимит запросов Gemini API в минуту (free tier: 5, paid: 15+) */
+  geminiRpm?: number
   /** API ключ Claude (Anthropic) */
   claudeApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
