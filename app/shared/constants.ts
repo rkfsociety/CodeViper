@@ -47,7 +47,12 @@ export const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash'
 
 /** Модели Gemini/Gemma доступные на бесплатном уровне с фиксированными лимитами */
 export const GEMINI_FREE_MODELS = [
-  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', rpm: 10, tpm: 250_000 },
+  {
+    id: 'gemini-2.5-flash-lite-preview-06-17',
+    label: 'Gemini 2.5 Flash Lite',
+    rpm: 10,
+    tpm: 250_000
+  },
   { id: 'gemini-3-flash', label: 'Gemini 3 Flash', rpm: 5, tpm: 250_000 },
   { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', rpm: 15, tpm: 250_000 },
   { id: 'gemma-4-26b', label: 'Gemma 4 26B', rpm: 15, tpm: null },

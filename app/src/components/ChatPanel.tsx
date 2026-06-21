@@ -15,6 +15,7 @@ import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, TodoItem } from '../types'
 import { filterToolCallingModels } from '../types'
+import { GEMINI_FREE_MODELS } from '../../shared/constants'
 
 // Список моделей для облачных провайдеров
 const CLOUD_KNOWN_MODELS: Record<string, string[]> = {
@@ -372,6 +373,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const pickerModels = useMemo(() => {
     const provider = settings.modelProvider ?? 'ollama'
     const isCloud = provider !== 'ollama'
+
+    // Gemini free tier — только фиксированные бесплатные модели
+    if (provider === 'gemini' && (settings.geminiTier ?? 'free') === 'free') {
+      return GEMINI_FREE_MODELS.map((m) => ({ name: m.id, size: 0, modifiedAt: '' }))
+    }
+
     if (isCloud && provider in CLOUD_KNOWN_MODELS) {
       // Преобразуем строки в OllamaModel для совместимости с рендером
       return CLOUD_KNOWN_MODELS[provider as keyof typeof CLOUD_KNOWN_MODELS].map(
@@ -383,7 +390,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       )
     }
     return models
-  }, [settings.modelProvider, models])
+  }, [settings.modelProvider, settings.geminiTier, models])
 
   // Не фильтровать облачные модели (они всегда поддерживают tool calling)
   const displayModels = useMemo(() => {
