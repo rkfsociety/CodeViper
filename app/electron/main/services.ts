@@ -200,15 +200,16 @@ export async function buildFileTree(dirPath: string, depth = 0, maxDepth = 3): P
 }
 
 export async function safeReadFile(projectPath: string, filePath: string): Promise<string> {
-  if (!isInsideProject(projectPath, filePath)) {
+  const absPath = resolve(projectPath, filePath)
+  if (!isInsideProject(projectPath, absPath)) {
     throw new Error('Доступ запрещён: файл вне проекта')
   }
 
-  const info = await stat(filePath)
+  const info = await stat(absPath)
   if (!info.isFile()) throw new Error('Это не файл')
   if (info.size > FILE_SIZE_LIMIT_BYTES) throw new Error('Файл слишком большой (>500 KB)')
 
-  return readFile(filePath, 'utf-8')
+  return readFile(absPath, 'utf-8')
 }
 
 // LRU-кэш read_file / read_codeviper_file: ключ {path, offset, limit}, инвалидация по mtime
@@ -238,21 +239,22 @@ export async function safeReadFilePartial(
   offset = 0,
   limit?: number
 ): Promise<string> {
-  if (!isInsideProject(projectPath, filePath)) {
+  const absPath = resolve(projectPath, filePath)
+  if (!isInsideProject(projectPath, absPath)) {
     throw new Error('Доступ запрещён: файл вне проекта')
   }
 
-  const info = await stat(filePath)
+  const info = await stat(absPath)
   if (!info.isFile()) throw new Error('Это не файл')
 
   const isLarge = info.size > FILE_SIZE_LIMIT_BYTES
 
   // Большие файлы не кэшируем — они идут через worker
   if (isLarge) {
-    return readLargeFileQueued(filePath, offset, limit ?? null, READ_DEFAULT_LINE_LIMIT)
+    return readLargeFileQueued(absPath, offset, limit ?? null, READ_DEFAULT_LINE_LIMIT)
   }
 
-  const cacheKey = readCacheKey(filePath, offset, limit)
+  const cacheKey = readCacheKey(absPath, offset, limit)
   const cached = readFileCache.get(cacheKey)
   if (cached && cached.mtimeMs === info.mtimeMs) {
     // Обновляем позицию в LRU
@@ -265,9 +267,9 @@ export async function safeReadFilePartial(
 
   let result: string
   if (!usePartial) {
-    result = await readFile(filePath, 'utf-8')
+    result = await readFile(absPath, 'utf-8')
   } else {
-    const raw = await readFile(filePath, 'utf-8')
+    const raw = await readFile(absPath, 'utf-8')
     const allLines = raw.split('\n')
     const totalLines = allLines.length
     const from = Math.max(0, offset)
@@ -275,7 +277,7 @@ export async function safeReadFilePartial(
     const to = Math.min(from + count, totalLines)
     const chunk = allLines.slice(from, to).join('\n')
     const remaining = totalLines - to
-    const header = `[Файл: ${filePath} | строки ${from + 1}–${to} из ${totalLines}]`
+    const header = `[Файл: ${absPath} | строки ${from + 1}–${to} из ${totalLines}]`
     const footer =
       remaining > 0 ? `\n[Ещё ${remaining} строк. Читай дальше: offset=${to}]` : `\n[Конец файла]`
     result = `${header}\n${chunk}${footer}`
@@ -291,24 +293,27 @@ export async function safeWriteFile(
   filePath: string,
   content: string
 ): Promise<void> {
-  if (!isInsideProject(projectPath, filePath)) {
+  const absPath = resolve(projectPath, filePath)
+  if (!isInsideProject(projectPath, absPath)) {
     throw new Error('Доступ запрещён: файл вне проекта')
   }
 
-  const dir = dirname(filePath)
+  const dir = dirname(absPath)
   if (!isInsideProject(projectPath, dir)) {
     throw new Error('Доступ запрещён: путь вне проекта')
   }
 
   await mkdir(dir, { recursive: true })
-  await writeFile(filePath, content, 'utf-8')
-  invalidateReadCache(filePath)
+  await writeFile(absPath, content, 'utf-8')
+  invalidateReadCache(absPath)
 }
 
-function assertPathInsideProject(projectPath: string, filePath: string, label = 'файл'): void {
-  if (!isInsideProject(projectPath, filePath)) {
+function assertPathInsideProject(projectPath: string, filePath: string, label = 'файл'): string {
+  const absPath = resolve(projectPath, filePath)
+  if (!isInsideProject(projectPath, absPath)) {
     throw new Error(`Доступ запрещён: ${label} вне проекта`)
   }
+  return absPath
 }
 
 export async function safeCreateFile(
@@ -316,13 +321,13 @@ export async function safeCreateFile(
   filePath: string,
   content: string
 ): Promise<void> {
-  assertPathInsideProject(projectPath, filePath)
+  const absPath = assertPathInsideProject(projectPath, filePath)
 
-  const dir = dirname(filePath)
+  const dir = dirname(absPath)
   assertPathInsideProject(projectPath, dir, 'папка')
 
   try {
-    await access(filePath, constants.F_OK)
+    await access(absPath, constants.F_OK)
     throw new Error('Файл уже существует — используйте edit_file или write_file')
   } catch (error) {
     if (error instanceof Error && error.message.includes('уже существует')) throw error
@@ -331,8 +336,8 @@ export async function safeCreateFile(
   }
 
   await mkdir(dir, { recursive: true })
-  await writeFile(filePath, content, 'utf-8')
-  invalidateReadCache(filePath)
+  await writeFile(absPath, content, 'utf-8')
+  invalidateReadCache(absPath)
 }
 
 export async function safeEditFile(
@@ -361,32 +366,32 @@ export async function safeAppendFile(
   filePath: string,
   content: string
 ): Promise<void> {
-  assertPathInsideProject(projectPath, filePath)
+  const absPath = assertPathInsideProject(projectPath, filePath)
 
   try {
-    await access(filePath, constants.F_OK)
+    await access(absPath, constants.F_OK)
   } catch {
     throw new Error('Файл не найден — используйте create_file для нового файла')
   }
 
-  const info = await stat(filePath)
+  const info = await stat(absPath)
   if (!info.isFile()) throw new Error('Это не файл')
   if (info.size + Buffer.byteLength(content, 'utf-8') > FILE_SIZE_LIMIT_BYTES) {
     throw new Error('После добавления файл превысит лимит 500 KB')
   }
 
-  await appendFile(filePath, content, 'utf-8')
-  invalidateReadCache(filePath)
+  await appendFile(absPath, content, 'utf-8')
+  invalidateReadCache(absPath)
 }
 
 export async function safeDeleteFile(projectPath: string, filePath: string): Promise<void> {
-  assertPathInsideProject(projectPath, filePath)
+  const absPath = assertPathInsideProject(projectPath, filePath)
 
-  const info = await stat(filePath).catch(() => null)
+  const info = await stat(absPath).catch(() => null)
   if (!info) throw new Error('Файл не найден')
   if (!info.isFile()) throw new Error('Это не файл (удаление папок не поддерживается)')
 
-  await unlink(filePath)
+  await unlink(absPath)
 }
 
 export async function safeMoveFile(
@@ -394,24 +399,24 @@ export async function safeMoveFile(
   fromPath: string,
   toPath: string
 ): Promise<void> {
-  assertPathInsideProject(projectPath, fromPath, 'исходный файл')
-  assertPathInsideProject(projectPath, toPath, 'целевой файл')
+  const absFrom = assertPathInsideProject(projectPath, fromPath, 'исходный файл')
+  const absTo = assertPathInsideProject(projectPath, toPath, 'целевой файл')
 
-  const info = await stat(fromPath).catch(() => null)
+  const info = await stat(absFrom).catch(() => null)
   if (!info) throw new Error('Исходный файл не найден')
   if (!info.isFile()) throw new Error('Это не файл (перенос папок не поддерживается)')
 
-  const targetDir = dirname(toPath)
+  const targetDir = dirname(absTo)
   assertPathInsideProject(projectPath, targetDir, 'целевая папка')
 
-  const targetExists = await access(toPath, constants.F_OK).then(
+  const targetExists = await access(absTo, constants.F_OK).then(
     () => true,
     () => false
   )
   if (targetExists) throw new Error('Целевой файл уже существует')
 
   await mkdir(targetDir, { recursive: true })
-  await rename(fromPath, toPath)
+  await rename(absFrom, absTo)
 }
 
 export async function safeCopyFile(
@@ -419,14 +424,14 @@ export async function safeCopyFile(
   fromPath: string,
   toPath: string
 ): Promise<void> {
-  assertPathInsideProject(projectPath, fromPath, 'исходный файл')
-  assertPathInsideProject(projectPath, toPath, 'целевой файл')
+  const absFrom = assertPathInsideProject(projectPath, fromPath, 'исходный файл')
+  const absTo = assertPathInsideProject(projectPath, toPath, 'целевой файл')
 
-  const info = await stat(fromPath).catch(() => null)
+  const info = await stat(absFrom).catch(() => null)
   if (!info) throw new Error('Исходный файл не найден')
   if (!info.isFile()) throw new Error('Это не файл (копирование папок не поддерживается)')
 
-  const targetDir = dirname(toPath)
+  const targetDir = dirname(absTo)
   assertPathInsideProject(projectPath, targetDir, 'целевая папка')
 
   const targetExists = await access(toPath, constants.F_OK).then(
@@ -436,7 +441,7 @@ export async function safeCopyFile(
   if (targetExists) throw new Error('Целевой файл уже существует')
 
   await mkdir(targetDir, { recursive: true })
-  await cp(fromPath, toPath, { force: false, errorOnExist: true })
+  await cp(absFrom, absTo, { force: false, errorOnExist: true })
 }
 
 export async function safeCopyFolder(
@@ -444,21 +449,21 @@ export async function safeCopyFolder(
   fromPath: string,
   toPath: string
 ): Promise<void> {
-  assertPathInsideProject(projectPath, fromPath, 'исходная папка')
-  assertPathInsideProject(projectPath, toPath, 'целeвая папка')
+  const absFrom = assertPathInsideProject(projectPath, fromPath, 'исходная папка')
+  const absTo = assertPathInsideProject(projectPath, toPath, 'целeвая папка')
 
-  const info = await stat(fromPath).catch(() => null)
+  const info = await stat(absFrom).catch(() => null)
   if (!info) throw new Error('Исходная папка не найдена')
   if (!info.isDirectory()) throw new Error('Это не папка')
 
-  const targetExists = await access(toPath, constants.F_OK).then(
+  const targetExists = await access(absTo, constants.F_OK).then(
     () => true,
     () => false
   )
   if (targetExists) throw new Error('Целевая папка уже существует')
 
-  await mkdir(dirname(toPath), { recursive: true })
-  await cp(fromPath, toPath, { recursive: true, force: false, errorOnExist: true })
+  await mkdir(dirname(absTo), { recursive: true })
+  await cp(absFrom, absTo, { recursive: true, force: false, errorOnExist: true })
 }
 
 export async function safeMoveFolder(
@@ -466,21 +471,21 @@ export async function safeMoveFolder(
   fromPath: string,
   toPath: string
 ): Promise<void> {
-  assertPathInsideProject(projectPath, fromPath, 'исходная папка')
-  assertPathInsideProject(projectPath, toPath, 'целeвая папка')
+  const absFrom = assertPathInsideProject(projectPath, fromPath, 'исходная папка')
+  const absTo = assertPathInsideProject(projectPath, toPath, 'целeвая папка')
 
-  const info = await stat(fromPath).catch(() => null)
+  const info = await stat(absFrom).catch(() => null)
   if (!info) throw new Error('Исходная папка не найдена')
   if (!info.isDirectory()) throw new Error('Это не папка')
 
-  const targetExists = await access(toPath, constants.F_OK).then(
+  const targetExists = await access(absTo, constants.F_OK).then(
     () => true,
     () => false
   )
   if (targetExists) throw new Error('Целевая папка уже существует')
 
-  await mkdir(dirname(toPath), { recursive: true })
-  await rename(fromPath, toPath)
+  await mkdir(dirname(absTo), { recursive: true })
+  await rename(absFrom, absTo)
 }
 
 function killProcessTree(child: ChildProcess): void {

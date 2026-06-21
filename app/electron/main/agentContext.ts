@@ -75,7 +75,7 @@ export function formatFileTree(nodes: FileNode[], prefix = ''): string {
 function buildProjectContext(projectPath: string, treeText: string): string {
   return `# Открытый проект
 Корень: ${projectPath}
-Пути к файлам указывай как абсолютные внутри проекта.
+Для read_file, write_file и других файловых инструментов используй пути **относительно корня проекта** (например, src/components/Foo.tsx) — НЕ добавляй сам корень в путь.
 
 Дерево проекта:
 ${treeText || '(пусто)'}`
