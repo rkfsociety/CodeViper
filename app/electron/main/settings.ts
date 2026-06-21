@@ -18,7 +18,8 @@ const ModelProviderSchema = z.enum([
   'openrouter',
   'gemini',
   'anthropic',
-  'groq'
+  'groq',
+  'together'
 ])
 
 export const PersistedSettingsSchema = z.object({
@@ -43,6 +44,7 @@ export const PersistedSettingsSchema = z.object({
   geminiTier: z.enum(['free', 'paid']).default('free'),
   claudeApiKey: z.string(),
   groqApiKey: z.string(),
+  togetherApiKey: z.string(),
   gitSyncOnStartup: z.boolean(),
   gitSyncStrategy: GitSyncStrategySchema,
   modelContextLength: z.number().int().positive().optional(),
@@ -86,6 +88,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   geminiTier: 'free' as const,
   claudeApiKey: '',
   groqApiKey: '',
+  togetherApiKey: '',
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash',
   qdrantUrl: '',
@@ -140,6 +143,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     geminiTier: settings.geminiTier ?? 'free',
     claudeApiKey,
     groqApiKey: settings.groqApiKey?.trim() ?? '',
+    togetherApiKey: settings.togetherApiKey?.trim() ?? '',
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)

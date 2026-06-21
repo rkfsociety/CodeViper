@@ -555,7 +555,11 @@ export async function summarizeChatHistory(
             ? (settings.openaiApiKey ?? settings.providerApiKey)
             : providerType === 'anthropic'
               ? (settings.claudeApiKey ?? settings.providerApiKey)
-              : undefined
+              : providerType === 'groq'
+                ? (settings.groqApiKey ?? settings.providerApiKey)
+                : providerType === 'together'
+                  ? (settings.togetherApiKey ?? settings.providerApiKey)
+                  : undefined
 
   const providerConfig: ProviderConfig = {
     type: providerType,

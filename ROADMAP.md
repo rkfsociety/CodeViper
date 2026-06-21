@@ -8,7 +8,6 @@
 
 | Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
 |---|---|---|---|---|---|
-| **Провайдеры** | В `SettingsModal.tsx` добавить «Together AI» как отдельный провайдер; переиспользовать `openaiProvider.ts` с `baseUrl: 'https://api.together.xyz/v1'` и полем для API-ключа | Low | S | Groq | ⏳ |
 | **Провайдеры** | В `ollamaProvider.ts` и `openaiProvider.ts` выделить общую логику стриминга в абстрактный класс `StreamingChatProvider`; конкретные провайдеры реализуют только `buildRequest()` и `parseChunk()` | Medium | M | — | ⏳ |
 | **Провайдеры** | В `modelRuntime.ts` реализовать circuit breaker: при 5 последовательных ошибках переходить в состояние `open` (запросы отклоняются немедленно), через 30 с — `half-open` (пробный запрос); статус отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
 | **Архитектура** | В `services.ts` вынести `validateCommand` в расширяемый конфиг: пользователь может добавлять свои запрещённые паттерны через `AgentSettings.commandBlocklist: string[]`; редактирование в `SettingsModal.tsx` | Medium | M | — | ⏳ |
@@ -119,6 +118,7 @@
 
 **Провайдеры и модели**
 - Провайдер Groq: `groqProvider.ts` (переиспользует `OpenAIProvider` с `baseUrl: 'https://api.groq.com/openai/v1'`); поле `groqApiKey` в `settings.ts` и `types.ts`
+- Провайдер Together AI: `togetherProvider.ts` (переиспользует `OpenAIProvider` с `baseUrl: 'https://api.together.xyz/v1'`); поле `togetherApiKey`; оба провайдера добавлены в UI (`SettingsModal.tsx`)
 - Dual-provider режим (Ollama + cloud одновременно); нативный tool calling OpenAI/DeepSeek; `max_tokens`, `temperature` для cloud; работа без Ollama при cloud-провайдере
 - Провайдер OpenRouter (агрегатор: GPT-4o, Claude, Gemini, Llama и др.) — основной и облачный
 - Выбор модели в топбаре; динамический список моделей DeepSeek; совместимость моделей (✓/⚠ по RAM); управление моделями Ollama (каталог, автовыбор, скачать/удалить)

@@ -140,7 +140,15 @@ export interface AgentSettings {
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */
-  modelProvider?: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini' | 'anthropic' | 'groq'
+  modelProvider?:
+    | 'ollama'
+    | 'deepseek'
+    | 'openai'
+    | 'openrouter'
+    | 'gemini'
+    | 'anthropic'
+    | 'groq'
+    | 'together'
   /** @deprecated Используй deepseekApiKey / openaiApiKey / openrouterApiKey */
   providerApiKey?: string
   /** API ключ DeepSeek */
@@ -159,6 +167,8 @@ export interface AgentSettings {
   claudeApiKey?: string
   /** API ключ Groq */
   groqApiKey?: string
+  /** API ключ Together AI */
+  togetherApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
   commandTimeoutSec?: number
   /** Режим только чтение: блокирует все инструменты записи */

@@ -121,7 +121,15 @@ export function SettingsModal({
   }
 
   function handleProviderChange(
-    newProvider: 'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini' | 'anthropic'
+    newProvider:
+      | 'ollama'
+      | 'deepseek'
+      | 'openai'
+      | 'openrouter'
+      | 'gemini'
+      | 'anthropic'
+      | 'groq'
+      | 'together'
   ) {
     const patch: Partial<AgentSettings> = { modelProvider: newProvider }
     if (newProvider === 'deepseek') {
@@ -219,6 +227,8 @@ export function SettingsModal({
                           | 'openrouter'
                           | 'gemini'
                           | 'anthropic'
+                          | 'groq'
+                          | 'together'
                       )
                     }
                   >
@@ -228,6 +238,8 @@ export function SettingsModal({
                     <option value="gemini">Gemini API</option>
                     <option value="openai">OpenAI-совместимый API</option>
                     <option value="openrouter">OpenRouter</option>
+                    <option value="groq">Groq API</option>
+                    <option value="together">Together AI</option>
                   </select>
                 </label>
 
@@ -543,6 +555,97 @@ export function SettingsModal({
                           className="btn btn-sm"
                           onClick={() => void handlePing()}
                           disabled={pingState === 'checking' || !settings.openrouterApiKey}
+                          title="Проверить подключение"
+                        >
+                          {pingState === 'checking'
+                            ? '⏳'
+                            : pingState === 'ok'
+                              ? '✅'
+                              : pingState === 'fail'
+                                ? '❌'
+                                : '🔌'}
+                        </button>
+                      </div>
+                    </label>
+                  </>
+                )}
+
+                {provider === 'groq' && (
+                  <>
+                    <div className={styles.hint}>
+                      <strong>Groq API</strong> — сверхбыстрый инференс (LPU). Модель по умолчанию:{' '}
+                      <code>llama3-8b-8192</code>. Получить ключ:{' '}
+                      <strong>console.groq.com/keys</strong>
+                    </div>
+                    <label>
+                      Groq API ключ
+                      <div className="settings-api-key-row">
+                        <input
+                          type={apiKeyVisible['groq'] ? 'text' : 'password'}
+                          placeholder="gsk_..."
+                          value={settings.groqApiKey ?? ''}
+                          onChange={(e) => onSettingsChange({ groqApiKey: e.target.value })}
+                          autoComplete="off"
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => toggleKeyVisible('groq')}
+                          title={apiKeyVisible['groq'] ? 'Скрыть' : 'Показать'}
+                        >
+                          {apiKeyVisible['groq'] ? '🙈' : '👁'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => void handlePing()}
+                          disabled={pingState === 'checking' || !settings.groqApiKey}
+                          title="Проверить подключение"
+                        >
+                          {pingState === 'checking'
+                            ? '⏳'
+                            : pingState === 'ok'
+                              ? '✅'
+                              : pingState === 'fail'
+                                ? '❌'
+                                : '🔌'}
+                        </button>
+                      </div>
+                    </label>
+                  </>
+                )}
+
+                {provider === 'together' && (
+                  <>
+                    <div className={styles.hint}>
+                      <strong>Together AI</strong> — облачный инференс с OpenAI-совместимым API.
+                      Модель по умолчанию:{' '}
+                      <code>meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo</code>. Получить ключ:{' '}
+                      <strong>api.together.ai/settings/api-keys</strong>
+                    </div>
+                    <label>
+                      Together AI API ключ
+                      <div className="settings-api-key-row">
+                        <input
+                          type={apiKeyVisible['together'] ? 'text' : 'password'}
+                          placeholder="..."
+                          value={settings.togetherApiKey ?? ''}
+                          onChange={(e) => onSettingsChange({ togetherApiKey: e.target.value })}
+                          autoComplete="off"
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => toggleKeyVisible('together')}
+                          title={apiKeyVisible['together'] ? 'Скрыть' : 'Показать'}
+                        >
+                          {apiKeyVisible['together'] ? '🙈' : '👁'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => void handlePing()}
+                          disabled={pingState === 'checking' || !settings.togetherApiKey}
                           title="Проверить подключение"
                         >
                           {pingState === 'checking'

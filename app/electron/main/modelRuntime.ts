@@ -11,6 +11,7 @@ import { GeminiProvider } from './providers/geminiProvider'
 import { OpenAIProvider } from './providers/openaiProvider'
 import { ClaudeProvider } from './providers/claudeProvider'
 import { GroqProvider } from './providers/groqProvider'
+import { TogetherProvider } from './providers/togetherProvider'
 import {
   DEEPSEEK_API_BASE_URL,
   GEMINI_API_BASE_URL,
@@ -57,6 +58,12 @@ export class ModelRuntime {
       const apiKey = config.apiKey || ''
       const model = config.model || 'llama3-8b-8192'
       return new GroqProvider(apiKey, model)
+    }
+
+    if (config.type === 'together') {
+      const apiKey = config.apiKey || ''
+      const model = config.model || 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo'
+      return new TogetherProvider(apiKey, model)
     }
 
     if (config.type === 'openrouter') {
