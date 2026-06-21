@@ -1,9 +1,9 @@
 import type { ToolArgs, ToolHandlers } from './agentTools'
-import { isSearXNGReady, SEARXNG_URL } from './searxng'
 
 const DEFAULT_TIMEOUT_MS = 15_000
+const DDG_LITE_URL = 'https://lite.duckduckgo.com/lite/'
 
-/** Обрезать HTML до читаемого текста — убираем теги и схлопываем пробелы */
+/** Убрать HTML-теги и декодировать сущности */
 function htmlToText(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -20,96 +20,81 @@ function htmlToText(html: string): string {
     .trim()
 }
 
-async function searchViaSearXNG(query: string, maxResults: number): Promise<string> {
-  const url = `${SEARXNG_URL}/search?q=${encodeURIComponent(query)}&format=json&categories=general`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
-
-  try {
-    const response = await fetch(url, { signal: controller.signal })
-    const data = (await response.json()) as {
-      results?: Array<{ title?: string; url?: string; content?: string }>
-      answers?: string[]
-    }
-
-    const lines: string[] = ['[SearXNG]']
-
-    if (data.answers?.length) {
-      lines.push(`Ответ: ${data.answers[0]}`)
-    }
-
-    const results = (data.results ?? []).slice(0, maxResults)
-    if (results.length > 0) {
-      results.forEach((r, i) => {
-        const snippet = r.content ? `\n   ${r.content.slice(0, 200)}` : ''
-        lines.push(`${i + 1}. ${r.title ?? r.url}${snippet}\n   ${r.url}`)
-      })
-    }
-
-    if (lines.length === 1) {
-      return `По запросу «${query}» ничего не найдено.`
-    }
-    return lines.join('\n')
-  } catch (err: unknown) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      return `Таймаут поиска SearXNG (${DEFAULT_TIMEOUT_MS / 1000} с)`
-    }
-    return `Ошибка SearXNG: ${err instanceof Error ? err.message : String(err)}`
-  } finally {
-    clearTimeout(timer)
-  }
+/** Извлечь href из <a href="..."> */
+function extractHref(tag: string): string {
+  const m = tag.match(/href=["']([^"']+)["']/i)
+  return m ? m[1] : ''
 }
 
-async function searchViaDuckDuckGo(query: string, maxResults: number): Promise<string> {
-  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`
+/**
+ * Парсим lite.duckduckgo.com — таблица с результатами.
+ * Структура: строки <tr> с классами result-link / result-snippet.
+ */
+function parseDDGLite(
+  html: string,
+  maxResults: number
+): Array<{ title: string; url: string; snippet: string }> {
+  const results: Array<{ title: string; url: string; snippet: string }> = []
+
+  // Каждый результат — пара строк:
+  // <td class="result-link"><a href="...">Title</a></td>
+  // <td class="result-snippet">Snippet text</td>
+  const linkRe = /<td[^>]*class="result-link"[^>]*>([\s\S]*?)<\/td>/gi
+  const snippetRe = /<td[^>]*class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi
+
+  const links: Array<{ title: string; url: string }> = []
+  let m: RegExpExecArray | null
+
+  while ((m = linkRe.exec(html)) !== null && links.length < maxResults) {
+    const cell = m[1]
+    const aMatch = cell.match(/<a([^>]*)>([\s\S]*?)<\/a>/i)
+    if (!aMatch) continue
+    const href = extractHref(aMatch[1])
+    const title = htmlToText(aMatch[2])
+    if (href && title) links.push({ title, url: href })
+  }
+
+  const snippets: string[] = []
+  while ((m = snippetRe.exec(html)) !== null && snippets.length < maxResults) {
+    snippets.push(htmlToText(m[1]))
+  }
+
+  for (let i = 0; i < links.length; i++) {
+    results.push({ ...links[i], snippet: snippets[i] ?? '' })
+  }
+
+  return results
+}
+
+async function searchDDG(query: string, maxResults: number): Promise<string> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(DDG_LITE_URL, {
+      method: 'POST',
       signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CodeViper-Agent/1.0)' }
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: `q=${encodeURIComponent(query)}&kl=ru-ru`
     })
 
-    const data = (await response.json()) as {
-      AbstractText?: string
-      AbstractURL?: string
-      AbstractSource?: string
-      Answer?: string
-      RelatedTopics?: Array<{
-        Text?: string
-        FirstURL?: string
-        Topics?: Array<{ Text?: string; FirstURL?: string }>
-      }>
-    }
+    const html = await response.text()
+    const results = parseDDGLite(html, maxResults)
 
-    const lines: string[] = ['[DuckDuckGo]']
-
-    if (data.Answer) lines.push(`Ответ: ${data.Answer}`)
-    if (data.AbstractText) {
-      lines.push(data.AbstractText)
-      if (data.AbstractURL)
-        lines.push(`Источник: ${data.AbstractURL} (${data.AbstractSource ?? ''})`)
-    }
-
-    const results: Array<{ text: string; url: string }> = []
-    for (const topic of data.RelatedTopics ?? []) {
-      if (results.length >= maxResults) break
-      if (topic.Text && topic.FirstURL) results.push({ text: topic.Text, url: topic.FirstURL })
-      for (const sub of topic.Topics ?? []) {
-        if (results.length >= maxResults) break
-        if (sub.Text && sub.FirstURL) results.push({ text: sub.Text, url: sub.FirstURL })
-      }
-    }
-
-    if (results.length > 0) {
-      results.forEach((r, i) => lines.push(`${i + 1}. ${r.text}\n   ${r.url}`))
-    }
-
-    if (lines.length === 1) {
+    if (results.length === 0) {
       return `По запросу «${query}» ничего не найдено. Попробуй web_fetch с конкретным URL.`
     }
-    return lines.join('\n')
+
+    return results
+      .map((r, i) => {
+        const lines = [`${i + 1}. ${r.title}`, `   ${r.url}`]
+        if (r.snippet) lines.push(`   ${r.snippet}`)
+        return lines.join('\n')
+      })
+      .join('\n\n')
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       return `Таймаут поиска (${DEFAULT_TIMEOUT_MS / 1000} с)`
@@ -146,7 +131,7 @@ export function createWebToolHandlers(): Partial<ToolHandlers> {
         const response = await fetch(url, {
           signal: controller.signal,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; CodeViper-Agent/1.0)'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
         })
 
@@ -174,9 +159,7 @@ export function createWebToolHandlers(): Partial<ToolHandlers> {
 
       if (!query.trim()) return 'Не указан поисковый запрос'
 
-      return isSearXNGReady()
-        ? searchViaSearXNG(query, maxResults)
-        : searchViaDuckDuckGo(query, maxResults)
+      return searchDDG(query, maxResults)
     }
   }
 }

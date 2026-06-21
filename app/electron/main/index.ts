@@ -50,7 +50,6 @@ import { setProgressTarget, clearProgress } from './progress'
 import { listPullRequests } from './githubPr'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
 import { startUpdateChecks } from './updateChecker'
-import { startSearXNG, stopSearXNG } from './searxng'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -223,9 +222,6 @@ app.whenReady().then(async () => {
 
   if (mainWindow) startUpdateChecks(mainWindow.webContents)
 
-  // Поднимаем локальный SearXNG для web_search (требует Docker)
-  void startSearXNG()
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()
   })
@@ -247,7 +243,6 @@ app.on('window-all-closed', () => {
 // его отсутствие означает штатный выход (не краш).
 app.on('before-quit', () => {
   clearAppState().catch(() => {})
-  stopSearXNG()
 })
 
 // Рендерер сохраняет состояние каждые 30 с; fire-and-forget.
