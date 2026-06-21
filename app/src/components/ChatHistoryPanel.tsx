@@ -125,7 +125,7 @@ export function ChatHistoryPanel({
   onStoreChange
 }: Props) {
   const { chatStore: store, activeChatId } = useChatContext()
-  const { chatBusy } = useChatBusy()
+  const { busyChats, chatBusy } = useChatBusy()
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [tagFilter, setTagFilter] = useState('')
@@ -330,6 +330,13 @@ export function ChatHistoryPanel({
         <div className={styles.itemMain}>
           <div className={styles.title}>
             {chat.pinned && <span className={styles.pinIcon}>📌 </span>}
+            {busyChats.has(chat.id) && (
+              <span
+                className={styles.busyPulse}
+                title="Агент работает"
+                aria-label="Агент работает"
+              />
+            )}
             {chat.title}
           </div>
           <div className={styles.meta}>

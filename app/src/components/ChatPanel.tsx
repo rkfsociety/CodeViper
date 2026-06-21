@@ -286,7 +286,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     interruptedDraft,
     refreshChatStore: onInterruptedDraftChange
   } = useChatContext()
-  const { setChatBusy } = useChatBusy()
+  const { markChatBusy } = useChatBusy()
   const [input, setInput] = useState('')
   const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string; size?: number }[]>(
     []
@@ -499,7 +499,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     appendMessage,
     onRunStart: resetStreamState,
     onReset: resetStreamState,
-    onBusyChange: setChatBusy,
+    onBusyChange: (busy: boolean) => chatId && markChatBusy(chatId, busy),
     onPrerequisiteIssue: setPrerequisiteBlock,
     onDangerWarning: setDangerBlock,
     draftRef,

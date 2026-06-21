@@ -209,6 +209,30 @@
   vertical-align: middle;
 }
 
+.busyPulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--accent, #7ee787);
+  margin-right: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  animation: busyPulseAnim 1.2s ease-in-out infinite;
+}
+
+@keyframes busyPulseAnim {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
