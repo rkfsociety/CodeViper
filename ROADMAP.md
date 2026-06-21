@@ -7,10 +7,7 @@
 
 | Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
 |---|---|---|---|---|---|
-| **UI** | В `ChatHistoryPanel.tsx` рядом с каждым чатом в списке добавить иконку-пульс, если `agentRunState` содержит его `chatId`; данные берутся из `useAgentStream` или IPC `get-agent-run-state` | High | S | — | ⏳ |
-| **UI** | В `ChatPanel.tsx` заменить рендер списка сообщений на `@tanstack/react-virtual`; виртуализировать только основной список — история чатов и память уже виртуализированы | Medium | M | — | ⏳ |
 | **UI** | В `AgentStatusBar.tsx` добавить серый чип «Планирую...» который появляется при получении stream-события `orchestrating` и скрывается при `orchestrating: false`; опционально — раскрывающийся блок с текстом плана | Low | S | Класс OrchestratorModel | ⏳ |
-| **Архитектура** | В `agent.ts` заменить единую очередь сообщений на `Map<chatId, queue>`; агенты в разных чатах запускаются параллельно и не блокируют друг друга | High | M | — | ⏳ |
 | **Архитектура** | В `selfCommit.ts` обернуть все вызовы `git` в retry-цикл: 3 попытки с задержками 1 с → 2 с → 4 с; при исчерпании попыток выбрасывать ошибку с деталями | Medium | S | — | ⏳ |
 | **Архитектура** | В `embeddingQueue.ts` группировать входящие запросы `computeEmbeddingQueued` в батчи до 4 штук через `Promise.all`; не ждать каждый по одному — отправлять пачку в воркер | Medium | S | — | ⏳ |
 | **Архитектура** | В `actionVerification.ts` дополнить текущую regexp-проверку вызовом LLM для граничных случаев, когда regexp не уверен; цель — снизить число ложных блокировок на нестандартных командах | Medium | M | — | ⏳ |
@@ -126,7 +123,9 @@
 **Архитектура фронтенда**
 - `AgentContext` (`useReducer` + Context): phase, runStats, метрики — без пропсов
 - `ChatContext`: messages, activeChatId, chatStore, activeChat, interruptedDraft — без пропсов
-- `QueueContext`: chatBusy — без пропсов; единый `resetQueue()` сбрасывает и очередь, и стрим
+- `QueueContext`: `busyChats: Set<string>` + `markChatBusy(chatId, busy)` — параллельный учёт занятых чатов; иконка-пульс в `ChatHistoryPanel` рядом с занятым чатом
+- Виртуализация списка сообщений в `ChatPanel` через `@tanstack/react-virtual` с `measureElement` для динамических высот
+- Параллельные агенты per-chat: `App.tsx` хранит `Map<chatId, ChatMessage[]>`, рендерит по одному `ChatPanel` на каждый смонтированный чат; переключение между чатами не блокируется
 
 **Производительность**
 - Workers: grep/find, эмбеддинги, парсинг больших файлов — main не блокируется
