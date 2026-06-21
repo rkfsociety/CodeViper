@@ -11,6 +11,7 @@ import {
   shouldRetryForMissingTools,
   taskLikelyNeedsMutation,
   taskLikelyNeedsTools,
+  taskMutationLikelihood,
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
@@ -619,9 +620,16 @@ export class AgentRunner {
 
           const mutationTask = taskLikelyNeedsMutation(userMessage)
           const noMutatingToolsYet = mutatingToolsUsed.size === 0
-          const shouldRetryWithTools =
+          let shouldRetryWithTools =
             shouldRetryForMissingTools(userMessage, assistantText, mutatingToolsUsed, usedTools) &&
             verificationRetries < MAX_VERIFICATION_RETRIES
+
+          // Для неоднозначных задач (fix, update, improve...) уточняем через LLM
+          // прежде чем запускать ненужный retry-цикл.
+          if (shouldRetryWithTools && taskMutationLikelihood(userMessage) === 'uncertain') {
+            const llmSays = await this.classifyMutationNeededByLLM(userMessage)
+            if (llmSays === false) shouldRetryWithTools = false
+          }
 
           if (shouldRetryWithTools) {
             verificationRetries += 1
@@ -1281,6 +1289,44 @@ export class AgentRunner {
 
     await safeWriteFile(this.projectPath, filePath, newContent)
     return `✅ Правки применены: ${filePath}`
+  }
+
+  /**
+   * Быстрый LLM-классификатор для граничных случаев:
+   * нужны ли реальные инструменты для этой задачи?
+   * Возвращает true если LLM уверен что нужна мутация, false — если достаточно текста.
+   * При ошибке возвращает null (не блокируем).
+   */
+  private async classifyMutationNeededByLLM(userMessage: string): Promise<boolean | null> {
+    try {
+      const messages: OllamaMessage[] = [
+        {
+          role: 'system',
+          content: 'Ты классификатор. Отвечай только JSON без пояснений.'
+        },
+        {
+          role: 'user',
+          content: `Требует ли следующее сообщение реального изменения файлов, кода или запуска команд? Или достаточно текстового ответа?\nСообщение: "${userMessage}"\nОтвет строго в формате: {"needsAction":true} или {"needsAction":false}`
+        }
+      ]
+
+      let text = ''
+      for await (const chunk of this.modelRuntime.chat({
+        messages,
+        model: this.settings.model,
+        tools: [],
+        signal: this.signal
+      })) {
+        if (chunk.content) text += chunk.content
+        if (chunk.stop_reason) break
+      }
+
+      const match = text.match(/"needsAction"\s*:\s*(true|false)/)
+      if (!match) return null
+      return match[1] === 'true'
+    } catch {
+      return null
+    }
   }
 
   private async handlePreviewPatch(args: Record<string, string>): Promise<string> {

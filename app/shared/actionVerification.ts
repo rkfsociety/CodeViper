@@ -31,6 +31,19 @@ const MUTATION_TASK_PATTERNS: RegExp[] = [
   /(?:create|add|write|fix|update|delete|implement|refactor|improve|design)/i
 ]
 
+/** Паттерны высокой уверенности — явные команды на изменение */
+const HIGH_CONFIDENCE_MUTATION_PATTERNS: RegExp[] = [
+  /(?:создай|сделай|добавь|запиши|удали|реализуй|внедри)/iu,
+  /(?:create|add|write|delete|implement)/i,
+  /(?:обучи|дообуч|train|fine-tune)/iu
+]
+
+/** Паттерны неопределённости — слова, которые могут быть как командой, так и вопросом */
+const UNCERTAIN_MUTATION_PATTERNS: RegExp[] = [
+  /(?:измени|исправь|обнови|улучш)/iu,
+  /(?:fix|update|refactor|improve|design|change)/i
+]
+
 /** Задачи, где агент обязан вызвать инструменты (чтение или запись), а не советовать пользователю. */
 const TOOL_TASK_PATTERNS: RegExp[] = [
   ...MUTATION_TASK_PATTERNS,
@@ -68,6 +81,20 @@ export function taskLikelyNeedsMutation(userMessage: string): boolean {
   const text = userMessage.trim()
   if (!text) return false
   return MUTATION_TASK_PATTERNS.some((pattern) => pattern.test(text))
+}
+
+/**
+ * Возвращает уровень уверенности что задача требует мутации файлов/кода:
+ * - 'high': явные команды (создай, добавь, delete, implement...)
+ * - 'uncertain': неоднозначные слова (исправь, fix, update...) — стоит уточнить через LLM
+ * - 'none': не похоже на задачу с мутацией
+ */
+export function taskMutationLikelihood(userMessage: string): 'high' | 'uncertain' | 'none' {
+  const text = userMessage.trim()
+  if (!text) return 'none'
+  if (HIGH_CONFIDENCE_MUTATION_PATTERNS.some((p) => p.test(text))) return 'high'
+  if (UNCERTAIN_MUTATION_PATTERNS.some((p) => p.test(text))) return 'uncertain'
+  return 'none'
 }
 
 export function isInformationOnlyQuestion(userMessage: string): boolean {
