@@ -1292,6 +1292,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                       const isActive = settings.autoModel === false && settings.model === m.name
                       const shortName = m.name.split(':')[0]
                       const tag = m.name.includes(':') ? m.name.split(':')[1] : undefined
+                      const sizeLabel = m.parameterSize ?? tag ?? undefined
                       return (
                         <button
                           key={m.name}
@@ -1305,7 +1306,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                           }}
                         >
                           <span className={styles.modelPickerName}>{shortName}</span>
-                          {tag && <span className={styles.modelPickerTag}>{tag}</span>}
+                          {sizeLabel && <span className={styles.modelPickerTag}>{sizeLabel}</span>}
                           {isActive && <span className={styles.modelPickerCheck}>✓</span>}
                         </button>
                       )

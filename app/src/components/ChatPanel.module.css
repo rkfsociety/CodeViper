@@ -401,7 +401,7 @@
   position: absolute;
   bottom: calc(100% + 4px);
   left: 0;
-  min-width: 180px;
+  min-width: 220px;
   background: var(--bg-secondary, #161b22);
   border: 1px solid var(--border, #30363d);
   border-radius: 6px;
