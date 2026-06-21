@@ -35,7 +35,7 @@ function runGit(cwd: string, args: string[]): Promise<GitResult> {
  * При исчерпании попыток выбрасывает ошибку с деталями.
  */
 async function runGitWithRetry(cwd: string, args: string[], label: string): Promise<GitResult> {
-  const delays = [1000, 2000]
+  const delays = [1000, 2000, 4000]
   let last: GitResult | undefined
 
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -48,9 +48,7 @@ async function runGitWithRetry(cwd: string, args: string[], label: string): Prom
   }
 
   const detail = (last!.stderr || last!.stdout).trim()
-  throw new Error(
-    `git ${label} завершился с ошибкой после 3 попыток (код ${last!.code})${detail ? `: ${detail}` : ''}`
-  )
+  throw new Error(`Git operation '${label}' failed after 3 attempts: ${detail}`)
 }
 
 export interface SelfCommitResult {

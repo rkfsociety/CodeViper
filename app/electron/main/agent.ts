@@ -1249,8 +1249,9 @@ export class AgentRunner {
     const diff = createUnifiedDiff(oldContent, newContent, filePath)
     if (!diff) return 'Нет изменений — содержимое файла уже совпадает с предложенным.'
 
-    if (!this.previewFn) {
-      // Нет UI (тесты / нет окна) — применяем сразу
+    const autoApply = !this.previewFn || (this.settings.permissionMode ?? 'bypass') === 'bypass'
+
+    if (autoApply) {
       await safeWriteFile(this.projectPath, filePath, newContent)
       return `✅ Файл записан: ${filePath}`
     }
@@ -1260,7 +1261,7 @@ export class AgentRunner {
     // Шлём diff через stream — renderer добавит сообщение с кнопками Apply/Cancel
     this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
 
-    const apply = await this.previewFn(previewId)
+    const apply = await this.previewFn!(previewId)
     if (!apply) return `❌ Правки отменены пользователем: ${filePath}`
 
     await safeWriteFile(this.projectPath, filePath, newContent)
