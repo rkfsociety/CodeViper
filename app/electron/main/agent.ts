@@ -1246,6 +1246,17 @@ export class AgentRunner {
       // Новый файл — oldContent остаётся пустым
     }
 
+    // Защита от случайного удаления содержимого: если новый контент значительно короче
+    // старого (менее 50%) — это почти всегда ошибка (модель сгенерировала только фрагмент).
+    if (oldContent.length > 500 && newContent.length < oldContent.length * 0.5) {
+      return (
+        `❌ preview_edit отклонён: новый контент (${newContent.length} симв.) значительно короче оригинала (${oldContent.length} симв.). ` +
+        `Это защита от случайного удаления кода. ` +
+        `Для точечных правок используй preview_patch (old_string → new_string). ` +
+        `Если действительно нужна полная перезапись — передай ВСЕ содержимое файла.`
+      )
+    }
+
     const diff = createUnifiedDiff(oldContent, newContent, filePath)
     if (!diff) return 'Нет изменений — содержимое файла уже совпадает с предложенным.'
 
@@ -1259,6 +1270,55 @@ export class AgentRunner {
     const { makeId: mkId } = await import('../../shared/makeId')
     const previewId = mkId()
     // Шлём diff через stream — renderer добавит сообщение с кнопками Apply/Cancel
+    this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
+
+    const apply = await this.previewFn!(previewId)
+    if (!apply) return `❌ Правки отменены пользователем: ${filePath}`
+
+    await safeWriteFile(this.projectPath, filePath, newContent)
+    return `✅ Правки применены: ${filePath}`
+  }
+
+  private async handlePreviewPatch(args: Record<string, string>): Promise<string> {
+    const { path: filePath, old_string: oldStr, new_string: newStr, replace_all: replaceAll } = args
+    if (!filePath || oldStr === undefined || newStr === undefined) {
+      return 'preview_patch: нужны path, old_string и new_string'
+    }
+
+    const { safeReadFilePartial, safeWriteFile, isInsideProject } = await import('./services')
+    if (!isInsideProject(this.projectPath, filePath)) {
+      return `preview_patch: путь вне проекта — ${filePath}`
+    }
+
+    let oldContent = ''
+    try {
+      const raw = await safeReadFilePartial(this.projectPath, filePath, 0, 200000)
+      oldContent = typeof raw === 'string' ? raw : ''
+    } catch {
+      return `preview_patch: не удалось прочитать файл — ${filePath}`
+    }
+
+    const doReplaceAll = replaceAll === 'true'
+    if (!oldContent.includes(oldStr)) {
+      return `preview_patch: old_string не найден в файле. Прочитай файл заново и скопируй точный фрагмент.`
+    }
+
+    const newContent = doReplaceAll
+      ? oldContent.split(oldStr).join(newStr)
+      : oldContent.replace(oldStr, newStr)
+
+    const diff = createUnifiedDiff(oldContent, newContent, filePath)
+    if (!diff) return 'Нет изменений — old_string и new_string идентичны.'
+
+    const autoApply = !this.previewFn || (this.settings.permissionMode ?? 'bypass') === 'bypass'
+
+    if (autoApply) {
+      await safeWriteFile(this.projectPath, filePath, newContent)
+      return `✅ Правка применена: ${filePath}`
+    }
+
+    const { makeId: mkId } = await import('../../shared/makeId')
+    const previewId = mkId()
     this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
 
     const apply = await this.previewFn!(previewId)
@@ -1292,7 +1352,8 @@ export class AgentRunner {
       ),
       ...createTodoToolHandlers(this.emit),
       ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
-      preview_edit: (args) => this.handlePreviewEdit(args)
+      preview_edit: (args) => this.handlePreviewEdit(args),
+      preview_patch: (args) => this.handlePreviewPatch(args)
     } as ToolHandlers
 
     return this.toolHandlers

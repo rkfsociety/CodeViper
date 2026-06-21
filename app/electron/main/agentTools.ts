@@ -195,14 +195,41 @@ const FILE_TOOLS = [
     function: {
       name: 'preview_edit',
       description:
-        'Показать пользователю unified diff предлагаемых правок файла. Пользователь увидит изменения и выберет «Применить» или «Отмена». Используй вместо write_file, когда нужно согласование перед записью.',
+        'Показать diff и перезаписать файл ЦЕЛИКОМ. Только для новых файлов или полного переписывания — content должен содержать ВСЕ строки файла без исключения. Для точечных правок существующих файлов — используй preview_patch (безопаснее).',
       parameters: {
         type: 'object',
         properties: {
           path: { type: 'string', description: 'путь к файлу относительно корня проекта' },
-          content: { type: 'string', description: 'новое содержимое файла целиком' }
+          content: {
+            type: 'string',
+            description: 'новое содержимое файла целиком (все строки без исключения)'
+          }
         },
         required: ['path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'preview_patch',
+      description:
+        'Показать пользователю diff точечной правки и применить после подтверждения. Предпочтительный инструмент для правок существующих файлов — заменяет только указанный фрагмент, не трогая остальной код. Перед вызовом — прочитай файл, чтобы скопировать точный old_string.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'путь к файлу относительно корня проекта' },
+          old_string: {
+            type: 'string',
+            description: 'точный фрагмент из файла (с пробелами и переносами)'
+          },
+          new_string: { type: 'string', description: 'новый фрагмент вместо old_string' },
+          replace_all: {
+            type: 'string',
+            description: 'true — заменить все вхождения; по умолчанию false'
+          }
+        },
+        required: ['path', 'old_string', 'new_string']
       }
     }
   },
@@ -1134,6 +1161,7 @@ export interface ToolArgs {
   search_in_file: { path: string; query: string; context_lines?: string }
   show_file_history: { path: string }
   preview_edit: { path: string; content: string }
+  preview_patch: { path: string; old_string: string; new_string: string; replace_all?: string }
   write_file: { path: string; content: string }
   create_file: { path: string; content: string }
   edit_file: { path: string; old_string: string; new_string: string; replace_all?: string }
