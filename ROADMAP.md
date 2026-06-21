@@ -21,9 +21,6 @@
 | **Инфраструктура** | Написать NSIS-скрипт для `electron-builder`: при установке клонировать репозиторий CodeViper в `%APPDATA%\CodeViper\source\` через `git clone`, создавать ярлык на рабочем столе, запускающий `CodeViper.cmd` | Medium | L | — | ⏳ |
 | **Инфраструктура** | При сборке `electron-builder` скачивать портативный Node.js в `resources/node/`; при самопересборке агента (`npm run build` в CodeViper) использовать этот Node.js, а не системный | Low | M | — | ⏳ |
 | **Инфраструктура** | Установить и скомпилировать `node-llama-cpp` как нативный Electron-модуль для win32/linux/darwin; smoke-тест: загрузить GGUF, получить один токен, выгрузить; без этого оркестратор не работает | Low | XL | — | ⏳ |
-| **Контекст** | В `contextSummarizer.ts` в функции `compressContextMessages` перед суммаризацией проходить по истории и заменять повторяющиеся tool results (одинаковый инструмент + одинаковый вывод) на `(повторено N раз)` | Medium | S | — | ⏳ |
-| **Контекст** | В `services.ts` в `safeReadFilePartial`: если файл > 20 КБ и не запрошен конкретный диапазон строк — читать первые 50 и последние 50 строк, вставляя маркер `... (X строк обрезано) ...` посередине | Medium | S | — | ⏳ |
-| **Контекст** | В `fileSearch.ts` накапливать параллельные вызовы `grep` за один тик event loop и объединять до 4–5 паттернов в один запрос к воркеру через `fileSearchInWorker.ts` | Medium | M | — | ⏳ |
 | **Контекст** | В `fileSearchInWorker.ts` добавить LRU-кэш 200 записей для результатов `find_files`; ключ `{pattern, root}`, инвалидация по `mtime` корневой директории; аналогично существующему кэшу grep | Medium | M | — | ⏳ |
 | **Контекст** | В `contextSummarizer.ts` в `compressContextMessages`: удалять из истории tool results, чей `content` начинается с `Ошибка:`, если для того же инструмента есть более поздний успешный результат; оставлять только последнюю попытку | Low | S | — | ⏳ |
 | **MCP** | В `SettingsModal.tsx` на вкладке «Интеграции» добавить секцию MCP: список подключённых серверов из настроек, кнопка «+ Добавить», поле ввода URL; сохранять в `AgentSettings.mcpServers: string[]` | Medium | S | Парсинг схем MCP | ⏳ |
@@ -51,16 +48,19 @@
 | **Провайдеры** | В `electron/main/index.ts` добавить провайдер Groq: переиспользовать `openaiProvider.ts` с `baseUrl: 'https://api.groq.com/openai/v1'`; добавить пункт «Groq» в выпадающий список провайдеров в `SettingsModal.tsx` и поле для API-ключа | Medium | S | — | ⏳ |
 | **Провайдеры** | В `ollamaProvider.ts` и `openaiProvider.ts` выделить общую логику стриминга в абстрактный класс `StreamingChatProvider`; конкретные провайдеры реализуют только `buildRequest()` и `parseChunk()` | Medium | M | — | ⏳ |
 | **Провайдеры** | В `modelRuntime.ts` реализовать circuit breaker: при 5 последовательных ошибках переходить в состояние `open` (запросы отклоняются немедленно), через 30 с — `half-open` (пробный запрос); статус отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
-| **Провайдеры** | Написать интеграционные тесты для `ollamaProvider.ts` и `openaiProvider.ts` с использованием `nock` или `msw`; покрыть сценарии: успешный tool call, стриминг, ответ 429, разрыв соединения на полуслове | Medium | M | — | ⏳ |
 | **Провайдеры** | В `SettingsModal.tsx` добавить «Together AI» как отдельный провайдер; переиспользовать `openaiProvider.ts` с `baseUrl: 'https://api.together.xyz/v1'` и полем для API-ключа | Low | S | Groq | ⏳ |
 | **Qdrant / RAG** | Добавить в `SettingsModal.tsx` вкладку «Интеграции» поля для Qdrant URL и API-ключа с кнопкой проверки соединения; сохранять в `AgentSettings`; установить `@qdrant/js-client-rest` | Medium | M | — | ⏳ |
 | **Qdrant / RAG** | Реализовать инструмент `search_knowledge_base` в `agentHandlersProject.ts`: принимает `query: string`, возвращает top-5 чанков с путями файлов из проиндексированной Qdrant-коллекции | Medium | M | Индексирование | ⏳ |
 | **Qdrant / RAG** | Реализовать инструмент `index_project` в `agentHandlersProject.ts`: рекурсивно читает файлы проекта, разбивает на чанки по 500 строк, получает эмбеддинги через `computeEmbeddingQueued`, записывает в Qdrant-коллекцию `codeviper_project`; прогресс через `onProgressEvent` | Medium | L | Qdrant настройки | ⏳ |
-| **Qdrant / RAG** | Добавить в `contextRAG.ts` поддержку Milvus как альтернативы Qdrant; выбор провайдера через `AgentSettings.ragProvider: 'qdrant' \| 'milvus'`; реализовать общий интерфейс `VectorStore` | Low | L | Qdrant настройки | ⏳ |
 
 ---
 
 ## ✅ Сделано
+- `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`
+- Дедупликация повторяющихся tool results перед суммаризацией: одинаковый инструмент + вывод → `(повторено N раз)`
+- Авто-превью файлов >20 КБ: первые/последние 50 строк с маркером `... (X строк обрезано) ...`
+- Батчинг параллельных grep-запросов за один тик event loop в `fileSearch.ts`
+- Интеграционные тесты OllamaProvider и OpenAIProvider: стриминг, tool call, 429, разрыв соединения
 - Чип «Планирую…» в `AgentStatusBar` при получении stream-события `orchestrating`; раскрывающийся блок с текстом плана
 - `selfCommit.ts`: retry-цикл 3 попытки 1 с → 2 с → 4 с для всех git-операций; throw с деталями при исчерпании
 - `preview_patch`: новый инструмент точечной правки (old_string → new_string) с показом diff и подтверждением; `preview_edit` в режиме bypass применяется без диалога; защита от усечения файла (отклонение если новый контент < 50% старого)
