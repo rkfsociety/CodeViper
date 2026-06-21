@@ -22,24 +22,87 @@ function embedCacheSet(text: string, vec: number[]): void {
   embedCache.set(text, vec)
 }
 
+// ── Внутренние типы ───────────────────────────────────────────────────────────
+
 interface PendingRequest {
   resolve: (vec: number[] | null) => void
   reject: (err: Error) => void
 }
 
+interface QueueItem {
+  text: string
+  ollamaUrl: string
+  resolve: (vec: number[] | null) => void
+  reject: (err: Error) => void
+}
+
+// ── Состояние воркера ─────────────────────────────────────────────────────────
+
 let worker: Worker | null = null
 let nextId = 0
 const pending = new Map<number, PendingRequest>()
 let ready = false
-const queue: Array<{ id: number; text: string; ollamaUrl: string }> = []
 
-function flushQueue(): void {
-  if (!worker || !ready) return
-  while (queue.length > 0) {
-    const msg = queue.shift()!
-    worker.postMessage(msg)
+// Очередь ожидающих запросов (до отправки в воркер)
+const waitQueue: QueueItem[] = []
+// Флаг: батч-цикл сейчас работает
+let draining = false
+
+const BATCH_SIZE = 4
+
+// ── Батч-дренаж ───────────────────────────────────────────────────────────────
+
+/** Запланировать дренаж в текущем тике (микротаск). */
+function scheduleFlush(): void {
+  if (draining) return
+  void Promise.resolve().then(() => flush())
+}
+
+/**
+ * Дренирует waitQueue батчами по BATCH_SIZE.
+ * Каждый батч отправляется в воркер и ожидается через Promise.all.
+ * Следующий батч стартует только после полного завершения предыдущего.
+ */
+async function flush(): Promise<void> {
+  if (draining || !ready || !worker) return
+  draining = true
+  try {
+    while (waitQueue.length > 0 && ready && worker) {
+      const batch = waitQueue.splice(0, BATCH_SIZE)
+      await Promise.all(batch.map((item) => dispatchOne(item)))
+    }
+  } finally {
+    draining = false
+    // Если новые запросы пришли пока дренировали — запускаем ещё раз
+    if (waitQueue.length > 0 && ready) scheduleFlush()
   }
 }
+
+/** Отправить один запрос в воркер и вернуть Promise, который резолвится когда воркер ответит. */
+function dispatchOne(item: QueueItem): Promise<void> {
+  return new Promise<void>((done) => {
+    const id = nextId++
+    pending.set(id, {
+      resolve: (vec) => {
+        if (vec !== null) embedCacheSet(item.text, vec)
+        item.resolve(vec)
+        done()
+      },
+      reject: (err) => {
+        item.reject(err)
+        done()
+      }
+    })
+    worker!.postMessage({
+      id,
+      type: 'compute' as const,
+      text: item.text,
+      ollamaUrl: item.ollamaUrl
+    })
+  })
+}
+
+// ── Управление воркером ───────────────────────────────────────────────────────
 
 function getWorker(): Worker {
   if (worker) return worker
@@ -58,7 +121,7 @@ function getWorker(): Worker {
     ) => {
       if (msg.type === 'ready') {
         ready = true
-        flushQueue()
+        scheduleFlush()
         return
       }
       const req = pending.get(msg.id)
@@ -75,18 +138,23 @@ function getWorker(): Worker {
   worker.on('error', (err) => {
     for (const req of pending.values()) req.reject(err)
     pending.clear()
-    queue.length = 0
+    // Отклоняем запросы, ещё не отправленные в воркер
+    const stuck = waitQueue.splice(0)
+    for (const item of stuck) item.reject(err)
+    draining = false
     worker = null
     ready = false
   })
 
   worker.on('exit', (code) => {
     if (code !== 0) {
-      for (const req of pending.values())
-        req.reject(new Error(`embeddingWorker завершился с кодом ${code}`))
+      const exitErr = new Error(`embeddingWorker завершился с кодом ${code}`)
+      for (const req of pending.values()) req.reject(exitErr)
       pending.clear()
+      const stuck = waitQueue.splice(0)
+      for (const item of stuck) item.reject(exitErr)
     }
-    queue.length = 0
+    draining = false
     worker = null
     ready = false
   })
@@ -94,26 +162,18 @@ function getWorker(): Worker {
   return worker
 }
 
-/** Вычислить эмбеддинг через воркер с LRU-кэшем 500 записей. */
+// ── Публичный API ─────────────────────────────────────────────────────────────
+
+/** Вычислить эмбеддинг через воркер с LRU-кэшем 500 записей.
+ *  Запросы группируются в батчи до 4 штук и отправляются в воркер через Promise.all. */
 export function computeEmbeddingQueued(text: string, ollamaUrl: string): Promise<number[] | null> {
   const cached = embedCacheGet(text)
   if (cached) return Promise.resolve(cached)
 
+  getWorker() // гарантируем, что воркер создан
+
   return new Promise((resolve, reject) => {
-    const id = nextId++
-    pending.set(id, {
-      resolve: (vec) => {
-        if (vec) embedCacheSet(text, vec)
-        resolve(vec)
-      },
-      reject
-    })
-    const msg = { id, type: 'compute' as const, text, ollamaUrl }
-    if (ready) {
-      getWorker().postMessage(msg)
-    } else {
-      queue.push(msg)
-      getWorker() // гарантируем, что воркер создан
-    }
+    waitQueue.push({ text, ollamaUrl, resolve, reject })
+    scheduleFlush()
   })
 }
