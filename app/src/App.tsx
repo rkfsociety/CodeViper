@@ -635,6 +635,13 @@ function AppContent() {
             </button>
             <button
               className="btn"
+              onClick={() => window.codeviper.openDevTools()}
+              title="Открыть консоль разработчика"
+            >
+              DevTools
+            </button>
+            <button
+              className="btn"
               onClick={() => setSettingsOpen(true)}
               title="Настройки (Ctrl+,)"
             >

@@ -541,6 +541,10 @@ ipcMain.handle(
     triggerGithubWorkflow(workflowId, ref, fields)
 )
 
+ipcMain.on('open-devtools', () => {
+  mainWindow?.webContents.openDevTools({ mode: 'detach' })
+})
+
 ipcMain.on('restart-app', () => {
   // Перезапуск: лаунчер start-dev.ps1 при старте подтянет origin и пересоберёт.
   app.relaunch()

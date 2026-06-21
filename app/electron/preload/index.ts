@@ -295,6 +295,8 @@ const codeviper = {
 
   restartApp: () => ipcRenderer.send('restart-app'),
 
+  openDevTools: () => ipcRenderer.send('open-devtools'),
+
   logFrontendError: (message: string, stack?: string) =>
     ipcRenderer.send('log-frontend-error', message, stack),
 

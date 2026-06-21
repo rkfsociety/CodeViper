@@ -507,6 +507,7 @@ export interface CodeViperAPI {
   showItemInFolder: (filePath: string) => void
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
   restartApp: () => void
+  openDevTools: () => void
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>
