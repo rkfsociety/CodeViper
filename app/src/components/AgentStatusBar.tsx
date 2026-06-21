@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { TOOL_LABELS } from '../../shared/toolDisplay'
 import {
   formatGenerationMetricsHint,
@@ -58,9 +59,18 @@ interface Props {
 }
 
 export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props) {
-  const { agentPhase, activeToolName, summarizing, generationMetrics, runModel, runStats } =
-    useAgentState()
+  const {
+    agentPhase,
+    activeToolName,
+    summarizing,
+    generationMetrics,
+    runModel,
+    runStats,
+    orchestrating,
+    orchestratingPlan
+  } = useAgentState()
   const displayModel = runModel || model
+  const [planExpanded, setPlanExpanded] = useState(false)
 
   const label = progress
     ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
@@ -86,7 +96,20 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
       <div className="agent-status-bar-head">
         <span className="agent-status-pulse" aria-hidden="true" />
         <span className="agent-status-label">{label}</span>
+        {orchestrating && (
+          <button
+            type="button"
+            className="agent-orchestrating-chip"
+            onClick={() => orchestratingPlan && setPlanExpanded((v) => !v)}
+            title={orchestratingPlan ? 'Нажми, чтобы увидеть план' : undefined}
+          >
+            Планирую{orchestratingPlan ? (planExpanded ? ' ▾' : ' ▸') : '…'}
+          </button>
+        )}
       </div>
+      {orchestrating && orchestratingPlan && planExpanded && (
+        <pre className="agent-orchestrating-plan">{orchestratingPlan}</pre>
+      )}
     </div>
   )
 }

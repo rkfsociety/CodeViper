@@ -859,6 +859,43 @@ button {
   background: var(--purple-light);
 }
 
+.agent-orchestrating-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg-3, #3a3a3a);
+  color: var(--text-muted, #999);
+  border: 1px solid var(--border, #444);
+  cursor: default;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+}
+.agent-orchestrating-chip[title] {
+  cursor: pointer;
+}
+.agent-orchestrating-chip[title]:hover {
+  color: var(--text, #ccc);
+  border-color: var(--text-muted, #999);
+}
+.agent-orchestrating-plan {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted, #999);
+  background: var(--bg-3, #3a3a3a);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 @keyframes agent-pulse-dot {
   0%,
   100% {

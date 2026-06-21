@@ -335,6 +335,7 @@ export interface AgentStreamPayload {
     | 'generation_metrics'
     | 'preview'
     | 'trace'
+    | 'orchestrating'
   content?: string
   /** Поля события preview */
   previewId?: string
@@ -358,6 +359,8 @@ export interface AgentStreamPayload {
   generationMetrics?: GenerationMetrics
   /** Событие трассировки агента (type === 'trace') */
   traceEvent?: AgentTraceEvent
+  /** Агент строит план действий (type === 'orchestrating') */
+  orchestrating?: boolean
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {

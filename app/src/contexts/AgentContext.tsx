@@ -10,6 +10,8 @@ export interface AgentState {
   generationMetrics: GenerationMetrics | null
   runModel: string
   runStats: RunStats | null
+  orchestrating: boolean
+  orchestratingPlan: string | null
 }
 
 export type AgentAction =
@@ -18,6 +20,7 @@ export type AgentAction =
   | { type: 'SET_METRICS'; metrics: GenerationMetrics | null }
   | { type: 'SET_MODEL'; model: string }
   | { type: 'SET_STATS'; stats: RunStats | null }
+  | { type: 'SET_ORCHESTRATING'; active: boolean; plan?: string | null }
   | { type: 'RESET' }
 
 const initialState: AgentState = {
@@ -26,7 +29,9 @@ const initialState: AgentState = {
   summarizing: false,
   generationMetrics: null,
   runModel: '',
-  runStats: null
+  runStats: null,
+  orchestrating: false,
+  orchestratingPlan: null
 }
 
 function agentReducer(state: AgentState, action: AgentAction): AgentState {
@@ -45,6 +50,12 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
       return { ...state, runModel: action.model }
     case 'SET_STATS':
       return { ...state, runStats: action.stats }
+    case 'SET_ORCHESTRATING':
+      return {
+        ...state,
+        orchestrating: action.active,
+        orchestratingPlan: action.active ? (action.plan ?? state.orchestratingPlan) : null
+      }
     case 'RESET':
       return initialState
     default:

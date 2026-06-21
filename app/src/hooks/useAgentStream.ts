@@ -123,8 +123,9 @@ export function useAgentStream({
 
       if (event.type === 'thinking') {
         if (genStartRef.current === null) {
-          // Начало новой LLM-генерации — сбрасываем метрики предыдущего вызова
+          // Начало новой LLM-генерации — сбрасываем метрики предыдущего вызова и оркестрацию
           dispatchRef.current({ type: 'SET_METRICS', metrics: null })
+          dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
           genStartRef.current = Date.now()
         }
         dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
@@ -144,6 +145,7 @@ export function useAgentStream({
       if (event.type === 'token') {
         if (genStartRef.current === null) {
           dispatchRef.current({ type: 'SET_METRICS', metrics: null })
+          dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
           genStartRef.current = Date.now()
         }
         dispatchRef.current({ type: 'SET_PHASE', phase: 'writing' })
@@ -212,6 +214,7 @@ export function useAgentStream({
       }
 
       if (event.type === 'tool_start') {
+        dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
         flushPending()
         genStartRef.current = null
         setDraft('')
@@ -309,6 +312,14 @@ export function useAgentStream({
         })
       }
 
+      if (event.type === 'orchestrating') {
+        dispatchRef.current({
+          type: 'SET_ORCHESTRATING',
+          active: event.orchestrating !== false,
+          plan: event.content ?? null
+        })
+      }
+
       if (event.type === 'generation_metrics' && event.generationMetrics) {
         const m = event.generationMetrics as GenerationMetrics
         dispatchRef.current({ type: 'SET_METRICS', metrics: m })
@@ -373,6 +384,7 @@ export function useAgentStream({
         draftMessageIdRef.current = null
         dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
         dispatchRef.current({ type: 'SET_SUMMARIZING', value: false })
+        dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
         genStartRef.current = null
         runActiveRef.current = false
         onAgentDoneRef?.current?.()

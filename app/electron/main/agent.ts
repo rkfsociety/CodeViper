@@ -403,6 +403,7 @@ export class AgentRunner {
             }))
           }
         )
+        this.emit({ type: 'orchestrating', orchestrating: true })
         let response
         try {
           response = await this.chat(messages, { requireTool: requireToolNext })
