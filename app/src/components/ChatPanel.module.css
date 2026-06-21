@@ -400,7 +400,7 @@
 .modelPickerDropdown {
   position: absolute;
   bottom: calc(100% + 4px);
-  left: 0;
+  right: 0;
   min-width: 220px;
   background: var(--bg-secondary, #161b22);
   border: 1px solid var(--border, #30363d);
