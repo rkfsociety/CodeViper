@@ -711,8 +711,16 @@ const TODO_TOOLS = [
         type: 'object',
         properties: {
           items: {
-            type: 'string',
-            description: 'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Сделать X"}]'
+            type: 'array',
+            description: 'Массив задач',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                title: { type: 'string' }
+              },
+              required: ['id', 'title']
+            }
           },
           title: {
             type: 'string',
@@ -1154,7 +1162,7 @@ export interface ToolArgs {
   search_memory: { query: string }
   forget: { id: string }
   file_search_summary: { query: string; path?: string }
-  set_todo_list: { items: string; title?: string }
+  set_todo_list: { items: Array<{ id: string; title: string }> | string; title?: string }
   complete_todo_item: { id: string }
   clear_todo_list: Record<string, never>
   list_skills: Record<string, never>

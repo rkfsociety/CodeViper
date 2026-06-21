@@ -15,10 +15,15 @@ export function createTodoToolHandlers(
     set_todo_list: async (args) => {
       let parsed: { id: string; title: string }[]
       try {
-        parsed = JSON.parse(args.items) as { id: string; title: string }[]
+        const raw = args.items
+        if (Array.isArray(raw)) {
+          parsed = raw as { id: string; title: string }[]
+        } else {
+          parsed = JSON.parse(raw) as { id: string; title: string }[]
+        }
         if (!Array.isArray(parsed)) throw new Error('not array')
       } catch {
-        return 'Ошибка: items должен быть JSON-массивом [{id, title}, ...]'
+        return 'Ошибка: items должен быть массивом [{id, title}, ...]'
       }
       items.length = 0
       for (const p of parsed) {
