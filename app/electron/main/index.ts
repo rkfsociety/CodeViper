@@ -192,6 +192,17 @@ app.commandLine.appendSwitch('disable-gpu-process-crash-limit')
 app.commandLine.appendSwitch('in-process-gpu')
 
 app.whenReady().then(async () => {
+  // Устанавливаем React DevTools для отладки дерева компонентов
+  try {
+    const { default: installExtension, REACT_DEVELOPER_TOOLS } =
+      await import('electron-devtools-installer')
+    await installExtension(REACT_DEVELOPER_TOOLS, {
+      loadExtensionOptions: { allowFileAccess: true }
+    })
+  } catch {
+    // DevTools недоступны (нет сети или уже установлены) — не критично
+  }
+
   await ensureDefaultSkills()
   await createWindow()
 
