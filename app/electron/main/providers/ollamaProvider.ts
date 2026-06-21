@@ -7,6 +7,54 @@ import type {
 } from '../../../shared/modelProvider'
 import { modelsMatch } from '../../../shared/modelRouter'
 
+function translateOllamaError(status: number, raw: string): string {
+  const r = raw.toLowerCase()
+
+  if (
+    r.includes('out-of-memory') ||
+    r.includes('cudamalloc failed') ||
+    r.includes('out of memory') ||
+    r.includes('failed to allocate')
+  ) {
+    return (
+      `Недостаточно памяти GPU для запуска модели (ошибка ${status}).\n\n` +
+      `Что можно сделать:\n` +
+      `• Настройки → Performance → «Слоёв на GPU» → поставь 0 (только CPU) или небольшое число (например 20) чтобы часть слоёв ушла в RAM\n` +
+      `• Выбери более лёгкую модель (7b вместо 12b+)\n` +
+      `• Закрой другие программы, занимающие VRAM`
+    )
+  }
+
+  if (
+    r.includes('model') &&
+    (r.includes('not found') || r.includes("doesn't exist") || status === 404)
+  ) {
+    const model = raw.match(/["']?([a-z0-9.:/_-]+)["']? not found/i)?.[1] ?? ''
+    return `Модель${model ? ` «${model}»` : ''} не найдена в Ollama. Скачай её: ollama pull ${model || '<название>'}`
+  }
+
+  if (
+    r.includes('connection refused') ||
+    r.includes('econnrefused') ||
+    r.includes('fetch failed')
+  ) {
+    return `Ollama недоступна (ошибка ${status}). Убедись что Ollama запущена: ollama serve`
+  }
+
+  if (r.includes('context length') || r.includes('context window') || r.includes('kv cache')) {
+    return `Превышен размер контекста модели (ошибка ${status}). Попробуй сократить историю чата или включить суммаризацию в настройках.`
+  }
+
+  if (r.includes('llama runner process has terminated') || r.includes('runner process')) {
+    return `Процесс модели аварийно завершился (ошибка ${status}). Вероятно, не хватает RAM или VRAM. Попробуй уменьшить число GPU-слоёв в настройках.`
+  }
+
+  if (raw) {
+    return `Ошибка Ollama (${status}): ${raw}`
+  }
+  return `Ошибка Ollama (${status})`
+}
+
 export class OllamaProvider implements ModelProvider {
   constructor(private baseUrl: string) {}
 
@@ -61,14 +109,14 @@ export class OllamaProvider implements ModelProvider {
     })
 
     if (!res.ok) {
-      let detail = ''
+      let rawError = ''
       try {
         const body = (await res.json()) as { error?: string }
-        detail = body.error ? `: ${body.error}` : ''
+        rawError = body.error ?? ''
       } catch {
         /* ignore */
       }
-      throw new Error(`Ollama chat error: ${res.status}${detail}`)
+      throw new Error(translateOllamaError(res.status, rawError))
     }
 
     const reader = res.body?.getReader()
