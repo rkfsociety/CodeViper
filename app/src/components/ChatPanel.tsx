@@ -1297,9 +1297,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                     {displayModels.length > 0 && <div className={styles.modelPickerSep} />}
                     {displayModels.map((m: OllamaModel) => {
                       const isActive = settings.autoModel === false && settings.model === m.name
-                      const shortName = m.name.split(':')[0]
-                      const tag = m.name.includes(':') ? m.name.split(':')[1] : undefined
-                      const sizeLabel = m.parameterSize ?? tag ?? undefined
+                      const freeModel =
+                        settings.modelProvider === 'gemini' &&
+                        (settings.geminiTier ?? 'free') === 'free'
+                          ? GEMINI_FREE_MODELS.find((f) => f.id === m.name)
+                          : undefined
+                      const displayName = freeModel ? freeModel.label : m.name.split(':')[0]
+                      const tag = freeModel
+                        ? `${freeModel.rpm} RPM · ${freeModel.tpm != null ? `${freeModel.tpm / 1000}K` : '∞'} TPM`
+                        : (m.parameterSize ??
+                          (m.name.includes(':') ? m.name.split(':')[1] : undefined))
                       return (
                         <button
                           key={m.name}
@@ -1312,8 +1319,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                             setModelPickerOpen(false)
                           }}
                         >
-                          <span className={styles.modelPickerName}>{shortName}</span>
-                          {sizeLabel && <span className={styles.modelPickerTag}>{sizeLabel}</span>}
+                          <span className={styles.modelPickerName}>{displayName}</span>
+                          {tag && <span className={styles.modelPickerTag}>{tag}</span>}
                           {isActive && <span className={styles.modelPickerCheck}>✓</span>}
                         </button>
                       )
