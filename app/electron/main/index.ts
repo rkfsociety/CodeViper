@@ -131,7 +131,7 @@ function appIconPath(): string | undefined {
 }
 
 const CSP =
-  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http: https: ws: wss:; font-src 'self' data:; worker-src 'self' blob:;"
+  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http: https: ws: wss:; font-src 'self' data:; worker-src 'self' blob:;"
 
 async function createWindow(): Promise<void> {
   // Устанавливаем CSP через заголовок ответа (перекрывает заголовки Vite dev-сервера)
