@@ -7,7 +7,6 @@
 
 | Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
 |---|---|---|---|---|---|
-| **Архитектура** | В `embeddingQueue.ts` группировать входящие запросы `computeEmbeddingQueued` в батчи до 4 штук через `Promise.all`; не ждать каждый по одному — отправлять пачку в воркер | Medium | S | — | ⏳ |
 | **Архитектура** | В `actionVerification.ts` дополнить текущую regexp-проверку вызовом LLM для граничных случаев, когда regexp не уверен; цель — снизить число ложных блокировок на нестандартных командах | Medium | M | — | ⏳ |
 | **Архитектура** | В `chats.ts` добавить поле `projectPath` к `SavedChat`; агент в `agent.ts` брать путь из чата, а не из глобального `AgentRunner.projectPath`; UI переключать проект при смене активного чата | Medium | L | Очередь per-chat | ⏳ |
 | **Архитектура** | В `memory.ts` выделить интерфейс `MemoryStorage { read(): Promise<MemoryStore>; write(store: MemoryStore): Promise<void> }`; текущая реализация — `FsMemoryStorage`; в тестах использовать `InMemoryStorage` | Low | M | — | ⏳ |
@@ -70,6 +69,7 @@
 - Убраны модели 3b/4b из списка скачивания — минимум 7b для агента; подсказка про размер контекста при пустом ответе
 - Gemini free tier: переключатель free/paid, список моделей с лимитами RPM/TPM в пикере и настройках; настройка RPM
 - `set_todo_list` принимает нативный массив от Gemini (и строку-JSON от Ollama)
+- `embeddingQueue.ts`: батчинг запросов до 4 штук через `Promise.all`; воркер получает пачку сразу, не по одному
 - Провайдер Claude (Anthropic API): streamed responses, tool use, JSON schema validation через `@anthropic-ai/sdk`
 - Провайдер Gemini: REST SSE стриминг (`streamGenerateContent`), thinking, `tool_config` (AUTO/ANY), убран SDK
 - TRON (Token Reduced Object Notation): парсер и сериализатор для сжатия данных (~27% экономия); применён в localStorage (история команд), логировании NDJSON (agent logs), IPC коммуникации
