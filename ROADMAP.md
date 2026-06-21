@@ -7,7 +7,6 @@
 
 | Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
 |---|---|---|---|---|---|
-| **Архитектура** | В `chats.ts` добавить поле `projectPath` к `SavedChat`; агент в `agent.ts` брать путь из чата, а не из глобального `AgentRunner.projectPath`; UI переключать проект при смене активного чата | Medium | L | Очередь per-chat | ⏳ |
 | **Архитектура** | В `memory.ts` выделить интерфейс `MemoryStorage { read(): Promise<MemoryStore>; write(store: MemoryStore): Promise<void> }`; текущая реализация — `FsMemoryStorage`; в тестах использовать `InMemoryStorage` | Low | M | — | ⏳ |
 | **Архитектура** | Разбить `agent.ts` (~1300 строк) на 5 классов: `ContextManager`, `ToolExecutor`, `SelfImprovementOrchestrator`, `LoopGuard`, `ResponseEmitter`; каждый ≤ 300 строк; `AgentRunner` остаётся фасадом | Low | L | — | ⏳ |
 | **Интеграции** | Создать `.github/workflows/release.yml`: при push тега `v*` запускать `electron-builder --publish always`, публиковать артефакты `.exe`/`.dmg`/`.AppImage` в GitHub Releases | High | M | — | ⏳ |
@@ -56,6 +55,7 @@
 ---
 
 ## ✅ Сделано
+- Per-chat `projectPath`: поле в `SavedChat`, агент берёт путь из чата через явный параметр `AgentRunner`, UI переключает проект при смене чата через изолированные `ChatContext.Provider`
 - `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`
 - Дедупликация повторяющихся tool results перед суммаризацией: одинаковый инструмент + вывод → `(повторено N раз)`
 - Авто-превью файлов >20 КБ: первые/последние 50 строк с маркером `... (X строк обрезано) ...`
