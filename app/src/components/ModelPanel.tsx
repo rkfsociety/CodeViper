@@ -30,7 +30,8 @@ interface Props {
   onRefresh: () => Promise<void>
 }
 
-function formatBytes(bytes: number): string {
+function formatBytes(bytes: number | undefined): string | null {
+  if (!bytes) return null
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
   return `${Math.round(bytes / 1024 ** 2)} MB`
 }
@@ -124,9 +125,10 @@ export function ModelPanel({
           {!toolModels.length && <option value="">Нет моделей с tool calling</option>}
           {toolModels.map((model) => {
             const unsupported = model.isSupported === false
+            const sizeStr = formatBytes(model.size)
             const label = unsupported
-              ? `⚠ ${model.name} (${formatBytes(model.size)})${model.reason ? ' — ' + model.reason : ''}`
-              : `✓ ${model.name} (${formatBytes(model.size)})`
+              ? `⚠ ${model.name}${sizeStr ? ` (${sizeStr})` : ''}${model.reason ? ' — ' + model.reason : ''}`
+              : `✓ ${model.name}${sizeStr ? ` (${sizeStr})` : ''}`
             return (
               <option key={model.name} value={model.name} disabled={unsupported}>
                 {label}
@@ -206,7 +208,9 @@ export function ModelPanel({
                       )}
                       <strong>{model.name}</strong>
                     </div>
-                    <span className={styles.installedSize}>{formatBytes(model.size)}</span>
+                    {formatBytes(model.size) && (
+                      <span className={styles.installedSize}>{formatBytes(model.size)}</span>
+                    )}
                     {unsupported && model.reason && (
                       <span className={styles.compatReason}>{model.reason}</span>
                     )}
