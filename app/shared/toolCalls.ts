@@ -78,7 +78,10 @@ export const AGENT_TOOL_NAMES = [
   'complete_self_improvement_item',
   'get_self_improvement_plan',
   // Индексация
-  'index_project'
+  'index_project',
+  // Веб
+  'web_fetch',
+  'web_search'
 ] as const
 
 const TOOL_NAME_SET = new Set<string>(AGENT_TOOL_NAMES)

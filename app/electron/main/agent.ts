@@ -58,6 +58,7 @@ import { createSkillsToolHandlers } from './agentHandlersSkills'
 import { createSelfImprovementToolHandlers } from './agentHandlersSelfImprovement'
 import { createModelToolHandlers } from './agentHandlersModels'
 import { createTodoToolHandlers } from './agentHandlersTodo'
+import { createWebToolHandlers } from './agentHandlersWeb'
 
 interface ToolCall {
   function: {
@@ -116,7 +117,9 @@ const PARALLEL_SAFE_TOOLS = new Set([
   'read_skill',
   'read_skill_data',
   'get_self_improvement_plan',
-  'preview_ollama_modelfile'
+  'preview_ollama_modelfile',
+  'web_fetch',
+  'web_search'
 ])
 
 // Инструменты, меняющие исходники самого CodeViper (для автокоммита самоправок).
@@ -1409,6 +1412,7 @@ export class AgentRunner {
       ),
       ...createTodoToolHandlers(this.emit),
       ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
+      ...createWebToolHandlers(),
       preview_edit: (args) => this.handlePreviewEdit(args),
       preview_patch: (args) => this.handlePreviewPatch(args)
     } as ToolHandlers

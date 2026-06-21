@@ -1104,6 +1104,53 @@ const OLLAMA_TOOLS = [
   }
 ] as const
 
+const WEB_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'web_fetch',
+      description:
+        'Загружает содержимое URL-страницы и возвращает текст. Поддерживает HTTP/HTTPS. HTML автоматически конвертируется в читаемый текст. Используй для чтения документации, статей, npm-пакетов, GitHub-страниц.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: 'URL страницы для загрузки (http:// или https://)'
+          },
+          max_chars: {
+            type: 'number',
+            description: 'Максимальное количество символов в ответе (по умолчанию 20000)'
+          }
+        },
+        required: ['url']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description:
+        'Поиск в интернете через DuckDuckGo. Возвращает краткий ответ и список релевантных ссылок. Используй для поиска документации, решений ошибок, актуальных данных. После получения ссылок используй web_fetch для чтения нужной страницы.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Поисковый запрос'
+          },
+          max_results: {
+            type: 'number',
+            description: 'Максимальное количество результатов (по умолчанию 5)'
+          }
+        },
+        required: ['query']
+      }
+    }
+  }
+] as const
+
 const INDEXING_TOOLS = [
   {
     type: 'function',
@@ -1127,7 +1174,8 @@ export const AGENT_TOOLS = [
   ...TODO_TOOLS,
   ...CODEVIPER_TOOLS,
   ...OLLAMA_TOOLS,
-  ...INDEXING_TOOLS
+  ...INDEXING_TOOLS,
+  ...WEB_TOOLS
 ] as const
 
 // Кэш преобразованных схем для провайдеров (ключ = JSON хеш)
@@ -1281,6 +1329,14 @@ export interface ToolArgs {
     base_model: string
     system?: string
     temperature?: string
+  }
+  web_fetch: {
+    url: string
+    max_chars?: number
+  }
+  web_search: {
+    query: string
+    max_results?: number
   }
 }
 
