@@ -9,7 +9,8 @@ import {
   DEEPSEEK_API_BASE_URL,
   DEEPSEEK_MODEL_DEFAULT,
   GEMINI_API_BASE_URL,
-  GEMINI_MODEL_DEFAULT
+  GEMINI_MODEL_DEFAULT,
+  GEMINI_FREE_MODELS
 } from '../../shared/constants'
 import { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../types'
 import { ModelPanel } from './ModelPanel'
@@ -270,68 +271,139 @@ export function SettingsModal({
                   </>
                 )}
 
-                {provider === 'gemini' && (
-                  <>
-                    <div className={styles.hint}>
-                      Используется <strong>Gemini API</strong> через{' '}
-                      <code>{GEMINI_API_BASE_URL}</code>. Модель по умолчанию:{' '}
-                      <code>{GEMINI_MODEL_DEFAULT}</code>.
-                    </div>
-                    <label>
-                      Gemini API ключ
-                      <div className="settings-api-key-row">
-                        <input
-                          type={apiKeyVisible['gemini'] ? 'text' : 'password'}
-                          placeholder="AIza..."
-                          value={settings.geminiApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ geminiApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => toggleKeyVisible('gemini')}
-                          title={apiKeyVisible['gemini'] ? 'Скрыть' : 'Показать'}
-                        >
-                          {apiKeyVisible['gemini'] ? '🙈' : '👁'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void handlePing()}
-                          disabled={pingState === 'checking' || !settings.geminiApiKey}
-                          title="Проверить подключение"
-                        >
-                          {pingState === 'checking'
-                            ? '⏳'
-                            : pingState === 'ok'
-                              ? '✅'
-                              : pingState === 'fail'
-                                ? '❌'
-                                : '🔌'}
-                        </button>
-                      </div>
-                    </label>
-                    <label>
-                      Лимит запросов в минуту (RPM)
-                      <input
-                        type="number"
-                        min={1}
-                        max={2000}
-                        step={1}
-                        value={settings.geminiRpm ?? 5}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10)
-                          if (!isNaN(v) && v >= 1) onSettingsChange({ geminiRpm: v })
-                        }}
-                      />
-                      <span className={styles.hint}>
-                        Free tier — 5 RPM, paid tier — 15 RPM и выше. Интервал между запросами
-                        рассчитывается автоматически.
-                      </span>
-                    </label>
-                  </>
-                )}
+                {provider === 'gemini' &&
+                  (() => {
+                    const tier = settings.geminiTier ?? 'free'
+                    const isFree = tier === 'free'
+                    const currentFreeModel =
+                      GEMINI_FREE_MODELS.find((m) => m.id === settings.model) ??
+                      GEMINI_FREE_MODELS[0]
+                    return (
+                      <>
+                        <div className={styles.hint}>
+                          Используется <strong>Gemini API</strong> через{' '}
+                          <code>{GEMINI_API_BASE_URL}</code>.
+                        </div>
+
+                        {/* Переключатель уровня */}
+                        <div className={styles.geminiTierRow}>
+                          <button
+                            type="button"
+                            className={`btn${isFree ? ' active' : ''}`}
+                            onClick={() => {
+                              const first = GEMINI_FREE_MODELS[0]
+                              onSettingsChange({
+                                geminiTier: 'free',
+                                model: first.id,
+                                geminiRpm: first.rpm
+                              })
+                            }}
+                          >
+                            Бесплатный
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn${!isFree ? ' active' : ''}`}
+                            onClick={() =>
+                              onSettingsChange({
+                                geminiTier: 'paid',
+                                model: settings.model || GEMINI_MODEL_DEFAULT
+                              })
+                            }
+                          >
+                            Платный
+                          </button>
+                        </div>
+
+                        {/* API ключ */}
+                        <label>
+                          Gemini API ключ
+                          <div className="settings-api-key-row">
+                            <input
+                              type={apiKeyVisible['gemini'] ? 'text' : 'password'}
+                              placeholder="AIza..."
+                              value={settings.geminiApiKey ?? ''}
+                              onChange={(e) => onSettingsChange({ geminiApiKey: e.target.value })}
+                              autoComplete="off"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => toggleKeyVisible('gemini')}
+                              title={apiKeyVisible['gemini'] ? 'Скрыть' : 'Показать'}
+                            >
+                              {apiKeyVisible['gemini'] ? '🙈' : '👁'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => void handlePing()}
+                              disabled={pingState === 'checking' || !settings.geminiApiKey}
+                              title="Проверить подключение"
+                            >
+                              {pingState === 'checking'
+                                ? '⏳'
+                                : pingState === 'ok'
+                                  ? '✅'
+                                  : pingState === 'fail'
+                                    ? '❌'
+                                    : '🔌'}
+                            </button>
+                          </div>
+                        </label>
+
+                        {isFree ? (
+                          /* Бесплатный — выбор из фиксированного списка */
+                          <label>
+                            Модель
+                            <select
+                              value={currentFreeModel.id}
+                              onChange={(e) => {
+                                const m = GEMINI_FREE_MODELS.find((x) => x.id === e.target.value)
+                                if (m) onSettingsChange({ model: m.id, geminiRpm: m.rpm })
+                              }}
+                            >
+                              {GEMINI_FREE_MODELS.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </select>
+                            <span className={styles.hint}>
+                              RPM: <strong>{currentFreeModel.rpm}</strong> · TPM:{' '}
+                              <strong>
+                                {currentFreeModel.tpm != null
+                                  ? `${(currentFreeModel.tpm / 1000).toFixed(0)}K`
+                                  : '∞'}
+                              </strong>{' '}
+                              — лимиты фиксированы для бесплатного уровня.
+                            </span>
+                          </label>
+                        ) : (
+                          /* Платный — ручной ввод модели и RPM */
+                          <>
+                            <label>
+                              Лимит запросов в минуту (RPM)
+                              <input
+                                type="number"
+                                min={1}
+                                max={2000}
+                                step={1}
+                                value={settings.geminiRpm ?? 15}
+                                onChange={(e) => {
+                                  const v = parseInt(e.target.value, 10)
+                                  if (!isNaN(v) && v >= 1) onSettingsChange({ geminiRpm: v })
+                                }}
+                              />
+                              <span className={styles.hint}>
+                                Интервал между запросами рассчитывается автоматически.
+                              </span>
+                            </label>
+                          </>
+                        )}
+                      </>
+                    )
+                  })()}
 
                 {provider === 'anthropic' && (
                   <>

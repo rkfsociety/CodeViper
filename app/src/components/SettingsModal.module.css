@@ -245,6 +245,11 @@
   opacity: 0.85;
 }
 
+.geminiTierRow {
+  display: flex;
+  gap: 6px;
+}
+
 .hint strong {
   color: var(--text-primary);
 }

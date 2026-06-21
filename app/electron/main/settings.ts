@@ -39,6 +39,7 @@ export const PersistedSettingsSchema = z.object({
   openrouterApiKey: z.string(),
   geminiApiKey: z.string(),
   geminiRpm: z.number().int().min(1).max(2000).default(5),
+  geminiTier: z.enum(['free', 'paid']).default('free'),
   claudeApiKey: z.string(),
   gitSyncOnStartup: z.boolean(),
   gitSyncStrategy: GitSyncStrategySchema,
@@ -77,6 +78,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   openrouterApiKey: '',
   geminiApiKey: '',
   geminiRpm: 5,
+  geminiTier: 'free' as const,
   claudeApiKey: '',
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash',
@@ -126,6 +128,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     openrouterApiKey,
     geminiApiKey,
     geminiRpm: settings.geminiRpm ?? 5,
+    geminiTier: settings.geminiTier ?? 'free',
     claudeApiKey,
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)

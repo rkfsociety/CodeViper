@@ -44,6 +44,17 @@ export const DEEPSEEK_MODEL_DEFAULT = 'deepseek-chat'
 export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 /** Модель Gemini по умолчанию */
 export const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash'
+
+/** Модели Gemini/Gemma доступные на бесплатном уровне с фиксированными лимитами */
+export const GEMINI_FREE_MODELS = [
+  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', rpm: 10, tpm: 250_000 },
+  { id: 'gemini-3-flash', label: 'Gemini 3 Flash', rpm: 5, tpm: 250_000 },
+  { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', rpm: 15, tpm: 250_000 },
+  { id: 'gemma-4-26b', label: 'Gemma 4 26B', rpm: 15, tpm: null },
+  { id: 'gemma-4-31b', label: 'Gemma 4 31B', rpm: 15, tpm: null }
+] as const
+
+export type GeminiFreeModelId = (typeof GEMINI_FREE_MODELS)[number]['id']
 export const OPENROUTER_API_BASE_URL = 'https://openrouter.ai/api/v1'
 /** Провайдер по умолчанию */
 export const DEFAULT_MODEL_PROVIDER = 'ollama' as const
