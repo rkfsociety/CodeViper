@@ -10,11 +10,7 @@ export interface AgentPrerequisitesResult {
   issues: AgentPrerequisiteIssue[]
 }
 
-export const DEFAULT_SUGGESTED_MODELS = [
-  'qwen2.5-coder:7b',
-  'llama3.1:8b',
-  'qwen2.5-coder:3b'
-] as const
+export const DEFAULT_SUGGESTED_MODELS = ['qwen2.5-coder:7b', 'llama3.1:8b', 'qwen3:8b'] as const
 
 export function detectPackageManager(files: { pnpmLock: boolean; yarnLock: boolean }): {
   packageManager: PackageManager

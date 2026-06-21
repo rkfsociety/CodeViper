@@ -1,4 +1,4 @@
-export type RamTier = '6-8' | '8' | '12' | '16' | '24' | '32' | '48+'
+export type RamTier = '8' | '12' | '16' | '24' | '32' | '48+'
 
 export interface RecommendedModel {
   name: string
@@ -13,8 +13,7 @@ export interface RecommendedModel {
 }
 
 export const RECOMMENDED_MODEL_TIERS: { id: RamTier; label: string }[] = [
-  { id: '6-8', label: '6–8 GB — минимальное железо' },
-  { id: '8', label: '8 GB — оптимальный баланс' },
+  { id: '8', label: '8 GB — минимум для агента' },
   { id: '12', label: '12 GB' },
   { id: '16', label: '16 GB — комфортная работа' },
   { id: '24', label: '24 GB' },
@@ -24,28 +23,6 @@ export const RECOMMENDED_MODEL_TIERS: { id: RamTier; label: string }[] = [
 
 /** Модели Ollama с поддержкой tool calling для агента CodeViper. */
 export const RECOMMENDED_MODELS: RecommendedModel[] = [
-  {
-    name: 'qwen2.5-coder:3b',
-    description: 'Самый лёгкий кодер с tool calling — для слабых ПК',
-    ramHint: '6 GB',
-    ramTier: '6-8',
-    featured: true,
-    url: 'https://ollama.com/library/qwen2.5-coder'
-  },
-  {
-    name: 'llama3.2:3b',
-    description: 'Компактная универсальная модель Meta',
-    ramHint: '6–8 GB',
-    ramTier: '6-8',
-    url: 'https://ollama.com/library/llama3.2'
-  },
-  {
-    name: 'qwen3:4b',
-    description: 'Новая лёгкая Qwen3, хорошо следует инструкциям',
-    ramHint: '6–8 GB',
-    ramTier: '6-8',
-    url: 'https://ollama.com/library/qwen3'
-  },
   {
     name: 'qwen2.5-coder:7b',
     description: 'Лучший выбор для кода и агента — быстро и точно',

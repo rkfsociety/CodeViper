@@ -22,13 +22,12 @@ export interface ModelSelectionResult {
 }
 
 const RAM_TIER_RANK: Record<RamTier, number> = {
-  '6-8': 1,
-  '8': 2,
-  '12': 3,
-  '16': 4,
-  '24': 5,
-  '32': 6,
-  '48+': 7
+  '8': 1,
+  '12': 2,
+  '16': 3,
+  '24': 4,
+  '32': 5,
+  '48+': 6
 }
 
 const AVOID_MODEL_PATTERNS = [/\bllama2\b/i, /^mistral:7b$/i, /^mistral:latest$/i]
@@ -129,7 +128,6 @@ function inferRamTier(name: string, sizeBytes: number): RamTier {
   if (rec) return rec.ramTier
 
   const params = inferParamBillions(name, sizeBytes)
-  if (params <= 4) return '6-8'
   if (params <= 9) return '8'
   if (params <= 12) return '12'
   if (params <= 16) return '16'
@@ -139,7 +137,6 @@ function inferRamTier(name: string, sizeBytes: number): RamTier {
 }
 
 function targetRamTier(difficulty: number): RamTier {
-  if (difficulty <= 18) return '6-8'
   if (difficulty <= 32) return '8'
   if (difficulty <= 48) return '12'
   if (difficulty <= 62) return '16'
