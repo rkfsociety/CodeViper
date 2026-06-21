@@ -7,7 +7,6 @@
 
 | Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
 |---|---|---|---|---|---|
-| **Архитектура** | В `memory.ts` выделить интерфейс `MemoryStorage { read(): Promise<MemoryStore>; write(store: MemoryStore): Promise<void> }`; текущая реализация — `FsMemoryStorage`; в тестах использовать `InMemoryStorage` | Low | M | — | ⏳ |
 | **Архитектура** | Разбить `agent.ts` (~1300 строк) на 5 классов: `ContextManager`, `ToolExecutor`, `SelfImprovementOrchestrator`, `LoopGuard`, `ResponseEmitter`; каждый ≤ 300 строк; `AgentRunner` остаётся фасадом | Low | L | — | ⏳ |
 | **Интеграции** | Создать `.github/workflows/release.yml`: при push тега `v*` запускать `electron-builder --publish always`, публиковать артефакты `.exe`/`.dmg`/`.AppImage` в GitHub Releases | High | M | — | ⏳ |
 | **Интеграции** | Установить `electron-updater`, добавить проверку GitHub Releases при старте приложения; при наличии новой версии показывать баннер с кнопкой «Перезапустить и обновить» | High | M | CI pipeline | ⏳ |
@@ -125,6 +124,9 @@
 - Вложения: файлы, drag-and-drop, Ctrl+V скриншоты, base64 для мультимодальных, лимит 10 файлов/200 КБ
 - Группировка одинаковых вызовов инструментов в чате; открытие файлов из текста агента
 - Подсветка кода, ANSI-цвета, анимации, горячие клавиши, звуковые уведомления, тёмная тема
+
+**Архитектура**
+- `MemoryStorage` интерфейс в `memory.ts`: `FsMemoryStorage` (файловая система) и `InMemoryStorage` (для тестов); тесты переписаны без `vi.mock('electron')` и временных директорий
 
 **Архитектура фронтенда**
 - `AgentContext` (`useReducer` + Context): phase, runStats, метрики — без пропсов
