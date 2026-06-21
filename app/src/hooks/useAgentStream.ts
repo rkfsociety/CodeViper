@@ -380,6 +380,7 @@ export function useAgentStream({
     draft,
     draftThinking,
     draftRef,
+    draftMessageIdRef,
     resetStreamState
   }
 }

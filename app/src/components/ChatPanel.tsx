@@ -169,6 +169,7 @@ const MessageRow = memo(function MessageRow({
   message,
   pinned,
   busy,
+  isStreaming,
   onPin,
   onRetry,
   onEdit
@@ -176,6 +177,7 @@ const MessageRow = memo(function MessageRow({
   message: ChatMessage
   pinned: boolean
   busy: boolean
+  isStreaming?: boolean
   onPin: (id: string) => void
   onRetry: (message: ChatMessage) => void
   onEdit: (message: ChatMessage) => void
@@ -232,7 +234,7 @@ const MessageRow = memo(function MessageRow({
         )}
       </div>
       {message.role === 'assistant' && message.thinking && (
-        <ThinkingBlock content={message.thinking} />
+        <ThinkingBlock content={message.thinking} live={isStreaming} />
       )}
       {message.images && message.images.length > 0 && (
         <div className="message-images">
@@ -417,7 +419,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   // ── Хук: стрим событий агента ────────────────────────────────────────────
-  const { draftRef, resetStreamState } = useAgentStream({
+  const { draftRef, draftMessageIdRef, resetStreamState } = useAgentStream({
     chatIdRef,
     runIdRef,
     doneRunIdRef,
@@ -988,6 +990,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
               message={msg}
               pinned={pinnedMessageIds.has(msg.id)}
               busy={busy}
+              isStreaming={msg.id === draftMessageIdRef.current}
               onPin={togglePinMessage}
               onRetry={retryUserMessage}
               onEdit={editUserMessage}
