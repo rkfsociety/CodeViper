@@ -57,7 +57,8 @@ export const PersistedSettingsSchema = z.object({
   disableSystemStats: z.boolean().optional(),
   prManualRefresh: z.boolean().optional(),
   contextSummarizeThreshold: z.number().int().min(50).max(85).optional(),
-  aggressiveCompression: z.boolean().optional()
+  aggressiveCompression: z.boolean().optional(),
+  commandBlocklist: z.array(z.string()).optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -160,7 +161,8 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.contextSummarizeThreshold != null
       ? { contextSummarizeThreshold: settings.contextSummarizeThreshold }
       : {}),
-    ...(settings.aggressiveCompression ? { aggressiveCompression: true } : {})
+    ...(settings.aggressiveCompression ? { aggressiveCompression: true } : {}),
+    ...(settings.commandBlocklist?.length ? { commandBlocklist: settings.commandBlocklist } : {})
   }
 }
 

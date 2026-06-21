@@ -52,12 +52,25 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /\bnet\s+localgroup\b/i
 ]
 
-export function validateCommand(command: string): string | null {
+export function validateCommand(command: string, extraBlocklist?: string[]): string | null {
   const trimmed = command.trim()
   if (!trimmed) return 'Пустая команда'
   if (trimmed.length > MAX_COMMAND_LEN) return 'Команда слишком длинная'
   if (BLOCKED_PATTERNS.some((pattern) => pattern.test(trimmed))) {
     return 'Команда заблокирована из соображений безопасности'
+  }
+  if (extraBlocklist) {
+    for (const raw of extraBlocklist) {
+      const pat = raw.trim()
+      if (!pat) continue
+      try {
+        if (new RegExp(pat, 'i').test(trimmed))
+          return `Команда заблокирована пользовательским правилом: ${pat}`
+      } catch {
+        if (trimmed.toLowerCase().includes(pat.toLowerCase()))
+          return `Команда заблокирована пользовательским правилом: ${pat}`
+      }
+    }
   }
   return null
 }
@@ -532,9 +545,10 @@ function killProcessTree(child: ChildProcess): void {
 export async function runCommand(
   cwd: string,
   command: string,
-  timeoutMs = COMMAND_TIMEOUT_MS
+  timeoutMs = COMMAND_TIMEOUT_MS,
+  extraBlocklist?: string[]
 ): Promise<TerminalResult> {
-  const blocked = validateCommand(command)
+  const blocked = validateCommand(command, extraBlocklist)
   if (blocked) {
     return {
       stdout: '',

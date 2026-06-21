@@ -112,7 +112,8 @@ export class ToolExecutor {
         readonlyMode: this.settings.readonlyMode,
         ollamaUrl: this.settings.ollamaUrl,
         qdrantUrl: this.settings.qdrantUrl,
-        qdrantApiKey: this.settings.qdrantApiKey
+        qdrantApiKey: this.settings.qdrantApiKey,
+        commandBlocklist: this.settings.commandBlocklist
       }
     )
     this.clearEditSnapshots = projectResult.clearEditSnapshots

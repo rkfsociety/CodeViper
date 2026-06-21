@@ -42,6 +42,7 @@ interface ProjectToolOptions {
   ollamaUrl?: string
   qdrantUrl?: string
   qdrantApiKey?: string
+  commandBlocklist?: string[]
 }
 
 export function createProjectToolHandlers(
@@ -583,7 +584,12 @@ export function createProjectToolHandlers(
       try {
         // Длительность команды неизвестна заранее — индикатор без процента.
         emitProgress(`Выполняю: ${args.command}`, null)
-        const result = await runCommand(projectPath, args.command, commandTimeoutMs)
+        const result = await runCommand(
+          projectPath,
+          args.command,
+          commandTimeoutMs,
+          options?.commandBlocklist
+        )
         return formatCommandResult(result)
       } finally {
         clearProgress()

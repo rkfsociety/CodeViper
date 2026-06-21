@@ -400,9 +400,10 @@ ipcMain.handle(
     checkAgentPrerequisites(ollamaUrl, projectPath, skipOllamaCheck)
 )
 
-ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) =>
-  runCommand(cwd, command)
-)
+ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) => {
+  const settings = await loadSettings()
+  return runCommand(cwd, command, undefined, settings.commandBlocklist)
+})
 
 ipcMain.handle('list-memories', async (_e, projectPath: string) => listMemories(projectPath))
 

@@ -939,6 +939,24 @@ export function SettingsModal({
                     <strong>Принимать правки</strong> — файлы без вопросов, команды с
                     подтверждением. <strong>Без подтверждений</strong> — агент действует сам.
                   </div>
+
+                  <label>
+                    Запрещённые команды
+                    <textarea
+                      rows={4}
+                      placeholder={'npm publish\\.+--access public\ncurl .+ | bash\ndocker push'}
+                      value={(settings.commandBlocklist ?? []).join('\n')}
+                      onChange={(e) => {
+                        const lines = e.target.value.split('\n')
+                        onSettingsChange({ commandBlocklist: lines })
+                      }}
+                      style={{ fontFamily: 'monospace', resize: 'vertical' }}
+                    />
+                  </label>
+                  <div className={`${styles.hint} ${styles.hintInline}`}>
+                    Каждая строка — паттерн (подстрока или регулярное выражение). Совпадение
+                    блокирует команду. Применяется поверх встроенного списка.
+                  </div>
                 </div>
 
                 {/* ── Поведение агента ── */}

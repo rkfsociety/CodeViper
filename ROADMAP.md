@@ -10,7 +10,6 @@
 |---|---|---|---|---|---|
 | **Провайдеры** | В `ollamaProvider.ts` и `openaiProvider.ts` выделить общую логику стриминга в абстрактный класс `StreamingChatProvider`; конкретные провайдеры реализуют только `buildRequest()` и `parseChunk()` | Medium | M | — | ⏳ |
 | **Провайдеры** | В `modelRuntime.ts` реализовать circuit breaker: при 5 последовательных ошибках переходить в состояние `open` (запросы отклоняются немедленно), через 30 с — `half-open` (пробный запрос); статус отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
-| **Архитектура** | В `services.ts` вынести `validateCommand` в расширяемый конфиг: пользователь может добавлять свои запрещённые паттерны через `AgentSettings.commandBlocklist: string[]`; редактирование в `SettingsModal.tsx` | Medium | M | — | ⏳ |
 | **Архитектура** | В `modelRuntime.ts` добавить exponential backoff с jitter для HTTP 429: 1 с → 2 с → 4 с → 8 с, максимум 4 попытки; статус ожидания отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
 | **Архитектура** | Создать `shared/ipcContracts.ts`: Zod-схемы для всех IPC-каналов; валидировать данные при `ipcMain.handle` и `ipcRenderer.invoke`; устранить дублирование типов между `types.ts` и main | Low | L | — | ⏳ |
 | **Архитектура** | Вынести логику планирования задачи из `AgentRunner` и `SelfImprovementOrchestrator` в отдельный класс `TaskPlanner`; упростить замену стратегий и изолированное тестирование | Low | L | — | ⏳ |
@@ -71,6 +70,7 @@
 ---
 
 ## ✅ Сделано
+- `commandBlocklist`: пользовательские запрещённые паттерны команд (`AgentSettings.commandBlocklist: string[]`); строки или regexp; редактирование в `SettingsModal.tsx` (Поведение → Безопасность); применяется в `validateCommand()` поверх встроенного списка
 - Per-chat `projectPath`: поле в `SavedChat`, агент берёт путь из чата через явный параметр `AgentRunner`, UI переключает проект при смене чата через изолированные `ChatContext.Provider`
 - `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`
 - Дедупликация повторяющихся tool results перед суммаризацией: одинаковый инструмент + вывод → `(повторено N раз)`
