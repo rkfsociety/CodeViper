@@ -946,7 +946,7 @@ export function SettingsModal({
                     onModelChange={(model) => onSettingsChange({ model })}
                     onRefresh={onRefreshOllama}
                   />
-                ) : (
+                ) : provider === 'gemini' && (settings.geminiTier ?? 'free') === 'free' ? null : (
                   <CloudModelSelector
                     provider={provider}
                     model={settings.model}
