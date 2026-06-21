@@ -87,6 +87,38 @@ function truncateOldToolResults(messages: OllamaMessage[], keepLast: number): Ol
   })
 }
 
+/**
+ * Заменяет повторяющиеся tool results (одинаковый инструмент + одинаковый вывод)
+ * на пометку «(повторено N раз)», оставляя первое вхождение.
+ */
+function deduplicateToolResults(messages: OllamaMessage[]): OllamaMessage[] {
+  // key → [firstIndex, count]
+  const seen = new Map<string, { firstIndex: number; count: number }>()
+  const result = [...messages]
+
+  for (let i = 0; i < result.length; i++) {
+    if (result[i].role !== 'tool') continue
+    const key = result[i].content
+    const entry = seen.get(key)
+    if (!entry) {
+      seen.set(key, { firstIndex: i, count: 1 })
+    } else {
+      entry.count++
+      // Обновляем первое вхождение с актуальным счётчиком
+      const firstMsg = result[entry.firstIndex]
+      const withoutSuffix = firstMsg.content.replace(/\n\(повторено \d+ раз\)$/, '')
+      result[entry.firstIndex] = {
+        ...firstMsg,
+        content: `${withoutSuffix}\n(повторено ${entry.count} раз)`
+      }
+      // Заменяем дубликат заглушкой
+      result[i] = { ...result[i], content: '[дубликат tool result — см. выше]' }
+    }
+  }
+
+  return result
+}
+
 function dropOldestNonSystem(messages: OllamaMessage[], count: number): OllamaMessage[] {
   if (count <= 0 || messages.length <= 1) return messages
 
@@ -120,7 +152,9 @@ export async function compressContextMessages(options: {
 }): Promise<ContextCompressionResult> {
   const minRecent = options.minRecentMessages ?? MIN_RECENT_CONTEXT_MESSAGES
   const summarizeModel = options.summarizeModel?.trim() || options.model
-  let messages = truncateOldToolResults([...options.messages], options.maxRecentToolResults ?? 5)
+  let messages = deduplicateToolResults(
+    truncateOldToolResults([...options.messages], options.maxRecentToolResults ?? 5)
+  )
   let truncated = false
   let summarized = false
   let droppedMessageCount = 0
