@@ -12,8 +12,9 @@ import type {
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import { useMemo } from 'react'
+import type { SetStateAction } from 'react'
 import { AgentProvider } from './contexts/AgentContext'
-import { ChatContext } from './contexts/ChatContext'
+import { ChatContext, type ChatContextValue } from './contexts/ChatContext'
 import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
@@ -65,8 +66,10 @@ function AppContent() {
   const [models, setModels] = useState<OllamaModel[]>([])
   const [chatStore, setChatStore] = useState<ChatStore | null>(null)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const { chatBusy } = useChatBusy()
+  const [chatMessages, setChatMessages] = useState<Map<string, ChatMessage[]>>(new Map())
+  const { busyChats, chatBusy } = useChatBusy()
+  // Сообщения активного чата — производная от Map
+  const messages = activeChatId ? (chatMessages.get(activeChatId) ?? []) : []
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -83,10 +86,12 @@ function AppContent() {
   const agentModeRef = useRef<AgentMode>('code')
   agentModeRef.current = agentMode
   const activeChatIdRef = useRef(activeChatId)
+  const chatMessagesRef = useRef<Map<string, ChatMessage[]>>(new Map())
   const messagesRef = useRef(messages)
   const chatPanelRef = useRef<ChatPanelHandle>(null)
 
   activeChatIdRef.current = activeChatId
+  chatMessagesRef.current = chatMessages
   messagesRef.current = messages
 
   const activeChat = useMemo(
@@ -97,15 +102,37 @@ function AppContent() {
 
   const flushCurrentChat = useCallback(async () => {
     const chatId = activeChatIdRef.current
-    const chatMessages = messagesRef.current
     if (!chatId) return
-
-    const title = deriveChatTitle(chatMessages)
+    const msgs = chatMessagesRef.current.get(chatId) ?? []
+    const title = deriveChatTitle(msgs)
     await window.codeviper.updateChat(chatId, {
-      messages: chatMessages,
+      messages: msgs,
       ...(title ? { title } : {})
     })
   }, [])
+
+  // Обновить сообщения для конкретного chatId
+  const setMessagesForChat = useCallback(
+    (chatId: string, updater: SetStateAction<ChatMessage[]>) => {
+      setChatMessages((prev) => {
+        const next = new Map(prev)
+        const current = prev.get(chatId) ?? []
+        next.set(chatId, typeof updater === 'function' ? updater(current) : updater)
+        return next
+      })
+    },
+    []
+  )
+
+  // Обновить сообщения активного чата (обратная совместимость)
+  const setMessages = useCallback(
+    (updater: SetStateAction<ChatMessage[]>) => {
+      const chatId = activeChatIdRef.current
+      if (!chatId) return
+      setMessagesForChat(chatId, updater)
+    },
+    [setMessagesForChat]
+  )
 
   const refreshChatStore = useCallback(async () => {
     const store = await window.codeviper.getChatStore()
@@ -329,7 +356,11 @@ function AppContent() {
       const chat = store.chats.find((item) => item.id === store.activeChatId)
       if (!chat) return
       setActiveChatId(chat.id)
-      setMessages(chat.messages)
+      setChatMessages((prev) => {
+        const next = new Map(prev)
+        next.set(chat.id, chat.messages)
+        return next
+      })
     })
   }, [settingsReady]) // eslint-disable-line react-hooks/exhaustive-deps -- функции переопределяются на каждый рендер
 
@@ -375,21 +406,27 @@ function AppContent() {
 
   const selectChat = useCallback(
     async (id: string) => {
-      if (chatBusy) return
       if (id === activeChatId) return
 
       await flushCurrentChat()
 
-      const store = chatStore ?? (await refreshChatStore())
-      const chat = store.chats.find((item) => item.id === id)
-      if (!chat) return
+      // Загружаем сообщения из store только если чат ещё не смонтирован
+      if (!chatMessagesRef.current.has(id)) {
+        const store = chatStore ?? (await refreshChatStore())
+        const chat = store.chats.find((item) => item.id === id)
+        if (!chat) return
+        setChatMessages((prev) => {
+          const next = new Map(prev)
+          next.set(id, chat.messages)
+          return next
+        })
+      }
 
       setActiveChatId(id)
-      setMessages(chat.messages)
       await window.codeviper.setActiveChat(id)
       setChatStore(await window.codeviper.getChatStore())
     },
-    [chatBusy, activeChatId, chatStore, flushCurrentChat, refreshChatStore]
+    [activeChatId, chatStore, flushCurrentChat, refreshChatStore]
   )
 
   const handleCrashRestore = useCallback(async () => {
@@ -410,7 +447,11 @@ function AppContent() {
       await refreshChatStore()
       lastActiveChatPerMode.current[agentModeRef.current] = chat.id
       setActiveChatId(chat.id)
-      setMessages([])
+      setChatMessages((prev) => {
+        const next = new Map(prev)
+        next.set(chat.id, [])
+        return next
+      })
     },
     [flushCurrentChat, refreshChatStore]
   )
@@ -430,7 +471,6 @@ function AppContent() {
         await selectChat(target)
       } else {
         setActiveChatId(null)
-        setMessages([])
       }
     },
     [flushCurrentChat, refreshChatStore, selectChat]
@@ -449,11 +489,22 @@ function AppContent() {
     async (id: string) => {
       if (chatBusy && id === activeChatId) return
       await window.codeviper.deleteChat(id)
+      setChatMessages((prev) => {
+        const next = new Map(prev)
+        next.delete(id)
+        return next
+      })
       const store = await refreshChatStore()
       if (activeChatId === id) {
         const next = store.chats[0]
         setActiveChatId(next?.id ?? null)
-        setMessages(next?.messages ?? [])
+        if (next) {
+          setChatMessages((prev) => {
+            const m = new Map(prev)
+            if (!m.has(next.id)) m.set(next.id, next.messages)
+            return m
+          })
+        }
         await window.codeviper.setActiveChat(next?.id ?? null)
       }
     },
@@ -501,6 +552,36 @@ function AppContent() {
     },
     [refreshChatStore]
   )
+
+  // chatId'ы, для которых рендерим ChatPanel: активный + все занятые (параллельные агенты)
+  const mountedChatIds = useMemo(() => {
+    const ids: string[] = []
+    if (activeChatId) ids.push(activeChatId)
+    for (const id of busyChats) {
+      if (id !== activeChatId) ids.push(id)
+    }
+    return ids
+  }, [activeChatId, busyChats])
+
+  // Контексты для каждого смонтированного панела
+  const mountedChatContexts = useMemo((): Map<string, ChatContextValue> => {
+    const contexts = new Map<string, ChatContextValue>()
+    for (const chatId of mountedChatIds) {
+      const chat = chatStore?.chats.find((c) => c.id === chatId) ?? null
+      const msgs = chatMessages.get(chatId) ?? []
+      contexts.set(chatId, {
+        messages: msgs,
+        setMessages: (updater) => setMessagesForChat(chatId, updater),
+        activeChatId: chatId,
+        chatStore,
+        activeChat: chat,
+        activeProjectPath: chat?.projectPath ?? '',
+        interruptedDraft: chat?.interruptedDraft,
+        refreshChatStore
+      })
+    }
+    return contexts
+  }, [mountedChatIds, chatMessages, chatStore, refreshChatStore, setMessagesForChat])
 
   return (
     <ChatContext.Provider value={chatContextValue}>
@@ -601,28 +682,36 @@ function AppContent() {
 
           <section className="panel panel-main">
             <div className="panel-header">Агент</div>
-            <ChatPanel
-              ref={chatPanelRef}
-              settings={{
-                ...settings,
-                // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать
-                clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode,
-                chatMode: agentMode === 'chat'
-              }}
-              onPickProject={pickProjectForActiveChat}
-              models={models}
-              onModelChange={(model, auto) =>
-                setSettings((prev) => ({ ...prev, model, autoModel: auto }))
-              }
-              onSettingsChange={(partial) => setSettings((prev) => ({ ...prev, ...partial }))}
-              onOpenSettings={() => setSettingsOpen(true)}
-              onEnqueueModel={downloadQueue.enqueue}
-              onRefreshOllama={refreshOllama}
-              onLearningSaved={() => {
-                setMemoryRefreshKey((key) => key + 1)
-                setSkillsRefreshKey((key) => key + 1)
-              }}
-            />
+            {mountedChatIds.map((chatId) => (
+              <ChatContext.Provider key={chatId} value={mountedChatContexts.get(chatId)!}>
+                <div
+                  style={chatId === activeChatId ? { display: 'contents' } : { display: 'none' }}
+                >
+                  <ChatPanel
+                    ref={chatId === activeChatId ? chatPanelRef : undefined}
+                    settings={{
+                      ...settings,
+                      // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать
+                      clarifyMode: agentMode === 'chat' ? true : settings.clarifyMode,
+                      chatMode: agentMode === 'chat'
+                    }}
+                    onPickProject={pickProjectForActiveChat}
+                    models={models}
+                    onModelChange={(model, auto) =>
+                      setSettings((prev) => ({ ...prev, model, autoModel: auto }))
+                    }
+                    onSettingsChange={(partial) => setSettings((prev) => ({ ...prev, ...partial }))}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                    onEnqueueModel={downloadQueue.enqueue}
+                    onRefreshOllama={refreshOllama}
+                    onLearningSaved={() => {
+                      setMemoryRefreshKey((key) => key + 1)
+                      setSkillsRefreshKey((key) => key + 1)
+                    }}
+                  />
+                </div>
+              </ChatContext.Provider>
+            ))}
 
             {terminalOpen && (
               <div className="terminal-dock">
