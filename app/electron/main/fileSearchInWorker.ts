@@ -2,7 +2,7 @@ import { Worker } from 'worker_threads'
 import { join } from 'path'
 import { stat } from 'fs/promises'
 import type { GrepMatch } from './fileSearch'
-import { MAX_GREP_RESULTS } from './fileSearch'
+import { MAX_GREP_RESULTS, MAX_FIND_RESULTS } from './fileSearch'
 
 type GrepResult = {
   matches: GrepMatch[]
@@ -272,6 +272,116 @@ async function findCacheSet(
   }
 }
 
+// ─── Батчинг параллельных find-вызовов ───────────────────────────────────────
+
+type PendingFind = {
+  root: string
+  subpath: string | undefined
+  pattern: string
+  maxResults: number
+  onProgress?: (scanned: number) => void
+  resolve: (result: FindResult) => void
+  reject: (err: unknown) => void
+}
+
+const pendingFinds: PendingFind[] = []
+let findBatchScheduled = false
+
+function scheduleFindBatch(): void {
+  if (findBatchScheduled) return
+  findBatchScheduled = true
+  Promise.resolve().then(flushFindBatch)
+}
+
+async function flushFindBatch(): Promise<void> {
+  findBatchScheduled = false
+  const batch = pendingFinds.splice(0)
+  if (!batch.length) return
+
+  // Группируем по root+subpath — только они позволяют объединить обход ФС
+  const groups = new Map<string, PendingFind[]>()
+  for (const item of batch) {
+    const key = `${item.root}\0${item.subpath ?? ''}`
+    const g = groups.get(key)
+    if (g) g.push(item)
+    else groups.set(key, [item])
+  }
+
+  const tasks: Promise<void>[] = []
+  for (const group of groups.values()) {
+    for (let i = 0; i < group.length; i += BATCH_MAX) {
+      tasks.push(dispatchFindChunk(group.slice(i, i + BATCH_MAX)))
+    }
+  }
+  await Promise.all(tasks)
+}
+
+async function dispatchFindChunk(chunk: PendingFind[]): Promise<void> {
+  // Проверяем кэш для каждого запроса
+  const cached = await Promise.all(
+    chunk.map((item) => findCacheGet(item.root, item.pattern, item.subpath))
+  )
+
+  const uncachedIdx = chunk.map((_, i) => i).filter((i) => !cached[i])
+
+  if (!uncachedIdx.length) {
+    chunk.forEach((item, i) => item.resolve(cached[i]!))
+    return
+  }
+
+  if (uncachedIdx.length === 1) {
+    const idx = uncachedIdx[0]
+    const item = chunk[idx]
+    try {
+      const result = await runWorker<FindResult>(
+        {
+          type: 'find',
+          root: item.root,
+          pattern: item.pattern,
+          subpath: item.subpath,
+          maxResults: item.maxResults
+        },
+        item.onProgress
+      )
+      await findCacheSet(item.root, item.pattern, item.subpath, result)
+      chunk.forEach((c, i) => (i === idx ? c.resolve(result) : c.resolve(cached[i]!)))
+    } catch (err) {
+      chunk.forEach((c, i) => (i === idx ? c.reject(err) : c.resolve(cached[i]!)))
+    }
+    return
+  }
+
+  // Несколько запросов — объединяем в один multi-find воркер
+  const uncached = uncachedIdx.map((i) => chunk[i])
+  const onProgress = uncached.find((item) => item.onProgress)?.onProgress
+
+  try {
+    const results = await runWorker<FindResult[]>(
+      {
+        type: 'multi-find',
+        root: uncached[0].root,
+        patterns: uncached.map((item) => item.pattern),
+        maxResultsPerPattern: uncached.map((item) => item.maxResults),
+        subpath: uncached[0].subpath
+      },
+      onProgress
+    )
+
+    await Promise.all(
+      uncached.map((item, j) => findCacheSet(item.root, item.pattern, item.subpath, results[j]))
+    )
+    uncached.forEach((item, j) => item.resolve(results[j]))
+    chunk.forEach((item, i) => {
+      if (cached[i]) item.resolve(cached[i]!)
+    })
+  } catch (err) {
+    uncached.forEach((item) => item.reject(err))
+    chunk.forEach((item, i) => {
+      if (cached[i]) item.resolve(cached[i]!)
+    })
+  }
+}
+
 // ─── Публичный API ────────────────────────────────────────────────────────────
 
 export function grepInTreeWorker(
@@ -293,18 +403,21 @@ export function grepInTreeWorker(
   })
 }
 
-export async function findFilesInTreeWorker(
+export function findFilesInTreeWorker(
   root: string,
   pattern: string,
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<FindResult> {
-  const cached = await findCacheGet(root, pattern, options?.subpath)
-  if (cached) return cached
-
-  const result = await runWorker<FindResult>(
-    { type: 'find', root, pattern, subpath: options?.subpath, maxResults: options?.maxResults },
-    options?.onProgress
-  )
-  await findCacheSet(root, pattern, options?.subpath, result)
-  return result
+  return new Promise((resolve, reject) => {
+    pendingFinds.push({
+      root,
+      subpath: options?.subpath,
+      pattern,
+      maxResults: options?.maxResults ?? MAX_FIND_RESULTS,
+      onProgress: options?.onProgress,
+      resolve,
+      reject
+    })
+    scheduleFindBatch()
+  })
 }

@@ -18,7 +18,7 @@ const IGNORED_DIRS = new Set([
 
 export const MAX_WALK_FILES = 800
 export const MAX_GREP_RESULTS = 60
-const MAX_FIND_RESULTS = 80
+export const MAX_FIND_RESULTS = 80
 const MAX_GREP_FILE_BYTES = FILE_SIZE_LIMIT_BYTES
 
 export interface GrepMatch {
@@ -302,6 +302,45 @@ export async function findFilesInTree(
   )
 
   return { paths, truncated, filesScanned }
+}
+
+export async function findMultiInTree(
+  root: string,
+  patterns: string[],
+  maxResultsPerPattern: number[],
+  options?: { subpath?: string; onProgress?: (scanned: number) => void }
+): Promise<{ paths: string[]; truncated: boolean; filesScanned: number }[]> {
+  const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
+  const results = patterns.map(() => ({ paths: [] as string[], truncated: false, filesScanned: 0 }))
+
+  const filesScanned = await walkProjectFiles(
+    startDir,
+    async (filePath) => {
+      if (results.every((r, i) => r.paths.length >= maxResultsPerPattern[i])) {
+        results.forEach((r) => {
+          r.truncated = true
+        })
+        return true
+      }
+      const name = filePath.split(sep).pop() ?? filePath
+      const rel = relative(root, filePath).split(sep).join('/')
+      for (let i = 0; i < patterns.length; i++) {
+        const r = results[i]
+        if (r.paths.length >= maxResultsPerPattern[i]) continue
+        if (matchFileName(name, patterns[i]) || matchFileName(rel, patterns[i])) {
+          r.paths.push(filePath)
+          if (r.paths.length >= maxResultsPerPattern[i]) r.truncated = true
+        }
+      }
+      return false
+    },
+    options?.onProgress
+  )
+
+  results.forEach((r) => {
+    r.filesScanned = filesScanned
+  })
+  return results
 }
 
 export function formatFindResults(
