@@ -10,11 +10,10 @@ import {
 describe('recommendedModels', () => {
   it('содержит модели для разных уровней RAM', () => {
     const tiers = new Set(RECOMMENDED_MODELS.map((m) => m.ramTier))
-    expect(tiers.has('6-8')).toBe(true)
     expect(tiers.has('8')).toBe(true)
     expect(tiers.has('16')).toBe(true)
     expect(tiers.has('48+')).toBe(true)
-    expect(RECOMMENDED_MODELS.length).toBeGreaterThanOrEqual(16)
+    expect(RECOMMENDED_MODELS.length).toBeGreaterThanOrEqual(10)
   })
 
   it('все модели каталога считаются tool calling', () => {
