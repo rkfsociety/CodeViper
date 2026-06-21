@@ -603,6 +603,55 @@ export function SettingsModal({
                       : (settings.contextSummarizeThreshold ?? 85)}
                     %
                   </strong>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.5em',
+                      marginBottom: '0.5em',
+                      marginTop: '0.35em'
+                    }}
+                  >
+                    {(
+                      [
+                        { label: 'Экономичный', value: 55 },
+                        { label: 'Сбалансированный', value: 70 },
+                        { label: 'Качество', value: 85 }
+                      ] as { label: string; value: number }[]
+                    ).map((preset) => {
+                      const current = settings.aggressiveCompression
+                        ? 65
+                        : (settings.contextSummarizeThreshold ?? 85)
+                      const active = !settings.aggressiveCompression && current === preset.value
+                      return (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          disabled={settings.aggressiveCompression === true}
+                          onClick={() =>
+                            onSettingsChange({
+                              aggressiveCompression: false,
+                              contextSummarizeThreshold: preset.value
+                            })
+                          }
+                          style={{
+                            flex: 1,
+                            padding: '0.25em 0.4em',
+                            fontSize: '0.78em',
+                            cursor: settings.aggressiveCompression ? 'not-allowed' : 'pointer',
+                            borderRadius: '4px',
+                            border: active ? '2px solid var(--accent)' : '1px solid var(--border)',
+                            background: active ? 'var(--accent)' : 'var(--bg-secondary)',
+                            color: active ? 'var(--bg)' : 'var(--text)',
+                            opacity: settings.aggressiveCompression ? 0.4 : 1
+                          }}
+                        >
+                          {preset.label}
+                          <br />
+                          <span style={{ opacity: 0.7 }}>{preset.value}%</span>
+                        </button>
+                      )
+                    })}
+                  </div>
                   <input
                     type="range"
                     min={50}

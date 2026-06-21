@@ -10,6 +10,7 @@ import { OllamaProvider } from './providers/ollamaProvider'
 import { GeminiProvider } from './providers/geminiProvider'
 import { OpenAIProvider } from './providers/openaiProvider'
 import { ClaudeProvider } from './providers/claudeProvider'
+import { GroqProvider } from './providers/groqProvider'
 import {
   DEEPSEEK_API_BASE_URL,
   GEMINI_API_BASE_URL,
@@ -50,6 +51,12 @@ export class ModelRuntime {
         (config.baseUrl || GEMINI_API_BASE_URL).replace(/\/$/, ''),
         rpm
       )
+    }
+
+    if (config.type === 'groq') {
+      const apiKey = config.apiKey || ''
+      const model = config.model || 'llama3-8b-8192'
+      return new GroqProvider(apiKey, model)
     }
 
     if (config.type === 'openrouter') {

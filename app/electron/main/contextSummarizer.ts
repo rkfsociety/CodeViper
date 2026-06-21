@@ -108,16 +108,26 @@ function dropSupersededErrors(messages: OllamaMessage[]): OllamaMessage[] {
   }
 
   // Второй проход: удаляем ошибочные, у которых есть более поздний успешный
+  // ИЛИ если это более ранняя попытка того же инструмента (оставляем только последнюю)
   const toDelete = new Set<number>()
-  for (let i = 0; i < messages.length; i++) {
+  const seenTools = new Set<string>()
+  for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
     if (msg.role !== 'tool') continue
     const nameMatch = msg.content.match(/^Инструмент ([^:]+):/)
     if (!nameMatch) continue
     const name = nameMatch[1]
     const body = msg.content.slice(nameMatch[0].length).trimStart()
+
     if (body.startsWith('Ошибка:') && hasLaterSuccess.has(name)) {
       toDelete.add(i)
+      continue
+    }
+
+    if (seenTools.has(name)) {
+      toDelete.add(i)
+    } else {
+      seenTools.add(name)
     }
   }
 
