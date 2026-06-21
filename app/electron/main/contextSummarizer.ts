@@ -88,6 +88,44 @@ function truncateOldToolResults(messages: OllamaMessage[], keepLast: number): Ol
 }
 
 /**
+ * Удаляет ошибочные tool results (content начинается с «Ошибка:»), если для того
+ * же инструмента есть хотя бы один более поздний успешный результат.
+ * Сохраняет порядок и все успешные результаты.
+ */
+function dropSupersededErrors(messages: OllamaMessage[]): OllamaMessage[] {
+  // Собираем имена инструментов, у которых есть успешный результат
+  const hasLaterSuccess = new Set<string>()
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i]
+    if (msg.role !== 'tool') continue
+    const nameMatch = msg.content.match(/^Инструмент ([^:]+):/)
+    if (!nameMatch) continue
+    const name = nameMatch[1]
+    const body = msg.content.slice(nameMatch[0].length).trimStart()
+    if (!body.startsWith('Ошибка:')) {
+      hasLaterSuccess.add(name)
+    }
+  }
+
+  // Второй проход: удаляем ошибочные, у которых есть более поздний успешный
+  const toDelete = new Set<number>()
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (msg.role !== 'tool') continue
+    const nameMatch = msg.content.match(/^Инструмент ([^:]+):/)
+    if (!nameMatch) continue
+    const name = nameMatch[1]
+    const body = msg.content.slice(nameMatch[0].length).trimStart()
+    if (body.startsWith('Ошибка:') && hasLaterSuccess.has(name)) {
+      toDelete.add(i)
+    }
+  }
+
+  if (!toDelete.size) return messages
+  return messages.filter((_, i) => !toDelete.has(i))
+}
+
+/**
  * Заменяет повторяющиеся tool results (одинаковый инструмент + одинаковый вывод)
  * на пометку «(повторено N раз)», оставляя первое вхождение.
  */
@@ -153,7 +191,10 @@ export async function compressContextMessages(options: {
   const minRecent = options.minRecentMessages ?? MIN_RECENT_CONTEXT_MESSAGES
   const summarizeModel = options.summarizeModel?.trim() || options.model
   let messages = deduplicateToolResults(
-    truncateOldToolResults([...options.messages], options.maxRecentToolResults ?? 5)
+    truncateOldToolResults(
+      dropSupersededErrors([...options.messages]),
+      options.maxRecentToolResults ?? 5
+    )
   )
   let truncated = false
   let summarized = false
