@@ -1104,6 +1104,18 @@ const OLLAMA_TOOLS = [
   }
 ] as const
 
+const INDEXING_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'index_project',
+      description:
+        'Рекурсивно читает файлы проекта, разбивает на чанки по 500 строк, вычисляет эмбеддинги и загружает в Qdrant-коллекцию codeviper_project. Требует настройки Qdrant URL в настройках.',
+      parameters: { type: 'object', properties: {} }
+    }
+  }
+] as const
+
 // Все инструменты в одном массиве для обратной совместимости
 export const AGENT_TOOLS = [
   ...FILE_TOOLS,
@@ -1114,7 +1126,8 @@ export const AGENT_TOOLS = [
   ...SKILLS_TOOLS,
   ...TODO_TOOLS,
   ...CODEVIPER_TOOLS,
-  ...OLLAMA_TOOLS
+  ...OLLAMA_TOOLS,
+  ...INDEXING_TOOLS
 ] as const
 
 // Кэш преобразованных схем для провайдеров (ключ = JSON хеш)
@@ -1255,6 +1268,7 @@ export interface ToolArgs {
   create_codeviper_branch: { name: string }
   push_codeviper_branch: Record<string, never>
   create_codeviper_pr: { title?: string; body?: string }
+  index_project: Record<string, never>
   preview_ollama_modelfile: {
     data_path: string
     base_model: string

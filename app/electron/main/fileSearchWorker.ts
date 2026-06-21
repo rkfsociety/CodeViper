@@ -1,8 +1,15 @@
 import { workerData, parentPort } from 'worker_threads'
-import { grepInTree, findFilesInTree } from './fileSearch'
+import { grepInTree, grepMultiInTree, findFilesInTree } from './fileSearch'
 
 type WorkerRequest =
   | { type: 'grep'; root: string; query: string; subpath?: string; maxResults?: number }
+  | {
+      type: 'multi-grep'
+      root: string
+      queries: string[]
+      maxResultsPerQuery: number[]
+      subpath?: string
+    }
   | { type: 'find'; root: string; pattern: string; subpath?: string; maxResults?: number }
 
 async function run() {
@@ -12,6 +19,12 @@ async function run() {
     const result = await grepInTree(req.root, req.query, {
       subpath: req.subpath,
       maxResults: req.maxResults,
+      onProgress: (scanned) => parentPort!.postMessage({ type: 'progress', scanned })
+    })
+    parentPort!.postMessage({ type: 'result', data: result })
+  } else if (req.type === 'multi-grep') {
+    const result = await grepMultiInTree(req.root, req.queries, req.maxResultsPerQuery, {
+      subpath: req.subpath,
       onProgress: (scanned) => parentPort!.postMessage({ type: 'progress', scanned })
     })
     parentPort!.postMessage({ type: 'result', data: result })

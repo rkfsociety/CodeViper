@@ -17,7 +17,7 @@ const IGNORED_DIRS = new Set([
 ])
 
 export const MAX_WALK_FILES = 800
-const MAX_GREP_RESULTS = 60
+export const MAX_GREP_RESULTS = 60
 const MAX_FIND_RESULTS = 80
 const MAX_GREP_FILE_BYTES = FILE_SIZE_LIMIT_BYTES
 
@@ -25,6 +25,13 @@ export interface GrepMatch {
   path: string
   line: number
   text: string
+}
+
+export interface GrepResult {
+  matches: GrepMatch[]
+  truncated: boolean
+  filesScanned: number
+  skippedLargeFiles: string[]
 }
 
 function compileLineMatcher(query: string): (line: string) => boolean {
@@ -114,12 +121,7 @@ export async function grepInTree(
   root: string,
   query: string,
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
-): Promise<{
-  matches: GrepMatch[]
-  truncated: boolean
-  filesScanned: number
-  skippedLargeFiles: string[]
-}> {
+): Promise<GrepResult> {
   const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
   const maxResults = options?.maxResults ?? MAX_GREP_RESULTS
   const matcher = compileLineMatcher(query)
@@ -175,6 +177,73 @@ export async function grepInTree(
   )
 
   return { matches, truncated, filesScanned, skippedLargeFiles }
+}
+
+export async function grepMultiInTree(
+  root: string,
+  queries: string[],
+  maxResultsPerQuery: number[],
+  options?: { subpath?: string; onProgress?: (scanned: number) => void }
+): Promise<GrepResult[]> {
+  const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
+  const matchers = queries.map(compileLineMatcher)
+  const results: GrepResult[] = queries.map(() => ({
+    matches: [],
+    truncated: false,
+    filesScanned: 0,
+    skippedLargeFiles: []
+  }))
+
+  const filesScanned = await walkProjectFiles(
+    startDir,
+    async (filePath) => {
+      if (results.every((r, i) => r.matches.length >= maxResultsPerQuery[i])) {
+        results.forEach((r) => {
+          r.truncated = true
+        })
+        return true
+      }
+
+      let info
+      try {
+        info = await stat(filePath)
+      } catch {
+        return false
+      }
+      if (!info.isFile()) return false
+      if (info.size > MAX_GREP_FILE_BYTES) {
+        results.forEach((r) => r.skippedLargeFiles.push(filePath))
+        return false
+      }
+
+      let content: string
+      try {
+        content = await readFile(filePath, 'utf-8')
+      } catch {
+        return false
+      }
+      if (content.includes('\0')) return false
+
+      const lines = content.split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        for (let qi = 0; qi < matchers.length; qi++) {
+          const r = results[qi]
+          if (r.matches.length >= maxResultsPerQuery[qi]) continue
+          if (!matchers[qi](lines[i])) continue
+          r.matches.push({ path: filePath, line: i + 1, text: lines[i].trimEnd().slice(0, 240) })
+          if (r.matches.length >= maxResultsPerQuery[qi]) r.truncated = true
+        }
+      }
+
+      return false
+    },
+    options?.onProgress
+  )
+
+  results.forEach((r) => {
+    r.filesScanned = filesScanned
+  })
+  return results
 }
 
 export function formatGrepResults(

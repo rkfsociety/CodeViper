@@ -1,7 +1,9 @@
-import { readFile, stat, writeFile } from 'fs/promises'
-import { join, resolve } from 'path'
+import { createHash } from 'crypto'
+import { readFile, readdir, stat, writeFile } from 'fs/promises'
+import { extname, join, relative, resolve } from 'path'
 import { QdrantClient } from '@qdrant/js-client-rest'
 import { computeEmbedding } from './embeddings'
+import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
 import { appendFileHistory, readFileHistory } from './fileHistory'
 import { createUnifiedDiff } from './diffUtil'
 import type { ToolHandlers } from './agentTools'
@@ -609,7 +611,159 @@ export function createProjectToolHandlers(
         limit: args.limit ?? '5',
         path: args.path,
         oneline: 'true'
+      }),
+
+    index_project: async (_args) => {
+      const { qdrantUrl, qdrantApiKey, ollamaUrl } = options ?? {}
+      if (!qdrantUrl) return 'Qdrant URL не настроен в настройках'
+      if (!ollamaUrl) return 'Ollama URL не настроен в настройках'
+
+      const COLLECTION = 'codeviper_project'
+      const CHUNK_LINES = 500
+      const TEXT_EXTS = new Set([
+        '.ts',
+        '.tsx',
+        '.js',
+        '.jsx',
+        '.mjs',
+        '.cjs',
+        '.py',
+        '.rb',
+        '.go',
+        '.rs',
+        '.java',
+        '.c',
+        '.cpp',
+        '.h',
+        '.json',
+        '.yaml',
+        '.yml',
+        '.toml',
+        '.xml',
+        '.md',
+        '.txt',
+        '.sh',
+        '.bat',
+        '.cmd',
+        '.html',
+        '.css',
+        '.scss',
+        '.less',
+        '.vue',
+        '.svelte',
+        '.sql',
+        '.graphql',
+        '.gql'
+      ])
+      const SKIP_DIRS = new Set([
+        'node_modules',
+        '.git',
+        'dist',
+        'out',
+        'release',
+        'dist-electron',
+        '.next',
+        '__pycache__',
+        '.venv',
+        'venv',
+        '.vitest-tmp'
+      ])
+
+      const client = new QdrantClient({
+        url: qdrantUrl,
+        ...(qdrantApiKey ? { apiKey: qdrantApiKey } : {})
       })
+
+      try {
+        const cols = await client.getCollections()
+        const exists = cols.collections.some((c) => c.name === COLLECTION)
+        if (!exists) {
+          await client.createCollection(COLLECTION, {
+            vectors: { size: 768, distance: 'Cosine' }
+          })
+        }
+      } catch (e) {
+        return `Ошибка подключения к Qdrant: ${e instanceof Error ? e.message : String(e)}`
+      }
+
+      const files: string[] = []
+      async function walkDir(dir: string): Promise<void> {
+        let entries
+        try {
+          entries = await readdir(dir, { withFileTypes: true })
+        } catch {
+          return
+        }
+        for (const entry of entries) {
+          if (entry.name.startsWith('.') && entry.name !== '.codeviper') continue
+          if (SKIP_DIRS.has(entry.name)) continue
+          const full = join(dir, entry.name)
+          if (entry.isDirectory()) {
+            await walkDir(full)
+          } else if (entry.isFile() && TEXT_EXTS.has(extname(entry.name).toLowerCase())) {
+            files.push(full)
+          }
+        }
+      }
+
+      emitProgress('Индексация: сканирование файлов...', 0)
+      await walkDir(projectPath)
+
+      let indexed = 0
+      let errors = 0
+      let totalChunks = 0
+
+      for (let fi = 0; fi < files.length; fi++) {
+        const absPath = files[fi]
+        const relPath = relative(projectPath, absPath)
+        emitProgress(`Индексация: ${relPath}`, Math.round((fi / files.length) * 100))
+
+        let buf: Buffer
+        try {
+          buf = await readFile(absPath)
+        } catch {
+          errors++
+          continue
+        }
+        if (buf.includes(0) || buf.length > FILE_SIZE_LIMIT_BYTES) continue
+
+        const lines = buf.toString('utf-8').split('\n')
+        const points: Array<{ id: string; vector: number[]; payload: Record<string, unknown> }> = []
+
+        for (let ci = 0; ci * CHUNK_LINES < lines.length; ci++) {
+          const chunkText = `File: ${relPath}\n\n${lines.slice(ci * CHUNK_LINES, (ci + 1) * CHUNK_LINES).join('\n')}`
+          const vec = await computeEmbedding(chunkText, ollamaUrl)
+          if (!vec) continue
+
+          const hex = createHash('md5').update(`${relPath}:${ci}`).digest('hex')
+          const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
+          points.push({
+            id,
+            vector: vec,
+            payload: { filePath: relPath, chunkIndex: ci, projectPath }
+          })
+          totalChunks++
+        }
+
+        if (points.length > 0) {
+          try {
+            await client.upsert(COLLECTION, { points, wait: false })
+            indexed++
+          } catch {
+            errors++
+          }
+        }
+      }
+
+      clearProgress()
+      return [
+        'Индексация завершена:',
+        `  Файлов обработано: ${indexed} из ${files.length}`,
+        `  Чанков добавлено: ${totalChunks}`,
+        `  Ошибок: ${errors}`,
+        `  Коллекция: ${COLLECTION}`
+      ].join('\n')
+    }
   }
 
   return { handlers, clearEditSnapshots: () => editSnapshots.clear() }

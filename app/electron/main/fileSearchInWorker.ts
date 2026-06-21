@@ -2,6 +2,7 @@ import { Worker } from 'worker_threads'
 import { join } from 'path'
 import { stat } from 'fs/promises'
 import type { GrepMatch } from './fileSearch'
+import { MAX_GREP_RESULTS } from './fileSearch'
 
 type GrepResult = {
   matches: GrepMatch[]
@@ -86,19 +87,146 @@ function runWorker<T>(req: object, onProgress?: (scanned: number) => void): Prom
   })
 }
 
-export async function grepInTreeWorker(
+// ─── Батчинг параллельных grep-вызовов ───────────────────────────────────────
+
+const BATCH_MAX = 5
+
+type PendingGrep = {
+  root: string
+  subpath: string | undefined
+  query: string
+  maxResults: number
+  onProgress?: (scanned: number) => void
+  resolve: (result: GrepResult) => void
+  reject: (err: unknown) => void
+}
+
+const pendingGreps: PendingGrep[] = []
+let batchScheduled = false
+
+function scheduleBatch(): void {
+  if (batchScheduled) return
+  batchScheduled = true
+  Promise.resolve().then(flushBatch)
+}
+
+async function flushBatch(): Promise<void> {
+  batchScheduled = false
+  const batch = pendingGreps.splice(0)
+  if (!batch.length) return
+
+  // Группируем по root+subpath — только они могут объединить обход в одну операцию
+  const groups = new Map<string, PendingGrep[]>()
+  for (const item of batch) {
+    const key = `${item.root}\0${item.subpath ?? ''}`
+    const g = groups.get(key)
+    if (g) g.push(item)
+    else groups.set(key, [item])
+  }
+
+  const tasks: Promise<void>[] = []
+
+  for (const group of groups.values()) {
+    // Делим группу на чанки по BATCH_MAX
+    for (let i = 0; i < group.length; i += BATCH_MAX) {
+      const chunk = group.slice(i, i + BATCH_MAX)
+      tasks.push(dispatchChunk(chunk))
+    }
+  }
+
+  await Promise.all(tasks)
+}
+
+async function dispatchChunk(chunk: PendingGrep[]): Promise<void> {
+  // Проверяем кэш для каждого запроса
+  const cached = await Promise.all(
+    chunk.map((item) => grepCacheGet(item.root, item.query, item.subpath))
+  )
+
+  const uncachedIdx = chunk.map((_, i) => i).filter((i) => !cached[i])
+
+  // Все в кэше
+  if (!uncachedIdx.length) {
+    chunk.forEach((item, i) => item.resolve(cached[i]!))
+    return
+  }
+
+  // Один запрос без кэша — запускаем обычный воркер (одиночный)
+  if (uncachedIdx.length === 1) {
+    const idx = uncachedIdx[0]
+    const item = chunk[idx]
+    try {
+      const result = await runWorker<GrepResult>(
+        {
+          type: 'grep',
+          root: item.root,
+          query: item.query,
+          subpath: item.subpath,
+          maxResults: item.maxResults
+        },
+        item.onProgress
+      )
+      await grepCacheSet(item.root, item.query, item.subpath, result)
+      chunk.forEach((c, i) => (i === idx ? c.resolve(result) : c.resolve(cached[i]!)))
+    } catch (err) {
+      chunk.forEach((c, i) => (i === idx ? c.reject(err) : c.resolve(cached[i]!)))
+    }
+    return
+  }
+
+  // Несколько запросов без кэша — объединяем в один multi-grep воркер
+  const uncached = uncachedIdx.map((i) => chunk[i])
+  const onProgress = uncached.find((item) => item.onProgress)?.onProgress
+
+  try {
+    const results = await runWorker<GrepResult[]>(
+      {
+        type: 'multi-grep',
+        root: uncached[0].root,
+        queries: uncached.map((item) => item.query),
+        maxResultsPerQuery: uncached.map((item) => item.maxResults),
+        subpath: uncached[0].subpath
+      },
+      onProgress
+    )
+
+    // Кэшируем и резолвим некэшированные
+    await Promise.all(
+      uncached.map((item, j) => grepCacheSet(item.root, item.query, item.subpath, results[j]))
+    )
+    uncached.forEach((item, j) => item.resolve(results[j]))
+
+    // Резолвим закэшированные
+    chunk.forEach((item, i) => {
+      if (cached[i]) item.resolve(cached[i]!)
+    })
+  } catch (err) {
+    uncached.forEach((item) => item.reject(err))
+    chunk.forEach((item, i) => {
+      if (cached[i]) item.resolve(cached[i]!)
+    })
+  }
+}
+
+// ─── Публичный API ────────────────────────────────────────────────────────────
+
+export function grepInTreeWorker(
   root: string,
   query: string,
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<GrepResult> {
-  const cached = await grepCacheGet(root, query, options?.subpath)
-  if (cached) return cached
-  const result = await runWorker<GrepResult>(
-    { type: 'grep', root, query, subpath: options?.subpath, maxResults: options?.maxResults },
-    options?.onProgress
-  )
-  await grepCacheSet(root, query, options?.subpath, result)
-  return result
+  return new Promise((resolve, reject) => {
+    pendingGreps.push({
+      root,
+      subpath: options?.subpath,
+      query,
+      maxResults: options?.maxResults ?? MAX_GREP_RESULTS,
+      onProgress: options?.onProgress,
+      resolve,
+      reject
+    })
+    scheduleBatch()
+  })
 }
 
 export function findFilesInTreeWorker(

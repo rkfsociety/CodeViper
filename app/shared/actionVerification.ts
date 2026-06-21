@@ -20,7 +20,8 @@ export const MUTATING_TOOLS = new Set([
   'move_codeviper_file',
   'run_codeviper_command',
   'create_ollama_model',
-  'create_codeviper_pr'
+  'create_codeviper_pr',
+  'index_project'
 ])
 
 const MUTATION_TASK_PATTERNS: RegExp[] = [
