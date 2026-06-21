@@ -1,5 +1,7 @@
 import { readFile, stat, writeFile } from 'fs/promises'
 import { join, resolve } from 'path'
+import { QdrantClient } from '@qdrant/js-client-rest'
+import { computeEmbedding } from './embeddings'
 import { appendFileHistory, readFileHistory } from './fileHistory'
 import { createUnifiedDiff } from './diffUtil'
 import type { ToolHandlers } from './agentTools'
@@ -33,10 +35,17 @@ function scanPercent(scanned: number): number {
 
 const READONLY_ERROR = 'Режим только чтение: операции записи заблокированы'
 
+interface ProjectToolOptions {
+  readonlyMode?: boolean
+  ollamaUrl?: string
+  qdrantUrl?: string
+  qdrantApiKey?: string
+}
+
 export function createProjectToolHandlers(
   projectPath: string,
   commandTimeoutMs?: number,
-  options?: { readonlyMode?: boolean }
+  options?: ProjectToolOptions
 ): { handlers: Partial<ToolHandlers>; clearEditSnapshots: () => void } {
   const editSnapshots = new Map<string, string>()
 
@@ -123,6 +132,53 @@ export function createProjectToolHandlers(
   }
 
   const handlers: Partial<ToolHandlers> = {
+    search_knowledge_base: async (args) => {
+      const { query, collection = 'knowledge_base' } = args
+      const limit = Math.min(10, Math.max(1, parseInt(args.limit ?? '5', 10) || 5))
+
+      if (!options?.qdrantUrl) {
+        return 'Qdrant не настроен: укажи URL в настройках (поле "Qdrant URL")'
+      }
+
+      const ollamaUrl = options.ollamaUrl ?? 'http://127.0.0.1:11434'
+      const embedding = await computeEmbedding(query, ollamaUrl)
+      if (!embedding) {
+        return 'Не удалось вычислить эмбеддинг запроса (проверь, запущен ли Ollama и модель nomic-embed-text)'
+      }
+
+      const client = new QdrantClient({
+        url: options.qdrantUrl,
+        ...(options.qdrantApiKey ? { apiKey: options.qdrantApiKey } : {})
+      })
+
+      let results: Awaited<ReturnType<typeof client.search>>
+      try {
+        results = await client.search(collection, {
+          vector: embedding,
+          limit,
+          with_payload: true
+        })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        return `Ошибка поиска в Qdrant (коллекция "${collection}"): ${msg}`
+      }
+
+      if (!results.length) {
+        return `Ничего не найдено в коллекции "${collection}" по запросу: ${query}`
+      }
+
+      return results
+        .map((r, i) => {
+          const p = r.payload as Record<string, unknown> | null | undefined
+          const filePath = String(p?.file_path ?? p?.path ?? p?.source ?? '(неизвестен)')
+          const text = String(p?.text ?? p?.content ?? p?.chunk ?? '')
+          const score = r.score.toFixed(3)
+          const preview = text.length > 600 ? `${text.slice(0, 600)}…` : text
+          return `[${i + 1}] ${filePath}  (score: ${score})\n${preview}`
+        })
+        .join('\n\n---\n\n')
+    },
+
     list_directory: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
       const target = args.path?.trim() || projectPath

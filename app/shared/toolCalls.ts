@@ -1,5 +1,6 @@
 export const AGENT_TOOL_NAMES = [
   // Файловые операции
+  'search_knowledge_base',
   'list_directory',
   'grep_files',
   'find_files',

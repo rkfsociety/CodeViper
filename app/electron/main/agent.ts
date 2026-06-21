@@ -1387,7 +1387,12 @@ export class AgentRunner {
     const projectResult = createProjectToolHandlers(
       this.projectPath,
       this.settings.commandTimeoutSec != null ? this.settings.commandTimeoutSec * 1000 : undefined,
-      { readonlyMode: this.settings.readonlyMode }
+      {
+        readonlyMode: this.settings.readonlyMode,
+        ollamaUrl: this.settings.ollamaUrl,
+        qdrantUrl: this.settings.qdrantUrl,
+        qdrantApiKey: this.settings.qdrantApiKey
+      }
     )
     this.clearEditSnapshots = projectResult.clearEditSnapshots
 

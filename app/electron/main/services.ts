@@ -19,6 +19,8 @@ import { readLargeFileQueued } from './largeFileQueue'
 import { loadIgnorePatterns, shouldIgnorePath, clearIgnorePatternsCache } from './ignorePatterns'
 import {
   FILE_SIZE_LIMIT_BYTES,
+  FILE_PREVIEW_THRESHOLD_BYTES,
+  FILE_PREVIEW_HEAD_TAIL_LINES,
   READ_DEFAULT_LINE_LIMIT,
   DEFAULT_COMMAND_TIMEOUT_SEC
 } from '../../shared/constants'
@@ -266,7 +268,24 @@ export async function safeReadFilePartial(
   const usePartial = offset > 0 || limit != null
 
   let result: string
-  if (!usePartial) {
+  if (!usePartial && info.size > FILE_PREVIEW_THRESHOLD_BYTES) {
+    const raw = await readFile(absPath, 'utf-8')
+    const allLines = raw.split('\n')
+    const totalLines = allLines.length
+    const n = FILE_PREVIEW_HEAD_TAIL_LINES
+    if (totalLines > n * 2) {
+      const head = allLines.slice(0, n).join('\n')
+      const tail = allLines.slice(totalLines - n).join('\n')
+      const skipped = totalLines - n * 2
+      result =
+        `[Файл: ${absPath} | ${totalLines} строк, показаны первые ${n} и последние ${n}]\n` +
+        head +
+        `\n... (${skipped} строк обрезано) ...\n` +
+        tail
+    } else {
+      result = raw
+    }
+  } else if (!usePartial) {
     result = await readFile(absPath, 'utf-8')
   } else {
     const raw = await readFile(absPath, 'utf-8')

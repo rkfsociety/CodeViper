@@ -11,6 +11,10 @@ export const CONTEXT_SUMMARIZE_THRESHOLD = 0.85
 // ── Файлы ─────────────────────────────────────────────────────────────────────
 /** Максимальный размер файла для полного чтения */
 export const FILE_SIZE_LIMIT_BYTES = 512_000
+/** Порог (байт), выше которого без явного диапазона строк возвращается голова+хвост файла */
+export const FILE_PREVIEW_THRESHOLD_BYTES = 20_000
+/** Строк в голове и хвосте при авто-превью большого файла */
+export const FILE_PREVIEW_HEAD_TAIL_LINES = 50
 /** Количество строк, возвращаемых read_file по умолчанию при частичном чтении */
 export const READ_DEFAULT_LINE_LIMIT = 300
 

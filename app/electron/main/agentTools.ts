@@ -5,6 +5,26 @@ const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'search_knowledge_base',
+      description:
+        'Семантический поиск по базе знаний проекта (Qdrant). Возвращает top-5 релевантных чанков с путями файлов.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Поисковый запрос на естественном языке' },
+          collection: {
+            type: 'string',
+            description: 'Имя коллекции Qdrant (по умолчанию "knowledge_base")'
+          },
+          limit: { type: 'string', description: 'Количество результатов 1–10 (по умолчанию 5)' }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'list_directory',
       description: 'Показать дерево файлов проекта или подпапки',
       parameters: {
@@ -1152,6 +1172,7 @@ export type ToolName = (typeof AGENT_TOOLS)[number]['function']['name']
 
 /** Типы аргументов каждого инструмента */
 export interface ToolArgs {
+  search_knowledge_base: { query: string; collection?: string; limit?: string }
   list_directory: { path?: string; max_depth?: string }
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
