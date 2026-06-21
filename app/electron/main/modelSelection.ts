@@ -6,6 +6,7 @@ export interface ModelCapabilities {
   contextLength: number
   parameterSize: string
   isSupported: boolean
+  supportsTools?: boolean
   reason?: string // причина если не поддерживается
   recommendedFor?: string // на каком устройстве рекомендуется
 }
@@ -48,6 +49,7 @@ export function enrichModelCapabilities(
     name: string
     size: number
     details?: { parameter_size?: string; context_length?: number }
+    capabilities?: string[]
   }>,
   systemCapabilities: SystemCapabilities
 ): ModelCapabilities[] {
@@ -55,6 +57,8 @@ export function enrichModelCapabilities(
     const sizeGB = model.size / (1024 * 1024 * 1024)
     const contextLength = model.details?.context_length ?? 2048
     const isSupported = canSystemHandleModel(sizeGB, contextLength, systemCapabilities)
+    const supportsTools =
+      model.capabilities != null ? model.capabilities.includes('tools') : undefined
 
     let reason: string | undefined
     if (contextLength > 32000 && systemCapabilities.ramGB < 16) {
@@ -81,6 +85,7 @@ export function enrichModelCapabilities(
       contextLength,
       parameterSize: model.details?.parameter_size ?? 'unknown',
       isSupported,
+      supportsTools,
       reason,
       recommendedFor
     }

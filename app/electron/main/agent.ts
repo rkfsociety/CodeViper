@@ -1383,13 +1383,15 @@ export async function fetchOllamaModelsWithDetails(baseUrl: string) {
           signal: AbortSignal.timeout(5_000)
         })
         if (detRes.ok) {
-          const details = (await detRes.json()) as {
+          const body = (await detRes.json()) as {
             details?: { parameter_size?: string; context_length?: number }
+            capabilities?: string[]
           }
           return {
             name: m.name,
             size: m.size,
-            details: details.details
+            details: body.details,
+            capabilities: body.capabilities
           }
         }
       } catch {

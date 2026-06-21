@@ -98,6 +98,7 @@ export interface OllamaModel {
   contextLength?: number
   parameterSize?: string
   isSupported?: boolean
+  supportsTools?: boolean
   reason?: string
   recommendedFor?: string
 }

@@ -188,8 +188,16 @@ export function assertPullableToolModel(name: string): void {
   }
 }
 
-export function filterToolCallingModels<T extends { name: string }>(models: T[]): T[] {
-  return models.filter((model) => isToolCallingModel(model.name))
+export function filterToolCallingModels<T extends { name: string; supportsTools?: boolean }>(
+  models: T[]
+): T[] {
+  return models.filter((model) => {
+    // Если Ollama явно сказала поддерживает/нет — доверяем ей
+    if (model.supportsTools === true) return true
+    if (model.supportsTools === false) return false
+    // Иначе — проверяем по имени из каталога
+    return isToolCallingModel(model.name)
+  })
 }
 
 export function isRecommendedModelInstalled(
