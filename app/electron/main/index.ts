@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron'
 import { existsSync } from 'fs'
 import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
@@ -130,7 +130,20 @@ function appIconPath(): string | undefined {
   return candidates.find((path) => existsSync(path))
 }
 
+const CSP =
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http: https: ws: wss:; font-src 'self' data:; worker-src 'self' blob:;"
+
 async function createWindow(): Promise<void> {
+  // Устанавливаем CSP через заголовок ответа (перекрывает заголовки Vite dev-сервера)
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [CSP]
+      }
+    })
+  })
+
   const icon = appIconPath()
   const windowState = await loadWindowState()
   mainWindow = new BrowserWindow({
