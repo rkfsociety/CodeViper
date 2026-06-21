@@ -52,10 +52,15 @@ export function formatElapsed(sec: number): string {
 }
 
 export function formatGenerationMetricsHint(metrics: GenerationMetrics): string {
+  // Облачный провайдер: нет eval-метрик Ollama, только счётчик токенов
+  if (metrics.evalDurationSec === 0 || metrics.tokensPerSec === 0) {
+    const tok = metrics.sessionTokens ?? metrics.totalTokens
+    return tok != null ? `${formatTokenCount(tok)} tok` : ''
+  }
   if (metrics.totalTokens != null) {
     const parts = [`${metrics.totalTokens} tok`]
     if (metrics.sessionTokens != null) {
-      parts.push(`сессия: ${metrics.sessionTokens} tok`)
+      parts.push(`сессия: ${formatTokenCount(metrics.sessionTokens)} tok`)
     }
     return parts.join(' · ')
   }

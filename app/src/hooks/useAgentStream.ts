@@ -122,8 +122,12 @@ export function useAgentStream({
       if (event.chatId !== chatIdRef.current) return
 
       if (event.type === 'thinking') {
+        if (genStartRef.current === null) {
+          // Начало новой LLM-генерации — сбрасываем метрики предыдущего вызова
+          dispatchRef.current({ type: 'SET_METRICS', metrics: null })
+          genStartRef.current = Date.now()
+        }
         dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
-        if (genStartRef.current === null) genStartRef.current = Date.now()
         const thinking = event.content ?? ''
         const newThinking = draftThinkingRef.current + thinking
         draftThinkingRef.current = newThinking
@@ -138,8 +142,11 @@ export function useAgentStream({
       }
 
       if (event.type === 'token') {
+        if (genStartRef.current === null) {
+          dispatchRef.current({ type: 'SET_METRICS', metrics: null })
+          genStartRef.current = Date.now()
+        }
         dispatchRef.current({ type: 'SET_PHASE', phase: 'writing' })
-        if (genStartRef.current === null) genStartRef.current = Date.now()
 
         const token = event.content ?? ''
         const newContent = draftRef.current + token
