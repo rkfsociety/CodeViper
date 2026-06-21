@@ -104,7 +104,7 @@ export function useAgentStream({
     draftMessageIdRef.current = null
   }, [flushPending])
 
-  // Тикает каждые 3 секунды пока агент работает — обновляет elapsed в runStats.
+  // Тикает каждую секунду пока агент работает — обновляет elapsed в runStats.
   useEffect(() => {
     const interval = setInterval(() => {
       if (!runActiveRef.current || runStartRef.current === null) return
@@ -113,7 +113,7 @@ export function useAgentStream({
         type: 'SET_STATS',
         stats: { elapsedSec: elapsed, tokens: cumulativeTokensRef.current }
       })
-    }, 3000)
+    }, 1000)
     return () => clearInterval(interval)
   }, [])
 
