@@ -286,7 +286,19 @@ export function ModelPanel({
                       {model.featured ? '★ ' : ''}
                       {model.name}
                     </strong>
-                    <span className={styles.ram}>{model.ramHint}</span>
+                    <div className={styles.cardHeadRight}>
+                      <span className={styles.ram}>{model.ramHint}</span>
+                      {model.url && (
+                        <button
+                          type="button"
+                          className={styles.cardLink}
+                          title="Открыть страницу модели на Ollama"
+                          onClick={() => window.codeviper.openExternal(model.url!)}
+                        >
+                          ↗
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className={styles.cardDesc}>{model.description}</div>
                   <button

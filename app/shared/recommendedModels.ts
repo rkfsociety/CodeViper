@@ -8,6 +8,8 @@ export interface RecommendedModel {
   ramTier: RamTier
   /** Рекомендуемый выбор в своей категории RAM */
   featured?: boolean
+  /** Ссылка на страницу модели на Ollama */
+  url?: string
 }
 
 export const RECOMMENDED_MODEL_TIERS: { id: RamTier; label: string }[] = [
@@ -27,107 +29,124 @@ export const RECOMMENDED_MODELS: RecommendedModel[] = [
     description: 'Самый лёгкий кодер с tool calling — для слабых ПК',
     ramHint: '6 GB',
     ramTier: '6-8',
-    featured: true
+    featured: true,
+    url: 'https://ollama.com/library/qwen2.5-coder'
   },
   {
     name: 'llama3.2:3b',
     description: 'Компактная универсальная модель Meta',
     ramHint: '6–8 GB',
-    ramTier: '6-8'
+    ramTier: '6-8',
+    url: 'https://ollama.com/library/llama3.2'
   },
   {
     name: 'qwen3:4b',
     description: 'Новая лёгкая Qwen3, хорошо следует инструкциям',
     ramHint: '6–8 GB',
-    ramTier: '6-8'
+    ramTier: '6-8',
+    url: 'https://ollama.com/library/qwen3'
   },
   {
     name: 'qwen2.5-coder:7b',
     description: 'Лучший выбор для кода и агента — быстро и точно',
     ramHint: '8 GB',
     ramTier: '8',
-    featured: true
+    featured: true,
+    url: 'https://ollama.com/library/qwen2.5-coder'
   },
   {
     name: 'qwen2.5:7b',
     description: 'Универсальная Qwen2.5, tool calling',
     ramHint: '8 GB',
-    ramTier: '8'
+    ramTier: '8',
+    url: 'https://ollama.com/library/qwen2.5'
   },
   {
     name: 'llama3.1:8b',
     description: 'Проверенная модель Meta с tool calling',
     ramHint: '8 GB',
-    ramTier: '8'
+    ramTier: '8',
+    url: 'https://ollama.com/library/llama3.1'
   },
   {
     name: 'qwen3:8b',
     description: 'Qwen3 — сильнее Qwen2.5 на тех же 8 GB',
     ramHint: '8 GB',
-    ramTier: '8'
+    ramTier: '8',
+    url: 'https://ollama.com/library/qwen3'
   },
   {
     name: 'mistral-nemo:12b',
     description: 'Mistral Nemo 12B — баланс качества и RAM',
     ramHint: '12 GB',
-    ramTier: '12'
+    ramTier: '12',
+    url: 'https://ollama.com/library/mistral-nemo'
   },
   {
     name: 'qwen2.5-coder:14b',
     description: 'Код высокого качества, стабильный tool calling',
     ramHint: '16 GB',
     ramTier: '16',
-    featured: true
+    featured: true,
+    url: 'https://ollama.com/library/qwen2.5-coder'
   },
   {
     name: 'qwen2.5:14b',
     description: 'Универсальная 14B — лучше понимает контекст',
     ramHint: '16 GB',
-    ramTier: '16'
+    ramTier: '16',
+    url: 'https://ollama.com/library/qwen2.5'
   },
   {
     name: 'qwen3:14b',
     description: 'Qwen3 14B — новое поколение на 16 GB',
     ramHint: '16 GB',
-    ramTier: '16'
+    ramTier: '16',
+    url: 'https://ollama.com/library/qwen3'
   },
   {
     name: 'codestral:22b',
     description: 'Mistral Codestral — специализация на коде',
     ramHint: '16–24 GB',
-    ramTier: '24'
+    ramTier: '24',
+    url: 'https://ollama.com/library/codestral'
   },
   {
     name: 'qwen2.5-coder:32b',
     description: 'Топ кодер для 32 GB — минимум галлюцинаций',
     ramHint: '24–32 GB',
     ramTier: '32',
-    featured: true
+    featured: true,
+    url: 'https://ollama.com/library/qwen2.5-coder'
   },
   {
     name: 'qwen3:30b',
     description: 'Qwen3 30B — сильная универсальная модель',
     ramHint: '24–32 GB',
-    ramTier: '32'
+    ramTier: '32',
+    url: 'https://ollama.com/library/qwen3'
   },
   {
     name: 'llama3.1:70b',
     description: 'Llama 3.1 70B — топ open-source (нужен GPU/RAM)',
     ramHint: '48 GB+',
-    ramTier: '48+'
+    ramTier: '48+',
+    url: 'https://ollama.com/library/llama3.1'
   },
   {
     name: 'llama3.3:70b',
     description: 'Llama 3.3 70B — новее 3.1, лучше рассуждения',
     ramHint: '48 GB+',
     ramTier: '48+',
-    featured: true
+    featured: true,
+    url: 'https://ollama.com/library/llama3.3'
   },
   {
     name: 'qwen2.5:72b',
     description: 'Qwen2.5 72B — максимум для локального агента',
     ramHint: '48 GB+',
-    ramTier: '48+'
+    ramTier: '48+',
+    url: 'https://ollama.com/library/qwen2.5'
   }
 ]
 
