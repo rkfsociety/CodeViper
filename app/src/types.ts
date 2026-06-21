@@ -176,6 +176,8 @@ export interface AgentSettings {
   powerSaveMode?: boolean
   /** Отключить фоновый сбор CPU/GPU-статистики */
   disableSystemStats?: boolean
+  /** Ollama: кол-во слоёв на GPU (-1 = авто, 0 = только CPU, N = N слоёв) */
+  ollamaNumGpu?: number
   /** Обновлять PR только вручную (без авто-опроса каждые 5 минут) */
   prManualRefresh?: boolean
   /** Включить облачный API параллельно с Ollama (для суммаризации или запасного канала) */

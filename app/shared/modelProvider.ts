@@ -28,6 +28,8 @@ export interface ChatOptions {
   top_p?: number
   max_tokens?: number
   keep_alive?: string | number
+  /** Ollama: кол-во слоёв на GPU (-1 = авто, 0 = только CPU) */
+  num_gpu?: number
   signal?: AbortSignal
 }
 

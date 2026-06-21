@@ -54,7 +54,8 @@ export class OllamaProvider implements ModelProvider {
         // tool_choice не поддерживается Ollama — не передаём
         keep_alive: options.keep_alive ?? 5 * 60,
         num_ctx: 4096,
-        num_predict: options.max_tokens ?? 2048
+        num_predict: options.max_tokens ?? 2048,
+        ...(options.num_gpu != null ? { num_gpu: options.num_gpu } : {})
       }),
       signal: options.signal
     })

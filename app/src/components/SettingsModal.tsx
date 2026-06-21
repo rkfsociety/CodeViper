@@ -933,6 +933,37 @@ export function SettingsModal({
                 </div>
 
                 <div className={styles.section}>
+                  <div className={styles.sectionLabel}>GPU / память (Ollama)</div>
+
+                  <div className={styles.row}>
+                    <div className={styles.rowContent}>
+                      <span className={styles.title}>Слоёв на GPU</span>
+                      <span className={styles.desc}>
+                        Сколько слоёв модели загружать на GPU. Пусто или -1 — авто (всё на GPU). 0 —
+                        только CPU (медленно, но без OOM). Дробные значения, например 20, позволяют
+                        запустить крупную модель частично: одни слои на GPU, остальные на RAM.
+                      </span>
+                    </div>
+                    <div className={styles.rowRight}>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="-1"
+                        style={{ width: 72 }}
+                        value={settings.ollamaNumGpu ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value.trim()
+                          onSettingsChange({
+                            ollamaNumGpu: raw === '' ? undefined : Number(raw)
+                          })
+                        }}
+                      />
+                      <span className={styles.unit}>слоёв</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.section}>
                   <div className={styles.sectionLabel}>Таймауты</div>
 
                   <div className={styles.row}>
