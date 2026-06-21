@@ -1,21 +1,48 @@
 export const AGENT_TOOL_NAMES = [
+  // Файловые операции
   'list_directory',
   'grep_files',
   'find_files',
   'read_file',
+  'file_info',
+  'project_stats',
+  'search_in_file',
+  'file_search_summary',
+  'show_file_history',
+  'copy_file',
+  'rename_folder',
+  'copy_folder',
+  'preview_edit',
+  'preview_patch',
   'write_file',
   'create_file',
   'edit_file',
+  'undo_edit',
   'append_file',
   'delete_file',
   'move_file',
+  // Команды и Git
   'run_command',
   'git_status',
   'git_diff',
   'git_log',
+  'recent_changes',
+  // GitHub
+  'create_issue',
+  'create_pr',
+  'list_issues',
+  'open_issue',
+  'trigger_github_workflow',
+  // Память
   'remember',
   'search_memory',
   'forget',
+  // Зависимости
+  'package_info',
+  'read_package_lock',
+  'dependency_summary',
+  'test_summary',
+  // Навыки
   'list_skills',
   'read_skill',
   'create_skill',
@@ -23,12 +50,14 @@ export const AGENT_TOOL_NAMES = [
   'delete_skill',
   'read_skill_data',
   'write_skill_data',
-  'set_self_improvement_plan',
-  'complete_self_improvement_item',
-  'get_self_improvement_plan',
+  // Todo
+  'set_todo_list',
+  'complete_todo_item',
+  'clear_todo_list',
+  // CodeViper self-edit
+  'list_codeviper_directory',
   'grep_codeviper_files',
   'find_codeviper_files',
-  'list_codeviper_directory',
   'read_codeviper_file',
   'write_codeviper_file',
   'create_codeviper_file',
@@ -36,7 +65,17 @@ export const AGENT_TOOL_NAMES = [
   'append_codeviper_file',
   'delete_codeviper_file',
   'move_codeviper_file',
-  'run_codeviper_command'
+  'run_codeviper_command',
+  'create_codeviper_branch',
+  'push_codeviper_branch',
+  'create_codeviper_pr',
+  // Модели
+  'preview_ollama_modelfile',
+  'create_ollama_model',
+  // Саморазвитие
+  'set_self_improvement_plan',
+  'complete_self_improvement_item',
+  'get_self_improvement_plan'
 ] as const
 
 const TOOL_NAME_SET = new Set<string>(AGENT_TOOL_NAMES)
@@ -182,11 +221,34 @@ export function sanitizeAssistantContent(content: string): string {
   return stripMalformedToolCallPrefix(text).trim()
 }
 
+function looksLikeToolCallAttempt(obj: unknown): boolean {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
+  const r = obj as Record<string, unknown>
+  // {"name": "...", "arguments": {...}} — прямой вызов с неизвестным именем
+  if (typeof r.name === 'string' && ('arguments' in r || 'parameters' in r)) return true
+  // {"type": "...", "function": {"name": "...", ...}} — формат OpenAI tool definition
+  if (typeof r.type === 'string' && r.function && typeof r.function === 'object') return true
+  // {"function": {"name": "...", "description": "...", "parameters": {}}}
+  if (r.function && typeof r.function === 'object') {
+    const fn = r.function as Record<string, unknown>
+    if (typeof fn.name === 'string' && ('description' in fn || 'parameters' in fn)) return true
+  }
+  return false
+}
+
 function stripMalformedToolCallPrefix(text: string): string {
   const trimmed = text.trim()
   if (!trimmed.startsWith('{')) return trimmed
 
   if (tryParseToolCallJson(trimmed)) return ''
+
+  // Скрываем JSON, который выглядит как попытка вызова инструмента с неизвестным именем
+  try {
+    const obj = JSON.parse(trimmed)
+    if (looksLikeToolCallAttempt(obj)) return ''
+  } catch {
+    // не валидный JSON — оставляем как есть
+  }
 
   if (/^\{\s*"name(?!\s*"\s*:)/.test(trimmed)) {
     return trimmed.replace(/^\{\s*"name/, '').trim()
