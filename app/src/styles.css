@@ -199,10 +199,20 @@ button {
 }
 
 .layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  display: flex;
+  flex-direction: row;
   flex: 1;
   min-height: 0;
+}
+
+.layout .panel-history {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.layout .panel-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .panel-main {
@@ -211,6 +221,14 @@ button {
 
 .panel-history {
   min-width: 0;
+}
+
+.panel-trace {
+  min-width: 0;
+  width: 400px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
 }
 
 .panel {
@@ -1801,8 +1819,8 @@ button.topbar-pill.topbar-download-error {
 
 /* Планшеты и узкие окна — сужаем сайдбар истории */
 @media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 220px minmax(0, 1fr);
+  .layout .panel-history {
+    width: 220px;
   }
 
   .topbar {
@@ -1820,8 +1838,14 @@ button.topbar-pill.topbar-download-error {
 /* Мобильные — складываем сайдбар над чатом */
 @media (max-width: 640px) {
   .layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
+    flex-direction: column;
+  }
+
+  .layout .panel-history {
+    width: 100%;
+    max-height: 38vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
 
   .panel-history {

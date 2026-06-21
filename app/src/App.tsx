@@ -24,6 +24,9 @@ import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 const TerminalPanel = lazy(() =>
   import('./components/TerminalPanel').then((m) => ({ default: m.TerminalPanel }))
 )
+const TracePanel = lazy(() =>
+  import('./components/TracePanel').then((m) => ({ default: m.TracePanel }))
+)
 const PrStatusPanel = lazy(() =>
   import('./components/PrStatusPanel').then((m) => ({ default: m.PrStatusPanel }))
 )
@@ -75,6 +78,7 @@ function AppContent() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [prPanelOpen, setPrPanelOpen] = useState(false)
+  const [tracePanelOpen, setTracePanelOpen] = useState(false)
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [settingsReady, setSettingsReady] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
@@ -634,6 +638,13 @@ function AppContent() {
               {lightMode ? '🌙' : '☀️'}
             </button>
             <button
+              className={`btn ${tracePanelOpen ? 'active' : ''}`}
+              onClick={() => setTracePanelOpen((v) => !v)}
+              title="Трассировка агента — сырой лог всех запросов к модели"
+            >
+              Трасса
+            </button>
+            <button
               className="btn"
               onClick={() => window.codeviper.openDevTools()}
               title="Открыть консоль разработчика"
@@ -760,6 +771,14 @@ function AppContent() {
               </div>
             )}
           </section>
+
+          {tracePanelOpen && (
+            <section className="panel panel-trace">
+              <Suspense fallback={null}>
+                <TracePanel chatId={activeChatId} />
+              </Suspense>
+            </section>
+          )}
         </div>
 
         {settingsOpen && (

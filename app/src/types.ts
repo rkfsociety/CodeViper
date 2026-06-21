@@ -306,6 +306,13 @@ export interface AgentPreviewRequest {
   diff: string
 }
 
+export interface AgentTraceEvent {
+  ts: number
+  kind: 'run_start' | 'llm_request' | 'llm_response' | 'tool_call' | 'tool_result' | 'run_end'
+  label: string
+  data: Record<string, unknown>
+}
+
 export interface AgentStreamPayload {
   type:
     | 'token'
@@ -324,6 +331,7 @@ export interface AgentStreamPayload {
     | 'model_selected'
     | 'generation_metrics'
     | 'preview'
+    | 'trace'
   content?: string
   /** Поля события preview */
   previewId?: string
@@ -345,6 +353,8 @@ export interface AgentStreamPayload {
   summarizing?: boolean
   /** Метрики последнего шага генерации Ollama (tok/s, длительность) */
   generationMetrics?: GenerationMetrics
+  /** Событие трассировки агента (type === 'trace') */
+  traceEvent?: AgentTraceEvent
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {

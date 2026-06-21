@@ -143,6 +143,14 @@ export class AgentRunner {
   private summarizeModelResolved: string
   private sessionTokens = 0
 
+  private emitTrace(
+    kind: import('../../src/types').AgentTraceEvent['kind'],
+    label: string,
+    data: Record<string, unknown>
+  ): void {
+    this.emit({ type: 'trace', traceEvent: { ts: Date.now(), kind, label, data } })
+  }
+
   constructor(
     private settings: AgentSettings,
     private projectPath: string,
@@ -295,6 +303,15 @@ export class AgentRunner {
       model: this.settings.model,
       message: userMessage.slice(0, 200)
     })
+    this.emitTrace(
+      'run_start',
+      `▶ Старт — модель: ${this.settings.model} (${this.providerConfig.type})`,
+      {
+        model: this.settings.model,
+        provider: this.providerConfig.type,
+        message: userMessage
+      }
+    )
 
     const autonomousSelfImprove = isSelfImprovementTask(userMessage)
     this.selfImproveMode = autonomousSelfImprove
@@ -368,6 +385,24 @@ export class AgentRunner {
         step++
 
         const stepStartMs = Date.now()
+        const ctxChars = messages.reduce(
+          (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
+          0
+        )
+        this.emitTrace(
+          'llm_request',
+          `→ Запрос к модели (шаг ${step}, ${messages.length} сообщ., ~${Math.round(ctxChars / 4)} токенов)`,
+          {
+            step,
+            messageCount: messages.length,
+            contextChars: ctxChars,
+            messages: messages.map((m) => ({
+              role: m.role,
+              chars: typeof m.content === 'string' ? m.content.length : 0,
+              preview: typeof m.content === 'string' ? m.content.slice(0, 300) : ''
+            }))
+          }
+        )
         let response
         try {
           response = await this.chat(messages, { requireTool: requireToolNext })
@@ -396,6 +431,29 @@ export class AgentRunner {
         const assistantText = sanitizeAssistantContent(response.message?.content ?? '')
         const assistantThinking = response.message?.thinking
         const toolCalls: ToolCall[] = response.message?.tool_calls ?? []
+
+        {
+          const toolNames = toolCalls.map((tc) => tc.function.name)
+          const durationMs = Date.now() - stepStartMs
+          const tokens = response.metrics?.evalCount
+          const tps =
+            response.metrics?.tokensPerSec != null
+              ? Math.round(response.metrics.tokensPerSec * 10) / 10
+              : undefined
+          const label = toolNames.length
+            ? `← Ответ (шаг ${step}, ${durationMs}ms${tokens ? `, ${tokens}tok` : ''}) → инструменты: ${toolNames.join(', ')}`
+            : `← Ответ (шаг ${step}, ${durationMs}ms${tokens ? `, ${tokens}tok` : ''}) → текст (${assistantText.length} симв.)`
+          this.emitTrace('llm_response', label, {
+            step,
+            durationMs,
+            tokens,
+            toksPerSec: tps,
+            textLength: assistantText.length,
+            text: assistantText.slice(0, 500),
+            thinking: assistantThinking?.slice(0, 300),
+            toolCalls: toolNames
+          })
+        }
 
         const isCloudProviderRun = this.providerConfig.type !== 'ollama'
         const hasNativeToolCalls = isCloudProviderRun && toolCalls.some((tc) => tc.id)
@@ -607,6 +665,15 @@ export class AgentRunner {
           if (this.settings.selfLearning !== false) {
             await this.reflectAndLearn(messages, userMessage, mutatingToolsUsed.size > 0)
           }
+          this.emitTrace(
+            'run_end',
+            `■ Завершено за ${Date.now() - runStartMs}ms, шагов: ${step}, токенов: ${this.sessionTokens}`,
+            {
+              durationMs: Date.now() - runStartMs,
+              steps: step,
+              sessionTokens: this.sessionTokens
+            }
+          )
           this.emit({ type: 'done' })
           return
         }
@@ -648,6 +715,7 @@ export class AgentRunner {
           const results = await Promise.all(
             parsedCalls.map(async ({ id, name, args }) => {
               void agentLogger.write({ event: 'tool_call', step, tool: name, args })
+              this.emitTrace('tool_call', `🔧 ${name}`, { tool: name, args })
               const toolStartMs = Date.now()
               let output = ''
               try {
@@ -660,6 +728,16 @@ export class AgentRunner {
                   duration_ms: Date.now() - toolStartMs,
                   output_len: output.length
                 })
+                this.emitTrace(
+                  'tool_result',
+                  `✓ ${name} (${Date.now() - toolStartMs}ms, ${output.length} симв.)`,
+                  {
+                    tool: name,
+                    ok: true,
+                    durationMs: Date.now() - toolStartMs,
+                    output: output.slice(0, 1000)
+                  }
+                )
               } catch (error) {
                 output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
                 void agentLogger.write({
@@ -668,6 +746,12 @@ export class AgentRunner {
                   tool: name,
                   ok: false,
                   duration_ms: Date.now() - toolStartMs,
+                  error: output
+                })
+                this.emitTrace('tool_result', `✗ ${name} — ${output.slice(0, 100)}`, {
+                  tool: name,
+                  ok: false,
+                  durationMs: Date.now() - toolStartMs,
                   error: output
                 })
               }
@@ -710,6 +794,7 @@ export class AgentRunner {
               }
 
               void agentLogger.write({ event: 'tool_call', step, tool: name, args: args })
+              this.emitTrace('tool_call', `🔧 ${name}`, { tool: name, args })
               const toolStartMs = Date.now()
               let output = ''
               try {
@@ -722,6 +807,16 @@ export class AgentRunner {
                   duration_ms: Date.now() - toolStartMs,
                   output_len: output.length
                 })
+                this.emitTrace(
+                  'tool_result',
+                  `✓ ${name} (${Date.now() - toolStartMs}ms, ${output.length} симв.)`,
+                  {
+                    tool: name,
+                    ok: true,
+                    durationMs: Date.now() - toolStartMs,
+                    output: output.slice(0, 1000)
+                  }
+                )
               } catch (error) {
                 output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
                 void agentLogger.write({
@@ -730,6 +825,12 @@ export class AgentRunner {
                   tool: name,
                   ok: false,
                   duration_ms: Date.now() - toolStartMs,
+                  error: output
+                })
+                this.emitTrace('tool_result', `✗ ${name} — ${output.slice(0, 100)}`, {
+                  tool: name,
+                  ok: false,
+                  durationMs: Date.now() - toolStartMs,
                   error: output
                 })
               }
