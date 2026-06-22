@@ -2,53 +2,82 @@
 
 Планы развития и список выполненного. Назад в [README](README.md).
 
-> **Принцип чтения:** строки внутри каждой группы упорядочены по зависимостям — каждый следующий пункт можно начинать только после выполнения предыдущих в той же группе (если в колонке «Зависит от» стоит конкретное название). Пункты без зависимостей идут первыми.
+> **Принцип чтения:** задачи сгруппированы в цепочки — внутри каждой группы строгий порядок сверху вниз. Следующий шаг начинать только после завершения предыдущего. Между группами порядок произвольный.
 
 ## 📋 В планах
 
-| Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
-|---|---|---|---|---|---|
-| **Безопасность** | При скачивании через `pullOllamaModel` сравнивать SHA-256 финального файла с манифестом реестра Ollama; при несовпадении — удалять файл и показывать ошибку | Low | S | — | ⏳ |
-| **Безопасность** | Добавить режим «Инкогнито» (переключатель в топбаре): отключает сохранение истории чатов и NDJSON-логов на диск; данные живут только в памяти до закрытия окна | Low | M | — | ⏳ |
-| **Безопасность** | Для плагинов задокументировать и реализовать ограниченный API: только `fs` внутри `projectPath`, без `net` и системных модулей; `--experimental-permission` в `worker_thread` | Low | L | Компиляция плагинов | ⏳ |
-| **Интеграции** | Установить `electron-updater`, добавить проверку GitHub Releases при старте приложения; при наличии новой версии показывать баннер с кнопкой «Перезапустить и обновить» | High | M | CI pipeline (`release.yml`) | ⏳ |
-| **Интеграции** | Добавить `.sh`-лаунчер для Linux/macOS аналогично `CodeViper.cmd`; в GitHub Actions настроить матрицу `windows-latest` / `ubuntu-latest` / `macos-latest`; исправить пути `app/electron/main` для POSIX | Medium | L | — | ⏳ |
-| **Интеграции** | Добавить в `AgentSettings` поля `jiraUrl`, `jiraToken`; реализовать инструмент `create_jira_issue` в `agentHandlersGitHub.ts`: POST `{jiraUrl}/rest/api/3/issue` с Basic-авторизацией через token | Low | M | — | ⏳ |
-| **Интеграции** | Добавить в `AgentSettings` поле `linearApiKey`; реализовать инструмент `create_linear_issue` в `agentHandlersGitHub.ts`: GraphQL-мутация `issueCreate` через `https://api.linear.app/graphql` | Low | M | — | ⏳ |
-| **Интеграции** | Создать `Dockerfile` с Node.js 20 + Ollama; `docker-compose.yml` с томом исходников CodeViper и hot reload через `npm run dev`; документировать запуск в README | Low | M | — | ⏳ |
-| **Инфраструктура** | Создать `scripts/download-node.js`: определяет платформу/arch, скачивает Node.js LTS с nodejs.org в `app/resources/node/`, распаковывает, пропускает если уже актуален; добавить `npm run setup-node` в `package.json` scripts и вызов перед `npm run dist` | Low | S | — | ⏳ |
-| **Инфраструктура** | В `package.json` в секцию `build` добавить `extraResources: [{ from: "resources/node/", to: "node/" }]` — так portable Node.js попадёт в установленный дистрибутив рядом с `resources/` | Low | XS | `scripts/download-node.js` | ⏳ |
-| **Инфраструктура** | В `codeviperSource.ts` добавить `getBundledNodeBin()` (ищет `resources/node/node.exe` или `bin/node` рядом с `app.getAppPath()`); изменить `runCodeViperCommand` — при наличии bundled Node прокидывать его директорию в начало `PATH` среды перед вызовом `runCommand` | Low | S | `extraResources` в `package.json` | ⏳ |
-| **Инфраструктура** | Установить `node-llama-cpp` и `@electron/rebuild` в `app/`; добавить скрипт `"rebuild": "electron-rebuild -f -w node-llama-cpp"` в `package.json`; запустить `npm run rebuild` и убедиться что `.node`-файл появился в `node_modules/node-llama-cpp/` | Low | S | — | ⏳ |
-| **Инфраструктура** | В `package.json` секция `build`: добавить `"npmRebuild": true` и `"buildDependenciesFromSource": false`; проверить что `npm run dist` перекомпилирует `node-llama-cpp` под целевую платформу без ручного вызова `electron-rebuild` | Low | S | `npm install node-llama-cpp` | ⏳ |
-| **Инфраструктура** | Создать `app/electron/main/nodeLlama.ts`: обёртка над `node-llama-cpp` — `loadModel(path: string)`, `complete(prompt: string, maxTokens: number): Promise<string>`, `unloadModel()`; singleton с ленивой инициализацией; экспортировать тип `NodeLlamaHandle` | Low | M | `npm install node-llama-cpp` | ⏳ |
-| **Инфраструктура** | Создать `app/tests/nodeLlama.test.ts` (vitest): если `TEST_GGUF_PATH` не задан — `test.skip`; иначе `loadModel → complete('Hello', 1) → unloadModel`; проверить что ответ — непустая строка; добавить в `README` инструкцию по запуску с реальным GGUF | Low | S | `nodeLlama.ts` | ⏳ |
-| **Оркестратор** | В `SettingsModal.tsx` → вкладка «Модель» → раздел оркестратора добавить кнопку «Выбрать GGUF-модель» (`dialog.showOpenDialog` с фильтром `*.gguf`); путь сохранять в `AgentSettings.orchestratorModelPath` | Low | M | — | ⏳ |
-| **Оркестратор** | Создать `orchestratorModel.ts`: singleton, загружает GGUF через `node-llama-cpp`, реализует метод `analyze(message: string): Promise<{ plan: string; rephrased: string; isComplex: boolean }>`; без стриминга, только итоговый JSON | Low | L | `node-llama-cpp` (Инфраструктура) | ⏳ |
-| **Оркестратор** | При первом запуске с включённым оркестратором скачивать `Qwen2.5-1.5B-Instruct.Q4_K_M.gguf` (~900 МБ) в `app.getPath('userData')/orchestrator/`; показывать прогресс через `onProgressEvent`; кнопка «Скачать» в настройках | Low | M | `orchestratorModel.ts` | ⏳ |
-| **Оркестратор** | В `SettingsModal.tsx` добавить секцию «Оркестратор»: тумблер включить/выключить (`AgentSettings.orchestratorEnabled`), числовое поле порога длины сообщения (`minMessageLength`, дефолт 80), кнопка «Удалить модель» | Low | S | `orchestratorModel.ts` | ⏳ |
-| **Оркестратор** | Интегрировать `OrchestratorModel.analyze()` в `AgentRunner.run()`: вызывать перед первым прогоном, добавлять `plan` в системный промпт, при `isComplex=true` использовать перефразированный запрос вместо оригинального | Low | M | `orchestratorModel.ts` | ⏳ |
-| **MCP** | Реализовать `mcpRegistry.ts`: при добавлении URL сервера делать GET `{url}/.well-known/mcp`, парсить JSON-схему `{ tools: [{name, description, parameters}] }`, сохранять в `AgentSettings.mcpServers` | Medium | M | — | ⏳ |
-| **MCP** | В `SettingsModal.tsx` на вкладке «Интеграции» добавить секцию MCP: список подключённых серверов из настроек, кнопка «+ Добавить», поле ввода URL; сохранять в `AgentSettings.mcpServers: string[]` | Medium | S | `mcpRegistry.ts` | ⏳ |
-| **MCP** | В `agentTools.ts` в функции `getAgentTools()` динамически добавлять инструменты из `AgentSettings.mcpServers` перед каждым прогоном агента; вызовы проксировать через `POST {serverUrl}/tools/call` | Medium | M | `mcpRegistry.ts` | ⏳ |
-| **MCP** | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | Low | M | `mcpRegistry.ts` + динамические инструменты | ⏳ |
-| **Плагины** | При старте main process сканировать `~/.codeviper/plugins/*.js`; для каждого файла делать `require()` и читать `export default { name, description, tools: AgentTool[] }`; регистрировать инструменты в `agentTools.ts` | Low | M | — | ⏳ |
-| **Плагины** | В `SettingsModal.tsx` добавить вкладку «Плагины»: список установленных плагинов из `AgentSettings.plugins`, кнопки включить/выключить и «Открыть папку плагинов» (`shell.openPath`) | Low | S | Загрузка плагинов | ⏳ |
-| **Плагины** | При загрузке плагина `*.ts` компилировать его через `esbuild.buildSync` в CommonJS во временную папку; кэшировать скомпилированный результат по `mtime` исходника | Low | M | Загрузка плагинов | ⏳ |
-| **Плагины** | Запускать код плагина в `worker_thread` с ограниченным API: доступ к `fs` только внутри `projectPath`, модуль `net` заблокирован через `--experimental-permission`; краш воркера не роняет main process | Low | L | Компиляция плагинов | ⏳ |
-| **Документация** | Добавить в `README.md` раздел «Примеры запросов» с 5–7 готовыми диалогами, иллюстрирующими работу агента (поиск по коду, правка, самоулучшение, веб-поиск) | Low | S | — | ⏳ |
-| **Документация** | Записать скринкасты/GIF для README: поиск и правка кода, режим самоулучшения, загрузка модели Ollama | Low | M | — | ⏳ |
-| **Документация** | Улучшить `CONTRIBUTING.md`: добавить диаграмму последовательности ReAct-цикла, описание ключевых классов и модулей, пример добавления нового инструмента от схемы до теста | Low | M | — | ⏳ |
-| **Документация** | Настроить `typedoc` для генерации API-документации из JSDoc-комментариев в `electron/main/` и `shared/`; добавить `npm run docs` и GitHub Pages деплой в Actions | Low | M | — | ⏳ |
-| **P2P** | Развернуть Node.js + WebSocket + Redis сервер на VPS; реализовать REST API: `POST /nodes/register`, `GET /nodes/available?model=X`, `DELETE /nodes/{id}`; хранить список узлов с GPU/RAM/нагрузкой | Low | XL | — | ⏳ |
-| **P2P** | Реализовать аккаунтную систему на сигнальном сервере: регистрация по email или GitHub OAuth, JWT-токен передаётся при регистрации узла и запросах задач, определяет лимиты и репутацию | Low | XL | Сигнальный сервер | ⏳ |
-| **P2P** | В `SettingsModal.tsx` добавить тумблер «Поделиться мощностью»; при включении регистрировать узел на сигнальном сервере (POST `/nodes/register`) с параметрами GPU/RAM/модели | Low | M | Сигнальный сервер | ⏳ |
-| **P2P** | При первом включении режима «Поделиться мощностью» показывать модальный диалог с явным описанием: что передаётся (промпты, модель), лимиты ресурсов, как отключить; без согласия режим не активируется | Low | S | Тумблер в SettingsModal | ⏳ |
-| **P2P** | В `AgentRunner` перед выполнением задачи проверять загрузку через `systeminformation`; если GPU > 20% или CPU > 15% — ставить входящую P2P-задачу в паузу и не принимать новые | Low | M | Сигнальный сервер | ⏳ |
-| **P2P** | На узле принимать не более 3 входящих P2P-задач одновременно; новые задачи сверх лимита — в очередь с таймаутом 60 с; при превышении таймаута отклонять с кодом 503 | Low | M | Сигнальный сервер | ⏳ |
-| **P2P** | Использовать TLS для WebSocket-соединений между узлами; шифровать тело промптов симметричным ключом сессии (ECDH); владелец узла не должен иметь доступа к содержимому чужих запросов | Low | M | Сигнальный сервер | ⏳ |
-| **P2P** | На сигнальном сервере при запросе задачи искать свободный узел с нужной моделью по реестру; если свободных нет — возвращать `{ fallback: true }`, клиент выполняет локально через Ollama | Low | L | Сигнальный сервер | ⏳ |
-| **P2P** | Реализовать систему кредитов: +N кредитов за каждую обработанную чужую задачу, −N за использование чужого узла; хранить баланс на сигнальном сервере; отображать в `AgentStatusBar.tsx` | Low | L | Аккаунтная система | ⏳ |
+### 🔗 Portable Node.js для самопересборки
+
+| # | Задача | Сложность | Приоритет |
+|---|--------|-----------|-----------|
+| 1 | Создать `scripts/download-node.js`: определяет платформу/arch, скачивает Node.js LTS с nodejs.org в `app/resources/node/`, распаковывает, пропускает если уже актуален; добавить `npm run setup-node` в `package.json` scripts и вызов перед `npm run dist` | S | Low |
+| 2 | В `package.json` в секцию `build` добавить `extraResources: [{ from: "resources/node/", to: "node/" }]` — так portable Node.js попадёт в установленный дистрибутив рядом с `resources/` | XS | Low |
+| 3 | В `codeviperSource.ts` добавить `getBundledNodeBin()` (ищет `resources/node/node.exe` или `bin/node` рядом с `app.getAppPath()`); изменить `runCodeViperCommand` — при наличии bundled Node прокидывать его директорию в начало `PATH` среды перед вызовом `runCommand` | S | Low |
+
+### 🔗 node-llama-cpp + Оркестратор
+
+| # | Задача | Сложность | Приоритет |
+|---|--------|-----------|-----------|
+| 1 | Установить `node-llama-cpp` и `@electron/rebuild` в `app/`; добавить скрипт `"rebuild": "electron-rebuild -f -w node-llama-cpp"` в `package.json`; запустить `npm run rebuild` и убедиться что `.node`-файл появился в `node_modules/node-llama-cpp/` | S | Low |
+| 2 | В `package.json` секция `build`: добавить `"npmRebuild": true` и `"buildDependenciesFromSource": false`; проверить что `npm run dist` перекомпилирует `node-llama-cpp` под целевую платформу без ручного вызова `electron-rebuild` | S | Low |
+| 3 | Создать `app/electron/main/nodeLlama.ts`: обёртка над `node-llama-cpp` — `loadModel(path: string)`, `complete(prompt: string, maxTokens: number): Promise<string>`, `unloadModel()`; singleton с ленивой инициализацией; экспортировать тип `NodeLlamaHandle` | M | Low |
+| 4 | Создать `app/tests/nodeLlama.test.ts` (vitest): если `TEST_GGUF_PATH` не задан — `test.skip`; иначе `loadModel → complete('Hello', 1) → unloadModel`; проверить что ответ — непустая строка; добавить в `README` инструкцию по запуску с реальным GGUF | S | Low |
+| 5 | В `SettingsModal.tsx` → вкладка «Модель» → раздел оркестратора добавить кнопку «Выбрать GGUF-модель» (`dialog.showOpenDialog` с фильтром `*.gguf`); путь сохранять в `AgentSettings.orchestratorModelPath` | M | Low |
+| 6 | Создать `orchestratorModel.ts`: singleton, загружает GGUF через `node-llama-cpp`, реализует метод `analyze(message: string): Promise<{ plan: string; rephrased: string; isComplex: boolean }>`; без стриминга, только итоговый JSON | L | Low |
+| 7 | При первом запуске с включённым оркестратором скачивать `Qwen2.5-1.5B-Instruct.Q4_K_M.gguf` (~900 МБ) в `app.getPath('userData')/orchestrator/`; показывать прогресс через `onProgressEvent`; кнопка «Скачать» в настройках | M | Low |
+| 8 | В `SettingsModal.tsx` добавить секцию «Оркестратор»: тумблер включить/выключить (`AgentSettings.orchestratorEnabled`), числовое поле порога длины сообщения (`minMessageLength`, дефолт 80), кнопка «Удалить модель» | S | Low |
+| 9 | Интегрировать `OrchestratorModel.analyze()` в `AgentRunner.run()`: вызывать перед первым прогоном, добавлять `plan` в системный промпт, при `isComplex=true` использовать перефразированный запрос вместо оригинального | M | Low |
+
+### 🔗 MCP-серверы
+
+| # | Задача | Сложность | Приоритет |
+|---|--------|-----------|-----------|
+| 1 | Реализовать `mcpRegistry.ts`: при добавлении URL сервера делать GET `{url}/.well-known/mcp`, парсить JSON-схему `{ tools: [{name, description, parameters}] }`, сохранять в `AgentSettings.mcpServers` | M | Medium |
+| 2 | В `SettingsModal.tsx` на вкладке «Интеграции» добавить секцию MCP: список подключённых серверов из настроек, кнопка «+ Добавить», поле ввода URL; сохранять в `AgentSettings.mcpServers: string[]` | S | Medium |
+| 3 | В `agentTools.ts` в функции `getAgentTools()` динамически добавлять инструменты из `AgentSettings.mcpServers` перед каждым прогоном агента; вызовы проксировать через `POST {serverUrl}/tools/call` | M | Medium |
+| 4 | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | M | Low |
+
+### 🔗 Плагины
+
+| # | Задача | Сложность | Приоритет |
+|---|--------|-----------|-----------|
+| 1 | При старте main process сканировать `~/.codeviper/plugins/*.js`; для каждого файла делать `require()` и читать `export default { name, description, tools: AgentTool[] }`; регистрировать инструменты в `agentTools.ts` | M | Low |
+| 2 | В `SettingsModal.tsx` добавить вкладку «Плагины»: список установленных плагинов из `AgentSettings.plugins`, кнопки включить/выключить и «Открыть папку плагинов» (`shell.openPath`) | S | Low |
+| 3 | При загрузке плагина `*.ts` компилировать его через `esbuild.buildSync` в CommonJS во временную папку; кэшировать скомпилированный результат по `mtime` исходника | M | Low |
+| 4 | Запускать код плагина в `worker_thread` с ограниченным API: доступ к `fs` только внутри `projectPath`, модуль `net` заблокирован через `--experimental-permission`; краш воркера не роняет main process | L | Low |
+
+### 🔗 P2P-вычисления
+
+| # | Задача | Сложность | Приоритет |
+|---|--------|-----------|-----------|
+| 1 | Развернуть Node.js + WebSocket + Redis сервер на VPS; реализовать REST API: `POST /nodes/register`, `GET /nodes/available?model=X`, `DELETE /nodes/{id}`; хранить список узлов с GPU/RAM/нагрузкой | XL | Low |
+| 2 | Реализовать аккаунтную систему на сигнальном сервере: регистрация по email или GitHub OAuth, JWT-токен передаётся при регистрации узла и запросах задач, определяет лимиты и репутацию | XL | Low |
+| 3 | В `SettingsModal.tsx` добавить тумблер «Поделиться мощностью»; при включении регистрировать узел на сигнальном сервере (POST `/nodes/register`) с параметрами GPU/RAM/модели | M | Low |
+| 4 | При первом включении режима «Поделиться мощностью» показывать модальный диалог с явным описанием: что передаётся (промпты, модель), лимиты ресурсов, как отключить; без согласия режим не активируется | S | Low |
+| 5 | В `AgentRunner` перед выполнением задачи проверять загрузку через `systeminformation`; если GPU > 20% или CPU > 15% — ставить входящую P2P-задачу в паузу и не принимать новые | M | Low |
+| 6 | На узле принимать не более 3 входящих P2P-задач одновременно; новые задачи сверх лимита — в очередь с таймаутом 60 с; при превышении таймаута отклонять с кодом 503 | M | Low |
+| 7 | Использовать TLS для WebSocket-соединений между узлами; шифровать тело промптов симметричным ключом сессии (ECDH); владелец узла не должен иметь доступа к содержимому чужих запросов | M | Low |
+| 8 | На сигнальном сервере при запросе задачи искать свободный узел с нужной моделью по реестру; если свободных нет — возвращать `{ fallback: true }`, клиент выполняет локально через Ollama | L | Low |
+| 9 | Реализовать систему кредитов: +N кредитов за каждую обработанную чужую задачу, −N за использование чужого узла; хранить баланс на сигнальном сервере; отображать в `AgentStatusBar.tsx` | L | Low |
+
+---
+
+### ⚡ Независимые задачи
+
+| Модуль | Задача | Сложность | Приоритет |
+|--------|--------|-----------|-----------|
+| **Интеграции** | Установить `electron-updater`, добавить проверку GitHub Releases при старте приложения; при наличии новой версии показывать баннер с кнопкой «Перезапустить и обновить» | M | High |
+| **Интеграции** | Добавить `.sh`-лаунчер для Linux/macOS аналогично `CodeViper.cmd`; в GitHub Actions настроить матрицу `windows-latest` / `ubuntu-latest` / `macos-latest`; исправить пути `app/electron/main` для POSIX | L | Medium |
+| **Инфраструктура** | Написать NSIS-скрипт для `electron-builder`: при установке клонировать репозиторий CodeViper в `%APPDATA%\CodeViper\source\` через `git clone`, создавать ярлык на рабочем столе, запускающий `CodeViper.cmd` | L | Medium |
+| **Интеграции** | Добавить в `AgentSettings` поля `jiraUrl`, `jiraToken`; реализовать инструмент `create_jira_issue` в `agentHandlersGitHub.ts`: POST `{jiraUrl}/rest/api/3/issue` с Basic-авторизацией через token | M | Low |
+| **Интеграции** | Добавить в `AgentSettings` поле `linearApiKey`; реализовать инструмент `create_linear_issue` в `agentHandlersGitHub.ts`: GraphQL-мутация `issueCreate` через `https://api.linear.app/graphql` | M | Low |
+| **Интеграции** | Создать `Dockerfile` с Node.js 20 + Ollama; `docker-compose.yml` с томом исходников CodeViper и hot reload через `npm run dev`; документировать запуск в README | M | Low |
+| **Безопасность** | При скачивании через `pullOllamaModel` сравнивать SHA-256 финального файла с манифестом реестра Ollama; при несовпадении — удалять файл и показывать ошибку | S | Low |
+| **Безопасность** | Добавить режим «Инкогнито» (переключатель в топбаре): отключает сохранение истории чатов и NDJSON-логов на диск; данные живут только в памяти до закрытия окна | M | Low |
+| **Документация** | Добавить в `README.md` раздел «Примеры запросов» с 5–7 готовыми диалогами, иллюстрирующими работу агента (поиск по коду, правка, самоулучшение, веб-поиск) | S | Low |
+| **Документация** | Записать скринкасты/GIF для README: поиск и правка кода, режим самоулучшения, загрузка модели Ollama | M | Low |
+| **Документация** | Улучшить `CONTRIBUTING.md`: добавить диаграмму последовательности ReAct-цикла, описание ключевых классов и модулей, пример добавления нового инструмента от схемы до теста | M | Low |
+| **Документация** | Настроить `typedoc` для генерации API-документации из JSDoc-комментариев в `electron/main/` и `shared/`; добавить `npm run docs` и GitHub Pages деплой в Actions | M | Low |
 
 ---
 
