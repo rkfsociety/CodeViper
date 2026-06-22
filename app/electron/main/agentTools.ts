@@ -88,6 +88,25 @@ const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'read_multiple_files',
+      description:
+        'Читать несколько файлов за один вызов. Возвращает массив {path, content}. Используй вместо нескольких последовательных read_file.',
+      parameters: {
+        type: 'object',
+        properties: {
+          paths: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'список путей к файлам'
+          }
+        },
+        required: ['paths']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'file_info',
       description:
         'Показать метаданные файла: размер, число строк, символов, слов, дату изменения и признак бинарности.',
@@ -1238,6 +1257,7 @@ export interface ToolArgs {
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
+  read_multiple_files: { paths: string[] }
   file_info: { path: string }
   project_stats: { path?: string }
   search_in_file: { path: string; query: string; context_lines?: string }

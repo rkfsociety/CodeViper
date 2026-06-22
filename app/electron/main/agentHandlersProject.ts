@@ -226,6 +226,21 @@ export function createProjectToolHandlers(
       return safeReadFilePartial(projectPath, args.path, offset, limit)
     },
 
+    read_multiple_files: async (args) => {
+      const results = await Promise.all(
+        args.paths.map(async (path) => {
+          try {
+            assertInsideProject(path, 'файл')
+            const content = await safeReadFilePartial(projectPath, path, 0, undefined)
+            return { path, content }
+          } catch (e) {
+            return { path, content: `Ошибка: ${e instanceof Error ? e.message : String(e)}` }
+          }
+        })
+      )
+      return JSON.stringify(results)
+    },
+
     file_info: async (args) => {
       assertInsideProject(args.path, 'файл')
       const absPath = resolve(projectPath, args.path)
