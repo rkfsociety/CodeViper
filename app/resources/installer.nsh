@@ -44,7 +44,7 @@
   DetailPrint "Создаём ярлык в меню Пуск..."
   CreateDirectory "$SMPROGRAMS\CodeViper"
   CreateShortcut "$SMPROGRAMS\CodeViper\CodeViper.lnk" "$SYSDIR\cmd.exe" '/c $\"$\"$APPDATA\CodeViper\source\CodeViper.cmd$\"$\"' "$INSTDIR\CodeViper.exe" 0 SW_SHOWMINIMIZED "" "CodeViper — локальный AI-агент"
-  CreateShortcut "$SMPROGRAMS\CodeViper\Удалить.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0 SW_SHOWNORMAL
+  CreateShortcut "$SMPROGRAMS\CodeViper\Удалить.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0 SW_NORMAL
 
 !macroend
 
