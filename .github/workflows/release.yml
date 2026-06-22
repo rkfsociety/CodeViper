@@ -52,6 +52,14 @@ jobs:
       - name: Build (electron-vite)
         run: npm run build
 
+      - name: Test launcher on Linux/macOS
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x ../CodeViper.sh
+          # Проверка синтаксиса bash
+          bash -n ../CodeViper.sh
+          echo "✓ CodeViper.sh syntax OK"
+
       - name: Package and publish to GitHub Releases
         run: npx electron-builder@24 --publish always
         env:
