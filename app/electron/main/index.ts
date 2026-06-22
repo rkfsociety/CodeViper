@@ -58,6 +58,7 @@ import type {
   ChatMessage,
   SavedChat
 } from '../../src/types'
+import { IPC, parseIpcArgs, Contracts } from '../../shared/ipcContracts'
 
 let mainWindow: BrowserWindow | null = null
 const agentRunStates = new Map<string, { chatId: string }>()
@@ -246,7 +247,7 @@ app.on('before-quit', () => {
 })
 
 // Рендерер сохраняет состояние каждые 30 с; fire-and-forget.
-ipcMain.on('save-app-state', (_e, state: AppState | null) => {
+ipcMain.on(IPC.SAVE_APP_STATE, (_e, state: AppState | null) => {
   if (!state) {
     clearAppState().catch(() => {})
   } else {
@@ -256,13 +257,13 @@ ipcMain.on('save-app-state', (_e, state: AppState | null) => {
 
 // Рендерер при старте проверяет наличие краш-файла.
 // После прочтения удаляем — чтобы следующий запуск был чистым.
-ipcMain.handle('get-crash-recovery', async () => {
+ipcMain.handle(IPC.GET_CRASH_RECOVERY, async () => {
   const state = await readAppState()
   if (state) await clearAppState()
   return state
 })
 
-ipcMain.on('log-frontend-error', (_e, message: string, stack?: string) => {
+ipcMain.on(IPC.LOG_FRONTEND_ERROR, (_e, message: string, stack?: string) => {
   const logsDir = join(app.getPath('userData'), 'logs')
   const date = new Date().toISOString().slice(0, 10)
   const filePath = join(logsDir, `frontend-${date}.ndjson`)
@@ -333,9 +334,10 @@ ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>
   safeReadFile(projectPath, filePath)
 )
 
-ipcMain.handle('write-file', async (_e, projectPath: string, filePath: string, content: string) =>
-  safeWriteFile(projectPath, filePath, content)
-)
+ipcMain.handle(IPC.WRITE_FILE, async (_e, ...a) => {
+  const [projectPath, filePath, content] = parseIpcArgs(Contracts[IPC.WRITE_FILE].args, a)
+  return safeWriteFile(projectPath, filePath, content)
+})
 
 ipcMain.handle('check-ollama', async (_e, url = 'http://127.0.0.1:11434') => pingOllama(url))
 
@@ -400,7 +402,8 @@ ipcMain.handle(
     checkAgentPrerequisites(ollamaUrl, projectPath, skipOllamaCheck)
 )
 
-ipcMain.handle('run-terminal-command', async (_e, cwd: string, command: string) => {
+ipcMain.handle(IPC.RUN_TERMINAL_COMMAND, async (_e, ...a) => {
+  const [cwd, command] = parseIpcArgs(Contracts[IPC.RUN_TERMINAL_COMMAND].args, a)
   const settings = await loadSettings()
   return runCommand(cwd, command, undefined, settings.commandBlocklist)
 })
@@ -508,7 +511,7 @@ ipcMain.handle('stop-agent', async (_e, chatId: string) => {
   return true
 })
 
-ipcMain.on('agent-confirm-response', (_e, id: string, approved: boolean) => {
+ipcMain.on(IPC.AGENT_CONFIRM_RESPONSE, (_e, id: string, approved: boolean) => {
   const resolve = pendingConfirms.get(id)
   if (resolve) {
     pendingConfirms.delete(id)
@@ -516,7 +519,7 @@ ipcMain.on('agent-confirm-response', (_e, id: string, approved: boolean) => {
   }
 })
 
-ipcMain.on('agent-preview-response', (_e, id: string, apply: boolean) => {
+ipcMain.on(IPC.AGENT_PREVIEW_RESPONSE, (_e, id: string, apply: boolean) => {
   const resolve = pendingPreviews.get(id)
   if (resolve) {
     pendingPreviews.delete(id)
@@ -584,32 +587,35 @@ ipcMain.handle(
     triggerGithubWorkflow(workflowId, ref, fields)
 )
 
-ipcMain.on('open-devtools', () => {
+ipcMain.on(IPC.OPEN_DEVTOOLS, () => {
   mainWindow?.webContents.openDevTools({ mode: 'detach' })
 })
 
-ipcMain.on('restart-app', () => {
+ipcMain.on(IPC.RESTART_APP, () => {
   // Перезапуск: лаунчер start-dev.ps1 при старте подтянет origin и пересоберёт.
   app.relaunch()
   app.exit(0)
 })
 
-ipcMain.on('open-external', (_e, url: string) => {
+ipcMain.on(IPC.OPEN_EXTERNAL, (_e, url: string) => {
   // Открываем только http(s)-ссылки во внешнем браузере.
   if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
     void shell.openExternal(url)
   }
 })
 
-ipcMain.on('show-item-in-folder', (_e, filePath: string) => {
+ipcMain.on(IPC.SHOW_ITEM_IN_FOLDER, (_e, filePath: string) => {
   if (typeof filePath === 'string' && filePath.trim()) {
     shell.showItemInFolder(filePath)
   }
 })
 
-ipcMain.handle('load-settings', async () => loadSettings())
+ipcMain.handle(IPC.LOAD_SETTINGS, async () => loadSettings())
 
-ipcMain.handle('save-settings', async (_e, settings: AgentSettings) => saveSettings(settings))
+ipcMain.handle(IPC.SAVE_SETTINGS, async (_e, ...a) => {
+  const [settings] = parseIpcArgs(Contracts[IPC.SAVE_SETTINGS].args, a)
+  return saveSettings(settings)
+})
 
 ipcMain.handle(
   'run-agent',
