@@ -46,6 +46,8 @@
 ```bash
 npm run typecheck   # tsc --noEmit — только проверка типов, без сборки
 npm run build       # electron-vite build — собирает main + renderer в out/
+npm run setup-node  # скачивает Node.js LTS в app/resources/node/ (пропуск если актуален)
+npm run dist        # setup-node + build + electron-builder (установщик)
 npm run dev         # electron-vite dev — дев-сервер с hot reload
 npm run test        # vitest run — все unit-тесты
 npm run lint        # eslint — проверка без fix
@@ -124,6 +126,21 @@ app/
 1. Реализовать интерфейс `ModelProvider` из `shared/modelProvider.ts` (методы: `ping`, `listModels`, `chat`)
 2. `chat()` должен возвращать `AsyncGenerator<ChatChunk>` — синхронизировать поля с интерфейсом
 3. Зарегистрировать в `ModelRuntime.createProvider()` в `modelRuntime.ts`
+
+### Portable Node.js (самопересборка)
+
+Цепочка ROADMAP «Portable Node.js для самопересборки» — строгий порядок сверху вниз.
+
+**Готово:**
+- `scripts/download-node.js` — LTS с nodejs.org → `app/resources/node/`; платформа win/linux/darwin, arch x64/arm64
+- `npm run setup-node`, вызов перед `npm run dist`
+- `app/resources/node/` в `.gitignore`
+
+**Дальше по ROADMAP:**
+1. `extraResources` в electron-builder: `{ from: "resources/node/", to: "node/" }`
+2. `getBundledNodeBin()` в `codeviperSource.ts` + PATH в `runCodeViperCommand`
+
+Бинарник: Windows `node.exe` в корне, Unix `bin/node`. Версия — файл `.node-version`.
 
 ---
 

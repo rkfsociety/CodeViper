@@ -1,0 +1,33 @@
+---
+description: Portable Node.js для самопересборки CodeViper — что сделано и следующие шаги
+alwaysApply: true
+---
+
+# Portable Node.js
+
+Цепочка из ROADMAP «Portable Node.js для самопересборки». Порядок строгий — следующий шаг только после предыдущего.
+
+## Сделано
+
+- `scripts/download-node.js` — определяет платформу/arch, скачивает Node.js LTS с nodejs.org, распаковывает в `app/resources/node/`, пропускает если `.node-version` совпадает с LTS и бинарник на месте
+- `npm run setup-node` в `app/package.json` → `node ../scripts/download-node.js`
+- `npm run dist` → `setup-node` → `electron-vite build` → `electron-builder`
+- `app/resources/node/` в `.gitignore` (бинарники не коммитятся, скачиваются при dist)
+
+Структура после распаковки:
+- Windows: `app/resources/node/node.exe`, `npm.cmd`, …
+- Linux/macOS: `app/resources/node/bin/node`
+
+Маркер версии: `app/resources/node/.node-version` (например `v24.17.0`).
+
+## Следующие шаги (ROADMAP)
+
+1. **extraResources** в `app/package.json` → `build`:
+   `{ from: "resources/node/", to: "node/" }` — portable Node в установленном дистрибутиве
+2. **getBundledNodeBin()** в `codeviperSource.ts` — ищет `node.exe` или `bin/node` рядом с `app.getAppPath()`; в `runCodeViperCommand` прокинуть директорию Node в начало `PATH`
+
+## Не делать
+
+- Не коммитить содержимое `app/resources/node/`
+- Не дублировать логику скачивания — только `scripts/download-node.js`
+- Не менять порядок цепочки: extraResources до getBundledNodeBin

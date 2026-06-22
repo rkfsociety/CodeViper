@@ -5,6 +5,11 @@
 - **После любого изменения кода в `app/` — всегда запускать `npm run build` в папке `app/` перед коммитом.** Пользователь не умеет и не должен собирать вручную — папка `out/` в коммите должна быть актуальной.
 - Никогда не говорить пользователю «пересобери», «запусти build», «перекомпилируй» — это задача агента. Пользователь только запускает `CodeViper.cmd`.
 - Порядок перед каждым коммитом: `npm run typecheck` → `npm run build` → обновить ROADMAP/README → `git commit` → `git push`.
+- `npm run dist` автоматически вызывает `setup-node` (скачивание portable Node.js LTS в `app/resources/node/`). Папка в `.gitignore`, не коммитить.
+
+## Portable Node.js (ROADMAP)
+
+Цепочка «самопересборка»: (1) `extraResources` в electron-builder → (2) `getBundledNodeBin()` в `codeviperSource.ts`. Скачивание уже есть: `scripts/download-node.js`, `npm run setup-node`.
 
 ## После каждой выполненной задачи (ROADMAP)
 
