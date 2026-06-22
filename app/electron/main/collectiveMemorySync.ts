@@ -1,12 +1,32 @@
 import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
+import { spawn } from 'child_process'
 import { COLLECTIVE_MEMORY_REPO_PATH } from '../../shared/constants'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type { MemoryEntry, MemoryStore } from '../../src/types'
 import { parseMemoryMarkdown, renderMemoryMarkdown } from './memory'
 import { commitAndPushRepoPaths, getRepoRoot } from './selfCommit'
 import { getCodeViperSourceRoot } from './codeviperSource'
+
+function runGitCmd(
+  cwd: string,
+  args: string[]
+): Promise<{ code: number; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const child = spawn('git', args, { cwd, windowsHide: true })
+    let stdout = ''
+    let stderr = ''
+    child.stdout?.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString()
+    })
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString()
+    })
+    child.on('close', (code) => resolve({ code: code ?? 1, stdout, stderr }))
+    child.on('error', (error) => resolve({ code: 1, stdout: '', stderr: error.message }))
+  })
+}
 
 const pendingEntries: MemoryEntry[] = []
 
@@ -99,6 +119,40 @@ export interface CollectiveMemorySyncResult {
   message: string
   branch?: string
   syncedCount: number
+}
+
+export async function pullCollectiveMemoryFromRemote(
+  configuredBranch?: string
+): Promise<{ ok: boolean; message: string }> {
+  const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
+  if (!repoRoot) return { ok: false, message: 'не git-репозиторий — pull пропущен' }
+
+  const branch = resolveSelfImproveBranch(configuredBranch)
+
+  const fetchResult = await runGitCmd(repoRoot, ['fetch', 'origin', branch])
+  if (fetchResult.code !== 0) {
+    return {
+      ok: false,
+      message: `git fetch не удался: ${(fetchResult.stderr || fetchResult.stdout).trim()}`
+    }
+  }
+
+  const checkoutResult = await runGitCmd(repoRoot, [
+    'checkout',
+    `origin/${branch}`,
+    '--',
+    COLLECTIVE_MEMORY_REPO_PATH
+  ])
+
+  if (checkoutResult.code !== 0) {
+    const stderr = (checkoutResult.stderr || checkoutResult.stdout).trim()
+    if (/unknown revision|pathspec|did not match/i.test(stderr)) {
+      return { ok: true, message: `ветка ${branch} ещё не создана на remote — pull пропущен` }
+    }
+    return { ok: false, message: `checkout remote файла не удался: ${stderr}` }
+  }
+
+  return { ok: true, message: `коллективная память обновлена из ветки ${branch}` }
 }
 
 export async function flushCollectiveMemoryToGit(

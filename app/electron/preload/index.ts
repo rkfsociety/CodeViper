@@ -338,6 +338,20 @@ const codeviper = {
 
   showItemInFolder: (filePath: string) => ipcRenderer.send(IPC.SHOW_ITEM_IN_FOLDER, filePath),
 
+  getCollectiveSyncStatus: () =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.GET_COLLECTIVE_SYNC_STATUS),
+      IPC_TIMEOUT_MS,
+      'getCollectiveSyncStatus'
+    ) as Promise<{ branch: string; pendingCount: number }>,
+
+  flushCollectiveMemory: (summary: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.FLUSH_COLLECTIVE_MEMORY, summary),
+      30_000,
+      'flushCollectiveMemory'
+    ) as Promise<{ ok: boolean; message: string; branch?: string; syncedCount: number }>,
+
   onUpdateAvailable: (cb: (info: import('../../shared/updateInfo').UpdateInfo) => void) => {
     const handler = (
       _e: Electron.IpcRendererEvent,

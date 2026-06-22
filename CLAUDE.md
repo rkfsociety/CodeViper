@@ -67,6 +67,62 @@ N · [S/M/L/XL] · Название — приор. …
 
 Агент: читает пункт → `set_self_improvement_plan` по Действие/Проверка → код → проверка → ROADMAP в «✅ Сделано» в том же коммите.
 
+### Редактирование ROADMAP — техника (обязательно)
+
+**Проблема:** sed/awk на Windows-Git-Bash ненадёжны для переиндексации. Единственный безопасный способ — Node.js скрипт.
+
+**Алгоритм удаления пункта N и переиндексации:**
+
+```javascript
+// Запускать из корня репозитория: node /tmp/fix-roadmap.js
+const fs = require('fs');
+const TARGET = 17; // номер удаляемого пункта
+
+const lines = fs.readFileSync('ROADMAP.md', 'utf8').split('\n');
+let result = [], skipping = false, skipBlank = false;
+
+for (const line of lines) {
+  const m = line.match(/^\*\*(\d+) · /);
+  if (m && parseInt(m[1]) === TARGET) { skipping = true; skipBlank = true; continue; }
+  if (skipping) {
+    if (line.match(/^- \*\*/)) continue;           // строки описания пункта
+    if (line === '' && skipBlank) { skipBlank = false; continue; } // пустая строка после
+    if (!line.match(/^- \*\*/) && !skipBlank) skipping = false;
+  }
+  if (!skipping) {
+    // переиндексация: пункты > TARGET сдвигаются на -1
+    const n = line.match(/^\*\*(\d+)( · )/);
+    if (n && parseInt(n[1]) > TARGET)
+      result.push(line.replace(/^\*\*\d+/, '**' + (parseInt(n[1]) - 1)));
+    else
+      result.push(line);
+  }
+}
+fs.writeFileSync('ROADMAP.md', result.join('\n'), 'utf8');
+```
+
+**Добавить запись в «✅ Сделано»** — после раздела `## ✅ Сделано` вставить строку вида:
+```
+- Название: краткое описание реализации
+```
+
+**Валидация после правки:**
+```bash
+node -e "
+const t=require('fs').readFileSync('ROADMAP.md','utf8');
+const nums=(t.match(/^\*\*\d+ · /gm)||[]).map(n=>parseInt(n.match(/\d+/)[0]));
+const max=Math.max(...nums);
+const missing=[];for(let i=1;i<=max;i++)if(!nums.includes(i))missing.push(i);
+const dups=nums.filter((n,i,a)=>a.indexOf(n)!==i);
+console.log('Пунктов:',nums.length,'| 1..'+max,missing.length?'❌ пропуски:'+missing:dups.length?'❌ дубли:'+dups:'✅ чисто');
+"
+```
+
+**Правила:**
+- ❌ Никогда не использовать `sed -i` или PowerShell replace для переиндексации — они дают перекрытия
+- ❌ Никогда не оставлять выполненные пункты в «В планах» (даже с `[x]`)
+- ✅ Удалять, переиндексировать и добавлять в «Сделано» одним коммитом вместе с кодом задачи
+
 ---
 
 ## Команды разработки

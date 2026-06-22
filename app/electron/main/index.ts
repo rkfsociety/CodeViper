@@ -54,7 +54,11 @@ import { listPullRequests } from './githubPr'
 import { readFileHistory } from './fileHistory'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
 import { startUpdateChecks, installPendingUpdate } from './updateChecker'
-import { getPendingCollectiveMemoryCount, flushCollectiveMemoryToGit } from './collectiveMemorySync'
+import {
+  getPendingCollectiveMemoryCount,
+  flushCollectiveMemoryToGit,
+  pullCollectiveMemoryFromRemote
+} from './collectiveMemorySync'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
   AgentSettings,
@@ -246,6 +250,12 @@ app.whenReady().then(async () => {
   const settings = await loadSettings()
   if (settings.sourceRootOverride) {
     setSourceRootOverride(settings.sourceRootOverride)
+  }
+
+  if (settings.gitSyncOnStartup) {
+    pullCollectiveMemoryFromRemote(settings.selfImproveBranch).catch(() => {
+      // pull — best-effort, офлайн или ветка не создана — не критично
+    })
   }
 
   await ensureDefaultSkills()
