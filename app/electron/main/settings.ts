@@ -59,7 +59,9 @@ export const PersistedSettingsSchema = z.object({
   contextSummarizeThreshold: z.number().int().min(50).max(85).optional(),
   aggressiveCompression: z.boolean().optional(),
   commandBlocklist: z.array(z.string()).optional(),
-  customSystemPrompt: z.string().optional()
+  customSystemPrompt: z.string().optional(),
+  gitlabToken: z.string().optional(),
+  gitlabUrl: z.string().optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -166,7 +168,9 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.commandBlocklist?.length ? { commandBlocklist: settings.commandBlocklist } : {}),
     ...(settings.customSystemPrompt?.trim()
       ? { customSystemPrompt: settings.customSystemPrompt.trim() }
-      : {})
+      : {}),
+    ...(settings.gitlabToken?.trim() ? { gitlabToken: settings.gitlabToken.trim() } : {}),
+    ...(settings.gitlabUrl?.trim() ? { gitlabUrl: settings.gitlabUrl.trim() } : {})
   }
 }
 
@@ -212,6 +216,7 @@ export async function loadSettings(): Promise<PersistedSettings> {
       if (obj.geminiApiKey) obj.geminiApiKey = decryptApiKey(obj.geminiApiKey as string)
       if (obj.qdrantApiKey) obj.qdrantApiKey = decryptApiKey(obj.qdrantApiKey as string)
       if (obj.milvusApiKey) obj.milvusApiKey = decryptApiKey(obj.milvusApiKey as string)
+      if (obj.gitlabToken) obj.gitlabToken = decryptApiKey(obj.gitlabToken as string)
     }
 
     const result = PersistedSettingsSchema.safeParse(json)
@@ -238,7 +243,8 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     openrouterApiKey: encryptApiKey(normalized.openrouterApiKey),
     geminiApiKey: encryptApiKey(normalized.geminiApiKey),
     qdrantApiKey: encryptApiKey(normalized.qdrantApiKey ?? ''),
-    milvusApiKey: encryptApiKey(normalized.milvusApiKey ?? '')
+    milvusApiKey: encryptApiKey(normalized.milvusApiKey ?? ''),
+    ...(normalized.gitlabToken ? { gitlabToken: encryptApiKey(normalized.gitlabToken) } : {})
   }
   await writeJsonAtomic(storePath(), toSave)
   // Продублировать настройки git-sync в config.json для лаунчера (start-dev.ps1).

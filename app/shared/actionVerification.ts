@@ -7,6 +7,7 @@ export const MUTATING_TOOLS = new Set([
   'move_file',
   'run_command',
   'run_script',
+  'create_gitlab_mr',
   'remember',
   'forget',
   'create_skill',

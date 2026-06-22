@@ -608,6 +608,49 @@ const GITHUB_TOOLS = [
   }
 ] as const
 
+const GITLAB_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'list_gitlab_mrs',
+      description:
+        'Показать открытые Merge Request в текущем GitLab-проекте (из git remote origin)',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_gitlab_mr',
+      description: 'Создать GitLab Merge Request через API',
+      parameters: {
+        type: 'object',
+        properties: {
+          source_branch: { type: 'string', description: 'Ветка-источник (feature-ветка)' },
+          target_branch: { type: 'string', description: 'Целевая ветка (обычно main или develop)' },
+          title: { type: 'string', description: 'Заголовок MR' },
+          description: { type: 'string', description: 'Описание MR в Markdown (необязательно)' }
+        },
+        required: ['source_branch', 'target_branch', 'title']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_gitlab_pipeline',
+      description:
+        'Получить статус GitLab Pipeline. Без pipeline_id — возвращает последний пайплайн проекта.',
+      parameters: {
+        type: 'object',
+        properties: {
+          pipeline_id: { type: 'string', description: 'ID пайплайна (необязательно)' }
+        }
+      }
+    }
+  }
+] as const
+
 const MEMORY_TOOLS = [
   {
     type: 'function',
@@ -1250,6 +1293,7 @@ export const AGENT_TOOLS = [
   ...FILE_TOOLS,
   ...GIT_TOOLS,
   ...GITHUB_TOOLS,
+  ...GITLAB_TOOLS,
   ...MEMORY_TOOLS,
   ...PACKAGE_TOOLS,
   ...SKILLS_TOOLS,
@@ -1349,6 +1393,14 @@ export interface ToolArgs {
   list_issues: Record<string, never>
   open_issue: { number: string }
   trigger_github_workflow: { workflow_id: string; ref?: string; fields?: string }
+  list_gitlab_mrs: Record<string, never>
+  create_gitlab_mr: {
+    source_branch: string
+    target_branch: string
+    title: string
+    description?: string
+  }
+  get_gitlab_pipeline: { pipeline_id?: string }
   recent_changes: { path?: string; limit?: string }
   remember: { content: string; category: string; tags?: string; scope?: string }
   package_info: { path?: string }

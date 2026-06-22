@@ -183,6 +183,10 @@ export interface AgentSettings {
   gitSyncStrategy?: GitSyncStrategy
   /** GitHub Personal Access Token для создания Gist (экспорт памяти и навыков) */
   githubToken?: string
+  /** GitLab Personal Access Token (scopes: api) для MR и пайплайнов */
+  gitlabToken?: string
+  /** GitLab базовый URL (по умолчанию https://gitlab.com); задай для self-hosted инстанса */
+  gitlabUrl?: string
   /** Исключать thinking из истории контекста (экономия 20-50% для think-моделей) */
   excludeThinkingFromHistory?: boolean
   /** Размер контекста выбранной модели в токенах (сохраняется при выборе модели) */

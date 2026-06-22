@@ -38,6 +38,10 @@ export const AGENT_TOOL_NAMES = [
   'list_issues',
   'open_issue',
   'trigger_github_workflow',
+  // GitLab
+  'list_gitlab_mrs',
+  'create_gitlab_mr',
+  'get_gitlab_pipeline',
   // Память
   'remember',
   'search_memory',

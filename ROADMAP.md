@@ -11,7 +11,6 @@
 | **Безопасность** | При скачивании через `pullOllamaModel` сравнивать SHA-256 финального файла с манифестом реестра Ollama; при несовпадении — удалять файл и показывать ошибку | Low | S | — | ⏳ |
 | **Безопасность** | Добавить режим «Инкогнито» (переключатель в топбаре): отключает сохранение истории чатов и NDJSON-логов на диск; данные живут только в памяти до закрытия окна | Low | M | — | ⏳ |
 | **Безопасность** | Для плагинов задокументировать и реализовать ограниченный API: только `fs` внутри `projectPath`, без `net` и системных модулей; `--experimental-permission` в `worker_thread` | Low | L | Компиляция плагинов | ⏳ |
-| **Инструменты** | Создать `agentHandlersGitLab.ts`: обёртка над GitLab API (`GITLAB_TOKEN` из `AgentSettings`); инструменты `list_gitlab_mrs`, `create_gitlab_mr`, `get_gitlab_pipeline` — симметрично GitHub-инструментам | Low | L | — | ⏳ |
 | **Интеграции** | Создать `.github/workflows/release.yml`: при push тега `v*` запускать `electron-builder --publish always`, публиковать артефакты `.exe`/`.dmg`/`.AppImage` в GitHub Releases | High | M | — | ⏳ |
 | **Интеграции** | В `agentTools.ts` добавить параметр `disabledTools: string[]` в `AgentSettings`; в `getAgentTools()` фильтровать инструменты согласно настройкам; в `SettingsModal.tsx` показывать чекбоксы по группам инструментов | Medium | M | — | ⏳ |
 | **Интеграции** | Установить `electron-updater`, добавить проверку GitHub Releases при старте приложения; при наличии новой версии показывать баннер с кнопкой «Перезапустить и обновить» | High | M | CI pipeline (`release.yml`) | ⏳ |
@@ -58,6 +57,7 @@
 - `read_multiple_files`: принимает `paths: string[]`, читает все файлы параллельно через `Promise.all`, возвращает `JSON.stringify([{path, content}])`; ошибки на уровне файла не прерывают остальные
 - `run_script`: принимает `interpreter: 'python' | 'powershell' | 'bash'`, `script: string`, опционально `cwd`; записывает скрипт во временный файл, запускает через соответствующий интерпретатор с проверкой `assertInsideProject`, удаляет файл после выполнения
 - `review_code`: принимает `path`; `.ts/.tsx/.js/.jsx` → `npx eslint --format json`, `.py` → `ruff check --output-format json`; форматирует нарушения как `[N] L{line}:C{col}  {rule}\n    {message}`
+- `agentHandlersGitLab.ts` + `gitlabTools.ts`: `list_gitlab_mrs`, `create_gitlab_mr`, `get_gitlab_pipeline`; проект определяется из git remote origin; `gitlabToken` шифруется через `safeStorage`; `gitlabUrl` поддерживает self-hosted инстансы
 - `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`; поля `qdrantUrl`, `qdrantApiKey`, `ragProvider` в настройках; кнопка проверки соединения в SettingsModal; инструменты `index_project` (рекурсивная индексация проекта в Qdrant) и `search_knowledge_base` (top-5 чанков по семантическому запросу)
 - Дедупликация повторяющихся tool results перед суммаризацией: одинаковый инструмент + вывод → `(повторено N раз)`
 - Авто-превью файлов >20 КБ: первые/последние 50 строк с маркером `... (X строк обрезано) ...`

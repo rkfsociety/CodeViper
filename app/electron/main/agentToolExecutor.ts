@@ -2,6 +2,7 @@ import type { AgentSettings, AgentStreamPayload } from '../../src/types'
 import { getAgentTools, type ToolHandlers, type ToolName } from './agentTools'
 import { createProjectToolHandlers } from './agentHandlersProject'
 import { createGitHubToolHandlers } from './agentHandlersGitHub'
+import { createGitLabToolHandlers } from './agentHandlersGitLab'
 import { createCodeViperToolHandlers } from './agentHandlersCodeViper'
 import { createMemoryToolHandlers } from './agentHandlersMemory'
 import { createSkillsToolHandlers } from './agentHandlersSkills'
@@ -45,7 +46,9 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'get_self_improvement_plan',
   'preview_ollama_modelfile',
   'web_fetch',
-  'web_search'
+  'web_search',
+  'list_gitlab_mrs',
+  'get_gitlab_pipeline'
 ])
 
 // Инструменты, меняющие исходники самого CodeViper.
@@ -120,6 +123,7 @@ export class ToolExecutor {
     this.toolHandlers = {
       ...projectResult.handlers,
       ...createGitHubToolHandlers(),
+      ...createGitLabToolHandlers(this.projectPath, this.settings),
       ...createCodeViperToolHandlers(),
       ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
       ...createSkillsToolHandlers(this.projectPath, this.emit),
