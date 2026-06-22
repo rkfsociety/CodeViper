@@ -10,8 +10,6 @@
 |---|---|---|---|---|---|
 | **Провайдеры** | В `ollamaProvider.ts` и `openaiProvider.ts` выделить общую логику стриминга в абстрактный класс `StreamingChatProvider`; конкретные провайдеры реализуют только `buildRequest()` и `parseChunk()` | Medium | M | — | ⏳ |
 | **Провайдеры** | В `modelRuntime.ts` реализовать circuit breaker: при 5 последовательных ошибках переходить в состояние `open` (запросы отклоняются немедленно), через 30 с — `half-open` (пробный запрос); статус отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
-| **Архитектура** | Создать `shared/ipcContracts.ts`: Zod-схемы для всех IPC-каналов; валидировать данные при `ipcMain.handle` и `ipcRenderer.invoke`; устранить дублирование типов между `types.ts` и main | Low | L | — | ⏳ |
-| **Архитектура** | Вынести логику планирования задачи из `AgentRunner` и `SelfImprovementOrchestrator` в отдельный класс `TaskPlanner`; упростить замену стратегий и изолированное тестирование | Low | L | — | ⏳ |
 | **UI/UX** | В `SettingsModal.tsx` добавить поле поиска по названиям настроек; при вводе фильтровать пункты на всех вкладках и подсвечивать совпадения | Medium | S | — | ⏳ |
 | **UI/UX** | Показывать шпаргалку горячих клавиш при нажатии `?` вне поля ввода или через меню; перечень действий с их сочетаниями | Low | S | — | ⏳ |
 | **UI/UX** | В `SettingsModal.tsx` добавить поле «Дополнительные инструкции» (`AgentSettings.customSystemPrompt: string`); текст дописывается в конец базового системного промпта агента | Low | S | — | ⏳ |
@@ -151,6 +149,8 @@
 - Подсветка кода, ANSI-цвета, анимации, горячие клавиши, звуковые уведомления, тёмная тема
 
 **Архитектура**
+- `shared/ipcContracts.ts`: единый источник имён всех IPC-каналов (`IPC.*` константы) + Zod-схемы аргументов; `parseIpcArgs` валидирует входные данные на `write-file`, `run-terminal-command`, `save-settings`; `preload/index.ts` полностью переведён с строковых литералов на `IPC.*`
+- `TaskPlanner` в `electron/main/taskPlanner.ts`: вынесена логика планирования из `AgentRunner` и `SelfImprovementOrchestrator`; `PlanningStrategy` интерфейс для подмены в тестах; `TaskPlanner.decide()` + `finalize()` + `detectMode()`; `selfImproveMode`-флаг удалён из `AgentRunner`
 - `MemoryStorage` интерфейс в `memory.ts`: `FsMemoryStorage` (файловая система) и `InMemoryStorage` (для тестов); тесты переписаны без `vi.mock('electron')` и временных директорий
 
 **Архитектура фронтенда**
