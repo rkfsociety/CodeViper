@@ -176,6 +176,25 @@ async function createWindow(): Promise<void> {
     }
   })
 
+  const logsDir = join(app.getPath('userData'), 'logs')
+  const rendererLogPath = join(logsDir, `renderer-${new Date().toISOString().slice(0, 10)}.ndjson`)
+  mainWindow.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    if (level >= 2) {
+      const entry =
+        JSON.stringify({ ts: new Date().toISOString(), level, message, line, sourceId }) + '\n'
+      mkdir(logsDir, { recursive: true })
+        .then(() => appendFile(rendererLogPath, entry, 'utf8'))
+        .catch(() => {})
+    }
+  })
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    const entry =
+      JSON.stringify({ ts: new Date().toISOString(), type: 'fail-load', code, desc, url }) + '\n'
+    mkdir(logsDir, { recursive: true })
+      .then(() => appendFile(rendererLogPath, entry, 'utf8'))
+      .catch(() => {})
+  })
+
   if (process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
