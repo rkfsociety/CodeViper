@@ -4,6 +4,7 @@ export const AGENT_TOOL_NAMES = [
   'list_directory',
   'grep_files',
   'find_files',
+  'search_in_project',
   'read_file',
   'read_multiple_files',
   'file_info',

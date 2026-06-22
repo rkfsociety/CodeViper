@@ -72,6 +72,30 @@ const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'search_in_project',
+      description:
+        'Универсальный поиск: type="content" — ищет текст/regex внутри файлов (как grep); type="name" — ищет файлы по имени/glob (как find). Используй этот инструмент, когда не уверен, что именно нужно.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Текст, /regex/flags или glob-паттерн имени файла'
+          },
+          type: {
+            type: 'string',
+            enum: ['content', 'name'],
+            description: '"content" — поиск по содержимому; "name" — поиск по имени файла'
+          },
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' }
+        },
+        required: ['query', 'type']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'read_file',
       description: 'Читать файл. Для больших файлов используй offset/limit.',
       parameters: {
@@ -1256,6 +1280,7 @@ export interface ToolArgs {
   list_directory: { path?: string; max_depth?: string }
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
+  search_in_project: { query: string; type: 'content' | 'name'; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
   read_multiple_files: { paths: string[] }
   file_info: { path: string }

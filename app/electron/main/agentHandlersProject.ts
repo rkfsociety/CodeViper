@@ -219,6 +219,31 @@ export function createProjectToolHandlers(
       }
     },
 
+    search_in_project: async (args) => {
+      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      try {
+        if (args.type === 'name') {
+          emitProgress(`Поиск файлов: ${args.query}`, 0)
+          const result = await findFilesInTreeWorker(projectPath, args.query, {
+            subpath: args.path?.trim(),
+            onProgress: (scanned) =>
+              emitProgress(`Поиск файлов: ${args.query}`, scanPercent(scanned))
+          })
+          return formatFindResults(projectPath, args.query, result)
+        } else {
+          emitProgress(`Поиск по коду: ${args.query}`, 0)
+          const result = await grepInTreeWorker(projectPath, args.query, {
+            subpath: args.path?.trim(),
+            onProgress: (scanned) =>
+              emitProgress(`Поиск по коду: ${args.query}`, scanPercent(scanned))
+          })
+          return formatGrepResults(projectPath, args.query, result)
+        }
+      } finally {
+        clearProgress()
+      }
+    },
+
     read_file: async (args) => {
       assertInsideProject(args.path, 'файл')
       const offset = args.offset ? parseInt(args.offset, 10) : 0
