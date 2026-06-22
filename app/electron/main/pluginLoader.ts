@@ -1,9 +1,14 @@
-import { existsSync, readdirSync, statSync } from 'fs'
+import { existsSync, readdirSync, statSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
 import { join, extname } from 'path'
 import { createRequire } from 'module'
+import { tmpdir } from 'os'
+import * as esbuild from 'esbuild'
 
 const require = createRequire(import.meta.url)
+
+// Кэш скомпилированных плагинов: путь -> { mtime, compiled }
+const pluginCompileCache = new Map<string, { mtime: number; compiled: string }>()
 
 export interface PluginToolSchema {
   type: 'function'
@@ -32,7 +37,76 @@ export interface Plugin {
 const PLUGINS_DIR = join(homedir(), '.codeviper', 'plugins')
 
 /**
- * Загрузить все плагины из ~/.codeviper/plugins/*.js
+ * Скомпилировать TypeScript плагин в JavaScript
+ */
+function compileTypeScriptPlugin(filePath: string): string {
+  const stat = statSync(filePath)
+  const cached = pluginCompileCache.get(filePath)
+
+  // Если кэш актуален, вернуть скомпилированный код
+  if (cached && cached.mtime === stat.mtime.getTime()) {
+    return cached.compiled
+  }
+
+  try {
+    const result = esbuild.buildSync({
+      entryPoints: [filePath],
+      bundle: true,
+      platform: 'node',
+      format: 'cjs',
+      write: false,
+      external: ['electron', 'fs', 'path', 'os']
+    })
+
+    const compiled = result.outputFiles?.[0]?.text ?? ''
+    pluginCompileCache.set(filePath, {
+      mtime: stat.mtime.getTime(),
+      compiled
+    })
+
+    return compiled
+  } catch (err) {
+    console.error(`Failed to compile plugin ${filePath}:`, err)
+    throw err
+  }
+}
+
+/**
+ * Загрузить плагин из JavaScript или TypeScript файла
+ */
+function requirePlugin(filePath: string): Plugin | { default: Plugin } {
+  const ext = extname(filePath)
+
+  if (ext === '.ts') {
+    // Компилировать TypeScript в JavaScript
+    const compiled = compileTypeScriptPlugin(filePath)
+
+    // Записать во временный файл и загрузить
+    const tempFile = join(
+      tmpdir(),
+      `plugin-${Date.now()}-${Math.random().toString(36).slice(2)}.js`
+    )
+    writeFileSync(tempFile, compiled, 'utf8')
+
+    try {
+      delete require.cache[require.resolve(tempFile)]
+      return require(tempFile) as Plugin | { default: Plugin }
+    } finally {
+      // Очистить временный файл
+      try {
+        require.cache[require.resolve(tempFile)] = undefined
+      } catch {
+        // Игнорировать ошибки при очистке
+      }
+    }
+  }
+
+  // Загрузить .js плагин напрямую
+  return require(filePath) as Plugin | { default: Plugin }
+}
+
+/**
+ * Загрузить все плагины из ~/.codeviper/plugins/*.js и *.ts
  * Плагин должен экспортировать: { name, description, tools: [...] }
  */
 export function loadPlugins(): Plugin[] {
@@ -45,14 +119,15 @@ export function loadPlugins(): Plugin[] {
   try {
     const files = readdirSync(PLUGINS_DIR)
     for (const file of files) {
-      if (extname(file) !== '.js') continue
+      const ext = extname(file)
+      if (ext !== '.js' && ext !== '.ts') continue
 
       const filePath = join(PLUGINS_DIR, file)
       const stat = statSync(filePath)
       if (!stat.isFile()) continue
 
       try {
-        const plugin = require(filePath) as Plugin | { default: Plugin }
+        const plugin = requirePlugin(filePath)
         const pluginModule = 'default' in plugin ? plugin.default : plugin
 
         if (

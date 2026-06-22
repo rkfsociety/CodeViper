@@ -34,4 +34,14 @@ describe('PluginLoader', () => {
     expect(validatePlugin(null)).toBe(false)
     expect(validatePlugin(undefined)).toBe(false)
   })
+
+  it('should compile and load TypeScript plugins', () => {
+    const plugins = loadPlugins()
+    const tsPlugin = plugins.find((p) => p.name === 'ts-example')
+    if (tsPlugin) {
+      expect(tsPlugin.description).toBe('Example TypeScript plugin')
+      expect(tsPlugin.tools).toHaveLength(1)
+      expect(tsPlugin.tools[0]?.function.name).toBe('example_ts_tool')
+    }
+  })
 })
