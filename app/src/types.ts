@@ -487,10 +487,8 @@ export interface PullRequestListResult {
   error?: string
 }
 
-export interface UpdateInfo {
-  /** Сколько коммитов origin опережает локальную ветку */
-  commits: number
-}
+import type { UpdateInfo } from '../shared/updateInfo'
+export type { UpdateInfo }
 
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
@@ -600,6 +598,7 @@ export interface CodeViperAPI {
   showItemInFolder: (filePath: string) => void
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
   restartApp: () => void
+  installUpdate: () => void
   openDevTools: () => void
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void

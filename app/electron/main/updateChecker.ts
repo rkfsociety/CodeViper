@@ -1,11 +1,9 @@
 import { spawn } from 'child_process'
+import { app } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import type { WebContents } from 'electron'
+import type { UpdateInfo } from '../../shared/updateInfo'
 import { getCodeViperSourceRoot } from './codeviperSource'
-
-export interface UpdateInfo {
-  /** Сколько коммитов origin опережает локальную ветку */
-  commits: number
-}
 
 function runGit(
   cwd: string,
@@ -32,52 +30,103 @@ function runGit(
   })
 }
 
-const CHECK_INTERVAL_MS = 10 * 60 * 1000 // каждые 10 минут
-let timer: ReturnType<typeof setInterval> | null = null
+const GIT_CHECK_INTERVAL_MS = 10 * 60 * 1000
+let gitTimer: ReturnType<typeof setInterval> | null = null
+let releaseChecksStarted = false
+
+function sendUpdate(webContents: WebContents, info: UpdateInfo): void {
+  if (!webContents.isDestroyed()) {
+    webContents.send('update-available', info)
+  }
+}
 
 /**
- * Делает git fetch и проверяет, обновился ли исходный код (app/) на origin.
- * Если да — шлёт renderer событие `update-available`.
+ * Dev/исходники: git fetch и проверка обновлений app/ на origin.
  */
-async function checkForUpdate(webContents: WebContents): Promise<void> {
+async function checkGitSourceUpdate(webContents: WebContents): Promise<void> {
   const source = getCodeViperSourceRoot()
 
   const top = await runGit(source, ['rev-parse', '--show-toplevel'])
-  if (top.code !== 0) return // не git-репозиторий (упакованная сборка)
+  if (top.code !== 0) return
 
   const branchRes = await runGit(source, ['rev-parse', '--abbrev-ref', 'HEAD'])
   const branch = branchRes.stdout.trim()
   if (!branch || branch === 'HEAD') return
 
   const fetch = await runGit(source, ['fetch', 'origin', branch, '--quiet'])
-  if (fetch.code !== 0) return // нет сети — тихо пропускаем
+  if (fetch.code !== 0) return
 
   const local = (await runGit(source, ['rev-parse', 'HEAD'])).stdout.trim()
   const remote = (await runGit(source, ['rev-parse', `origin/${branch}`])).stdout.trim()
-  if (!remote || local === remote) return // уже актуально
+  if (!remote || local === remote) return
 
-  // Затрагивают ли обновления исходники (текущая папка source = app/)?
   const diff = await runGit(source, ['diff', '--quiet', 'HEAD', `origin/${branch}`, '--', '.'])
-  if (diff.code === 0) return // изменения вне app/ — пересборка не нужна
+  if (diff.code === 0) return
 
   const countRes = await runGit(source, ['rev-list', '--count', `HEAD..origin/${branch}`])
   const commits = parseInt(countRes.stdout.trim(), 10) || 1
 
-  if (!webContents.isDestroyed()) {
-    webContents.send('update-available', { commits } satisfies UpdateInfo)
-  }
+  sendUpdate(webContents, { source: 'git', commits })
+}
+
+function startReleaseUpdateChecks(webContents: WebContents): void {
+  if (releaseChecksStarted) return
+  releaseChecksStarted = true
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = false
+
+  autoUpdater.on('update-available', (info) => {
+    sendUpdate(webContents, {
+      source: 'release',
+      version: info.version,
+      ready: false
+    })
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    sendUpdate(webContents, {
+      source: 'release',
+      version: info.version,
+      ready: true
+    })
+  })
+
+  autoUpdater.on('error', () => {
+    /* офлайн / нет релиза — тихо */
+  })
+
+  setTimeout(() => {
+    void autoUpdater.checkForUpdates().catch(() => {})
+  }, 5_000)
 }
 
 export function startUpdateChecks(webContents: WebContents): void {
-  if (timer) return
-  // Первая проверка — вскоре после запуска, затем по интервалу.
-  setTimeout(() => void checkForUpdate(webContents).catch(() => {}), 5_000)
-  timer = setInterval(() => void checkForUpdate(webContents).catch(() => {}), CHECK_INTERVAL_MS)
+  if (app.isPackaged) {
+    startReleaseUpdateChecks(webContents)
+    return
+  }
+
+  if (gitTimer) return
+  setTimeout(() => void checkGitSourceUpdate(webContents).catch(() => {}), 5_000)
+  gitTimer = setInterval(
+    () => void checkGitSourceUpdate(webContents).catch(() => {}),
+    GIT_CHECK_INTERVAL_MS
+  )
 }
 
 export function stopUpdateChecks(): void {
-  if (timer) {
-    clearInterval(timer)
-    timer = null
+  if (gitTimer) {
+    clearInterval(gitTimer)
+    gitTimer = null
   }
+}
+
+export function installPendingUpdate(): void {
+  if (app.isPackaged) {
+    autoUpdater.quitAndInstall()
+    return
+  }
+  app.relaunch()
+  app.exit(0)
 }

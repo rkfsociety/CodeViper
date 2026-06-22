@@ -4,6 +4,28 @@
 
 > **Принцип чтения:** задачи сгруппированы в цепочки — внутри каждой группы строгий порядок сверху вниз. Следующий шаг начинать только после завершения предыдущего. Между группами порядок произвольный.
 
+### Формат задач для самообучения агента
+
+Каждый пункт цепочки формулируется **атомарно**, чтобы агент построил `set_self_improvement_plan` без уточнений:
+
+| Поле | Что писать |
+|------|------------|
+| **Цель** | Один измеримый результат («баннер X при условии Y») |
+| **Файлы** | Конкретные пути (`app/electron/main/…`, `app/src/…`) |
+| **Действие** | Одна правка: добавить / изменить / удалить |
+| **Проверка** | `npm run typecheck`, `npm test -- …`, сценарий в UI |
+| **Инструменты** | `read_codeviper_file` → `edit_codeviper_file` → `run_codeviper_command` |
+
+**Промпт для теста:** `Выполни пункт N цепочки «…» из ROADMAP.md — самоулучшение CodeViper.`
+
+**Пример разбивки** (цепочка «Автообновление» — выполнена):
+
+1. Установить `electron-updater` в `app/package.json`
+2. В `updateChecker.ts`: packaged → `autoUpdater` + GitHub Releases; dev → git fetch (уже было)
+3. Тип `UpdateInfo` (`git` \| `release`) в `shared/updateInfo.ts` + Zod в `ipcContracts.ts`
+4. Баннер в `App.tsx`: кнопка «Перезапустить и обновить» → `quitAndInstall`
+5. Тест `updateInfo.test.ts`; перенос в «✅ Сделано»
+
 ## 📋 В планах
 
 ### 🔗 node-llama-cpp + Оркестратор
@@ -64,7 +86,6 @@
 
 | Модуль | Задача | Сложность | Приоритет |
 |--------|--------|-----------|-----------|
-| **Интеграции** | Установить `electron-updater`, добавить проверку GitHub Releases при старте приложения; при наличии новой версии показывать баннер с кнопкой «Перезапустить и обновить» | M | High |
 | **Интеграции** | Добавить `.sh`-лаунчер для Linux/macOS аналогично `CodeViper.cmd`; в GitHub Actions настроить матрицу `windows-latest` / `ubuntu-latest` / `macos-latest`; исправить пути `app/electron/main` для POSIX | L | Medium |
 | **Инфраструктура** | Написать NSIS-скрипт для `electron-builder`: при установке клонировать репозиторий CodeViper в `%APPDATA%\CodeViper\source\` через `git clone`, создавать ярлык на рабочем столе, запускающий `CodeViper.cmd` | L | Medium |
 | **Интеграции** | Добавить в `AgentSettings` поля `jiraUrl`, `jiraToken`; реализовать инструмент `create_jira_issue` в `agentHandlersGitHub.ts`: POST `{jiraUrl}/rest/api/3/issue` с Basic-авторизацией через token | M | Low |
@@ -224,3 +245,4 @@
 - Проверка `node_modules` перед запуском только при непустых секциях зависимостей в `package.json` — проекты без npm-пакетов не блокируются
 - Самоулучшение: автопуш в ветку `agent/self-improve` (настройка `selfImproveBranch`), checkout в начале прогона
 - Коллективная память: синхронизация глобальных знаний в `docs/collective/ViperMemory.md` + push; UI-чип в статус-баре; подгрузка в контекст всех пользователей
+- `electron-updater`: packaged-сборка проверяет GitHub Releases при старте; dev — git fetch `app/`; баннер с «Перезапустить и обновить»; `UpdateInfo` git/release

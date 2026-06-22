@@ -13,6 +13,7 @@
  *   ipcRenderer.invoke(IPC.LOAD_SETTINGS)
  */
 import { z } from 'zod'
+import { UpdateInfoSchema } from './updateInfo'
 
 // ─── Примитивные схемы ────────────────────────────────────────────────────
 
@@ -291,9 +292,7 @@ export const AgentContextPreviewSchema = z.object({
   adaptiveLimits: AdaptiveLimitsSchema.optional()
 })
 
-export const UpdateInfoSchema = z.object({
-  commits: z.number()
-})
+export { UpdateInfoSchema }
 
 export const ReadAttachmentResultSchema = z.object({
   ok: z.boolean(),
@@ -387,6 +386,7 @@ export const IPC = {
   AGENT_PREVIEW_RESPONSE: 'agent-preview-response',
   OPEN_DEVTOOLS: 'open-devtools',
   RESTART_APP: 'restart-app',
+  INSTALL_UPDATE: 'install-update',
   OPEN_EXTERNAL: 'open-external',
   SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
 

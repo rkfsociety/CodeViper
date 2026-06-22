@@ -50,6 +50,8 @@ cd CodeViper/app && npm install
 
 Коллективная память: глобальные знания автоматически синхронизируются в `docs/collective/ViperMemory.md` на GitHub; в статус-баре агента — чип **☁️ Память → agent/self-improve**.
 
+**Автообновление:** установщик (packaged) — `electron-updater` + GitHub Releases, баннер «Перезапустить и обновить»; разработка из исходников — git fetch `app/` и перезапуск через лаунчер.
+
 Перед запуском агента в Node-проекте проверяется наличие `node_modules` **только если** в `package.json` объявлены зависимости (`dependencies`, `devDependencies` и т.д.) — пустой `package.json` не блокирует запрос.
 
 ## Участие

@@ -689,13 +689,34 @@ function AppContent() {
         {updateInfo && (
           <div className="update-banner" role="status">
             <span>
-              🔄 Доступно обновление: смержено{' '}
-              {updateInfo.commits === 1 ? '1 коммит' : `${updateInfo.commits} коммит(ов)`} в
-              исходники. Перезапустите для пересборки.
+              {updateInfo.source === 'release' ? (
+                updateInfo.ready ? (
+                  <>
+                    🔄 Доступна новая версия <strong>{updateInfo.version}</strong>. Скачано —
+                    перезапустите для установки.
+                  </>
+                ) : (
+                  <>
+                    🔄 Загружается версия <strong>{updateInfo.version}</strong> с GitHub Releases…
+                  </>
+                )
+              ) : (
+                <>
+                  🔄 Доступно обновление исходников:{' '}
+                  {updateInfo.commits === 1 ? '1 коммит' : `${updateInfo.commits} коммит(ов)`} на
+                  GitHub. Перезапустите для пересборки.
+                </>
+              )}
             </span>
             <div className="update-banner-actions">
-              <button className="btn primary" onClick={() => window.codeviper.restartApp()}>
-                Перезапустить
+              <button
+                className="btn primary"
+                disabled={updateInfo.source === 'release' && !updateInfo.ready}
+                onClick={() => window.codeviper.installUpdate()}
+              >
+                {updateInfo.source === 'release' && updateInfo.ready
+                  ? 'Перезапустить и обновить'
+                  : 'Перезапустить'}
               </button>
               <button className="btn" onClick={() => setUpdateInfo(null)}>
                 Позже

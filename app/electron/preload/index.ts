@@ -335,13 +335,17 @@ const codeviper = {
 
   showItemInFolder: (filePath: string) => ipcRenderer.send(IPC.SHOW_ITEM_IN_FOLDER, filePath),
 
-  onUpdateAvailable: (cb: (info: { commits: number }) => void) => {
-    const handler = (_e: Electron.IpcRendererEvent, info: { commits: number }) => cb(info)
+  onUpdateAvailable: (cb: (info: import('../../shared/updateInfo').UpdateInfo) => void) => {
+    const handler = (
+      _e: Electron.IpcRendererEvent,
+      info: import('../../shared/updateInfo').UpdateInfo
+    ) => cb(info)
     ipcRenderer.on(IPC.UPDATE_AVAILABLE, handler)
     return () => ipcRenderer.removeListener(IPC.UPDATE_AVAILABLE, handler)
   },
 
   restartApp: () => ipcRenderer.send(IPC.RESTART_APP),
+  installUpdate: () => ipcRenderer.send(IPC.INSTALL_UPDATE),
 
   openDevTools: () => ipcRenderer.send(IPC.OPEN_DEVTOOLS),
 

@@ -51,7 +51,7 @@ import { setProgressTarget, clearProgress } from './progress'
 import { listPullRequests } from './githubPr'
 import { readFileHistory } from './fileHistory'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
-import { startUpdateChecks } from './updateChecker'
+import { startUpdateChecks, installPendingUpdate } from './updateChecker'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -617,9 +617,11 @@ ipcMain.on(IPC.OPEN_DEVTOOLS, () => {
 })
 
 ipcMain.on(IPC.RESTART_APP, () => {
-  // Перезапуск: лаунчер start-dev.ps1 при старте подтянет origin и пересоберёт.
-  app.relaunch()
-  app.exit(0)
+  installPendingUpdate()
+})
+
+ipcMain.on(IPC.INSTALL_UPDATE, () => {
+  installPendingUpdate()
 })
 
 ipcMain.on(IPC.OPEN_EXTERNAL, (_e, url: string) => {
