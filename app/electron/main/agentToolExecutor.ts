@@ -1,5 +1,5 @@
 import type { AgentSettings, AgentStreamPayload } from '../../src/types'
-import { getAgentTools, type ToolHandlers, type ToolName } from './agentTools'
+import { getAgentTools, type ToolHandlers } from './agentTools'
 import { createProjectToolHandlers } from './agentHandlersProject'
 import { createGitHubToolHandlers } from './agentHandlersGitHub'
 import { createGitLabToolHandlers } from './agentHandlersGitLab'
@@ -9,6 +9,7 @@ import { createSkillsToolHandlers } from './agentHandlersSkills'
 import { createSelfImprovementToolHandlers } from './agentHandlersSelfImprovement'
 import { createModelToolHandlers } from './agentHandlersModels'
 import { createTodoToolHandlers } from './agentHandlersTodo'
+import { createMcpToolHandlers } from './mcpTools'
 import { createWebToolHandlers } from './agentHandlersWeb'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import type { SelfImprovementItem } from '../../shared/selfImprovement'
@@ -132,7 +133,8 @@ export class ToolExecutor {
         : {}),
       ...createTodoToolHandlers(this.emit),
       ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
-      ...createWebToolHandlers()
+      ...createWebToolHandlers(),
+      ...createMcpToolHandlers(this.settings.mcpServers)
       // Эти два обработчика регистрируются в AgentRunner через overrideHandlers().
     } as ToolHandlers
     return this.toolHandlers
@@ -145,9 +147,11 @@ export class ToolExecutor {
   }
 
   async executeTool(name: string, args: Record<string, string>): Promise<string> {
-    const handler = this.getToolHandlers()[name as ToolName] as
-      | ((args: Record<string, string>) => Promise<string>)
-      | undefined
+    const handlers = this.getToolHandlers() as unknown as Record<
+      string,
+      (args: Record<string, string>) => Promise<string>
+    >
+    const handler = handlers[name]
     if (!handler) return `Неизвестный инструмент: ${name}`
     return handler(args)
   }
@@ -247,7 +251,7 @@ export class ToolExecutor {
       }
 
       if (
-        getAgentTools(false, this.settings.disabledTools).some(
+        getAgentTools(false, this.settings.disabledTools, this.settings.mcpServers).some(
           (t) => t.name === name && SELF_EDIT_FILE_TOOLS.has(name)
         )
       ) {

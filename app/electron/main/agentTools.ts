@@ -1,5 +1,5 @@
-// ============================================================================
-// БАЗОВЫЕ ИНСТРУМЕНТЫ — разбиты по категориям для оптимизации памяти
+import type { McpServerConfig } from '../../src/types'
+import { buildMcpAgentTools } from './mcpTools'
 // ============================================================================
 const FILE_TOOLS = [
   {
@@ -1320,7 +1320,11 @@ function transformTools(tools: readonly any[]) {
  * Получить инструменты с кэшированием преобразованных схем.
  * Экономит ~35% токенов в режиме самоулучшения, ~60% в обычном режиме.
  */
-export function getAgentTools(selfImproveMode: boolean, disabledTools?: string[]) {
+export function getAgentTools(
+  selfImproveMode: boolean,
+  disabledTools?: string[],
+  mcpServers?: McpServerConfig[]
+) {
   const disabled = disabledTools?.length ? new Set(disabledTools) : null
 
   // В обычном режиме исключаем codeviper + ollama + явно отключённые инструменты
@@ -1332,11 +1336,21 @@ export function getAgentTools(selfImproveMode: boolean, disabledTools?: string[]
       (!disabled || !disabled.has(t.function.name))
   )
 
-  // Кэш по режиму и набору отключённых инструментов
+  const mcpTools = buildMcpAgentTools(mcpServers).filter(
+    (tool) => !disabled || !disabled.has(tool.function.name)
+  )
+  const allTools = [...filtered, ...mcpTools]
+
+  // Кэш по режиму, отключённым инструментам и MCP-серверам
   const disabledKey = disabled ? [...disabled].sort().join(',') : ''
-  const cacheKey = `${selfImproveMode}_${disabledKey}`
+  const mcpKey = mcpServers?.length
+    ? mcpServers
+        .map((server) => `${server.url}:${server.tools.map((tool) => tool.name).join(',')}`)
+        .join('|')
+    : ''
+  const cacheKey = `${selfImproveMode}_${disabledKey}_${mcpKey}`
   if (!transformedToolsCache.has(cacheKey)) {
-    transformedToolsCache.set(cacheKey, transformTools(filtered))
+    transformedToolsCache.set(cacheKey, transformTools(allTools))
   }
 
   return transformedToolsCache.get(cacheKey)!

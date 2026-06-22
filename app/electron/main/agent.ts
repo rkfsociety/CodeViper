@@ -127,7 +127,8 @@ export class AgentRunner {
         enableRAG: true,
         ragStoreConfig: buildVectorStoreConfig(this.settings, this.projectPath),
         customSystemPrompt: this.settings.customSystemPrompt ?? '',
-        disabledTools: this.settings.disabledTools
+        disabledTools: this.settings.disabledTools,
+        mcpServers: this.settings.mcpServers
       }
     )
     this.emitter.throwIfAborted()

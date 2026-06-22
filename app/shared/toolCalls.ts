@@ -94,12 +94,21 @@ export const AGENT_TOOL_NAMES = [
 
 const TOOL_NAME_SET = new Set<string>(AGENT_TOOL_NAMES)
 
+function isKnownToolName(name: string, extraToolNames?: readonly string[]): boolean {
+  if (TOOL_NAME_SET.has(name)) return true
+  if (!extraToolNames?.length) return false
+  return extraToolNames.includes(name)
+}
+
 export interface ParsedToolCall {
   name: string
   arguments: Record<string, unknown>
 }
 
-function objectsToToolCalls(obj: unknown): ParsedToolCall[] | null {
+function objectsToToolCalls(
+  obj: unknown,
+  extraToolNames?: readonly string[]
+): ParsedToolCall[] | null {
   const items = Array.isArray(obj) ? obj : [obj]
   const calls: ParsedToolCall[] = []
 
@@ -107,7 +116,7 @@ function objectsToToolCalls(obj: unknown): ParsedToolCall[] | null {
     if (!item || typeof item !== 'object') return null
     const record = item as Record<string, unknown>
     const name = record.name
-    if (typeof name !== 'string' || !TOOL_NAME_SET.has(name)) return null
+    if (typeof name !== 'string' || !isKnownToolName(name, extraToolNames)) return null
 
     const args = record.arguments
     calls.push({
@@ -122,9 +131,12 @@ function objectsToToolCalls(obj: unknown): ParsedToolCall[] | null {
   return calls.length ? calls : null
 }
 
-function tryParseToolCallJson(text: string): ParsedToolCall[] | null {
+function tryParseToolCallJson(
+  text: string,
+  extraToolNames?: readonly string[]
+): ParsedToolCall[] | null {
   try {
-    return objectsToToolCalls(JSON.parse(text))
+    return objectsToToolCalls(JSON.parse(text), extraToolNames)
   } catch {
     return null
   }
@@ -158,7 +170,10 @@ function extractBalancedJsonObject(text: string): string | null {
   return null
 }
 
-function extractToolResponseCalls(content: string): {
+function extractToolResponseCalls(
+  content: string,
+  extraToolNames?: readonly string[]
+): {
   content: string
   toolCalls: ParsedToolCall[]
 } {
@@ -173,7 +188,7 @@ function extractToolResponseCalls(content: string): {
     const json = extractBalancedJsonObject(afterPrefix)
     if (!json) continue
 
-    const parsed = tryParseToolCallJson(json)
+    const parsed = tryParseToolCallJson(json, extraToolNames)
     if (!parsed) continue
 
     toolCalls.push(...parsed)
@@ -184,14 +199,17 @@ function extractToolResponseCalls(content: string): {
   return { content: remaining.trim(), toolCalls }
 }
 
-export function extractEmbeddedToolCalls(content: string): {
+export function extractEmbeddedToolCalls(
+  content: string,
+  extraToolNames?: readonly string[]
+): {
   content: string
   toolCalls: ParsedToolCall[]
 } {
   const toolCalls: ParsedToolCall[] = []
   let remaining = content
 
-  const toolResponse = extractToolResponseCalls(content)
+  const toolResponse = extractToolResponseCalls(content, extraToolNames)
   if (toolResponse.toolCalls.length) {
     toolCalls.push(...toolResponse.toolCalls)
     remaining = toolResponse.content
@@ -200,7 +218,7 @@ export function extractEmbeddedToolCalls(content: string): {
   const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/gi
   let match: RegExpExecArray | null
   while ((match = codeBlockRegex.exec(remaining)) !== null) {
-    const parsed = tryParseToolCallJson(match[1].trim())
+    const parsed = tryParseToolCallJson(match[1].trim(), extraToolNames)
     if (parsed) toolCalls.push(...parsed)
   }
 
@@ -209,7 +227,7 @@ export function extractEmbeddedToolCalls(content: string): {
     return { content: remaining, toolCalls }
   }
 
-  const parsed = tryParseToolCallJson(remaining.trim())
+  const parsed = tryParseToolCallJson(remaining.trim(), extraToolNames)
   if (parsed) {
     return { content: '', toolCalls: parsed }
   }

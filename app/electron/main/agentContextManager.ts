@@ -1,4 +1,5 @@
 import { getAgentTools } from './agentTools'
+import { getMcpAgentToolNames } from './mcpTools'
 import { ModelRuntime } from './modelRuntime'
 import type { ProviderConfig } from '../../shared/modelProvider'
 import type { AgentSettings } from '../../src/types'
@@ -215,8 +216,9 @@ export class ContextManager {
       messages,
       model,
       summarizeModel: this.summarizeModelResolved,
-      toolsJsonChars: JSON.stringify(getAgentTools(selfImproveMode, this.settings.disabledTools))
-        .length,
+      toolsJsonChars: JSON.stringify(
+        getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
+      ).length,
       providerConfig: this.summarizeProviderConfig,
       signal: this.signal,
       summarizeThresholdPercent: this.resolveSummarizeThreshold(),
@@ -248,9 +250,10 @@ export class ContextManager {
       ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
     }))
 
+    const mcpToolNames = getMcpAgentToolNames(this.settings.mcpServers)
     const toolsForProvider = this.settings.chatMode
       ? []
-      : getAgentTools(selfImproveMode, this.settings.disabledTools)
+      : getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
     const chatOptions = {
       model,
       messages: chatMessages,
@@ -301,7 +304,7 @@ export class ContextManager {
       if (chunk.content) {
         content += chunk.content
         const visible = sanitizeAssistantContent(content)
-        const embedded = extractEmbeddedToolCalls(content)
+        const embedded = extractEmbeddedToolCalls(content, mcpToolNames)
         if (!(embedded.toolCalls.length > 0 && !embedded.content.trim()) && visible) {
           this.emitter.emit({ type: 'token', content: chunk.content })
         }
@@ -327,7 +330,7 @@ export class ContextManager {
     if (nativeToolCalls?.length) {
       for (const tc of nativeToolCalls) toolCalls.push(tc)
     } else {
-      const embedded = extractEmbeddedToolCalls(content)
+      const embedded = extractEmbeddedToolCalls(content, mcpToolNames)
       content = sanitizeAssistantContent(embedded.content)
       for (const call of embedded.toolCalls) {
         toolCalls.push({

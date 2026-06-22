@@ -5,7 +5,8 @@ import type {
   AgentRole,
   AgentSettings,
   ChatMessage,
-  FileNode
+  FileNode,
+  McpServerConfig
 } from '../../src/types'
 import { looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../../shared/toolCalls'
 import { buildSelfEditContext } from './codeviperSource'
@@ -279,6 +280,8 @@ export interface PrepareAgentContextOptions {
   customSystemPrompt?: string
   /** Отключённые инструменты агента (имена); исключаются из набора tools */
   disabledTools?: string[]
+  /** Подключённые MCP-серверы — инструменты добавляются динамически */
+  mcpServers?: McpServerConfig[]
 }
 
 function section(
@@ -390,7 +393,9 @@ export async function buildAgentContextPreview(
     )
     .filter((m): m is OllamaMessage => m !== null)
 
-  const activeTools = chatMode ? [] : getAgentTools(selfImproveMode, options.disabledTools)
+  const activeTools = chatMode
+    ? []
+    : getAgentTools(selfImproveMode, options.disabledTools, options.mcpServers)
   const toolsJsonChars = JSON.stringify(activeTools).length
   const initialMessages: OllamaMessage[] = [
     { role: 'system', content: systemContent },
