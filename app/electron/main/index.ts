@@ -39,6 +39,7 @@ import {
   updateChat
 } from './chats'
 import { loadSettings, saveSettings } from './settings'
+import { addMcpServer, removeMcpServer } from './mcpRegistry'
 import { buildVectorStoreConfig } from './vectorStore'
 import { createGist, formatMemoriesAsMarkdown, formatSkillsAsMarkdown } from './gist'
 import { makeId } from '../../shared/makeId'
@@ -639,6 +640,16 @@ ipcMain.handle(IPC.LOAD_SETTINGS, async () => loadSettings())
 ipcMain.handle(IPC.SAVE_SETTINGS, async (_e, ...a) => {
   const [settings] = parseIpcArgs(Contracts[IPC.SAVE_SETTINGS].args, a)
   return saveSettings(settings)
+})
+
+ipcMain.handle(IPC.ADD_MCP_SERVER, async (_e, ...a) => {
+  const [settings, serverUrl] = parseIpcArgs(Contracts[IPC.ADD_MCP_SERVER].args, a)
+  return addMcpServer(settings, serverUrl)
+})
+
+ipcMain.handle(IPC.REMOVE_MCP_SERVER, async (_e, ...a) => {
+  const [settings, serverUrl] = parseIpcArgs(Contracts[IPC.REMOVE_MCP_SERVER].args, a)
+  return removeMcpServer(settings, serverUrl)
 })
 
 ipcMain.handle(

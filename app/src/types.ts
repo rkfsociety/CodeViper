@@ -229,6 +229,19 @@ export interface AgentSettings {
   customSystemPrompt?: string
   /** Отключённые инструменты агента (имена); пустой массив — все включены */
   disabledTools?: string[]
+  /** Подключённые MCP-серверы с кэшем инструментов из /.well-known/mcp */
+  mcpServers?: McpServerConfig[]
+}
+
+export interface McpToolDefinition {
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
+export interface McpServerConfig {
+  url: string
+  tools: McpToolDefinition[]
 }
 
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'
@@ -526,6 +539,8 @@ export interface CodeViperAPI {
   ) => Promise<AgentPrerequisitesResult>
   loadSettings: () => Promise<AgentSettings>
   saveSettings: (settings: AgentSettings) => Promise<AgentSettings>
+  addMcpServer: (settings: AgentSettings, serverUrl: string) => Promise<AgentSettings>
+  removeMcpServer: (settings: AgentSettings, serverUrl: string) => Promise<AgentSettings>
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => () => void
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>

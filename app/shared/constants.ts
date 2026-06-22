@@ -74,3 +74,7 @@ export type GeminiFreeModelId = (typeof GEMINI_FREE_MODELS)[number]['id']
 export const OPENROUTER_API_BASE_URL = 'https://openrouter.ai/api/v1'
 /** Провайдер по умолчанию */
 export const DEFAULT_MODEL_PROVIDER = 'ollama' as const
+
+// ── MCP ───────────────────────────────────────────────────────────────────────
+/** Таймаут запроса манифеста MCP-сервера (мс) */
+export const MCP_MANIFEST_TIMEOUT_MS = 15_000

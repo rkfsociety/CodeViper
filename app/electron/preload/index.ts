@@ -152,6 +152,20 @@ const codeviper = {
   saveSettings: (settings: AgentSettings) =>
     withTimeout(ipcRenderer.invoke(IPC.SAVE_SETTINGS, settings), IPC_TIMEOUT_MS, 'saveSettings'),
 
+  addMcpServer: (settings: AgentSettings, serverUrl: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.ADD_MCP_SERVER, settings, serverUrl),
+      IPC_TIMEOUT_MS,
+      'addMcpServer'
+    ),
+
+  removeMcpServer: (settings: AgentSettings, serverUrl: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.REMOVE_MCP_SERVER, settings, serverUrl),
+      IPC_TIMEOUT_MS,
+      'removeMcpServer'
+    ),
+
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => {
     ensureAgentStreamBridge()
     agentStreamListeners.add(callback)

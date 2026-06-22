@@ -24,10 +24,9 @@
 
 | # | Задача | Сложность | Приоритет |
 |---|--------|-----------|-----------|
-| 1 | Реализовать `mcpRegistry.ts`: при добавлении URL сервера делать GET `{url}/.well-known/mcp`, парсить JSON-схему `{ tools: [{name, description, parameters}] }`, сохранять в `AgentSettings.mcpServers` | M | Medium |
-| 2 | В `SettingsModal.tsx` на вкладке «Интеграции» добавить секцию MCP: список подключённых серверов из настроек, кнопка «+ Добавить», поле ввода URL; сохранять в `AgentSettings.mcpServers: string[]` | S | Medium |
-| 3 | В `agentTools.ts` в функции `getAgentTools()` динамически добавлять инструменты из `AgentSettings.mcpServers` перед каждым прогоном агента; вызовы проксировать через `POST {serverUrl}/tools/call` | M | Medium |
-| 4 | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | M | Low |
+| 1 | В `SettingsModal.tsx` на вкладке «Интеграции» добавить секцию MCP: список подключённых серверов из настроек, кнопка «+ Добавить», поле ввода URL; вызывать `addMcpServer` | S | Medium |
+| 2 | В `agentTools.ts` в функции `getAgentTools()` динамически добавлять инструменты из `AgentSettings.mcpServers` перед каждым прогоном агента; вызовы проксировать через `POST {serverUrl}/tools/call` | M | Medium |
+| 3 | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | M | Low |
 
 ### 🔗 Плагины
 
@@ -208,3 +207,6 @@
 - `scripts/download-node.js`: скачивание Node.js LTS в `app/resources/node/`; `npm run setup-node`; вызов перед `npm run dist`
 - `extraResources` в electron-builder: portable Node в `node/` рядом с `resources/` в установленном дистрибутиве
 - `getBundledNodeBin()` и PATH в `runCodeViperCommand` — самопересборка через bundled Node
+
+**MCP-серверы**
+- `mcpRegistry.ts`: регистрация MCP по `/.well-known/mcp`, хранение в `AgentSettings.mcpServers`; IPC `add-mcp-server` / `remove-mcp-server`

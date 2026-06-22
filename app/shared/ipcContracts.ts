@@ -158,7 +158,25 @@ export const AgentSettingsSchema = z.object({
   milvusUrl: z.string().optional(),
   milvusApiKey: z.string().optional(),
   ragProvider: z.enum(['local', 'qdrant', 'milvus']).optional(),
-  chatMode: z.boolean().optional()
+  chatMode: z.boolean().optional(),
+  customSystemPrompt: z.string().optional(),
+  gitlabToken: z.string().optional(),
+  gitlabUrl: z.string().optional(),
+  disabledTools: z.array(z.string()).optional(),
+  mcpServers: z
+    .array(
+      z.object({
+        url: z.string(),
+        tools: z.array(
+          z.object({
+            name: z.string(),
+            description: z.string(),
+            parameters: z.record(z.string(), z.unknown())
+          })
+        )
+      })
+    )
+    .optional()
 })
 
 export const MemoryEntrySchema = z.object({
@@ -357,6 +375,8 @@ export const IPC = {
   OPEN_ISSUE: 'open-issue',
   TRIGGER_GITHUB_WORKFLOW: 'trigger-github-workflow',
   READ_FILE_HISTORY: 'read-file-history',
+  ADD_MCP_SERVER: 'add-mcp-server',
+  REMOVE_MCP_SERVER: 'remove-mcp-server',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   SAVE_APP_STATE: 'save-app-state',
@@ -554,6 +574,14 @@ export const Contracts = {
   },
   [IPC.SAVE_SETTINGS]: {
     args: z.tuple([AgentSettingsSchema]),
+    result: AgentSettingsSchema
+  },
+  [IPC.ADD_MCP_SERVER]: {
+    args: z.tuple([AgentSettingsSchema, z.string().min(1)]),
+    result: AgentSettingsSchema
+  },
+  [IPC.REMOVE_MCP_SERVER]: {
+    args: z.tuple([AgentSettingsSchema, z.string().min(1)]),
     result: AgentSettingsSchema
   },
   [IPC.RUN_AGENT]: {
