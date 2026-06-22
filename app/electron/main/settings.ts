@@ -65,6 +65,7 @@ export const PersistedSettingsSchema = z.object({
   gitlabToken: z.string().optional(),
   gitlabUrl: z.string().optional(),
   disabledTools: z.array(z.string()).optional(),
+  sourceRootOverride: z.string().optional(),
   mcpServers: z
     .array(
       z.object({
@@ -193,6 +194,9 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
       ? { selfImproveBranch: settings.selfImproveBranch.trim() }
       : {}),
     ...(settings.syncCollectiveMemory === false ? { syncCollectiveMemory: false } : {}),
+    ...(settings.sourceRootOverride?.trim()
+      ? { sourceRootOverride: settings.sourceRootOverride.trim() }
+      : {}),
     ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {})
   }
 }

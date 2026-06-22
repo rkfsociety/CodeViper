@@ -29,25 +29,19 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Установленный CodeViper — самообновление без краша
 
-**1 · S · Поле «Путь к исходникам» в настройках** — приор. High  
-- **Цель:** пользователь указывает `F:\github\CodeViper` в настройках; `getCodeViperSourceRoot()` читает это значение первым  
-- **Файлы:** `app/electron/main/settings.ts`, `app/src/types.ts`, `app/src/components/SettingsModal.tsx`, `app/electron/main/codeviperSource.ts`  
-- **Действие:** добавить Zod-поле `sourceRootOverride?: string`; в `getCodeViperSourceRoot()` проверять его перед остальными кандидатами; в SettingsModal — текстовое поле с кнопкой «Выбрать папку»  
-- **Проверка:** `npm run typecheck`; поле сохраняется и отображается после перезапуска
-
-**2 · S · Пропуск build в packaged-режиме** — приор. High  
+**1 · S · Пропуск build в packaged-режиме** — приор. High  
 - **Цель:** при `app.isPackaged` — самообучение не запускает `npm run build` (GitHub Actions соберёт)  
 - **Файлы:** `app/electron/main/selfCommit.ts`  
 - **Действие:** обернуть вызов build-команды в `if (!app.isPackaged)`  
 - **Проверка:** `npm run typecheck`
 
-**3 · M · Авто-тег после самообучения** — приор. High  
+**2 · M · Авто-тег после самообучения** — приор. High  
 - **Цель:** после commit+push в packaged-режиме агент запускает `npm run bump` → `git tag vX.Y.Z` → `git push --tags`; это триггерит GitHub Actions release workflow  
 - **Файлы:** `app/electron/main/selfCommit.ts`  
 - **Действие:** если `app.isPackaged`, после успешного push вызвать bump+tag+push tags; сообщить пользователю версию и ссылку на Actions  
 - **Проверка:** `npm run typecheck`; тег появляется в `git tag -l`
 
-**4 · S · Сборка и установка первого установщика** — приор. High  
+**3 · S · Сборка и установка первого установщика** — приор. High  
 - **Цель:** NSIS-установщик собран и установлен на машине пользователя  
 - **Файлы:** `app/package.json` (уже настроен), `app/resources/installer.nsh`  
 - **Действие:** запустить `npm run dist` в `app/`; проверить что создаётся `.exe` в `release/`; установить  
@@ -55,49 +49,49 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 node-llama-cpp + Оркестратор
 
-**5 · S · electron-builder rebuild** — приор. Low  
+**4 · S · electron-builder rebuild** — приор. Low  
 - **Цель:** `npm run dist` пересобирает native-модуль без ручного rebuild  
 - **Файлы:** `app/package.json` (секция `build`)  
 - **Действие:** добавить `"npmRebuild": true`, `"buildDependenciesFromSource": false`  
 - **Проверка:** сборка dist проходит (или документировать ограничение в README)
 
-**6 · M · Обёртка nodeLlama.ts** — приор. Low  
+**5 · M · Обёртка nodeLlama.ts** — приор. Low  
 - **Цель:** модуль с `loadModel`, `complete`, `unloadModel`, singleton  
 - **Файлы:** `app/electron/main/nodeLlama.ts` (новый)  
 - **Действие:** реализовать `NodeLlamaHandle`, ленивая инициализация  
 - **Проверка:** `npm run typecheck`
 
-**7 · S · Тест nodeLlama** — приор. Low  
+**6 · S · Тест nodeLlama** — приор. Low  
 - **Цель:** vitest-тест с `TEST_GGUF_PATH`, skip без пути  
 - **Файлы:** `app/tests/nodeLlama.test.ts`, `README.md`  
 - **Действие:** тест `loadModel → complete → unloadModel`; инструкция в README  
 - **Проверка:** `npm test -- nodeLlama` (skip без env)
 
-**8 · M · Выбор GGUF в настройках** — приор. Low  
+**7 · M · Выбор GGUF в настройках** — приор. Low  
 - **Цель:** кнопка выбора `*.gguf`, путь в `AgentSettings.orchestratorModelPath`  
 - **Файлы:** `app/src/components/SettingsModal.tsx`, `app/electron/main/settings.ts`, `app/src/types.ts`  
 - **Действие:** `dialog.showOpenDialog` + поле в Zod-схеме  
 - **Проверка:** UI сохраняет путь после выбора файла
 
-**9 · L · orchestratorModel.ts** — приор. Low  
+**8 · L · orchestratorModel.ts** — приор. Low  
 - **Цель:** `analyze(message)` → `{ plan, rephrased, isComplex }` JSON без стриминга  
 - **Файлы:** `app/electron/main/orchestratorModel.ts` (новый)  
 - **Действие:** singleton на `nodeLlama`, парсинг JSON ответа  
 - **Проверка:** `npm run typecheck`; unit-тест с моком nodeLlama
 
-**10 · M · Скачивание GGUF по умолчанию** — приор. Low  
+**9 · M · Скачивание GGUF по умолчанию** — приор. Low  
 - **Цель:** при первом включении оркестратора — загрузка Qwen2.5-1.5B в userData с прогрессом  
 - **Файлы:** `app/electron/main/orchestratorModel.ts`, `SettingsModal.tsx`  
 - **Действие:** download + `onProgressEvent`; кнопка «Скачать»  
 - **Проверка:** прогресс в UI; файл появляется в `userData/orchestrator/`
 
-**11 · S · UI секция «Оркестратор»** — приор. Low  
+**10 · S · UI секция «Оркестратор»** — приор. Low  
 - **Цель:** тумблер `orchestratorEnabled`, поле `minMessageLength` (80), «Удалить модель»  
 - **Файлы:** `SettingsModal.tsx`, `settings.ts`, `types.ts`  
 - **Действие:** секция на вкладке «Модель»  
 - **Проверка:** настройки сохраняются после перезапуска
 
-**12 · M · Интеграция в AgentRunner** — приор. Low  
+**11 · M · Интеграция в AgentRunner** — приор. Low  
 - **Цель:** перед прогоном — `analyze()`, plan в системный промпт, rephrased при `isComplex`  
 - **Файлы:** `app/electron/main/agent.ts`  
 - **Действие:** вызов оркестратора при `orchestratorEnabled`  
@@ -105,25 +99,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Плагины
 
-**13 · M · Сканирование plugins/*.js** — приор. Low  
+**12 · M · Сканирование plugins/*.js** — приор. Low  
 - **Цель:** при старте main — загрузка `~/.codeviper/plugins/*.js`, регистрация tools  
 - **Файлы:** `app/electron/main/pluginLoader.ts` (новый), `app/electron/main/index.ts`, `agentTools.ts`  
 - **Действие:** `require()` + `export default { name, description, tools }`  
 - **Проверка:** тест с фиктивным плагином в temp-папке
 
-**14 · S · Вкладка «Плагины» в настройках** — приор. Low  
+**13 · S · Вкладка «Плагины» в настройках** — приор. Low  
 - **Цель:** список плагинов, вкл/выкл, «Открыть папку»  
 - **Файлы:** `SettingsModal.tsx`, `settings.ts` (`AgentSettings.plugins`)  
 - **Действие:** вкладка + `shell.openPath`  
 - **Проверка:** UI отображает установленные плагины
 
-**15 · M · Компиляция plugins/*.ts** — приор. Low  
+**14 · M · Компиляция plugins/*.ts** — приор. Low  
 - **Цель:** esbuild CommonJS во temp, кэш по mtime  
 - **Файлы:** `app/electron/main/pluginLoader.ts`  
 - **Действие:** `esbuild.buildSync` перед require  
 - **Проверка:** тест: изменение mtime → перекомпиляция
 
-**16 · L · Плагины в worker_thread** — приор. Low  
+**15 · L · Плагины в worker_thread** — приор. Low  
 - **Цель:** изоляция плагина; fs только в projectPath; net заблокирован  
 - **Файлы:** `app/electron/main/pluginWorker.ts` (новый), `pluginLoader.ts`  
 - **Действие:** worker + ограниченный API  
@@ -131,21 +125,21 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 P2P-вычисления
 
-> Пункты 14–15 — код сервера в репозитории (`server/p2p/`); деплой VPS — вручную пользователем.
+> Пункты 13–14 — код сервера в репозитории (`server/p2p/`); деплой VPS — вручную пользователем.
 
-**17 · XL · REST API сигнального сервера** — приор. Low  
+**16 · XL · REST API сигнального сервера** — приор. Low  
 - **Цель:** API `POST /nodes/register`, `GET /nodes/available`, `DELETE /nodes/{id}`  
 - **Файлы:** `server/p2p/` (новый каталог), `package.json` в корне или в server  
 - **Действие:** Node + Express/Fastify + Redis для реестра узлов  
 - **Проверка:** `curl` регистрации тестового узла локально
 
-**18 · XL · Auth на сигнальном сервере** — приор. Low  
+**17 · XL · Auth на сигнальном сервере** — приор. Low  
 - **Цель:** JWT после email/GitHub OAuth; лимиты по токену  
 - **Файлы:** `server/p2p/auth.ts`  
 - **Действие:** регистрация + middleware  
 - **Проверка:** запрос без токена → 401
 
-**19 · M · Тумблер «Поделиться мощностью»** — приор. Low  
+**18 · M · Тумблер «Поделиться мощностью»** — приор. Low  
 - **Цель:** UI + `POST /nodes/register` с GPU/RAM/моделью  
 - **Файлы:** `SettingsModal.tsx`, `app/electron/main/p2pClient.ts` (новый), `settings.ts`  
 - **Действие:** тумблер + регистрация узла  
@@ -629,3 +623,4 @@ N · [S/M/L/XL] · Краткое название
 - `electron-updater`: packaged-сборка проверяет GitHub Releases при старте; dev — git fetch `app/`; баннер с «Перезапустить и обновить»; `UpdateInfo` git/release
 - ROADMAP «В планах»: единый формат самообучения, сквозная нумерация; расширение до 67 пунктов; правила в AGENTS.md, CLAUDE.md, docs/self-improvement.md, навык viper-self-improvement v3
 - node-llama-cpp v3.18.1 и @electron/rebuild добавлены в зависимости; скрипт `npm run rebuild`; бинарник `llama-addon.node` (CPU, win-x64) загружен через `@node-llama-cpp/win-x64`
+- Переопределённый путь к исходникам CodeViper: поле `sourceRootOverride` в настройках, `getCodeViperSourceRoot()` проверяет его первым; UI с текстовым полем и кнопкой «Выбрать папку»; сохраняется в конфиге и восстанавливается при перезапуске

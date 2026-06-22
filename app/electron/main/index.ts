@@ -21,6 +21,7 @@ import {
   resolveSummarizeModel
 } from '../../shared/modelRouter'
 import { safeReadFile, safeWriteFile, runCommand } from './services'
+import { setSourceRootOverride } from './codeviperSource'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
 import { ensureDefaultSkills } from './defaultSkills'
@@ -237,6 +238,11 @@ app.whenReady().then(async () => {
     })
   } catch {
     // DevTools недоступны (нет сети или уже установлены) — не критично
+  }
+
+  const settings = await loadSettings()
+  if (settings.sourceRootOverride) {
+    setSourceRootOverride(settings.sourceRootOverride)
   }
 
   await ensureDefaultSkills()
@@ -641,7 +647,13 @@ ipcMain.handle(IPC.LOAD_SETTINGS, async () => loadSettings())
 
 ipcMain.handle(IPC.SAVE_SETTINGS, async (_e, ...a) => {
   const [settings] = parseIpcArgs(Contracts[IPC.SAVE_SETTINGS].args, a)
-  return saveSettings(settings)
+  const saved = await saveSettings(settings)
+  if (saved.sourceRootOverride) {
+    setSourceRootOverride(saved.sourceRootOverride)
+  } else {
+    setSourceRootOverride(null)
+  }
+  return saved
 })
 
 ipcMain.handle(IPC.ADD_MCP_SERVER, async (_e, ...a) => {

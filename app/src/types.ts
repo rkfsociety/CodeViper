@@ -233,6 +233,8 @@ export interface AgentSettings {
   customSystemPrompt?: string
   /** Отключённые инструменты агента (имена); пустой массив — все включены */
   disabledTools?: string[]
+  /** Переопределённый путь к исходникам CodeViper (абсолютный путь папки app/) */
+  sourceRootOverride?: string
   /** Подключённые MCP-серверы с кэшем инструментов из /.well-known/mcp */
   mcpServers?: McpServerConfig[]
 }
@@ -492,6 +494,7 @@ export type { UpdateInfo }
 
 export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
+  selectFolder: () => Promise<string | null>
   selectFiles: () => Promise<{ path: string; size: number }[]>
   readAttachment: (filePath: string) => Promise<{
     ok: boolean

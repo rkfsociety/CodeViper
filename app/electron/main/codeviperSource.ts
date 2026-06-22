@@ -23,13 +23,23 @@ const BLOCKED_SELF_PARTS = new Set([
   '.vitest-tmp'
 ])
 
+let sourceRootOverride: string | null = null
+
 function hasSourceMarkers(root: string): boolean {
   return (
     existsSync(join(root, 'package.json')) && existsSync(join(root, 'electron', 'main', 'agent.ts'))
   )
 }
 
+export function setSourceRootOverride(path: string | null): void {
+  sourceRootOverride = path
+}
+
 export function getCodeViperSourceRoot(): string {
+  if (sourceRootOverride && hasSourceMarkers(sourceRootOverride)) {
+    return resolve(sourceRootOverride)
+  }
+
   const candidates = [
     join(process.cwd(), 'app'),
     process.cwd(),

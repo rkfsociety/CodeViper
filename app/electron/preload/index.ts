@@ -34,6 +34,9 @@ const codeviper = {
       'selectProjectFolder'
     ),
 
+  selectFolder: (): Promise<string | null> =>
+    withTimeout(ipcRenderer.invoke(IPC.SELECT_PROJECT_FOLDER), IPC_TIMEOUT_MS, 'selectFolder'),
+
   selectFiles: (): Promise<{ path: string; size: number }[]> =>
     withTimeout(ipcRenderer.invoke(IPC.SELECT_FILES), IPC_TIMEOUT_MS, 'selectFiles'),
 

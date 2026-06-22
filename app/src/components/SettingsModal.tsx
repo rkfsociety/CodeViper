@@ -1554,6 +1554,54 @@ export function SettingsModal({
                       </div>
                     </div>
                   </SettingItem>
+
+                  {/* ── Разработка ── */}
+                  <SettingItem
+                    tab="behavior"
+                    label="Разработка"
+                    desc="путь исходники codeviper source root override самоулучшение"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Разработка</div>
+                      <label>
+                        Путь к исходникам CodeViper
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder="F:\\github\\CodeViper\\app"
+                            value={settings.sourceRootOverride ?? ''}
+                            onChange={(e) =>
+                              onSettingsChange({ sourceRootOverride: e.target.value })
+                            }
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            onClick={async () => {
+                              const path = await window.codeviper.selectFolder()
+                              if (path) {
+                                onSettingsChange({ sourceRootOverride: path })
+                              }
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              backgroundColor: 'var(--color-bg-secondary)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: '4px',
+                              fontSize: '14px'
+                            }}
+                          >
+                            Выбрать папку
+                          </button>
+                        </div>
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Абсолютный путь к папке <code>app/</code> исходников CodeViper. Если указан,
+                        используется вместо автоматического поиска. Оставьте пусто для
+                        автоматического поиска.
+                      </div>
+                    </div>
+                  </SettingItem>
                 </>
               )}
 
