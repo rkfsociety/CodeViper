@@ -66,6 +66,7 @@ export const PersistedSettingsSchema = z.object({
   gitlabUrl: z.string().optional(),
   jiraUrl: z.string().optional(),
   jiraToken: z.string().optional(),
+  linearApiKey: z.string().optional(),
   disabledTools: z.array(z.string()).optional(),
   sourceRootOverride: z.string().optional(),
   mcpServers: z
@@ -249,6 +250,7 @@ export async function loadSettings(): Promise<PersistedSettings> {
       if (obj.milvusApiKey) obj.milvusApiKey = decryptApiKey(obj.milvusApiKey as string)
       if (obj.gitlabToken) obj.gitlabToken = decryptApiKey(obj.gitlabToken as string)
       if (obj.jiraToken) obj.jiraToken = decryptApiKey(obj.jiraToken as string)
+      if (obj.linearApiKey) obj.linearApiKey = decryptApiKey(obj.linearApiKey as string)
     }
 
     const result = PersistedSettingsSchema.safeParse(json)
@@ -277,7 +279,8 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     qdrantApiKey: encryptApiKey(normalized.qdrantApiKey ?? ''),
     milvusApiKey: encryptApiKey(normalized.milvusApiKey ?? ''),
     ...(normalized.gitlabToken ? { gitlabToken: encryptApiKey(normalized.gitlabToken) } : {}),
-    ...(normalized.jiraToken ? { jiraToken: encryptApiKey(normalized.jiraToken) } : {})
+    ...(normalized.jiraToken ? { jiraToken: encryptApiKey(normalized.jiraToken) } : {}),
+    ...(normalized.linearApiKey ? { linearApiKey: encryptApiKey(normalized.linearApiKey) } : {})
   }
   await writeJsonAtomic(storePath(), toSave)
   // Продублировать настройки git-sync в config.json для лаунчера (start-dev.ps1).

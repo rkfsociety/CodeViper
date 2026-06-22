@@ -195,6 +195,8 @@ export interface AgentSettings {
   jiraUrl?: string
   /** Jira API Token для создания Issue (используй вместо пароля) */
   jiraToken?: string
+  /** Linear API Key для создания Issue через GraphQL API */
+  linearApiKey?: string
   /** Исключать thinking из истории контекста (экономия 20-50% для think-моделей) */
   excludeThinkingFromHistory?: boolean
   /** Размер контекста выбранной модели в токенах (сохраняется при выборе модели) */

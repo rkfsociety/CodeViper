@@ -678,6 +678,32 @@ const JIRA_TOOLS = [
   }
 ] as const
 
+const LINEAR_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'create_linear_issue',
+      description: 'Создать Issue в Linear через GraphQL API',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Заголовок issue' },
+          description: { type: 'string', description: 'Описание issue (необязательно)' },
+          team_key: {
+            type: 'string',
+            description: 'Ключ команды в Linear (например, ENG, FEAT)'
+          },
+          priority: {
+            type: 'string',
+            description: 'Приоритет 0=No priority, 1=Urgent, 2=High, 3=Medium, 4=Low'
+          }
+        },
+        required: ['title', 'team_key']
+      }
+    }
+  }
+] as const
+
 const MEMORY_TOOLS = [
   {
     type: 'function',
@@ -1322,6 +1348,7 @@ export const AGENT_TOOLS = [
   ...GITHUB_TOOLS,
   ...GITLAB_TOOLS,
   ...JIRA_TOOLS,
+  ...LINEAR_TOOLS,
   ...MEMORY_TOOLS,
   ...PACKAGE_TOOLS,
   ...SKILLS_TOOLS,
@@ -1459,6 +1486,12 @@ export interface ToolArgs {
     description?: string
     issue_type?: string
     project_key: string
+  }
+  create_linear_issue: {
+    title: string
+    description?: string
+    team_key: string
+    priority?: string
   }
   recent_changes: { path?: string; limit?: string }
   remember: { content: string; category: string; tags?: string; scope?: string }

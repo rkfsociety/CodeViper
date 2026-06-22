@@ -2040,6 +2040,42 @@ export function SettingsModal({
                     </div>
                   </SettingItem>
 
+                  {/* ── Linear ── */}
+                  <SettingItem
+                    tab="integrations"
+                    label="Linear"
+                    desc="linear graphql api issue инструмент создание задач"
+                  >
+                    <div className={styles.section}>
+                      <label>
+                        API Key
+                        <div className="settings-api-key-row">
+                          <input
+                            type={apiKeyVisible['linear'] ? 'text' : 'password'}
+                            placeholder="(опционально)"
+                            value={settings.linearApiKey ?? ''}
+                            onChange={(e) => onSettingsChange({ linearApiKey: e.target.value })}
+                            autoComplete="off"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => toggleKeyVisible('linear')}
+                            title={apiKeyVisible['linear'] ? 'Скрыть' : 'Показать'}
+                          >
+                            {apiKeyVisible['linear'] ? '🙈' : '👁'}
+                          </button>
+                        </div>
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Создавайте Issue в Linear через инструмент агента. Получите API Key на{' '}
+                        <a href="https://linear.app/settings/api" target="_blank" rel="noreferrer">
+                          linear.app/settings/api
+                        </a>
+                      </div>
+                    </div>
+                  </SettingItem>
+
                   {/* ── MCP-серверы ── */}
                   <SettingItem
                     tab="integrations"

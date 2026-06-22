@@ -4,6 +4,7 @@ import { createProjectToolHandlers } from './agentHandlersProject'
 import { createGitHubToolHandlers } from './agentHandlersGitHub'
 import { createGitLabToolHandlers } from './agentHandlersGitLab'
 import { createJiraToolHandlers } from './agentHandlersJira'
+import { createLinearToolHandlers } from './agentHandlersLinear'
 import { createCodeViperToolHandlers } from './agentHandlersCodeViper'
 import { createMemoryToolHandlers } from './agentHandlersMemory'
 import { createSkillsToolHandlers } from './agentHandlersSkills'
@@ -127,6 +128,7 @@ export class ToolExecutor {
       ...createGitHubToolHandlers(),
       ...createGitLabToolHandlers(this.projectPath, this.settings),
       ...createJiraToolHandlers(this.settings),
+      ...createLinearToolHandlers(this.settings),
       ...createCodeViperToolHandlers(),
       ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl, {
         syncCollectiveMemory: this.settings.syncCollectiveMemory
