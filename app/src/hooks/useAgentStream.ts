@@ -360,6 +360,14 @@ export function useAgentStream({
         })
       }
 
+      if (event.type === 'circuit_breaker') {
+        dispatchRef.current({
+          type: 'SET_CIRCUIT_BREAKER',
+          state: event.circuitBreakerState ?? null,
+          openUntilMs: event.circuitBreakerOpenUntilMs
+        })
+      }
+
       if (event.type === 'retry_429') {
         const value =
           event.retryWaitMs != null && event.retryAttempt != null

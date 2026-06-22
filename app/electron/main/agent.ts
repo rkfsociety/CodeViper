@@ -10,6 +10,7 @@ import { buildVectorStoreConfig } from './vectorStore'
 import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
 import { TaskPlanner } from './taskPlanner'
+import { CircuitBreakerOpenError } from './modelRuntime'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
@@ -192,6 +193,21 @@ export class AgentRunner {
         } catch (error) {
           if (isAbortError(error)) {
             this.emitter.handleAbort()
+            return
+          }
+          if (error instanceof CircuitBreakerOpenError) {
+            const secsLeft = Math.ceil((error.openUntilMs - Date.now()) / 1000)
+            // Повторно эмитим состояние open — контекст мог быть сброшен в RESET при старте прогона
+            this.emitter.emit({
+              type: 'circuit_breaker',
+              circuitBreakerState: 'open',
+              circuitBreakerOpenUntilMs: error.openUntilMs
+            })
+            this.emitter.emit({
+              type: 'error',
+              content: `⚡ Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`
+            })
+            this.emitter.emit({ type: 'done' })
             return
           }
           throw error

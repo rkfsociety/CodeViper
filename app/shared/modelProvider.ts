@@ -33,6 +33,8 @@ export interface ChatOptions {
   signal?: AbortSignal
   /** Вызывается перед каждой повторной попыткой после HTTP 429 */
   onRetry429?: (waitMs: number, attempt: number) => void
+  /** Вызывается при смене состояния circuit breaker (open/half-open/closed) */
+  onCircuitBreaker?: (state: 'open' | 'half-open' | 'closed', openUntilMs?: number) => void
 }
 
 export interface ChatChunk {

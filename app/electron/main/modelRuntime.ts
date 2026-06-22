@@ -19,12 +19,92 @@ import {
   OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
 
+// ─── Circuit Breaker ──────────────────────────────────────────────────────────
+
+const CB_ERROR_THRESHOLD = 5
+const CB_OPEN_MS = 30_000
+
+type CbState = 'closed' | 'open' | 'half-open'
+type CbNotify = ((state: CbState, openUntilMs?: number) => void) | undefined
+
+/** Конечный автомат circuit breaker. Экземпляр хранится в реестре — живёт дольше AgentRunner. */
+class CircuitBreaker {
+  private state: CbState = 'closed'
+  private consecutiveErrors = 0
+  private openUntilMs = 0
+
+  /**
+   * Вызвать перед отправкой запроса.
+   * Бросает CircuitBreakerOpenError если цепь разомкнута и время сброса ещё не вышло.
+   * Переходит в half-open если время сброса истекло.
+   */
+  beforeRequest(notify: CbNotify): void {
+    if (this.state === 'open') {
+      if (Date.now() >= this.openUntilMs) {
+        this.state = 'half-open'
+        notify?.('half-open')
+      } else {
+        throw new CircuitBreakerOpenError(this.openUntilMs)
+      }
+    }
+  }
+
+  /** Вызвать после успешного завершения запроса. */
+  onSuccess(notify: CbNotify): void {
+    this.consecutiveErrors = 0
+    if (this.state !== 'closed') {
+      this.state = 'closed'
+      notify?.('closed')
+    }
+  }
+
+  /**
+   * Вызвать после ошибки запроса.
+   * Размыкает цепь (open) при 5 последовательных ошибках или при ошибке в half-open.
+   */
+  onError(notify: CbNotify): void {
+    this.consecutiveErrors++
+    if (this.state === 'half-open' || this.consecutiveErrors >= CB_ERROR_THRESHOLD) {
+      this.openUntilMs = Date.now() + CB_OPEN_MS
+      this.state = 'open'
+      this.consecutiveErrors = 0
+      notify?.('open', this.openUntilMs)
+    }
+  }
+}
+
+/** Брошен в ModelRuntime.chat() когда circuit breaker находится в состоянии open. */
+export class CircuitBreakerOpenError extends Error {
+  constructor(public readonly openUntilMs: number) {
+    const secsLeft = Math.ceil((openUntilMs - Date.now()) / 1000)
+    super(`Circuit breaker open — слишком много ошибок подряд. Повторно через ${secsLeft} с.`)
+    this.name = 'CircuitBreakerOpenError'
+  }
+}
+
+/** Реестр: один CircuitBreaker на уникальный config (тип + URL + модель). */
+const cbRegistry = new Map<string, CircuitBreaker>()
+
+function getCb(config: ProviderConfig): CircuitBreaker {
+  const key = `${config.type}|${config.baseUrl ?? ''}|${config.model ?? ''}`
+  let cb = cbRegistry.get(key)
+  if (!cb) {
+    cb = new CircuitBreaker()
+    cbRegistry.set(key, cb)
+  }
+  return cb
+}
+
+// ─── ModelRuntime ─────────────────────────────────────────────────────────────
+
 /** Фасад для выбора провайдера моделей по конфигурации. */
 export class ModelRuntime {
   private provider: ModelProvider
+  private readonly cb: CircuitBreaker
 
   constructor(config: ProviderConfig) {
     this.provider = this.createProvider(config)
+    this.cb = getCb(config)
   }
 
   private createProvider(config: ProviderConfig): ModelProvider {
@@ -102,7 +182,21 @@ export class ModelRuntime {
   }
 
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
-    yield* this.provider.chat(options)
+    // Проверяем состояние circuit breaker. Если open — бросаем CircuitBreakerOpenError.
+    // Если время сброса истекло — переходим в half-open и пропускаем один пробный запрос.
+    this.cb.beforeRequest(options.onCircuitBreaker)
+
+    try {
+      for await (const chunk of this.provider.chat(options)) {
+        yield chunk
+      }
+      this.cb.onSuccess(options.onCircuitBreaker)
+    } catch (error) {
+      // AbortError (отмена пользователем) не считается ошибкой провайдера.
+      const isAbort = error instanceof DOMException && error.name === 'AbortError'
+      if (!isAbort) this.cb.onError(options.onCircuitBreaker)
+      throw error
+    }
   }
 
   async getModelPlacement(model: string, signal?: AbortSignal): Promise<ModelPlacement> {

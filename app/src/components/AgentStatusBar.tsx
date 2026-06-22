@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useReducer } from 'react'
 import { TOOL_LABELS } from '../../shared/toolDisplay'
 import {
   formatGenerationMetricsHint,
@@ -68,31 +68,51 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
     runStats,
     orchestrating,
     orchestratingPlan,
-    retry429
+    retry429,
+    circuitBreakerState,
+    circuitBreakerOpenUntilMs
   } = useAgentState()
   const displayModel = runModel || model
   const [planExpanded, setPlanExpanded] = useState(false)
 
-  const label = retry429
-    ? `Лимит запросов, жду ${Math.round(retry429.waitMs / 1000)} с… (попытка ${retry429.attempt}/4)${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-    : progress
-      ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-      : summarizing
-        ? `Сжимаю контекст…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-        : agentStatusLabel(
-            agentPhase,
-            activeToolName,
-            displayModel,
-            queueSize,
-            generationMetrics,
-            runStats
-          )
+  // Форсируем ре-рендер каждую секунду пока circuit breaker открыт, чтобы обновлять обратный отсчёт.
+  const [, tick] = useReducer((n: number) => n + 1, 0)
+  useEffect(() => {
+    if (circuitBreakerState !== 'open') return
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [circuitBreakerState])
+
+  const cbSecsLeft =
+    circuitBreakerOpenUntilMs != null
+      ? Math.max(0, Math.ceil((circuitBreakerOpenUntilMs - Date.now()) / 1000))
+      : 0
+
+  const label =
+    circuitBreakerState === 'open'
+      ? `⚡ Провайдер недоступен — слишком много ошибок${cbSecsLeft > 0 ? ` (~${cbSecsLeft} с)` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+      : circuitBreakerState === 'half-open'
+        ? `⚡ Проверяю соединение с провайдером…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+        : retry429
+          ? `Лимит запросов, жду ${Math.round(retry429.waitMs / 1000)} с… (попытка ${retry429.attempt}/4)${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+          : progress
+            ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+            : summarizing
+              ? `Сжимаю контекст…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+              : agentStatusLabel(
+                  agentPhase,
+                  activeToolName,
+                  displayModel,
+                  queueSize,
+                  generationMetrics,
+                  runStats
+                )
 
   return (
     <div
       className={`agent-status-bar phase-${agentPhase}${summarizing ? ' summarizing' : ''}${
         progress ? ' has-progress' : ''
-      }`}
+      }${circuitBreakerState === 'open' ? ' circuit-breaker-open' : ''}${circuitBreakerState === 'half-open' ? ' circuit-breaker-half-open' : ''}`}
       role="status"
       aria-live="polite"
     >

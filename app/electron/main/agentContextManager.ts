@@ -262,6 +262,13 @@ export class ContextManager {
         : {}),
       onRetry429: (waitMs: number, attempt: number) => {
         this.emitter.emit({ type: 'retry_429', retryWaitMs: waitMs, retryAttempt: attempt })
+      },
+      onCircuitBreaker: (state: 'open' | 'half-open' | 'closed', openUntilMs?: number) => {
+        this.emitter.emit({
+          type: 'circuit_breaker',
+          circuitBreakerState: state,
+          circuitBreakerOpenUntilMs: openUntilMs
+        })
       }
     }
 

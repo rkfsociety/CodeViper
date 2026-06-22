@@ -340,6 +340,8 @@ export interface AgentTraceEvent {
   data: Record<string, unknown>
 }
 
+export type CircuitBreakerState = 'open' | 'half-open' | 'closed'
+
 export interface AgentStreamPayload {
   type:
     | 'token'
@@ -361,6 +363,7 @@ export interface AgentStreamPayload {
     | 'trace'
     | 'orchestrating'
     | 'retry_429'
+    | 'circuit_breaker'
   content?: string
   /** Поля события retry_429 */
   retryWaitMs?: number
@@ -389,6 +392,10 @@ export interface AgentStreamPayload {
   traceEvent?: AgentTraceEvent
   /** Агент строит план действий (type === 'orchestrating') */
   orchestrating?: boolean
+  /** Состояние circuit breaker (type === 'circuit_breaker') */
+  circuitBreakerState?: CircuitBreakerState
+  /** Момент когда circuit breaker перейдёт из open в half-open (Date.now() + 30 000) */
+  circuitBreakerOpenUntilMs?: number
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {

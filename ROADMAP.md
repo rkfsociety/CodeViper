@@ -8,7 +8,6 @@
 
 | Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
 |---|---|---|---|---|---|
-| **Провайдеры** | В `modelRuntime.ts` реализовать circuit breaker: при 5 последовательных ошибках переходить в состояние `open` (запросы отклоняются немедленно), через 30 с — `half-open` (пробный запрос); статус отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
 | **UI/UX** | В `SettingsModal.tsx` добавить поле поиска по названиям настроек; при вводе фильтровать пункты на всех вкладках и подсвечивать совпадения | Medium | S | — | ⏳ |
 | **UI/UX** | Показывать шпаргалку горячих клавиш при нажатии `?` вне поля ввода или через меню; перечень действий с их сочетаниями | Low | S | — | ⏳ |
 | **UI/UX** | В `SettingsModal.tsx` добавить поле «Дополнительные инструкции» (`AgentSettings.customSystemPrompt: string`); текст дописывается в конец базового системного промпта агента | Low | S | — | ⏳ |
@@ -115,6 +114,7 @@
 
 **Провайдеры**
 - `StreamingChatProvider` (`providers/streamingChatProvider.ts`): абстрактный базовый класс с общим I/O-циклом стриминга (fetch + backoff retry + reader + TextDecoder + буфер + releaseLock); хуки `buildRequest()`, `createChunkParser()` (возвращает `ChunkParser` с `parse` + `finalize`), `handleHttpError()`; `BACKOFF_MS` переопределяется в подклассе; `OllamaProvider` и `OpenAIProvider` реализуют только специфику
+- Circuit breaker в `modelRuntime.ts`: 5 последовательных ошибок → `open` (немедленный отказ), через 30 с → `half-open` (пробный запрос), успех → `closed`; модульный реестр `cbRegistry` для сохранения состояния между прогонами; статус отображается в `AgentStatusBar.tsx` с обратным отсчётом
 
 **Провайдеры и модели**
 - Провайдер Groq: `groqProvider.ts` (переиспользует `OpenAIProvider` с `baseUrl: 'https://api.groq.com/openai/v1'`); поле `groqApiKey` в `settings.ts` и `types.ts`

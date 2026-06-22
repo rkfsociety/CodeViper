@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, type Dispatch } from 'react'
 import type { ReactNode } from 'react'
 import type { AgentPhase } from '../components/AgentStatusBar'
 import type { GenerationMetrics, RunStats } from '../../shared/generationMetrics'
+import type { CircuitBreakerState } from '../types'
 
 export interface AgentState {
   agentPhase: AgentPhase
@@ -13,6 +14,8 @@ export interface AgentState {
   orchestrating: boolean
   orchestratingPlan: string | null
   retry429: { waitMs: number; attempt: number } | null
+  circuitBreakerState: CircuitBreakerState | null
+  circuitBreakerOpenUntilMs: number | null
 }
 
 export type AgentAction =
@@ -23,6 +26,11 @@ export type AgentAction =
   | { type: 'SET_STATS'; stats: RunStats | null }
   | { type: 'SET_ORCHESTRATING'; active: boolean; plan?: string | null }
   | { type: 'SET_RETRY_429'; value: { waitMs: number; attempt: number } | null }
+  | {
+      type: 'SET_CIRCUIT_BREAKER'
+      state: CircuitBreakerState | null
+      openUntilMs?: number | null
+    }
   | { type: 'RESET' }
 
 const initialState: AgentState = {
@@ -34,7 +42,9 @@ const initialState: AgentState = {
   runStats: null,
   orchestrating: false,
   orchestratingPlan: null,
-  retry429: null
+  retry429: null,
+  circuitBreakerState: null,
+  circuitBreakerOpenUntilMs: null
 }
 
 function agentReducer(state: AgentState, action: AgentAction): AgentState {
@@ -61,6 +71,12 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
       }
     case 'SET_RETRY_429':
       return { ...state, retry429: action.value }
+    case 'SET_CIRCUIT_BREAKER':
+      return {
+        ...state,
+        circuitBreakerState: action.state,
+        circuitBreakerOpenUntilMs: action.openUntilMs ?? null
+      }
     case 'RESET':
       return initialState
     default:
