@@ -229,9 +229,9 @@ if ($needInstall) {
   }
 }
 
-# Пересобираем, если код обновился из GitHub или out/ отсутствует
+# Пересобираем, если код обновился из GitHub, out/ отсутствует или зависимости переустановились
 $outDir = Join-Path $root 'out'
-$needBuild = $codeChanged -or (-not (Test-Path $outDir)) -or $pendingApplied
+$needBuild = $codeChanged -or (-not (Test-Path $outDir)) -or $pendingApplied -or $needInstall
 
 if ($needBuild) {
   Write-Log 'npm run build... (код обновился с GitHub или out/ отсутствует)'
