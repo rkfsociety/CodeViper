@@ -601,7 +601,13 @@ export function SettingsModal({
                                   ))}
                                 </select>
                                 <span className={styles.hint}>
-                                  RPM: <strong>{currentFreeModel.rpm}</strong> · TPM:{' '}
+                                  RPM: <strong>{currentFreeModel.rpm}</strong> · RPD:{' '}
+                                  <strong>
+                                    {'rpd' in currentFreeModel && currentFreeModel.rpd != null
+                                      ? currentFreeModel.rpd
+                                      : '∞'}
+                                  </strong>{' '}
+                                  · TPM:{' '}
                                   <strong>
                                     {currentFreeModel.tpm != null
                                       ? `${(currentFreeModel.tpm / 1000).toFixed(0)}K`
