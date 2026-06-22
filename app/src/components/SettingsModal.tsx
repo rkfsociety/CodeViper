@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, createContext, useContext, type ReactNode } from 'react'
 import styles from './SettingsModal.module.css'
 import type { AgentSettings, GitSyncStrategy, OllamaModel, PermissionMode } from '../types'
 import { GIT_SYNC_STRATEGIES, GIT_SYNC_STRATEGY_LABELS } from '../types'
@@ -52,6 +52,56 @@ const SETTINGS_TABS: { id: SettingsTab; label: string; icon: string }[] = [
   }
 ]
 
+// ── Search helpers ──────────────────────────────────────────────────────────
+
+const SearchCtx = createContext('')
+
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className={styles.searchMark}>{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
+
+function SettingItem({
+  tab,
+  label,
+  desc,
+  children
+}: {
+  tab: SettingsTab
+  label: string
+  desc?: string
+  children: ReactNode
+}) {
+  const query = useContext(SearchCtx)
+  if (query) {
+    const hay = (label + ' ' + (desc ?? '')).toLowerCase()
+    if (!hay.includes(query.toLowerCase())) return null
+    const tabLabel = SETTINGS_TABS.find((t) => t.id === tab)?.label ?? ''
+    return (
+      <div className={styles.searchItem}>
+        <div className={styles.searchItemHeader}>
+          <span className={styles.searchItemTab}>{tabLabel}</span>
+          <span className={styles.searchItemLabel}>
+            <Highlight text={label} query={query} />
+          </span>
+        </div>
+        {children}
+      </div>
+    )
+  }
+  return <>{children}</>
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 interface Props {
   open: boolean
   settings: AgentSettings
@@ -81,6 +131,8 @@ export function SettingsModal({
   onRefreshOllama,
   onSelfLearningChange
 }: Props) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const isSearching = searchQuery.trim().length > 0
   const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({})
   const [pingState, setPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
   const [qdrantPingState, setQdrantPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>(
@@ -97,7 +149,10 @@ export function SettingsModal({
   const modalRef = useModalA11y<HTMLDivElement>(open)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setSearchQuery('')
+      return
+    }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
     }
@@ -195,14 +250,36 @@ export function SettingsModal({
 
         <div className={styles.body}>
           <nav className={styles.nav} role="tablist">
+            <div className={styles.searchBox}>
+              <input
+                className={styles.searchInput}
+                placeholder="Поиск настроек…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Поиск по настройкам"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className={styles.searchClear}
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Очистить поиск"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
             {SETTINGS_TABS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 role="tab"
-                aria-selected={tab === item.id}
-                className={`${styles.navItem}${tab === item.id ? ' ' + styles.navItemActive : ''}`}
-                onClick={() => setTab(item.id)}
+                aria-selected={!isSearching && tab === item.id}
+                className={`${styles.navItem}${!isSearching && tab === item.id ? ' ' + styles.navItemActive : ''}`}
+                onClick={() => {
+                  setSearchQuery('')
+                  setTab(item.id)
+                }}
               >
                 <span className={styles.navIcon} dangerouslySetInnerHTML={{ __html: item.icon }} />
                 {item.label}
@@ -210,163 +287,94 @@ export function SettingsModal({
             ))}
           </nav>
 
-          <div className={`${styles.content} modal-body settings`}>
-            {tab === 'model' && (
-              <>
-                {/* ── Провайдер моделей ── */}
-                <label>
-                  Провайдер моделей
-                  <select
-                    value={provider}
-                    onChange={(e) =>
-                      handleProviderChange(
-                        e.target.value as
-                          | 'ollama'
-                          | 'deepseek'
-                          | 'openai'
-                          | 'openrouter'
-                          | 'gemini'
-                          | 'anthropic'
-                          | 'groq'
-                          | 'together'
-                      )
-                    }
+          <SearchCtx.Provider value={searchQuery.trim()}>
+            <div className={`${styles.content} modal-body settings`}>
+              {(tab === 'model' || isSearching) && (
+                <>
+                  {/* ── Провайдер моделей ── */}
+                  <SettingItem
+                    tab="model"
+                    label="Провайдер моделей"
+                    desc="ollama deepseek gemini anthropic openai openrouter groq together provider api"
                   >
-                    <option value="ollama">Ollama (локально)</option>
-                    <option value="anthropic">Claude (Anthropic API)</option>
-                    <option value="deepseek">DeepSeek API</option>
-                    <option value="gemini">Gemini API</option>
-                    <option value="openai">OpenAI-совместимый API</option>
-                    <option value="openrouter">OpenRouter</option>
-                    <option value="groq">Groq API</option>
-                    <option value="together">Together AI</option>
-                  </select>
-                </label>
-
-                {provider === 'ollama' && (
-                  <label>
-                    Ollama URL
-                    <input
-                      value={settings.ollamaUrl}
-                      onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
-                      onBlur={() => void onRefreshOllama()}
-                    />
-                  </label>
-                )}
-
-                {provider === 'deepseek' && (
-                  <>
-                    <div className={styles.hint}>
-                      Используется <strong>DeepSeek API</strong> — OpenAI-совместимый облачный API.
-                      Базовый URL: <code>{DEEPSEEK_API_BASE_URL}</code>, модель по умолчанию:{' '}
-                      <code>{DEEPSEEK_MODEL_DEFAULT}</code>.
-                    </div>
                     <label>
-                      DeepSeek API ключ
-                      <div className="settings-api-key-row">
-                        <input
-                          type={apiKeyVisible['deepseek'] ? 'text' : 'password'}
-                          placeholder="sk-..."
-                          value={settings.deepseekApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ deepseekApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => toggleKeyVisible('deepseek')}
-                          title={apiKeyVisible['deepseek'] ? 'Скрыть' : 'Показать'}
-                        >
-                          {apiKeyVisible['deepseek'] ? '🙈' : '👁'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void handlePing()}
-                          disabled={pingState === 'checking' || !settings.deepseekApiKey}
-                          title="Проверить подключение"
-                        >
-                          {pingState === 'checking'
-                            ? '⏳'
-                            : pingState === 'ok'
-                              ? '✅'
-                              : pingState === 'fail'
-                                ? '❌'
-                                : '🔌'}
-                        </button>
-                      </div>
+                      Провайдер моделей
+                      <select
+                        value={provider}
+                        onChange={(e) =>
+                          handleProviderChange(
+                            e.target.value as
+                              | 'ollama'
+                              | 'deepseek'
+                              | 'openai'
+                              | 'openrouter'
+                              | 'gemini'
+                              | 'anthropic'
+                              | 'groq'
+                              | 'together'
+                          )
+                        }
+                      >
+                        <option value="ollama">Ollama (локально)</option>
+                        <option value="anthropic">Claude (Anthropic API)</option>
+                        <option value="deepseek">DeepSeek API</option>
+                        <option value="gemini">Gemini API</option>
+                        <option value="openai">OpenAI-совместимый API</option>
+                        <option value="openrouter">OpenRouter</option>
+                        <option value="groq">Groq API</option>
+                        <option value="together">Together AI</option>
+                      </select>
                     </label>
-                  </>
-                )}
+                  </SettingItem>
 
-                {provider === 'gemini' &&
-                  (() => {
-                    const tier = settings.geminiTier ?? 'free'
-                    const isFree = tier === 'free'
-                    const currentFreeModel =
-                      GEMINI_FREE_MODELS.find((m) => m.id === settings.model) ??
-                      GEMINI_FREE_MODELS[0]
-                    return (
+                  {provider === 'ollama' && (
+                    <SettingItem tab="model" label="Ollama URL" desc="ollama адрес url сервер">
+                      <label>
+                        Ollama URL
+                        <input
+                          value={settings.ollamaUrl}
+                          onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                          onBlur={() => void onRefreshOllama()}
+                        />
+                      </label>
+                    </SettingItem>
+                  )}
+
+                  {provider === 'deepseek' && (
+                    <SettingItem
+                      tab="model"
+                      label="DeepSeek API ключ"
+                      desc="deepseek api key ключ sk-"
+                    >
                       <>
                         <div className={styles.hint}>
-                          Используется <strong>Gemini API</strong> через{' '}
-                          <code>{GEMINI_API_BASE_URL}</code>.
+                          Используется <strong>DeepSeek API</strong> — OpenAI-совместимый облачный
+                          API. Базовый URL: <code>{DEEPSEEK_API_BASE_URL}</code>, модель по
+                          умолчанию: <code>{DEEPSEEK_MODEL_DEFAULT}</code>.
                         </div>
-
-                        {/* Переключатель уровня */}
-                        <div className={styles.geminiTierRow}>
-                          <button
-                            type="button"
-                            className={`btn${isFree ? ' active' : ''}`}
-                            onClick={() => {
-                              const first = GEMINI_FREE_MODELS[0]
-                              onSettingsChange({
-                                geminiTier: 'free',
-                                model: first.id,
-                                geminiRpm: first.rpm
-                              })
-                            }}
-                          >
-                            Бесплатный
-                          </button>
-                          <button
-                            type="button"
-                            className={`btn${!isFree ? ' active' : ''}`}
-                            onClick={() =>
-                              onSettingsChange({
-                                geminiTier: 'paid',
-                                model: settings.model || GEMINI_MODEL_DEFAULT
-                              })
-                            }
-                          >
-                            Платный
-                          </button>
-                        </div>
-
-                        {/* API ключ */}
                         <label>
-                          Gemini API ключ
+                          DeepSeek API ключ
                           <div className="settings-api-key-row">
                             <input
-                              type={apiKeyVisible['gemini'] ? 'text' : 'password'}
-                              placeholder="AIza..."
-                              value={settings.geminiApiKey ?? ''}
-                              onChange={(e) => onSettingsChange({ geminiApiKey: e.target.value })}
+                              type={apiKeyVisible['deepseek'] ? 'text' : 'password'}
+                              placeholder="sk-..."
+                              value={settings.deepseekApiKey ?? ''}
+                              onChange={(e) => onSettingsChange({ deepseekApiKey: e.target.value })}
                               autoComplete="off"
                             />
                             <button
                               type="button"
                               className="btn btn-sm"
-                              onClick={() => toggleKeyVisible('gemini')}
-                              title={apiKeyVisible['gemini'] ? 'Скрыть' : 'Показать'}
+                              onClick={() => toggleKeyVisible('deepseek')}
+                              title={apiKeyVisible['deepseek'] ? 'Скрыть' : 'Показать'}
                             >
-                              {apiKeyVisible['gemini'] ? '🙈' : '👁'}
+                              {apiKeyVisible['deepseek'] ? '🙈' : '👁'}
                             </button>
                             <button
                               type="button"
                               className="btn btn-sm"
                               onClick={() => void handlePing()}
-                              disabled={pingState === 'checking' || !settings.geminiApiKey}
+                              disabled={pingState === 'checking' || !settings.deepseekApiKey}
                               title="Проверить подключение"
                             >
                               {pingState === 'checking'
@@ -379,1094 +387,1324 @@ export function SettingsModal({
                             </button>
                           </div>
                         </label>
+                      </>
+                    </SettingItem>
+                  )}
 
-                        {isFree ? (
-                          /* Бесплатный — выбор из фиксированного списка */
-                          <label>
-                            Модель
-                            <select
-                              value={currentFreeModel.id}
-                              onChange={(e) => {
-                                const m = GEMINI_FREE_MODELS.find((x) => x.id === e.target.value)
-                                if (m) onSettingsChange({ model: m.id, geminiRpm: m.rpm })
+                  {provider === 'gemini' &&
+                    (() => {
+                      const tier = settings.geminiTier ?? 'free'
+                      const isFree = tier === 'free'
+                      const currentFreeModel =
+                        GEMINI_FREE_MODELS.find((m) => m.id === settings.model) ??
+                        GEMINI_FREE_MODELS[0]
+                      return (
+                        <SettingItem
+                          tab="model"
+                          label="Gemini API ключ"
+                          desc="gemini google api key бесплатный платный rpm tpm free paid AIza модель"
+                        >
+                          <>
+                            <div className={styles.hint}>
+                              Используется <strong>Gemini API</strong> через{' '}
+                              <code>{GEMINI_API_BASE_URL}</code>.
+                            </div>
+
+                            {/* Переключатель уровня */}
+                            <div className={styles.geminiTierRow}>
+                              <button
+                                type="button"
+                                className={`btn${isFree ? ' active' : ''}`}
+                                onClick={() => {
+                                  const first = GEMINI_FREE_MODELS[0]
+                                  onSettingsChange({
+                                    geminiTier: 'free',
+                                    model: first.id,
+                                    geminiRpm: first.rpm
+                                  })
+                                }}
+                              >
+                                Бесплатный
+                              </button>
+                              <button
+                                type="button"
+                                className={`btn${!isFree ? ' active' : ''}`}
+                                onClick={() =>
+                                  onSettingsChange({
+                                    geminiTier: 'paid',
+                                    model: settings.model || GEMINI_MODEL_DEFAULT
+                                  })
+                                }
+                              >
+                                Платный
+                              </button>
+                            </div>
+
+                            {/* API ключ */}
+                            <label>
+                              Gemini API ключ
+                              <div className="settings-api-key-row">
+                                <input
+                                  type={apiKeyVisible['gemini'] ? 'text' : 'password'}
+                                  placeholder="AIza..."
+                                  value={settings.geminiApiKey ?? ''}
+                                  onChange={(e) =>
+                                    onSettingsChange({ geminiApiKey: e.target.value })
+                                  }
+                                  autoComplete="off"
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-sm"
+                                  onClick={() => toggleKeyVisible('gemini')}
+                                  title={apiKeyVisible['gemini'] ? 'Скрыть' : 'Показать'}
+                                >
+                                  {apiKeyVisible['gemini'] ? '🙈' : '👁'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm"
+                                  onClick={() => void handlePing()}
+                                  disabled={pingState === 'checking' || !settings.geminiApiKey}
+                                  title="Проверить подключение"
+                                >
+                                  {pingState === 'checking'
+                                    ? '⏳'
+                                    : pingState === 'ok'
+                                      ? '✅'
+                                      : pingState === 'fail'
+                                        ? '❌'
+                                        : '🔌'}
+                                </button>
+                              </div>
+                            </label>
+
+                            {isFree ? (
+                              /* Бесплатный — выбор из фиксированного списка */
+                              <label>
+                                Модель
+                                <select
+                                  value={currentFreeModel.id}
+                                  onChange={(e) => {
+                                    const m = GEMINI_FREE_MODELS.find(
+                                      (x) => x.id === e.target.value
+                                    )
+                                    if (m) onSettingsChange({ model: m.id, geminiRpm: m.rpm })
+                                  }}
+                                >
+                                  {GEMINI_FREE_MODELS.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className={styles.hint}>
+                                  RPM: <strong>{currentFreeModel.rpm}</strong> · TPM:{' '}
+                                  <strong>
+                                    {currentFreeModel.tpm != null
+                                      ? `${(currentFreeModel.tpm / 1000).toFixed(0)}K`
+                                      : '∞'}
+                                  </strong>{' '}
+                                  — лимиты фиксированы для бесплатного уровня.
+                                </span>
+                              </label>
+                            ) : (
+                              /* Платный — ручной ввод модели и RPM */
+                              <>
+                                <label>
+                                  Лимит запросов в минуту (RPM)
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={2000}
+                                    step={1}
+                                    value={settings.geminiRpm ?? 15}
+                                    onChange={(e) => {
+                                      const v = parseInt(e.target.value, 10)
+                                      if (!isNaN(v) && v >= 1) onSettingsChange({ geminiRpm: v })
+                                    }}
+                                  />
+                                  <span className={styles.hint}>
+                                    Интервал между запросами рассчитывается автоматически.
+                                  </span>
+                                </label>
+                              </>
+                            )}
+                          </>
+                        </SettingItem>
+                      )
+                    })()}
+
+                  {provider === 'anthropic' && (
+                    <SettingItem
+                      tab="model"
+                      label="Claude API ключ"
+                      desc="anthropic claude api key sk-ant-"
+                    >
+                      <>
+                        <div className={styles.hint}>
+                          Используется <strong>Claude API (Anthropic)</strong>. Модель по умолчанию:{' '}
+                          <code>claude-3-5-sonnet-20241022</code>.
+                        </div>
+                        <label>
+                          Claude API ключ
+                          <div className="settings-api-key-row">
+                            <input
+                              type={apiKeyVisible['claude'] ? 'text' : 'password'}
+                              placeholder="sk-ant-..."
+                              value={settings.claudeApiKey ?? ''}
+                              onChange={(e) => onSettingsChange({ claudeApiKey: e.target.value })}
+                              autoComplete="off"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => toggleKeyVisible('claude')}
+                              title={apiKeyVisible['claude'] ? 'Скрыть' : 'Показать'}
+                            >
+                              {apiKeyVisible['claude'] ? '🙈' : '👁'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => void handlePing()}
+                              disabled={pingState === 'checking' || !settings.claudeApiKey}
+                              title="Проверить подключение"
+                            >
+                              {pingState === 'checking'
+                                ? '⏳'
+                                : pingState === 'ok'
+                                  ? '✅'
+                                  : pingState === 'fail'
+                                    ? '❌'
+                                    : '🔌'}
+                            </button>
+                          </div>
+                        </label>
+                      </>
+                    </SettingItem>
+                  )}
+
+                  {provider === 'openai' && (
+                    <SettingItem
+                      tab="model"
+                      label="OpenAI API ключ базовый URL"
+                      desc="openai api key sk- базовый url compatible совместимый"
+                    >
+                      <>
+                        <label>
+                          API базовый URL
+                          <input
+                            placeholder="https://api.openai.com/v1"
+                            value={settings.ollamaUrl}
+                            onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                          />
+                        </label>
+                        <label>
+                          API ключ
+                          <div className="settings-api-key-row">
+                            <input
+                              type={apiKeyVisible['openai'] ? 'text' : 'password'}
+                              placeholder="sk-..."
+                              value={settings.openaiApiKey ?? ''}
+                              onChange={(e) => onSettingsChange({ openaiApiKey: e.target.value })}
+                              autoComplete="off"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => toggleKeyVisible('openai')}
+                              title={apiKeyVisible['openai'] ? 'Скрыть' : 'Показать'}
+                            >
+                              {apiKeyVisible['openai'] ? '🙈' : '👁'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => void handlePing()}
+                              disabled={pingState === 'checking'}
+                              title="Проверить подключение"
+                            >
+                              {pingState === 'checking'
+                                ? '⏳'
+                                : pingState === 'ok'
+                                  ? '✅'
+                                  : pingState === 'fail'
+                                    ? '❌'
+                                    : '🔌'}
+                            </button>
+                          </div>
+                        </label>
+                      </>
+                    </SettingItem>
+                  )}
+
+                  {provider === 'openrouter' && (
+                    <SettingItem
+                      tab="model"
+                      label="OpenRouter API ключ"
+                      desc="openrouter api key sk-or- агрегатор gpt claude llama gemini"
+                    >
+                      <>
+                        <div className={styles.hint}>
+                          <strong>OpenRouter</strong> — агрегатор моделей (GPT-4o, Claude, Gemini,
+                          Llama и др.). Базовый URL: <code>https://openrouter.ai/api/v1</code>.
+                          Получить ключ: <strong>openrouter.ai/keys</strong>
+                        </div>
+                        <label>
+                          OpenRouter API ключ
+                          <div className="settings-api-key-row">
+                            <input
+                              type={apiKeyVisible['openrouter'] ? 'text' : 'password'}
+                              placeholder="sk-or-..."
+                              value={settings.openrouterApiKey ?? ''}
+                              onChange={(e) =>
+                                onSettingsChange({ openrouterApiKey: e.target.value })
+                              }
+                              autoComplete="off"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => toggleKeyVisible('openrouter')}
+                              title={apiKeyVisible['openrouter'] ? 'Скрыть' : 'Показать'}
+                            >
+                              {apiKeyVisible['openrouter'] ? '🙈' : '👁'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => void handlePing()}
+                              disabled={pingState === 'checking' || !settings.openrouterApiKey}
+                              title="Проверить подключение"
+                            >
+                              {pingState === 'checking'
+                                ? '⏳'
+                                : pingState === 'ok'
+                                  ? '✅'
+                                  : pingState === 'fail'
+                                    ? '❌'
+                                    : '🔌'}
+                            </button>
+                          </div>
+                        </label>
+                      </>
+                    </SettingItem>
+                  )}
+
+                  {provider === 'groq' && (
+                    <SettingItem
+                      tab="model"
+                      label="Groq API ключ"
+                      desc="groq api key gsk_ lpu быстрый инференс"
+                    >
+                      <>
+                        <div className={styles.hint}>
+                          <strong>Groq API</strong> — сверхбыстрый инференс (LPU). Модель по
+                          умолчанию: <code>llama3-8b-8192</code>. Получить ключ:{' '}
+                          <strong>console.groq.com/keys</strong>
+                        </div>
+                        <label>
+                          Groq API ключ
+                          <div className="settings-api-key-row">
+                            <input
+                              type={apiKeyVisible['groq'] ? 'text' : 'password'}
+                              placeholder="gsk_..."
+                              value={settings.groqApiKey ?? ''}
+                              onChange={(e) => onSettingsChange({ groqApiKey: e.target.value })}
+                              autoComplete="off"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => toggleKeyVisible('groq')}
+                              title={apiKeyVisible['groq'] ? 'Скрыть' : 'Показать'}
+                            >
+                              {apiKeyVisible['groq'] ? '🙈' : '👁'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => void handlePing()}
+                              disabled={pingState === 'checking' || !settings.groqApiKey}
+                              title="Проверить подключение"
+                            >
+                              {pingState === 'checking'
+                                ? '⏳'
+                                : pingState === 'ok'
+                                  ? '✅'
+                                  : pingState === 'fail'
+                                    ? '❌'
+                                    : '🔌'}
+                            </button>
+                          </div>
+                        </label>
+                      </>
+                    </SettingItem>
+                  )}
+
+                  {provider === 'together' && (
+                    <SettingItem
+                      tab="model"
+                      label="Together AI API ключ"
+                      desc="together ai api key облачный llama"
+                    >
+                      <>
+                        <div className={styles.hint}>
+                          <strong>Together AI</strong> — облачный инференс с OpenAI-совместимым API.
+                          Модель по умолчанию:{' '}
+                          <code>meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo</code>. Получить
+                          ключ: <strong>api.together.ai/settings/api-keys</strong>
+                        </div>
+                        <label>
+                          Together AI API ключ
+                          <div className="settings-api-key-row">
+                            <input
+                              type={apiKeyVisible['together'] ? 'text' : 'password'}
+                              placeholder="..."
+                              value={settings.togetherApiKey ?? ''}
+                              onChange={(e) => onSettingsChange({ togetherApiKey: e.target.value })}
+                              autoComplete="off"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => toggleKeyVisible('together')}
+                              title={apiKeyVisible['together'] ? 'Скрыть' : 'Показать'}
+                            >
+                              {apiKeyVisible['together'] ? '🙈' : '👁'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => void handlePing()}
+                              disabled={pingState === 'checking' || !settings.togetherApiKey}
+                              title="Проверить подключение"
+                            >
+                              {pingState === 'checking'
+                                ? '⏳'
+                                : pingState === 'ok'
+                                  ? '✅'
+                                  : pingState === 'fail'
+                                    ? '❌'
+                                    : '🔌'}
+                            </button>
+                          </div>
+                        </label>
+                      </>
+                    </SettingItem>
+                  )}
+
+                  {settings.modelProvider === 'ollama' && (
+                    <SettingItem
+                      tab="model"
+                      label="Автовыбор модели"
+                      desc="auto model автоматический выбор ram задача"
+                    >
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.autoModel !== false}
+                          onChange={(e) => onSettingsChange({ autoModel: e.target.checked })}
+                        />
+                        <span>
+                          <strong>Автовыбор модели</strong> — подбирать модель под задачу, выгружать
+                          другие из RAM (если установлено несколько)
+                        </span>
+                      </label>
+                    </SettingItem>
+                  )}
+
+                  {settings.modelProvider === 'ollama' && (
+                    <SettingItem
+                      tab="model"
+                      label="Модель для суммаризации"
+                      desc="summarize model суммаризация сжатие лёгкая"
+                    >
+                      <>
+                        <label>
+                          Модель для суммаризации
+                          <select
+                            value={settings.summarizeModel ?? ''}
+                            onChange={(e) => onSettingsChange({ summarizeModel: e.target.value })}
+                          >
+                            <option value="">Авто — самая лёгкая установленная</option>
+                            {models.map((model) => (
+                              <option key={model.name} value={model.name}>
+                                {model.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div className={styles.hint}>
+                          Сжатие длинной истории чата при достижении порога. По умолчанию берётся
+                          самая лёгкая модель в Ollama — быстрее и не отвлекает основную модель
+                          агента.
+                        </div>
+                      </>
+                    </SettingItem>
+                  )}
+
+                  <SettingItem
+                    tab="model"
+                    label="Порог суммаризации"
+                    desc="threshold сжатие контекст компрессия summarize percentage экономичный сбалансированный качество"
+                  >
+                    <label>
+                      Порог суммаризации:{' '}
+                      <strong>
+                        {settings.aggressiveCompression
+                          ? 65
+                          : (settings.contextSummarizeThreshold ?? 85)}
+                        %
+                      </strong>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5em',
+                          marginBottom: '0.5em',
+                          marginTop: '0.35em'
+                        }}
+                      >
+                        {(
+                          [
+                            { label: 'Экономичный', value: 55 },
+                            { label: 'Сбалансированный', value: 70 },
+                            { label: 'Качество', value: 85 }
+                          ] as { label: string; value: number }[]
+                        ).map((preset) => {
+                          const current = settings.aggressiveCompression
+                            ? 65
+                            : (settings.contextSummarizeThreshold ?? 85)
+                          const active = !settings.aggressiveCompression && current === preset.value
+                          return (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              disabled={settings.aggressiveCompression === true}
+                              onClick={() =>
+                                onSettingsChange({
+                                  aggressiveCompression: false,
+                                  contextSummarizeThreshold: preset.value
+                                })
+                              }
+                              style={{
+                                flex: 1,
+                                padding: '0.25em 0.4em',
+                                fontSize: '0.78em',
+                                cursor: settings.aggressiveCompression ? 'not-allowed' : 'pointer',
+                                borderRadius: '4px',
+                                border: active
+                                  ? '2px solid var(--accent)'
+                                  : '1px solid var(--border)',
+                                background: active ? 'var(--accent)' : 'var(--bg-secondary)',
+                                color: active ? 'var(--bg)' : 'var(--text)',
+                                opacity: settings.aggressiveCompression ? 0.4 : 1
                               }}
                             >
-                              {GEMINI_FREE_MODELS.map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m.label}
-                                </option>
-                              ))}
-                            </select>
-                            <span className={styles.hint}>
-                              RPM: <strong>{currentFreeModel.rpm}</strong> · TPM:{' '}
-                              <strong>
-                                {currentFreeModel.tpm != null
-                                  ? `${(currentFreeModel.tpm / 1000).toFixed(0)}K`
-                                  : '∞'}
-                              </strong>{' '}
-                              — лимиты фиксированы для бесплатного уровня.
-                            </span>
-                          </label>
-                        ) : (
-                          /* Платный — ручной ввод модели и RPM */
-                          <>
-                            <label>
-                              Лимит запросов в минуту (RPM)
-                              <input
-                                type="number"
-                                min={1}
-                                max={2000}
-                                step={1}
-                                value={settings.geminiRpm ?? 15}
-                                onChange={(e) => {
-                                  const v = parseInt(e.target.value, 10)
-                                  if (!isNaN(v) && v >= 1) onSettingsChange({ geminiRpm: v })
-                                }}
-                              />
-                              <span className={styles.hint}>
-                                Интервал между запросами рассчитывается автоматически.
-                              </span>
-                            </label>
-                          </>
-                        )}
-                      </>
-                    )
-                  })()}
-
-                {provider === 'anthropic' && (
-                  <>
-                    <div className={styles.hint}>
-                      Используется <strong>Claude API (Anthropic)</strong>. Модель по умолчанию:{' '}
-                      <code>claude-3-5-sonnet-20241022</code>.
-                    </div>
-                    <label>
-                      Claude API ключ
-                      <div className="settings-api-key-row">
-                        <input
-                          type={apiKeyVisible['claude'] ? 'text' : 'password'}
-                          placeholder="sk-ant-..."
-                          value={settings.claudeApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ claudeApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => toggleKeyVisible('claude')}
-                          title={apiKeyVisible['claude'] ? 'Скрыть' : 'Показать'}
-                        >
-                          {apiKeyVisible['claude'] ? '🙈' : '👁'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void handlePing()}
-                          disabled={pingState === 'checking' || !settings.claudeApiKey}
-                          title="Проверить подключение"
-                        >
-                          {pingState === 'checking'
-                            ? '⏳'
-                            : pingState === 'ok'
-                              ? '✅'
-                              : pingState === 'fail'
-                                ? '❌'
-                                : '🔌'}
-                        </button>
+                              {preset.label}
+                              <br />
+                              <span style={{ opacity: 0.7 }}>{preset.value}%</span>
+                            </button>
+                          )
+                        })}
                       </div>
-                    </label>
-                  </>
-                )}
-
-                {provider === 'openai' && (
-                  <>
-                    <label>
-                      API базовый URL
                       <input
-                        placeholder="https://api.openai.com/v1"
-                        value={settings.ollamaUrl}
-                        onChange={(e) => onSettingsChange({ ollamaUrl: e.target.value })}
+                        type="range"
+                        min={50}
+                        max={85}
+                        step={5}
+                        disabled={settings.aggressiveCompression === true}
+                        value={
+                          settings.aggressiveCompression
+                            ? 65
+                            : (settings.contextSummarizeThreshold ?? 85)
+                        }
+                        onChange={(e) =>
+                          onSettingsChange({ contextSummarizeThreshold: Number(e.target.value) })
+                        }
+                        style={{ width: '100%' }}
                       />
-                    </label>
-                    <label>
-                      API ключ
-                      <div className="settings-api-key-row">
-                        <input
-                          type={apiKeyVisible['openai'] ? 'text' : 'password'}
-                          placeholder="sk-..."
-                          value={settings.openaiApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ openaiApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => toggleKeyVisible('openai')}
-                          title={apiKeyVisible['openai'] ? 'Скрыть' : 'Показать'}
-                        >
-                          {apiKeyVisible['openai'] ? '🙈' : '👁'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void handlePing()}
-                          disabled={pingState === 'checking'}
-                          title="Проверить подключение"
-                        >
-                          {pingState === 'checking'
-                            ? '⏳'
-                            : pingState === 'ok'
-                              ? '✅'
-                              : pingState === 'fail'
-                                ? '❌'
-                                : '🔌'}
-                        </button>
-                      </div>
-                    </label>
-                  </>
-                )}
-
-                {provider === 'openrouter' && (
-                  <>
-                    <div className={styles.hint}>
-                      <strong>OpenRouter</strong> — агрегатор моделей (GPT-4o, Claude, Gemini, Llama
-                      и др.). Базовый URL: <code>https://openrouter.ai/api/v1</code>. Получить ключ:{' '}
-                      <strong>openrouter.ai/keys</strong>
-                    </div>
-                    <label>
-                      OpenRouter API ключ
-                      <div className="settings-api-key-row">
-                        <input
-                          type={apiKeyVisible['openrouter'] ? 'text' : 'password'}
-                          placeholder="sk-or-..."
-                          value={settings.openrouterApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ openrouterApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => toggleKeyVisible('openrouter')}
-                          title={apiKeyVisible['openrouter'] ? 'Скрыть' : 'Показать'}
-                        >
-                          {apiKeyVisible['openrouter'] ? '🙈' : '👁'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void handlePing()}
-                          disabled={pingState === 'checking' || !settings.openrouterApiKey}
-                          title="Проверить подключение"
-                        >
-                          {pingState === 'checking'
-                            ? '⏳'
-                            : pingState === 'ok'
-                              ? '✅'
-                              : pingState === 'fail'
-                                ? '❌'
-                                : '🔌'}
-                        </button>
-                      </div>
-                    </label>
-                  </>
-                )}
-
-                {provider === 'groq' && (
-                  <>
-                    <div className={styles.hint}>
-                      <strong>Groq API</strong> — сверхбыстрый инференс (LPU). Модель по умолчанию:{' '}
-                      <code>llama3-8b-8192</code>. Получить ключ:{' '}
-                      <strong>console.groq.com/keys</strong>
-                    </div>
-                    <label>
-                      Groq API ключ
-                      <div className="settings-api-key-row">
-                        <input
-                          type={apiKeyVisible['groq'] ? 'text' : 'password'}
-                          placeholder="gsk_..."
-                          value={settings.groqApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ groqApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => toggleKeyVisible('groq')}
-                          title={apiKeyVisible['groq'] ? 'Скрыть' : 'Показать'}
-                        >
-                          {apiKeyVisible['groq'] ? '🙈' : '👁'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void handlePing()}
-                          disabled={pingState === 'checking' || !settings.groqApiKey}
-                          title="Проверить подключение"
-                        >
-                          {pingState === 'checking'
-                            ? '⏳'
-                            : pingState === 'ok'
-                              ? '✅'
-                              : pingState === 'fail'
-                                ? '❌'
-                                : '🔌'}
-                        </button>
-                      </div>
-                    </label>
-                  </>
-                )}
-
-                {provider === 'together' && (
-                  <>
-                    <div className={styles.hint}>
-                      <strong>Together AI</strong> — облачный инференс с OpenAI-совместимым API.
-                      Модель по умолчанию:{' '}
-                      <code>meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo</code>. Получить ключ:{' '}
-                      <strong>api.together.ai/settings/api-keys</strong>
-                    </div>
-                    <label>
-                      Together AI API ключ
-                      <div className="settings-api-key-row">
-                        <input
-                          type={apiKeyVisible['together'] ? 'text' : 'password'}
-                          placeholder="..."
-                          value={settings.togetherApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ togetherApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => toggleKeyVisible('together')}
-                          title={apiKeyVisible['together'] ? 'Скрыть' : 'Показать'}
-                        >
-                          {apiKeyVisible['together'] ? '🙈' : '👁'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => void handlePing()}
-                          disabled={pingState === 'checking' || !settings.togetherApiKey}
-                          title="Проверить подключение"
-                        >
-                          {pingState === 'checking'
-                            ? '⏳'
-                            : pingState === 'ok'
-                              ? '✅'
-                              : pingState === 'fail'
-                                ? '❌'
-                                : '🔌'}
-                        </button>
-                      </div>
-                    </label>
-                  </>
-                )}
-
-                {settings.modelProvider === 'ollama' && (
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.autoModel !== false}
-                      onChange={(e) => onSettingsChange({ autoModel: e.target.checked })}
-                    />
-                    <span>
-                      <strong>Автовыбор модели</strong> — подбирать модель под задачу, выгружать
-                      другие из RAM (если установлено несколько)
-                    </span>
-                  </label>
-                )}
-
-                {settings.modelProvider === 'ollama' && (
-                  <>
-                    <label>
-                      Модель для суммаризации
-                      <select
-                        value={settings.summarizeModel ?? ''}
-                        onChange={(e) => onSettingsChange({ summarizeModel: e.target.value })}
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          fontSize: '0.75em',
+                          opacity: 0.6
+                        }}
                       >
-                        <option value="">Авто — самая лёгкая установленная</option>
-                        {models.map((model) => (
-                          <option key={model.name} value={model.name}>
-                            {model.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className={styles.hint}>
-                      Сжатие длинной истории чата при достижении порога. По умолчанию берётся самая
-                      лёгкая модель в Ollama — быстрее и не отвлекает основную модель агента.
-                    </div>
-                  </>
-                )}
-
-                <label>
-                  Порог суммаризации:{' '}
-                  <strong>
-                    {settings.aggressiveCompression
-                      ? 65
-                      : (settings.contextSummarizeThreshold ?? 85)}
-                    %
-                  </strong>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.5em',
-                      marginBottom: '0.5em',
-                      marginTop: '0.35em'
-                    }}
-                  >
-                    {(
-                      [
-                        { label: 'Экономичный', value: 55 },
-                        { label: 'Сбалансированный', value: 70 },
-                        { label: 'Качество', value: 85 }
-                      ] as { label: string; value: number }[]
-                    ).map((preset) => {
-                      const current = settings.aggressiveCompression
-                        ? 65
-                        : (settings.contextSummarizeThreshold ?? 85)
-                      const active = !settings.aggressiveCompression && current === preset.value
-                      return (
-                        <button
-                          key={preset.value}
-                          type="button"
-                          disabled={settings.aggressiveCompression === true}
-                          onClick={() =>
-                            onSettingsChange({
-                              aggressiveCompression: false,
-                              contextSummarizeThreshold: preset.value
-                            })
-                          }
-                          style={{
-                            flex: 1,
-                            padding: '0.25em 0.4em',
-                            fontSize: '0.78em',
-                            cursor: settings.aggressiveCompression ? 'not-allowed' : 'pointer',
-                            borderRadius: '4px',
-                            border: active ? '2px solid var(--accent)' : '1px solid var(--border)',
-                            background: active ? 'var(--accent)' : 'var(--bg-secondary)',
-                            color: active ? 'var(--bg)' : 'var(--text)',
-                            opacity: settings.aggressiveCompression ? 0.4 : 1
-                          }}
-                        >
-                          {preset.label}
-                          <br />
-                          <span style={{ opacity: 0.7 }}>{preset.value}%</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <input
-                    type="range"
-                    min={50}
-                    max={85}
-                    step={5}
-                    disabled={settings.aggressiveCompression === true}
-                    value={
-                      settings.aggressiveCompression
-                        ? 65
-                        : (settings.contextSummarizeThreshold ?? 85)
-                    }
-                    onChange={(e) =>
-                      onSettingsChange({ contextSummarizeThreshold: Number(e.target.value) })
-                    }
-                    style={{ width: '100%' }}
-                  />
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: '0.75em',
-                      opacity: 0.6
-                    }}
-                  >
-                    <span>50% — максимальная экономия</span>
-                    <span>85% — дефолт</span>
-                  </div>
-                </label>
-
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
-                    checked={settings.aggressiveCompression === true}
-                    onChange={(e) => {
-                      onSettingsChange({
-                        aggressiveCompression: e.target.checked,
-                        ...(e.target.checked ? {} : { contextSummarizeThreshold: 85 })
-                      })
-                    }}
-                  />
-                  <span className={styles.track} aria-hidden="true">
-                    <span className={styles.thumb} />
-                  </span>
-                  <span className={styles.toggleContent}>
-                    <span className={styles.title}>Агрессивное сжатие (65%)</span>
-                    <span className={styles.desc}>
-                      Суммаризировать при 65% заполнения контекста — экономия 30–40% на длинных
-                      диалогах; перекрывает слайдер выше
-                    </span>
-                  </span>
-                </label>
-
-                {/* ── Второй провайдер (дополнительно) ── */}
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Облачный API (дополнительно)</div>
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.cloudEnabled === true}
-                      onChange={(e) => onSettingsChange({ cloudEnabled: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Включить облачный провайдер</span>
-                      <span className={styles.desc}>
-                        {provider === 'ollama'
-                          ? 'Ollama остаётся основным; облако используется для суммаризации контекста'
-                          : 'Облако остаётся основным; Ollama используется для суммаризации контекста'}
-                      </span>
-                    </span>
-                  </label>
-
-                  {settings.cloudEnabled && (
-                    <>
-                      <label>
-                        Тип облачного провайдера
-                        <select
-                          value={settings.cloudProvider ?? 'deepseek'}
-                          onChange={(e) =>
-                            onSettingsChange({
-                              cloudProvider: e.target.value as
-                                | 'deepseek'
-                                | 'openai'
-                                | 'openrouter'
-                                | 'gemini'
-                            })
-                          }
-                        >
-                          <option value="deepseek">DeepSeek API</option>
-                          <option value="gemini">Gemini API</option>
-                          <option value="openai">OpenAI-совместимый API</option>
-                          <option value="openrouter">OpenRouter</option>
-                        </select>
-                      </label>
-
-                      {(settings.cloudProvider ?? 'deepseek') === 'deepseek' ? (
-                        <label>
-                          Базовый URL
-                          <input
-                            placeholder="https://api.deepseek.com"
-                            value={settings.cloudBaseUrl || 'https://api.deepseek.com'}
-                            disabled
-                          />
-                        </label>
-                      ) : (
-                        <label>
-                          Базовый URL
-                          <input
-                            placeholder={
-                              (settings.cloudProvider ?? 'openai') === 'openrouter'
-                                ? 'https://openrouter.ai/api/v1'
-                                : (settings.cloudProvider ?? 'deepseek') === 'gemini'
-                                  ? 'https://generativelanguage.googleapis.com/v1beta'
-                                  : 'https://api.openai.com/v1'
-                            }
-                            value={settings.cloudBaseUrl ?? ''}
-                            onChange={(e) => onSettingsChange({ cloudBaseUrl: e.target.value })}
-                          />
-                        </label>
-                      )}
-
-                      <label>
-                        API ключ
-                        <input
-                          type="password"
-                          placeholder="sk-..."
-                          value={settings.cloudApiKey ?? ''}
-                          onChange={(e) => onSettingsChange({ cloudApiKey: e.target.value })}
-                          autoComplete="off"
-                        />
-                      </label>
-
-                      <label>
-                        Модель
-                        <input
-                          placeholder={
-                            (settings.cloudProvider ?? 'deepseek') === 'deepseek'
-                              ? 'deepseek-chat'
-                              : (settings.cloudProvider ?? 'deepseek') === 'gemini'
-                                ? 'gemini-2.5-flash'
-                                : 'gpt-4o-mini'
-                          }
-                          value={settings.cloudModel ?? ''}
-                          onChange={(e) => onSettingsChange({ cloudModel: e.target.value })}
-                        />
-                      </label>
-                      <div className={styles.hint}>
-                        {provider === 'ollama'
-                          ? 'Облачная модель будет использоваться для суммаризации длинных диалогов вместо локальной — качество сжатия обычно выше.'
-                          : 'Ollama будет использоваться для локальной суммаризации, освобождая облачные токены.'}
+                        <span>50% — максимальная экономия</span>
+                        <span>85% — дефолт</span>
                       </div>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
+                    </label>
 
-            {tab === 'behavior' && (
-              <>
-                {/* ── Безопасность ── */}
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Безопасность</div>
-                  <label>
-                    Режим доступа
-                    <select
-                      value={settings.permissionMode ?? 'bypass'}
-                      onChange={(e) =>
-                        onSettingsChange({ permissionMode: e.target.value as PermissionMode })
-                      }
-                    >
-                      {PERMISSION_MODES.map((mode) => (
-                        <option key={mode} value={mode}>
-                          {PERMISSION_MODE_LABELS[mode]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className={`${styles.hint} ${styles.hintInline}`}>
-                    <strong>Спрашивать всё</strong> — подтверждение перед каждой записью/командой.{' '}
-                    <strong>Принимать правки</strong> — файлы без вопросов, команды с
-                    подтверждением. <strong>Без подтверждений</strong> — агент действует сам.
-                  </div>
-
-                  <label>
-                    Запрещённые команды
-                    <textarea
-                      rows={4}
-                      placeholder={'npm publish\\.+--access public\ncurl .+ | bash\ndocker push'}
-                      value={(settings.commandBlocklist ?? []).join('\n')}
-                      onChange={(e) => {
-                        const lines = e.target.value.split('\n')
-                        onSettingsChange({ commandBlocklist: lines })
-                      }}
-                      style={{ fontFamily: 'monospace', resize: 'vertical' }}
-                    />
-                  </label>
-                  <div className={`${styles.hint} ${styles.hintInline}`}>
-                    Каждая строка — паттерн (подстрока или регулярное выражение). Совпадение
-                    блокирует команду. Применяется поверх встроенного списка.
-                  </div>
-                </div>
-
-                {/* ── Поведение агента ── */}
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Поведение агента</div>
-
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.clarifyMode === true}
-                      onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Уточняющие вопросы</span>
-                      <span className={styles.desc}>
-                        При неоднозначной задаче агент сначала задаёт вопросы, а потом приступает
+                    <label className={styles.toggle}>
+                      <input
+                        type="checkbox"
+                        checked={settings.aggressiveCompression === true}
+                        onChange={(e) => {
+                          onSettingsChange({
+                            aggressiveCompression: e.target.checked,
+                            ...(e.target.checked ? {} : { contextSummarizeThreshold: 85 })
+                          })
+                        }}
+                      />
+                      <span className={styles.track} aria-hidden="true">
+                        <span className={styles.thumb} />
                       </span>
-                    </span>
-                  </label>
-
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.deepReasoning === true}
-                      onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Глубокое рассуждение</span>
-                      <span className={styles.desc}>
-                        Для think-моделей (qwen3, deepseek-r1, qwq) включает режим рассуждения, для
-                        остальных усиливает промпт. Точнее, но медленнее
+                      <span className={styles.toggleContent}>
+                        <span className={styles.title}>Агрессивное сжатие (65%)</span>
+                        <span className={styles.desc}>
+                          Суммаризировать при 65% заполнения контекста — экономия 30–40% на длинных
+                          диалогах; перекрывает слайдер выше
+                        </span>
                       </span>
-                    </span>
-                  </label>
+                    </label>
+                  </SettingItem>
 
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.excludeThinkingFromHistory !== false}
-                      onChange={(e) =>
-                        onSettingsChange({ excludeThinkingFromHistory: e.target.checked })
-                      }
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Исключать reasoning из истории</span>
-                      <span className={styles.desc}>
-                        Убирает блоки &lt;think&gt;…&lt;/think&gt; из истории при построении
-                        контекста. Экономит 20–50% токенов для think-моделей (DeepSeek-R1, QwQ,
-                        Qwen3)
-                      </span>
-                    </span>
-                  </label>
+                  {/* ── Второй провайдер (дополнительно) ── */}
+                  <SettingItem
+                    tab="model"
+                    label="Облачный API"
+                    desc="cloud provider dual deepseek gemini openai openrouter суммаризация облако дополнительный"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Облачный API (дополнительно)</div>
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.cloudEnabled === true}
+                          onChange={(e) => onSettingsChange({ cloudEnabled: e.target.checked })}
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Включить облачный провайдер</span>
+                          <span className={styles.desc}>
+                            {provider === 'ollama'
+                              ? 'Ollama остаётся основным; облако используется для суммаризации контекста'
+                              : 'Облако остаётся основным; Ollama используется для суммаризации контекста'}
+                          </span>
+                        </span>
+                      </label>
 
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.readonlyMode === true}
-                      onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Только чтение</span>
-                      <span className={styles.desc}>
-                        Блокирует все инструменты записи; агент может только читать файлы и искать
-                        по коду
-                      </span>
-                    </span>
-                  </label>
-                </div>
+                      {settings.cloudEnabled && (
+                        <>
+                          <label>
+                            Тип облачного провайдера
+                            <select
+                              value={settings.cloudProvider ?? 'deepseek'}
+                              onChange={(e) =>
+                                onSettingsChange({
+                                  cloudProvider: e.target.value as
+                                    | 'deepseek'
+                                    | 'openai'
+                                    | 'openrouter'
+                                    | 'gemini'
+                                })
+                              }
+                            >
+                              <option value="deepseek">DeepSeek API</option>
+                              <option value="gemini">Gemini API</option>
+                              <option value="openai">OpenAI-совместимый API</option>
+                              <option value="openrouter">OpenRouter</option>
+                            </select>
+                          </label>
 
-                {/* ── Автоматизация ── */}
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Автоматизация</div>
+                          {(settings.cloudProvider ?? 'deepseek') === 'deepseek' ? (
+                            <label>
+                              Базовый URL
+                              <input
+                                placeholder="https://api.deepseek.com"
+                                value={settings.cloudBaseUrl || 'https://api.deepseek.com'}
+                                disabled
+                              />
+                            </label>
+                          ) : (
+                            <label>
+                              Базовый URL
+                              <input
+                                placeholder={
+                                  (settings.cloudProvider ?? 'openai') === 'openrouter'
+                                    ? 'https://openrouter.ai/api/v1'
+                                    : (settings.cloudProvider ?? 'deepseek') === 'gemini'
+                                      ? 'https://generativelanguage.googleapis.com/v1beta'
+                                      : 'https://api.openai.com/v1'
+                                }
+                                value={settings.cloudBaseUrl ?? ''}
+                                onChange={(e) => onSettingsChange({ cloudBaseUrl: e.target.value })}
+                              />
+                            </label>
+                          )}
 
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.autoPushSelfEdits !== false}
-                      onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Автокоммит самоправок</span>
-                      <span className={styles.desc}>
-                        После правки кода агентом — автоматически git commit + push на GitHub
-                      </span>
-                    </span>
-                  </label>
+                          <label>
+                            API ключ
+                            <input
+                              type="password"
+                              placeholder="sk-..."
+                              value={settings.cloudApiKey ?? ''}
+                              onChange={(e) => onSettingsChange({ cloudApiKey: e.target.value })}
+                              autoComplete="off"
+                            />
+                          </label>
 
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.gitSyncOnStartup !== false}
-                      onChange={(e) => onSettingsChange({ gitSyncOnStartup: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Git-синхронизация при запуске</span>
-                      <span className={styles.desc}>
-                        При запуске CodeViper автоматически подтягивает обновления с GitHub
-                      </span>
-                    </span>
-                  </label>
+                          <label>
+                            Модель
+                            <input
+                              placeholder={
+                                (settings.cloudProvider ?? 'deepseek') === 'deepseek'
+                                  ? 'deepseek-chat'
+                                  : (settings.cloudProvider ?? 'deepseek') === 'gemini'
+                                    ? 'gemini-2.5-flash'
+                                    : 'gpt-4o-mini'
+                              }
+                              value={settings.cloudModel ?? ''}
+                              onChange={(e) => onSettingsChange({ cloudModel: e.target.value })}
+                            />
+                          </label>
+                          <div className={styles.hint}>
+                            {provider === 'ollama'
+                              ? 'Облачная модель будет использоваться для суммаризации длинных диалогов вместо локальной — качество сжатия обычно выше.'
+                              : 'Ollama будет использоваться для локальной суммаризации, освобождая облачные токены.'}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </SettingItem>
+                </>
+              )}
 
-                  {settings.gitSyncOnStartup !== false && (
-                    <>
+              {(tab === 'behavior' || isSearching) && (
+                <>
+                  {/* ── Безопасность ── */}
+                  <SettingItem
+                    tab="behavior"
+                    label="Безопасность"
+                    desc="режим доступа запрещённые команды blocklist permission спрашивать принимать bypass"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Безопасность</div>
                       <label>
-                        Стратегия синхронизации
+                        Режим доступа
                         <select
-                          value={settings.gitSyncStrategy ?? 'stash'}
+                          value={settings.permissionMode ?? 'bypass'}
                           onChange={(e) =>
-                            onSettingsChange({ gitSyncStrategy: e.target.value as GitSyncStrategy })
+                            onSettingsChange({ permissionMode: e.target.value as PermissionMode })
                           }
                         >
-                          {GIT_SYNC_STRATEGIES.map((strategy) => (
-                            <option key={strategy} value={strategy}>
-                              {GIT_SYNC_STRATEGY_LABELS[strategy]}
+                          {PERMISSION_MODES.map((mode) => (
+                            <option key={mode} value={mode}>
+                              {PERMISSION_MODE_LABELS[mode]}
                             </option>
                           ))}
                         </select>
                       </label>
                       <div className={`${styles.hint} ${styles.hintInline}`}>
-                        <strong>Stash + reset</strong> — локальные правки прячутся в{' '}
-                        <code>git stash</code>, затем <code>reset --hard</code> на версию GitHub
-                        (приоритет у GitHub). <strong>Rebase</strong> — локальные коммиты
-                        переносятся поверх версии GitHub. <strong>Fast-forward only</strong> —
-                        обновление только если нет расхождений; иначе остаётся локальная версия
-                        (ничего не теряется).
-                        <br />
-                        При незакоммиченных изменениях лаунчер покажет предупреждение и спросит
-                        подтверждение перед синхронизацией.
+                        <strong>Спрашивать всё</strong> — подтверждение перед каждой
+                        записью/командой. <strong>Принимать правки</strong> — файлы без вопросов,
+                        команды с подтверждением. <strong>Без подтверждений</strong> — агент
+                        действует сам.
                       </div>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
 
-            {tab === 'model' && (
-              <>
-                {provider === 'ollama' ? (
-                  <ModelPanel
-                    ollamaUrl={settings.ollamaUrl}
-                    ollamaOnline={ollamaOnline}
-                    models={models}
-                    selectedModel={settings.model}
-                    autoModel={settings.autoModel !== false}
-                    downloadQueue={{
-                      pulling: downloadQueue.pulling,
-                      queued: downloadQueue.queued,
-                      progress: downloadQueue.progress,
-                      error: downloadQueue.error,
-                      percent: downloadQueue.percent,
-                      onEnqueue: downloadQueue.enqueue,
-                      onRemoveFromQueue: downloadQueue.removeFromQueue,
-                      onClearError: downloadQueue.clearError
-                    }}
-                    onModelChange={(model) => onSettingsChange({ model })}
-                    onRefresh={onRefreshOllama}
-                  />
-                ) : provider === 'gemini' && (settings.geminiTier ?? 'free') === 'free' ? null : (
-                  <CloudModelSelector
-                    provider={provider}
-                    model={settings.model}
-                    defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
-                    models={models}
-                    onChange={(model, contextLength) =>
-                      onSettingsChange({
-                        model,
-                        ...(contextLength ? { modelContextLength: contextLength } : {})
-                      })
-                    }
-                  />
-                )}
-              </>
-            )}
-
-            {tab === 'performance' && (
-              <>
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Режимы</div>
-
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.powerSaveMode === true}
-                      onChange={(e) => onSettingsChange({ powerSaveMode: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Режим энергосбережения</span>
-                      <span className={styles.desc}>
-                        Батчинг обновлений UI (300 мс), все анимации и переходы отключены
-                      </span>
-                    </span>
-                  </label>
-
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.disableSystemStats === true}
-                      onChange={(e) => onSettingsChange({ disableSystemStats: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Отключить CPU/GPU-статы</span>
-                      <span className={styles.desc}>
-                        Останавливает фоновый опрос загрузки процессора и видеокарты во время работы
-                        агента
-                      </span>
-                    </span>
-                  </label>
-
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.prManualRefresh === true}
-                      onChange={(e) => onSettingsChange({ prManualRefresh: e.target.checked })}
-                    />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Обновлять PR только вручную</span>
-                      <span className={styles.desc}>
-                        Отключает авто-опрос Pull Requests каждые 5 минут — обновление только по
-                        кнопке
-                      </span>
-                    </span>
-                  </label>
-                </div>
-
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>GPU / память (Ollama)</div>
-
-                  <div className={styles.row}>
-                    <div className={styles.rowContent}>
-                      <span className={styles.title}>Слоёв на GPU</span>
-                      <span className={styles.desc}>
-                        Сколько слоёв модели загружать на GPU. Пусто или -1 — авто (всё на GPU). 0 —
-                        только CPU (медленно, но без OOM). Дробные значения, например 20, позволяют
-                        запустить крупную модель частично: одни слои на GPU, остальные на RAM.
-                      </span>
+                      <label>
+                        Запрещённые команды
+                        <textarea
+                          rows={4}
+                          placeholder={
+                            'npm publish\\.+--access public\ncurl .+ | bash\ndocker push'
+                          }
+                          value={(settings.commandBlocklist ?? []).join('\n')}
+                          onChange={(e) => {
+                            const lines = e.target.value.split('\n')
+                            onSettingsChange({ commandBlocklist: lines })
+                          }}
+                          style={{ fontFamily: 'monospace', resize: 'vertical' }}
+                        />
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Каждая строка — паттерн (подстрока или регулярное выражение). Совпадение
+                        блокирует команду. Применяется поверх встроенного списка.
+                      </div>
                     </div>
-                    <div className={styles.rowRight}>
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="-1"
-                        style={{ width: 72 }}
-                        value={settings.ollamaNumGpu ?? ''}
-                        onChange={(e) => {
-                          const raw = e.target.value.trim()
-                          onSettingsChange({
-                            ollamaNumGpu: raw === '' ? undefined : Number(raw)
-                          })
-                        }}
-                      />
-                      <span className={styles.unit}>слоёв</span>
+                  </SettingItem>
+
+                  {/* ── Поведение агента ── */}
+                  <SettingItem
+                    tab="behavior"
+                    label="Поведение агента"
+                    desc="уточняющие вопросы глубокое рассуждение reasoning reasoning исключать только чтение readonly clarify deep"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Поведение агента</div>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.clarifyMode === true}
+                          onChange={(e) => onSettingsChange({ clarifyMode: e.target.checked })}
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Уточняющие вопросы</span>
+                          <span className={styles.desc}>
+                            При неоднозначной задаче агент сначала задаёт вопросы, а потом
+                            приступает
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.deepReasoning === true}
+                          onChange={(e) => onSettingsChange({ deepReasoning: e.target.checked })}
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Глубокое рассуждение</span>
+                          <span className={styles.desc}>
+                            Для think-моделей (qwen3, deepseek-r1, qwq) включает режим рассуждения,
+                            для остальных усиливает промпт. Точнее, но медленнее
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.excludeThinkingFromHistory !== false}
+                          onChange={(e) =>
+                            onSettingsChange({ excludeThinkingFromHistory: e.target.checked })
+                          }
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Исключать reasoning из истории</span>
+                          <span className={styles.desc}>
+                            Убирает блоки &lt;think&gt;…&lt;/think&gt; из истории при построении
+                            контекста. Экономит 20–50% токенов для think-моделей (DeepSeek-R1, QwQ,
+                            Qwen3)
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.readonlyMode === true}
+                          onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Только чтение</span>
+                          <span className={styles.desc}>
+                            Блокирует все инструменты записи; агент может только читать файлы и
+                            искать по коду
+                          </span>
+                        </span>
+                      </label>
                     </div>
-                  </div>
-                </div>
+                  </SettingItem>
 
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Таймауты</div>
+                  {/* ── Автоматизация ── */}
+                  <SettingItem
+                    tab="behavior"
+                    label="Автоматизация"
+                    desc="автокоммит git синхронизация push pull стратегия startup запуск stash rebase fast-forward"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Автоматизация</div>
 
-                  <div className={styles.row}>
-                    <div className={styles.rowContent}>
-                      <span className={styles.title}>Таймаут команд</span>
-                      <span className={styles.desc}>
-                        Макс. время одной команды агента (по умолч. 120 с, макс.{' '}
-                        {COMMAND_TIMEOUT_SEC_MAX} с)
-                      </span>
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.autoPushSelfEdits !== false}
+                          onChange={(e) =>
+                            onSettingsChange({ autoPushSelfEdits: e.target.checked })
+                          }
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Автокоммит самоправок</span>
+                          <span className={styles.desc}>
+                            После правки кода агентом — автоматически git commit + push на GitHub
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.gitSyncOnStartup !== false}
+                          onChange={(e) => onSettingsChange({ gitSyncOnStartup: e.target.checked })}
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Git-синхронизация при запуске</span>
+                          <span className={styles.desc}>
+                            При запуске CodeViper автоматически подтягивает обновления с GitHub
+                          </span>
+                        </span>
+                      </label>
+
+                      {settings.gitSyncOnStartup !== false && (
+                        <>
+                          <label>
+                            Стратегия синхронизации
+                            <select
+                              value={settings.gitSyncStrategy ?? 'stash'}
+                              onChange={(e) =>
+                                onSettingsChange({
+                                  gitSyncStrategy: e.target.value as GitSyncStrategy
+                                })
+                              }
+                            >
+                              {GIT_SYNC_STRATEGIES.map((strategy) => (
+                                <option key={strategy} value={strategy}>
+                                  {GIT_SYNC_STRATEGY_LABELS[strategy]}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className={`${styles.hint} ${styles.hintInline}`}>
+                            <strong>Stash + reset</strong> — локальные правки прячутся в{' '}
+                            <code>git stash</code>, затем <code>reset --hard</code> на версию GitHub
+                            (приоритет у GitHub). <strong>Rebase</strong> — локальные коммиты
+                            переносятся поверх версии GitHub. <strong>Fast-forward only</strong> —
+                            обновление только если нет расхождений; иначе остаётся локальная версия
+                            (ничего не теряется).
+                            <br />
+                            При незакоммиченных изменениях лаунчер покажет предупреждение и спросит
+                            подтверждение перед синхронизацией.
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <div className={styles.rowRight}>
-                      <input
-                        type="number"
-                        min={COMMAND_TIMEOUT_SEC_MIN}
-                        max={COMMAND_TIMEOUT_SEC_MAX}
-                        value={settings.commandTimeoutSec ?? DEFAULT_COMMAND_TIMEOUT_SEC}
-                        onChange={(e) =>
-                          onSettingsChange({
-                            commandTimeoutSec: Number(e.target.value) || DEFAULT_COMMAND_TIMEOUT_SEC
-                          })
-                        }
-                      />
-                      <span className={styles.unit}>сек</span>
-                    </div>
-                  </div>
-                </div>
+                  </SettingItem>
+                </>
+              )}
 
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Уведомления</div>
-
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
-                      checked={settings.soundNotifications === true}
-                      onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
+              {!isSearching && tab === 'model' && (
+                <>
+                  {provider === 'ollama' ? (
+                    <ModelPanel
+                      ollamaUrl={settings.ollamaUrl}
+                      ollamaOnline={ollamaOnline}
+                      models={models}
+                      selectedModel={settings.model}
+                      autoModel={settings.autoModel !== false}
+                      downloadQueue={{
+                        pulling: downloadQueue.pulling,
+                        queued: downloadQueue.queued,
+                        progress: downloadQueue.progress,
+                        error: downloadQueue.error,
+                        percent: downloadQueue.percent,
+                        onEnqueue: downloadQueue.enqueue,
+                        onRemoveFromQueue: downloadQueue.removeFromQueue,
+                        onClearError: downloadQueue.clearError
+                      }}
+                      onModelChange={(model) => onSettingsChange({ model })}
+                      onRefresh={onRefreshOllama}
                     />
-                    <span className={styles.track} aria-hidden="true">
-                      <span className={styles.thumb} />
-                    </span>
-                    <span className={styles.toggleContent}>
-                      <span className={styles.title}>Звуковые уведомления</span>
-                      <span className={styles.desc}>
-                        Короткий сигнал при завершении задачи агента
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              </>
-            )}
-
-            {tab === 'integrations' && (
-              <>
-                {/* ── GitHub ── */}
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>GitHub</div>
-                  <label>
-                    GitHub Token
-                    <input
-                      type="password"
-                      placeholder="ghp_..."
-                      value={settings.githubToken ?? ''}
-                      onChange={(e) => onSettingsChange({ githubToken: e.target.value })}
-                    />
-                  </label>
-                  <div className={`${styles.hint} ${styles.hintInline}`}>
-                    Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в
-                    Памяти и Навыках. Создать:{' '}
-                    <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
-                      github.com/settings/tokens
-                    </a>
-                  </div>
-                </div>
-
-                {/* ── Векторное хранилище (RAG) ── */}
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>Векторное хранилище (RAG)</div>
-                  <label>
-                    Провайдер
-                    <select
-                      value={settings.ragProvider ?? 'local'}
-                      onChange={(e) =>
+                  ) : provider === 'gemini' && (settings.geminiTier ?? 'free') === 'free' ? null : (
+                    <CloudModelSelector
+                      provider={provider}
+                      model={settings.model}
+                      defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
+                      models={models}
+                      onChange={(model, contextLength) =>
                         onSettingsChange({
-                          ragProvider: e.target.value as 'local' | 'qdrant' | 'milvus'
+                          model,
+                          ...(contextLength ? { modelContextLength: contextLength } : {})
                         })
                       }
-                    >
-                      <option value="local">Локальный JSON (встроенный)</option>
-                      <option value="qdrant">Qdrant</option>
-                      <option value="milvus">Milvus</option>
-                    </select>
-                  </label>
-
-                  {(settings.ragProvider ?? 'local') === 'qdrant' && (
-                    <>
-                      <label>
-                        URL Qdrant
-                        <div className="settings-api-key-row">
-                          <input
-                            placeholder="http://localhost:6333"
-                            value={settings.qdrantUrl ?? ''}
-                            onChange={(e) => onSettingsChange({ qdrantUrl: e.target.value })}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            onClick={() => void handleQdrantPing()}
-                            disabled={qdrantPingState === 'checking' || !settings.qdrantUrl?.trim()}
-                            title="Проверить подключение"
-                          >
-                            {qdrantPingState === 'checking'
-                              ? '⏳'
-                              : qdrantPingState === 'ok'
-                                ? '✅'
-                                : qdrantPingState === 'fail'
-                                  ? '❌'
-                                  : '🔌'}
-                          </button>
-                        </div>
-                      </label>
-                      <label>
-                        API ключ Qdrant
-                        <div className="settings-api-key-row">
-                          <input
-                            type={apiKeyVisible['qdrant'] ? 'text' : 'password'}
-                            placeholder="(опционально)"
-                            value={settings.qdrantApiKey ?? ''}
-                            onChange={(e) => onSettingsChange({ qdrantApiKey: e.target.value })}
-                            autoComplete="off"
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            onClick={() => toggleKeyVisible('qdrant')}
-                            title={apiKeyVisible['qdrant'] ? 'Скрыть' : 'Показать'}
-                          >
-                            {apiKeyVisible['qdrant'] ? '🙈' : '👁'}
-                          </button>
-                        </div>
-                      </label>
-                      <div className={`${styles.hint} ${styles.hintInline}`}>
-                        API ключ нужен только для защищённых инстансов Qdrant Cloud.
-                      </div>
-                    </>
+                    />
                   )}
+                </>
+              )}
 
-                  {(settings.ragProvider ?? 'local') === 'milvus' && (
-                    <>
-                      <label>
-                        URL Milvus
-                        <div className="settings-api-key-row">
-                          <input
-                            placeholder="http://localhost:19530"
-                            value={settings.milvusUrl ?? ''}
-                            onChange={(e) => onSettingsChange({ milvusUrl: e.target.value })}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            onClick={() => void handleMilvusPing()}
-                            disabled={milvusPingState === 'checking' || !settings.milvusUrl?.trim()}
-                            title="Проверить подключение"
-                          >
-                            {milvusPingState === 'checking'
-                              ? '⏳'
-                              : milvusPingState === 'ok'
-                                ? '✅'
-                                : milvusPingState === 'fail'
-                                  ? '❌'
-                                  : '🔌'}
-                          </button>
-                        </div>
-                      </label>
-                      <label>
-                        API ключ Milvus
-                        <div className="settings-api-key-row">
-                          <input
-                            type={apiKeyVisible['milvus'] ? 'text' : 'password'}
-                            placeholder="(опционально)"
-                            value={settings.milvusApiKey ?? ''}
-                            onChange={(e) => onSettingsChange({ milvusApiKey: e.target.value })}
-                            autoComplete="off"
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            onClick={() => toggleKeyVisible('milvus')}
-                            title={apiKeyVisible['milvus'] ? 'Скрыть' : 'Показать'}
-                          >
-                            {apiKeyVisible['milvus'] ? '🙈' : '👁'}
-                          </button>
-                        </div>
-                      </label>
-                      <div className={`${styles.hint} ${styles.hintInline}`}>
-                        Требуется Milvus 2.4+ с REST API v2. Токен нужен только для защищённых
-                        инстансов (Zilliz Cloud).
-                      </div>
-                    </>
-                  )}
+              {(tab === 'performance' || isSearching) && (
+                <>
+                  <SettingItem
+                    tab="performance"
+                    label="Режимы производительности"
+                    desc="энергосбережение power save CPU GPU статы PR pull requests ручной manual refresh анимации"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Режимы</div>
 
-                  {(settings.ragProvider ?? 'local') === 'local' && (
-                    <div className={`${styles.hint} ${styles.hintInline}`}>
-                      Векторы хранятся в JSON-файле рядом с данными приложения. Подходит для
-                      большинства пользователей — внешний сервер не нужен.
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.powerSaveMode === true}
+                          onChange={(e) => onSettingsChange({ powerSaveMode: e.target.checked })}
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Режим энергосбережения</span>
+                          <span className={styles.desc}>
+                            Батчинг обновлений UI (300 мс), все анимации и переходы отключены
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.disableSystemStats === true}
+                          onChange={(e) =>
+                            onSettingsChange({ disableSystemStats: e.target.checked })
+                          }
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Отключить CPU/GPU-статы</span>
+                          <span className={styles.desc}>
+                            Останавливает фоновый опрос загрузки процессора и видеокарты во время
+                            работы агента
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.prManualRefresh === true}
+                          onChange={(e) => onSettingsChange({ prManualRefresh: e.target.checked })}
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Обновлять PR только вручную</span>
+                          <span className={styles.desc}>
+                            Отключает авто-опрос Pull Requests каждые 5 минут — обновление только по
+                            кнопке
+                          </span>
+                        </span>
+                      </label>
                     </div>
-                  )}
-                </div>
-              </>
-            )}
+                  </SettingItem>
 
-            {tab === 'memory' && (
-              <>
-                <MemoryPanel
-                  projectPath={chatProjectPath}
-                  selfLearning={settings.selfLearning !== false}
-                  onSelfLearningChange={onSelfLearningChange}
-                  githubToken={settings.githubToken}
-                  refreshKey={memoryRefreshKey}
-                />
+                  <SettingItem
+                    tab="performance"
+                    label="GPU память Ollama"
+                    desc="num_gpu слои слоёв видеокарта gpu layers vram cpu oom"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>GPU / память (Ollama)</div>
 
-                <SkillsPanel
-                  projectPath={chatProjectPath}
-                  githubToken={settings.githubToken}
-                  refreshKey={skillsRefreshKey}
-                />
-              </>
-            )}
-          </div>
+                      <div className={styles.row}>
+                        <div className={styles.rowContent}>
+                          <span className={styles.title}>Слоёв на GPU</span>
+                          <span className={styles.desc}>
+                            Сколько слоёв модели загружать на GPU. Пусто или -1 — авто (всё на GPU).
+                            0 — только CPU (медленно, но без OOM). Дробные значения, например 20,
+                            позволяют запустить крупную модель частично: одни слои на GPU, остальные
+                            на RAM.
+                          </span>
+                        </div>
+                        <div className={styles.rowRight}>
+                          <input
+                            type="number"
+                            min={0}
+                            placeholder="-1"
+                            style={{ width: 72 }}
+                            value={settings.ollamaNumGpu ?? ''}
+                            onChange={(e) => {
+                              const raw = e.target.value.trim()
+                              onSettingsChange({
+                                ollamaNumGpu: raw === '' ? undefined : Number(raw)
+                              })
+                            }}
+                          />
+                          <span className={styles.unit}>слоёв</span>
+                        </div>
+                      </div>
+                    </div>
+                  </SettingItem>
+
+                  <SettingItem
+                    tab="performance"
+                    label="Таймаут команд"
+                    desc="timeout таймаут командный секунды time seconds max"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Таймауты</div>
+
+                      <div className={styles.row}>
+                        <div className={styles.rowContent}>
+                          <span className={styles.title}>Таймаут команд</span>
+                          <span className={styles.desc}>
+                            Макс. время одной команды агента (по умолч. 120 с, макс.{' '}
+                            {COMMAND_TIMEOUT_SEC_MAX} с)
+                          </span>
+                        </div>
+                        <div className={styles.rowRight}>
+                          <input
+                            type="number"
+                            min={COMMAND_TIMEOUT_SEC_MIN}
+                            max={COMMAND_TIMEOUT_SEC_MAX}
+                            value={settings.commandTimeoutSec ?? DEFAULT_COMMAND_TIMEOUT_SEC}
+                            onChange={(e) =>
+                              onSettingsChange({
+                                commandTimeoutSec:
+                                  Number(e.target.value) || DEFAULT_COMMAND_TIMEOUT_SEC
+                              })
+                            }
+                          />
+                          <span className={styles.unit}>сек</span>
+                        </div>
+                      </div>
+                    </div>
+                  </SettingItem>
+
+                  <SettingItem
+                    tab="performance"
+                    label="Звуковые уведомления"
+                    desc="sound notification звук сигнал завершение задача"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Уведомления</div>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.soundNotifications === true}
+                          onChange={(e) =>
+                            onSettingsChange({ soundNotifications: e.target.checked })
+                          }
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Звуковые уведомления</span>
+                          <span className={styles.desc}>
+                            Короткий сигнал при завершении задачи агента
+                          </span>
+                        </span>
+                      </label>
+                    </div>
+                  </SettingItem>
+                </>
+              )}
+
+              {(tab === 'integrations' || isSearching) && (
+                <>
+                  {/* ── GitHub ── */}
+                  <SettingItem
+                    tab="integrations"
+                    label="GitHub Token"
+                    desc="github personal access token gist поделиться ghp_"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>GitHub</div>
+                      <label>
+                        GitHub Token
+                        <input
+                          type="password"
+                          placeholder="ghp_..."
+                          value={settings.githubToken ?? ''}
+                          onChange={(e) => onSettingsChange({ githubToken: e.target.value })}
+                        />
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в
+                        Памяти и Навыках. Создать:{' '}
+                        <a
+                          href="https://github.com/settings/tokens"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          github.com/settings/tokens
+                        </a>
+                      </div>
+                    </div>
+                  </SettingItem>
+
+                  {/* ── Векторное хранилище (RAG) ── */}
+                  <SettingItem
+                    tab="integrations"
+                    label="Векторное хранилище RAG"
+                    desc="qdrant milvus local json embeddings vector store retrieval rag semantic search поиск"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Векторное хранилище (RAG)</div>
+                      <label>
+                        Провайдер
+                        <select
+                          value={settings.ragProvider ?? 'local'}
+                          onChange={(e) =>
+                            onSettingsChange({
+                              ragProvider: e.target.value as 'local' | 'qdrant' | 'milvus'
+                            })
+                          }
+                        >
+                          <option value="local">Локальный JSON (встроенный)</option>
+                          <option value="qdrant">Qdrant</option>
+                          <option value="milvus">Milvus</option>
+                        </select>
+                      </label>
+
+                      {(settings.ragProvider ?? 'local') === 'qdrant' && (
+                        <>
+                          <label>
+                            URL Qdrant
+                            <div className="settings-api-key-row">
+                              <input
+                                placeholder="http://localhost:6333"
+                                value={settings.qdrantUrl ?? ''}
+                                onChange={(e) => onSettingsChange({ qdrantUrl: e.target.value })}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => void handleQdrantPing()}
+                                disabled={
+                                  qdrantPingState === 'checking' || !settings.qdrantUrl?.trim()
+                                }
+                                title="Проверить подключение"
+                              >
+                                {qdrantPingState === 'checking'
+                                  ? '⏳'
+                                  : qdrantPingState === 'ok'
+                                    ? '✅'
+                                    : qdrantPingState === 'fail'
+                                      ? '❌'
+                                      : '🔌'}
+                              </button>
+                            </div>
+                          </label>
+                          <label>
+                            API ключ Qdrant
+                            <div className="settings-api-key-row">
+                              <input
+                                type={apiKeyVisible['qdrant'] ? 'text' : 'password'}
+                                placeholder="(опционально)"
+                                value={settings.qdrantApiKey ?? ''}
+                                onChange={(e) => onSettingsChange({ qdrantApiKey: e.target.value })}
+                                autoComplete="off"
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => toggleKeyVisible('qdrant')}
+                                title={apiKeyVisible['qdrant'] ? 'Скрыть' : 'Показать'}
+                              >
+                                {apiKeyVisible['qdrant'] ? '🙈' : '👁'}
+                              </button>
+                            </div>
+                          </label>
+                          <div className={`${styles.hint} ${styles.hintInline}`}>
+                            API ключ нужен только для защищённых инстансов Qdrant Cloud.
+                          </div>
+                        </>
+                      )}
+
+                      {(settings.ragProvider ?? 'local') === 'milvus' && (
+                        <>
+                          <label>
+                            URL Milvus
+                            <div className="settings-api-key-row">
+                              <input
+                                placeholder="http://localhost:19530"
+                                value={settings.milvusUrl ?? ''}
+                                onChange={(e) => onSettingsChange({ milvusUrl: e.target.value })}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => void handleMilvusPing()}
+                                disabled={
+                                  milvusPingState === 'checking' || !settings.milvusUrl?.trim()
+                                }
+                                title="Проверить подключение"
+                              >
+                                {milvusPingState === 'checking'
+                                  ? '⏳'
+                                  : milvusPingState === 'ok'
+                                    ? '✅'
+                                    : milvusPingState === 'fail'
+                                      ? '❌'
+                                      : '🔌'}
+                              </button>
+                            </div>
+                          </label>
+                          <label>
+                            API ключ Milvus
+                            <div className="settings-api-key-row">
+                              <input
+                                type={apiKeyVisible['milvus'] ? 'text' : 'password'}
+                                placeholder="(опционально)"
+                                value={settings.milvusApiKey ?? ''}
+                                onChange={(e) => onSettingsChange({ milvusApiKey: e.target.value })}
+                                autoComplete="off"
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => toggleKeyVisible('milvus')}
+                                title={apiKeyVisible['milvus'] ? 'Скрыть' : 'Показать'}
+                              >
+                                {apiKeyVisible['milvus'] ? '🙈' : '👁'}
+                              </button>
+                            </div>
+                          </label>
+                          <div className={`${styles.hint} ${styles.hintInline}`}>
+                            Требуется Milvus 2.4+ с REST API v2. Токен нужен только для защищённых
+                            инстансов (Zilliz Cloud).
+                          </div>
+                        </>
+                      )}
+
+                      {(settings.ragProvider ?? 'local') === 'local' && (
+                        <div className={`${styles.hint} ${styles.hintInline}`}>
+                          Векторы хранятся в JSON-файле рядом с данными приложения. Подходит для
+                          большинства пользователей — внешний сервер не нужен.
+                        </div>
+                      )}
+                    </div>
+                  </SettingItem>
+                </>
+              )}
+
+              {!isSearching && tab === 'memory' && (
+                <>
+                  <MemoryPanel
+                    projectPath={chatProjectPath}
+                    selfLearning={settings.selfLearning !== false}
+                    onSelfLearningChange={onSelfLearningChange}
+                    githubToken={settings.githubToken}
+                    refreshKey={memoryRefreshKey}
+                  />
+
+                  <SkillsPanel
+                    projectPath={chatProjectPath}
+                    githubToken={settings.githubToken}
+                    refreshKey={skillsRefreshKey}
+                  />
+                </>
+              )}
+            </div>
+          </SearchCtx.Provider>
         </div>
 
         {!ollamaOnline && (
