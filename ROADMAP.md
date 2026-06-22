@@ -11,7 +11,6 @@
 | **Безопасность** | При скачивании через `pullOllamaModel` сравнивать SHA-256 финального файла с манифестом реестра Ollama; при несовпадении — удалять файл и показывать ошибку | Low | S | — | ⏳ |
 | **Безопасность** | Добавить режим «Инкогнито» (переключатель в топбаре): отключает сохранение истории чатов и NDJSON-логов на диск; данные живут только в памяти до закрытия окна | Low | M | — | ⏳ |
 | **Безопасность** | Для плагинов задокументировать и реализовать ограниченный API: только `fs` внутри `projectPath`, без `net` и системных модулей; `--experimental-permission` в `worker_thread` | Low | L | Компиляция плагинов | ⏳ |
-| **Инструменты** | В `agentTools.ts` добавить `read_multiple_files`: принимает `paths: string[]`, возвращает массив `{path, content}`; снижает число round-trip при чтении нескольких файлов подряд | Medium | S | — | ⏳ |
 | **Инструменты** | В `agentTools.ts` добавить `search_in_project`: объединяет `grep_files` и `find_files` с параметром `type: 'content' \| 'name'`; агент перестаёт путаться, какой инструмент применить | Medium | S | — | ⏳ |
 | **Инструменты** | В `agentHandlersProject.ts` добавить `run_script`: принимает `interpreter: 'python' \| 'powershell' \| 'bash'`, `script: string`, опционально `cwd`; запускает через соответствующий интерпретатор с проверкой `assertInsideProject` | Medium | M | — | ⏳ |
 | **Инструменты** | В `agentHandlersProject.ts` добавить `review_code`: принимает `path`, запускает ESLint (`.ts/.tsx/.js`) или Ruff (`.py`) через `run_command`; возвращает структурированный список нарушений с позициями | Low | M | `run_script` | ⏳ |
@@ -58,6 +57,7 @@
 ## ✅ Сделано
 - `commandBlocklist`: пользовательские запрещённые паттерны команд (`AgentSettings.commandBlocklist: string[]`); строки или regexp; редактирование в `SettingsModal.tsx` (Поведение → Безопасность); применяется в `validateCommand()` поверх встроенного списка
 - Per-chat `projectPath`: поле в `SavedChat`, агент берёт путь из чата через явный параметр `AgentRunner`, UI переключает проект при смене чата через изолированные `ChatContext.Provider`
+- `read_multiple_files`: принимает `paths: string[]`, читает все файлы параллельно через `Promise.all`, возвращает `JSON.stringify([{path, content}])`; ошибки на уровне файла не прерывают остальные
 - `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`; поля `qdrantUrl`, `qdrantApiKey`, `ragProvider` в настройках; кнопка проверки соединения в SettingsModal; инструменты `index_project` (рекурсивная индексация проекта в Qdrant) и `search_knowledge_base` (top-5 чанков по семантическому запросу)
 - Дедупликация повторяющихся tool results перед суммаризацией: одинаковый инструмент + вывод → `(повторено N раз)`
 - Авто-превью файлов >20 КБ: первые/последние 50 строк с маркером `... (X строк обрезано) ...`
