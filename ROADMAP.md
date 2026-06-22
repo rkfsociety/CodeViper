@@ -77,55 +77,55 @@ N · [S/M/L/XL] · Краткое название
 
 > Пункты 9–10 — код сервера в репозитории (`server/p2p/`); деплой VPS — вручную пользователем.
 
-**9 · XL · REST API сигнального сервера** — приор. Low  
+**8 · XL · REST API сигнального сервера** — приор. Low  
 - **Цель:** API `POST /nodes/register`, `GET /nodes/available`, `DELETE /nodes/{id}`  
 - **Файлы:** `server/p2p/` (новый каталог), `package.json` в корне или в server  
 - **Действие:** Node + Express/Fastify + Redis для реестра узлов  
 - **Проверка:** `curl` регистрации тестового узла локально
 
-**10 · XL · Auth на сигнальном сервере** — приор. Low  
+**9 · XL · Auth на сигнальном сервере** — приор. Low  
 - **Цель:** JWT после email/GitHub OAuth; лимиты по токену  
 - **Файлы:** `server/p2p/auth.ts`  
 - **Действие:** регистрация + middleware  
 - **Проверка:** запрос без токена → 401
 
-**15 · M · Тумблер «Поделиться мощностью»** — приор. Low  
+**10 · M · Тумблер «Поделиться мощностью»** — приор. Low  
 - **Цель:** UI + `POST /nodes/register` с GPU/RAM/моделью  
 - **Файлы:** `SettingsModal.tsx`, `app/electron/main/p2pClient.ts` (новый), `settings.ts`  
 - **Действие:** тумблер + регистрация узла  
 - **Проверка:** mock-сервер принимает register
 
-**17 · S · Диалог согласия P2P** — приор. Low  
+**11 · S · Диалог согласия P2P** — приор. Low  
 - **Цель:** модалка при первом включении: что передаётся, лимиты, отказ блокирует режим  
 - **Файлы:** `app/src/components/P2PConsentModal.tsx` (новый), `SettingsModal.tsx`  
 - **Действие:** показ один раз, флаг в settings  
 - **Проверка:** без согласия тумблер не активен
 
-**18 · M · Пауза P2P при нагрузке** — приор. Low  
+**12 · M · Пауза P2P при нагрузке** — приор. Low  
 - **Цель:** GPU>20% или CPU>15% → входящие P2P-задачи в паузу  
 - **Файлы:** `app/electron/main/agent.ts`, `p2pClient.ts`, `systemStats.ts`  
 - **Действие:** проверка перед приёмом задачи  
 - **Проверка:** unit-тест с моком systeminformation
 
-**19 · M · Лимит 3 входящих P2P-задач** — приор. Low  
+**13 · M · Лимит 3 входящих P2P-задач** — приор. Low  
 - **Цель:** очередь с таймаутом 60 с, сверх лимита → 503  
 - **Файлы:** `app/electron/main/p2pClient.ts`  
 - **Действие:** счётчик активных + очередь  
 - **Проверка:** тест на отклонение 4-й задачи
 
-**20 · M · TLS + шифрование промптов** — приор. Low  
+**14 · M · TLS + шифрование промптов** — приор. Low  
 - **Цель:** WSS между узлами; ECDH для тела промпта  
 - **Файлы:** `server/p2p/`, `app/electron/main/p2pClient.ts`  
 - **Действие:** TLS certs; симметричный ключ сессии  
 - **Проверка:** узел не читает чужой plaintext в логах
 
-**21 · L · Маршрутизация задач на сервере** — приор. Low  
+**15 · L · Маршрутизация задач на сервере** — приор. Low  
 - **Цель:** поиск свободного узла с моделью; иначе `{ fallback: true }`  
 - **Файлы:** `server/p2p/router.ts`  
 - **Действие:** логика выбора узла  
 - **Проверка:** интеграционный тест с 2 mock-узлами
 
-**22 · L · Кредиты P2P в UI** — приор. Low  
+**16 · L · Кредиты P2P в UI** — приор. Low  
 - **Цель:** баланс кредитов на сервере, отображение в `AgentStatusBar`  
 - **Файлы:** `server/p2p/credits.ts`, `AgentStatusBar.tsx`, `p2pClient.ts`  
 - **Действие:** +N/−N за задачи; IPC статуса  
@@ -135,49 +135,49 @@ N · [S/M/L/XL] · Краткое название
 
 > База в коде: ветка `agent/self-improve`, `docs/collective/ViperMemory.md`, чип ☁️.
 
-**23 · M · AgentLearningPanel** — приор. High  
+**17 · M · AgentLearningPanel** — приор. High  
 - **Цель:** панель в чате: ветка, очередь, sync, кнопки «Синхронизировать» и «Создать PR»  
 - **Файлы:** `app/src/components/AgentLearningPanel.tsx`, `ChatPanel.tsx`, `app/electron/main/index.ts`, `ipcContracts.ts`  
 - **Действие:** IPC `get-collective-sync-status`  
 - **Проверка:** панель показывает ветку и pending count
 
-**24 · M · Pull collective при старте** — приор. High  
+**18 · M · Pull collective при старте** — приор. High  
 - **Цель:** при `gitSyncOnStartup` — fetch `origin/agent/self-improve`, обновить `docs/collective/ViperMemory.md`  
 - **Файлы:** `app/electron/main/collectiveMemorySync.ts`, launcher sync  
 - **Действие:** checkout/merge файла collective  
 - **Проверка:** после pull знания из remote в контексте агента
 
-**25 · S · MemoryPanel: локальные vs коллективные** — приор. Medium  
+**19 · S · MemoryPanel: локальные vs коллективные** — приор. Medium  
 - **Цель:** две секции, бейдж источника, счётчик новых с remote  
 - **Файлы:** `app/src/components/MemoryPanel.tsx`, `memory.ts`  
 - **Действие:** разделить списки в UI  
 - **Проверка:** коллективные записи видны отдельно
 
-**26 · S · Фильтр перед push collective** — приор. Medium  
+**20 · S · Фильтр перед push collective** — приор. Medium  
 - **Цель:** отсечь короткий/пустой/дублирующий текст; лог отклонённых  
 - **Файлы:** `app/electron/main/collectiveMemorySync.ts`, `AgentLearningPanel.tsx`  
 - **Действие:** `minLength`, dedup с remote  
 - **Проверка:** тест: пустая строка не пушится
 
-**27 · M · Collective ViperSkills** — приор. Medium  
+**21 · M · Collective ViperSkills** — приор. Medium  
 - **Цель:** sync навыков в `docs/collective/ViperSkills.md` + подгрузка в промпт  
 - **Файлы:** `collectiveMemorySync.ts` или `collectiveSkillsSync.ts`, `skills.ts`  
 - **Действие:** аналог памяти для global skills  
 - **Проверка:** skill из remote в `list_skills`
 
-**28 · S · Кнопка PR из панели** — приор. Medium  
+**22 · S · Кнопка PR из панели** — приор. Medium  
 - **Цель:** «Создать PR» → `create_codeviper_pr` с заголовком «Коллективные знания»  
 - **Файлы:** `AgentLearningPanel.tsx`  
 - **Действие:** вызов IPC существующего PR-инструмента  
 - **Проверка:** после push кнопка создаёт PR (или сообщение «уже есть»)
 
-**29 · M · Rebase при конфликте push** — приор. Low  
+**23 · M · Rebase при конфликте push** — приор. Low  
 - **Цель:** non-fast-forward → `git pull --rebase` + retry  
 - **Файлы:** `app/electron/main/selfCommit.ts`, `collectiveMemorySync.ts`  
 - **Действие:** retry-цикл с rebase  
 - **Проверка:** тест с моком git conflict
 
-**30 · M · Чеклист плана самоулучшения** — приор. Low  
+**24 · M · Чеклист плана самоулучшения** — приор. Low  
 - **Цель:** sticky чеклист `self_improve_plan` над полем ввода (не только system-msg)  
 - **Файлы:** `app/src/components/SelfImprovePlanPanel.tsx`, `ChatPanel.tsx`  
 - **Действие:** подписка на `self_improve_plan` stream  
@@ -185,67 +185,67 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Независимые задачи
 
-**31 · L · POSIX-лаунчер и CI** — приор. Medium  
+**25 · L · POSIX-лаунчер и CI** — приор. Medium  
 - **Цель:** `CodeViper.sh` для Linux/macOS; матрица CI ubuntu/macos  
 - **Файлы:** `CodeViper.sh`, `.github/workflows/release.yml`  
 - **Действие:** sh-скрипт аналог `.cmd`; пути POSIX в workflow  
 - **Проверка:** `bash CodeViper.sh` на Linux (CI)
 
-**32 · L · NSIS git clone при установке** — приор. Medium  
+**26 · L · NSIS git clone при установке** — приор. Medium  
 - **Цель:** установщик клонирует репо в `%APPDATA%\CodeViper\source\` (дополнить если нужно)  
 - **Файлы:** `app/resources/installer.nsh`, `app/package.json`  
 - **Действие:** проверить/дополнить clone + ярлык на `CodeViper.cmd`  
 - **Проверка:** тестовая установка NSIS (или ревью скрипта)
 
-**33 · M · Инструмент create_jira_issue** — приор. Low  
+**27 · M · Инструмент create_jira_issue** — приор. Low  
 - **Цель:** POST Jira REST с `jiraUrl` + `jiraToken` из settings  
 - **Файлы:** `agentHandlersGitHub.ts` или `agentHandlersJira.ts`, `agentTools.ts`, `settings.ts`, `SettingsModal.tsx`  
 - **Действие:** схема инструмента + handler + поля settings  
 - **Проверка:** `npm run typecheck`; mock POST
 
-**34 · M · Инструмент create_linear_issue** — приор. Low  
+**28 · M · Инструмент create_linear_issue** — приор. Low  
 - **Цель:** GraphQL `issueCreate` через Linear API  
 - **Файлы:** `agentHandlersGitHub.ts`, `agentTools.ts`, `settings.ts` (`linearApiKey`)  
 - **Действие:** handler + UI поле ключа  
 - **Проверка:** `npm run typecheck`
 
-**35 · M · Docker dev-окружение** — приор. Low  
+**29 · M · Docker dev-окружение** — приор. Low  
 - **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
 - **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
 - **Действие:** образ + том исходников + `npm run dev`  
 - **Проверка:** `docker compose up` поднимает приложение
 
-**36 · S · SHA-256 при pull Ollama** — приор. Low  
+**30 · S · SHA-256 при pull Ollama** — приор. Low  
 - **Цель:** сверка хеша с манифестом; при несовпадении — удалить файл и ошибка  
 - **Файлы:** `app/electron/main/agentHandlersModels.ts` или `ollamaPull.ts`  
 - **Действие:** проверка после скачивания  
 - **Проверка:** тест с неверным хешем
 
-**37 · M · Режим «Инкогнито»** — приор. Low  
+**31 · M · Режим «Инкогнито»** — приор. Low  
 - **Цель:** тумблер в топбаре; чаты и NDJSON-логи только в RAM  
 - **Файлы:** `App.tsx`, `chats.ts`, `agentLogger.ts`, `settings.ts`  
 - **Действие:** флаг `incognitoMode`; skip persist  
 - **Проверка:** после перезапуска история инкогнито-чата пуста
 
-**38 · S · README «Примеры запросов»** — приор. Low  
+**32 · S · README «Примеры запросов»** — приор. Low  
 - **Цель:** 5–7 готовых диалогов (поиск, правка, самоулучшение, веб)  
 - **Файлы:** `README.md`  
 - **Действие:** новый раздел с промптами  
 - **Проверка:** ревью текста
 
-**39 · M · Скринкасты для README** — приор. Low  
+**33 · M · Скринкасты для README** — приор. Low  
 - **Цель:** GIF/видео: поиск, самоулучшение, Ollama  
 - **Файлы:** `docs/media/` (новый), `README.md`  
 - **Действие:** добавить assets + ссылки  
 - **Проверка:** файлы в репозитории, README ссылается
 
-**40 · M · CONTRIBUTING.md** — приор. Low  
+**34 · M · CONTRIBUTING.md** — приор. Low  
 - **Цель:** диаграмма ReAct, ключевые модули, пример нового инструмента  
 - **Файлы:** `CONTRIBUTING.md`  
 - **Действие:** mermaid sequence + пошаговый гайд  
 - **Проверка:** ревью документа
 
-**41 · M · typedoc + GitHub Pages** — приор. Low  
+**35 · M · typedoc + GitHub Pages** — приор. Low  
 - **Цель:** `npm run docs` генерирует API из JSDoc; деплой в Actions  
 - **Файлы:** `package.json`, `.github/workflows/docs.yml` (новый), `typedoc.json`  
 - **Действие:** typedoc config + workflow  
@@ -253,31 +253,31 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Агент и проверки
 
-**43 · S · Whitelist шаблонов команд** — приор. High  
+**36 · S · Whitelist шаблонов команд** — приор. High  
 - **Цель:** «Всегда разрешать» для паттернов (`npm test`, `git status`) поверх blocklist  
 - **Файлы:** `app/electron/main/services.ts` (`validateCommand`), `settings.ts`, `SettingsModal.tsx` (Безопасность)  
 - **Действие:** поле `commandAllowlist: string[]`; проверка allow перед deny  
 - **Проверка:** `npm test -- validateCommand`; команда из allowlist не требует подтверждения
 
-**44 · M · Автопроверка после правок** — приор. High  
+**37 · M · Автопроверка после правок** — приор. High  
 - **Цель:** после успешного `edit_file` / `preview_patch` в self-improve — опционально `npm run typecheck` и/или `npm test`  
 - **Файлы:** `app/electron/main/agentToolExecutor.ts`, `settings.ts` (`autoVerifyAfterEdit`)  
 - **Действие:** детектор скриптов в `package.json`; запуск verify; результат tool_result в чат  
 - **Проверка:** при включённой опции после edit появляется вывод typecheck/test
 
-**45 · S · UI правил проекта** — приор. High  
+**38 · S · UI правил проекта** — приор. High  
 - **Цель:** редактор `{projectPath}/.codeviper/rules.md` в настройках чата или панели проекта  
 - **Файлы:** `app/src/components/ProjectRulesPanel.tsx` (новый), `ChatPanel.tsx`, `index.ts` (IPC read/write)  
 - **Действие:** загрузка/сохранение rules; подсказка при отсутствии файла  
 - **Проверка:** правка в UI → файл на диске; агент видит блок в контексте
 
-**46 · M · Slash-команды** — приор. High  
+**39 · M · Slash-команды** — приор. High  
 - **Цель:** префиксы `/test`, `/commit`, `/roadmap N` раскрываются в готовый промпт перед отправкой  
 - **Файлы:** `app/src/components/ChatInput.tsx` или `useSlashCommands.ts`, `app/shared/slashCommands.ts`  
 - **Действие:** словарь команд + подстановка текста; `/roadmap 23` → «Выполни пункт 23…»  
 - **Проверка:** ввод `/test` → в агент уходит полный промпт
 
-**47 · M · Панель выбора ROADMAP** — приор. High  
+**40 · M · Панель выбора ROADMAP** — приор. High  
 - **Цель:** в режиме самоулучшения — список пунктов ROADMAP с кнопкой «Выполнить»  
 - **Файлы:** `app/src/components/RoadmapPickerPanel.tsx`, `app/electron/main/roadmapParser.ts`, `ChatPanel.tsx`  
 - **Действие:** парсинг `ROADMAP.md` (номер, название, цепочка); IPC `list-roadmap-items`  
@@ -285,19 +285,19 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 RAG и контекст
 
-**48 · M · Автоиндексация при открытии проекта** — приор. Medium  
+**41 · M · Автоиндексация при открытии проекта** — приор. Medium  
 - **Цель:** при смене `projectPath` и настроенном Qdrant/Milvus — фоновый `index_project`  
 - **Файлы:** `app/electron/main/contextRAG.ts`, `index.ts`, `settings.ts` (`autoIndexOnOpen`)  
 - **Действие:** debounced index; статус в `AgentStatusBar`  
 - **Проверка:** смена проекта → чип «Индексация…»; `search_knowledge_base` находит файлы
 
-**49 · S · Nudge «используй RAG»** — приор. Medium  
+**42 · S · Nudge «используй RAG»** — приор. Medium  
 - **Цель:** если grep пустой, RAG включён и проект проиндексирован — подсказка агенту вызвать `search_knowledge_base`  
 - **Файлы:** `app/electron/main/agent.ts`, `agentContext.ts`  
 - **Действие:** эвристика после пустого grep; system-hint в следующей итерации  
 - **Проверка:** тест с моком пустого grep + включённым RAG
 
-**50 · L · Символьный индекс (find_symbol)** — приор. Medium  
+**43 · L · Символьный индекс (find_symbol)** — приор. Medium  
 - **Цель:** инструменты `find_symbol` и `find_references` по tree-sitter или LSP  
 - **Файлы:** `app/electron/main/symbolIndex.ts` (новый), `agentTools.ts`, `agentHandlersProject.ts`  
 - **Действие:** парсинг AST для ts/js/py; возврат path:line:col  
@@ -305,25 +305,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 UX и продуктивность
 
-**51 · M · Дерево файлов проекта** — приор. High  
+**44 · M · Дерево файлов проекта** — приор. High  
 - **Цель:** панель слева с деревом; клик открывает файл; ПКМ → «Спросить агента»  
 - **Файлы:** `app/src/components/ProjectTreePanel.tsx`, `services.ts` (`buildFileTree`), `App.tsx`  
 - **Действие:** IPC `get-project-tree`; контекстное меню с вставкой пути в чат  
 - **Проверка:** дерево совпадает с `list_directory`; ПКМ вставляет `@path`
 
-**52 · M · Side-by-side diff** — приор. Medium  
+**45 · M · Side-by-side diff** — приор. Medium  
 - **Цель:** `preview_edit` показывает два столбца (было / стало), не только unified  
 - **Файлы:** `app/src/components/DiffPreviewModal.tsx`, стили diff  
 - **Действие:** переключатель unified / side-by-side; подсветка синтаксиса  
 - **Проверка:** визуально два столбца при preview правки
 
-**53 · S · Уведомление «агент закончил»** — приор. Medium  
+**46 · S · Уведомление «агент закончил»** — приор. Medium  
 - **Цель:** системный toast + звук (если включены уведомления) при завершении прогона  
 - **Файлы:** `app/electron/main/index.ts` (`Notification`), `useAgentStream.ts`, `settings.ts`  
 - **Действие:** `new Notification` при phase `idle` после `busy`; уважать `soundEnabled`  
 - **Проверка:** фоновый чат → toast при готовности ответа
 
-**54 · M · Шаблоны чатов** — приор. Medium  
+**47 · M · Шаблоны чатов** — приор. Medium  
 - **Цель:** пресеты «Рефакторинг», «Новый модуль», «Code review» — стартовый промпт + preset tools  
 - **Файлы:** `app/shared/chatTemplates.ts`, `ChatHistoryPanel.tsx`, `settings.ts`  
 - **Действие:** создание чата из шаблона; опционально `disabledTools` preset  
@@ -331,19 +331,19 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Коллективное обучение — продолжение
 
-**55 · M · Авто-PR collective** — приор. Medium  
+**48 · M · Авто-PR collective** — приор. Medium  
 - **Цель:** после успешного push collective — опционально `create_codeviper_pr` без ручной кнопки  
 - **Файлы:** `collectiveMemorySync.ts`, `settings.ts` (`autoCollectivePr`)  
 - **Действие:** вызов PR-логики после push; дедуп «PR уже открыт»  
 - **Проверка:** при включённой опции после sync создаётся PR или сообщение «уже есть»
 
-**56 · M · Рейтинг знаний collective** — приор. Low  
+**49 · M · Рейтинг знаний collective** — приор. Low  
 - **Цель:** upvote/downvote в MemoryPanel для коллективных записей; фильтр push по рейтингу  
 - **Файлы:** `MemoryPanel.tsx`, `docs/collective/ViperMemory.md` (метаданные), `collectiveMemorySync.ts`  
 - **Действие:** голосование локально + sync score в markdown frontmatter  
 - **Проверка:** downvote скрывает или понижает приоритет записи в UI
 
-**57 · S · Экспорт урока в skill** — приор. Medium  
+**50 · S · Экспорт урока в skill** — приор. Medium  
 - **Цель:** кнопка «Сохранить как навык» у удачного ответа агента → `create_skill`  
 - **Файлы:** `MessageBody.tsx`, IPC обёртка над `skills.ts`  
 - **Действие:** диалог имени skill; тело из выбранных сообщений  
@@ -351,19 +351,19 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Subagents
 
-**58 · M · Контракт subagent** — приор. Medium  
+**51 · M · Контракт subagent** — приор. Medium  
 - **Цель:** тип `SubagentRole` (explorer | editor), лимит инструментов, отдельный мини-прогон  
 - **Файлы:** `app/electron/main/subagentRunner.ts` (новый), `shared/subagent.ts`  
 - **Действие:** интерфейс запуска с урезанным tool set и max steps  
 - **Проверка:** `npm run typecheck`; unit-тест с мок-провайдером
 
-**59 · L · Explorer subagent** — приор. Medium  
+**52 · L · Explorer subagent** — приор. Medium  
 - **Цель:** read-only субагент (grep, read, list) для разведки перед основным прогоном  
 - **Файлы:** `subagentRunner.ts`, `agent.ts`  
 - **Действие:** `spawn_explorer` при сложном запросе; сводка в системный промпт  
 - **Проверка:** сложный запрос → сначала explorer, затем edit с контекстом сводки
 
-**60 · L · Editor subagent в цикле** — приор. Low  
+**53 · L · Editor subagent в цикле** — приор. Low  
 - **Цель:** субагент с mutating tools выполняет план, основной агент только координирует  
 - **Файлы:** `agent.ts`, `subagentRunner.ts`  
 - **Действие:** делегирование шагов плана editor-роли  
@@ -371,13 +371,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Модели и обновления
 
-**61 · M · Бенчмарк локальных моделей** — приор. Low  
+**54 · M · Бенчмарк локальных моделей** — приор. Low  
 - **Цель:** UI «Проверить модель»: tok/s, latency, успех tool call на эталонном промпте  
 - **Файлы:** `app/electron/main/modelBenchmark.ts`, `SettingsModal.tsx` (вкладка Модель)  
 - **Действие:** 3 коротких прогона; таблица результатов в модалке  
 - **Проверка:** кнопка «Бенчмарк» выводит tok/s для выбранной Ollama-модели
 
-**62 · S · Каналы обновлений stable/beta** — приор. Low  
+**55 · S · Каналы обновлений stable/beta** — приор. Low  
 - **Цель:** настройка канала: stable (latest release) / beta (pre-release) в `electron-updater`  
 - **Файлы:** `updateChecker.ts`, `settings.ts`, `SettingsModal.tsx`  
 - **Действие:** `allowPrerelease` по настройке; фильтр тегов GitHub  
@@ -385,13 +385,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Интеграции и изоляция
 
-**63 · M · Webhook «агент готов»** — приор. Low  
+**56 · M · Webhook «агент готов»** — приор. Low  
 - **Цель:** POST на Slack/Discord/n8n URL при завершении прогона (опционально)  
 - **Файлы:** `app/electron/main/webhookNotify.ts`, `settings.ts` (`webhookUrl`), `agent.ts`  
 - **Действие:** fetch POST с `{ chatId, summary, projectPath }`  
 - **Проверка:** mock-сервер получает payload после idle
 
-**64 · L · Песочница для run_script** — приор. Low  
+**57 · L · Песочница для run_script** — приор. Low  
 - **Цель:** опциональный запуск скриптов в Docker-контейнере с mount только `projectPath`  
 - **Файлы:** `app/electron/main/scriptSandbox.ts`, `agentHandlersProject.ts`, `settings.ts`  
 - **Действие:** `docker run --rm -v projectPath` для python/bash; fallback на локальный run  
@@ -399,25 +399,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**65 · L · Голосовой ввод и озвучка** — приор. Low  
+**58 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**66 · XL · LSP в редакторе** — приор. Low  
+**59 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла в встроенном просмотре  
 - **Файлы:** `app/electron/main/lspClient.ts`, Monaco или CodeMirror интеграция  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**67 · L · Skill marketplace** — приор. Low  
+**60 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
 - **Проверка:** импорт skill из URL появляется локально
 
-**68 · M · E2E на Linux/macOS в CI** — приор. Medium  
+**61 · M · E2E на Linux/macOS в CI** — приор. Medium  
 - **Цель:** Playwright+Electron в матрице ubuntu/macos для smoke-тестов UI  
 - **Файлы:** `.github/workflows/ci.yml`, `app/tests/e2e/`  
 - **Действие:** job `test:e2e` на linux/macos (headless); фикс путей POSIX  
