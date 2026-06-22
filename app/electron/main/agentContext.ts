@@ -277,6 +277,8 @@ export interface PrepareAgentContextOptions {
   ragStoreConfig?: VectorStoreConfig
   /** Дополнительные инструкции, дописываемые в конец системного промпта */
   customSystemPrompt?: string
+  /** Отключённые инструменты агента (имена); исключаются из набора tools */
+  disabledTools?: string[]
 }
 
 function section(
@@ -388,7 +390,7 @@ export async function buildAgentContextPreview(
     )
     .filter((m): m is OllamaMessage => m !== null)
 
-  const activeTools = chatMode ? [] : getAgentTools(selfImproveMode)
+  const activeTools = chatMode ? [] : getAgentTools(selfImproveMode, options.disabledTools)
   const toolsJsonChars = JSON.stringify(activeTools).length
   const initialMessages: OllamaMessage[] = [
     { role: 'system', content: systemContent },

@@ -61,7 +61,8 @@ export const PersistedSettingsSchema = z.object({
   commandBlocklist: z.array(z.string()).optional(),
   customSystemPrompt: z.string().optional(),
   gitlabToken: z.string().optional(),
-  gitlabUrl: z.string().optional()
+  gitlabUrl: z.string().optional(),
+  disabledTools: z.array(z.string()).optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -170,7 +171,8 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
       ? { customSystemPrompt: settings.customSystemPrompt.trim() }
       : {}),
     ...(settings.gitlabToken?.trim() ? { gitlabToken: settings.gitlabToken.trim() } : {}),
-    ...(settings.gitlabUrl?.trim() ? { gitlabUrl: settings.gitlabUrl.trim() } : {})
+    ...(settings.gitlabUrl?.trim() ? { gitlabUrl: settings.gitlabUrl.trim() } : {}),
+    ...(settings.disabledTools?.length ? { disabledTools: settings.disabledTools } : {})
   }
 }
 

@@ -215,7 +215,8 @@ export class ContextManager {
       messages,
       model,
       summarizeModel: this.summarizeModelResolved,
-      toolsJsonChars: JSON.stringify(getAgentTools(selfImproveMode)).length,
+      toolsJsonChars: JSON.stringify(getAgentTools(selfImproveMode, this.settings.disabledTools))
+        .length,
       providerConfig: this.summarizeProviderConfig,
       signal: this.signal,
       summarizeThresholdPercent: this.resolveSummarizeThreshold(),
@@ -247,7 +248,9 @@ export class ContextManager {
       ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
     }))
 
-    const toolsForProvider = this.settings.chatMode ? [] : getAgentTools(selfImproveMode)
+    const toolsForProvider = this.settings.chatMode
+      ? []
+      : getAgentTools(selfImproveMode, this.settings.disabledTools)
     const chatOptions = {
       model,
       messages: chatMessages,

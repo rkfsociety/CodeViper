@@ -1320,18 +1320,21 @@ function transformTools(tools: readonly any[]) {
  * Получить инструменты с кэшированием преобразованных схем.
  * Экономит ~35% токенов в режиме самоулучшения, ~60% в обычном режиме.
  */
-export function getAgentTools(selfImproveMode: boolean) {
-  // В обычном режиме исключаем codeviper + ollama инструменты
-  const filtered = !selfImproveMode
-    ? AGENT_TOOLS.filter(
-        (t) =>
-          !CODEVIPER_TOOLS.some((ct) => ct.function.name === t.function.name) &&
-          !OLLAMA_TOOLS.some((ot) => ot.function.name === t.function.name)
-      )
-    : AGENT_TOOLS
+export function getAgentTools(selfImproveMode: boolean, disabledTools?: string[]) {
+  const disabled = disabledTools?.length ? new Set(disabledTools) : null
 
-  // Кэш по размеру и режиму
-  const cacheKey = `${filtered.length}_${selfImproveMode}`
+  // В обычном режиме исключаем codeviper + ollama + явно отключённые инструменты
+  const filtered = AGENT_TOOLS.filter(
+    (t) =>
+      (selfImproveMode ||
+        (!CODEVIPER_TOOLS.some((ct) => ct.function.name === t.function.name) &&
+          !OLLAMA_TOOLS.some((ot) => ot.function.name === t.function.name))) &&
+      (!disabled || !disabled.has(t.function.name))
+  )
+
+  // Кэш по режиму и набору отключённых инструментов
+  const disabledKey = disabled ? [...disabled].sort().join(',') : ''
+  const cacheKey = `${selfImproveMode}_${disabledKey}`
   if (!transformedToolsCache.has(cacheKey)) {
     transformedToolsCache.set(cacheKey, transformTools(filtered))
   }

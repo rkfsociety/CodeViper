@@ -126,7 +126,8 @@ export class AgentRunner {
         chatId: this.chatId,
         enableRAG: true,
         ragStoreConfig: buildVectorStoreConfig(this.settings, this.projectPath),
-        customSystemPrompt: this.settings.customSystemPrompt ?? ''
+        customSystemPrompt: this.settings.customSystemPrompt ?? '',
+        disabledTools: this.settings.disabledTools
       }
     )
     this.emitter.throwIfAborted()

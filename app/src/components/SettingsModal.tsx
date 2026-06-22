@@ -117,6 +117,108 @@ interface Props {
   onSelfLearningChange: (selfLearning: boolean) => void
 }
 
+const TOOL_GROUPS: { id: string; label: string; desc: string; tools: string[] }[] = [
+  {
+    id: 'files',
+    label: 'Файлы',
+    desc: 'Чтение, запись, поиск, история файлов',
+    tools: [
+      'search_knowledge_base',
+      'list_directory',
+      'grep_files',
+      'find_files',
+      'search_in_project',
+      'read_file',
+      'read_multiple_files',
+      'file_info',
+      'project_stats',
+      'search_in_file',
+      'file_search_summary',
+      'show_file_history',
+      'copy_file',
+      'rename_folder',
+      'copy_folder',
+      'preview_edit',
+      'preview_patch',
+      'write_file',
+      'create_file',
+      'edit_file',
+      'undo_edit',
+      'append_file',
+      'delete_file',
+      'move_file'
+    ]
+  },
+  {
+    id: 'commands',
+    label: 'Команды',
+    desc: 'Shell, скрипты, линтер',
+    tools: ['run_command', 'run_script', 'review_code']
+  },
+  {
+    id: 'git',
+    label: 'Git',
+    desc: 'Статус, diff, история коммитов',
+    tools: ['git_status', 'git_diff', 'git_log', 'recent_changes']
+  },
+  {
+    id: 'github',
+    label: 'GitHub',
+    desc: 'Issues, PR, Workflows',
+    tools: ['create_issue', 'create_pr', 'list_issues', 'open_issue', 'trigger_github_workflow']
+  },
+  {
+    id: 'gitlab',
+    label: 'GitLab',
+    desc: 'Merge Requests, пайплайны',
+    tools: ['list_gitlab_mrs', 'create_gitlab_mr', 'get_gitlab_pipeline']
+  },
+  {
+    id: 'memory',
+    label: 'Память',
+    desc: 'Сохранять паттерны и знания',
+    tools: ['remember', 'search_memory', 'forget']
+  },
+  {
+    id: 'packages',
+    label: 'Зависимости',
+    desc: 'package.json, тесты, lock-файл',
+    tools: ['package_info', 'read_package_lock', 'dependency_summary', 'test_summary']
+  },
+  {
+    id: 'skills',
+    label: 'Навыки',
+    desc: 'Управление навыками агента',
+    tools: [
+      'list_skills',
+      'read_skill',
+      'create_skill',
+      'update_skill',
+      'delete_skill',
+      'read_skill_data',
+      'write_skill_data'
+    ]
+  },
+  {
+    id: 'todo',
+    label: 'Todo',
+    desc: 'Список задач в чате',
+    tools: ['set_todo_list', 'complete_todo_item', 'clear_todo_list']
+  },
+  {
+    id: 'indexing',
+    label: 'Индексация',
+    desc: 'RAG и семантический поиск (Qdrant)',
+    tools: ['index_project']
+  },
+  {
+    id: 'web',
+    label: 'Веб',
+    desc: 'Fetch и поиск в интернете',
+    tools: ['web_fetch', 'web_search']
+  }
+]
+
 export function SettingsModal({
   open,
   settings,
@@ -1315,6 +1417,53 @@ export function SettingsModal({
                           </div>
                         </>
                       )}
+                    </div>
+                  </SettingItem>
+
+                  {/* ── Инструменты агента ── */}
+                  <SettingItem
+                    tab="behavior"
+                    label="Инструменты агента"
+                    desc="отключить инструменты файлы git github gitlab память команды веб навыки todo индексация зависимости disabled tools"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Инструменты агента</div>
+                      <p className={styles.desc}>
+                        Снимите галочку с группы, чтобы скрыть её инструменты от агента. Изменения
+                        вступят в силу при следующем сообщении.
+                      </p>
+                      <div
+                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 16px' }}
+                      >
+                        {TOOL_GROUPS.map((group) => {
+                          const disabled = settings.disabledTools ?? []
+                          const allDisabled = group.tools.every((t) => disabled.includes(t))
+                          return (
+                            <label key={group.id} className={styles.toggle}>
+                              <input
+                                type="checkbox"
+                                checked={!allDisabled}
+                                onChange={(e) => {
+                                  const current = new Set(settings.disabledTools ?? [])
+                                  if (e.target.checked) {
+                                    group.tools.forEach((t) => current.delete(t))
+                                  } else {
+                                    group.tools.forEach((t) => current.add(t))
+                                  }
+                                  onSettingsChange({ disabledTools: [...current] })
+                                }}
+                              />
+                              <span className={styles.track} aria-hidden="true">
+                                <span className={styles.thumb} />
+                              </span>
+                              <span className={styles.toggleContent}>
+                                <span className={styles.title}>{group.label}</span>
+                                <span className={styles.desc}>{group.desc}</span>
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </div>
                     </div>
                   </SettingItem>
                 </>

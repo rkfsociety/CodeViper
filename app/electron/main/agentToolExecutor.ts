@@ -246,7 +246,11 @@ export class ToolExecutor {
         break
       }
 
-      if (getAgentTools(false).some((t) => t.name === name && SELF_EDIT_FILE_TOOLS.has(name))) {
+      if (
+        getAgentTools(false, this.settings.disabledTools).some(
+          (t) => t.name === name && SELF_EDIT_FILE_TOOLS.has(name)
+        )
+      ) {
         /* handled below */
       }
       if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) selfEdited = true

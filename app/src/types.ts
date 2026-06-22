@@ -227,6 +227,8 @@ export interface AgentSettings {
   chatMode?: boolean
   /** Дополнительные инструкции, дописываемые в конец системного промпта агента */
   customSystemPrompt?: string
+  /** Отключённые инструменты агента (имена); пустой массив — все включены */
+  disabledTools?: string[]
 }
 
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'

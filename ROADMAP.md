@@ -11,7 +11,6 @@
 | **Безопасность** | При скачивании через `pullOllamaModel` сравнивать SHA-256 финального файла с манифестом реестра Ollama; при несовпадении — удалять файл и показывать ошибку | Low | S | — | ⏳ |
 | **Безопасность** | Добавить режим «Инкогнито» (переключатель в топбаре): отключает сохранение истории чатов и NDJSON-логов на диск; данные живут только в памяти до закрытия окна | Low | M | — | ⏳ |
 | **Безопасность** | Для плагинов задокументировать и реализовать ограниченный API: только `fs` внутри `projectPath`, без `net` и системных модулей; `--experimental-permission` в `worker_thread` | Low | L | Компиляция плагинов | ⏳ |
-| **Интеграции** | В `agentTools.ts` добавить параметр `disabledTools: string[]` в `AgentSettings`; в `getAgentTools()` фильтровать инструменты согласно настройкам; в `SettingsModal.tsx` показывать чекбоксы по группам инструментов | Medium | M | — | ⏳ |
 | **Интеграции** | Установить `electron-updater`, добавить проверку GitHub Releases при старте приложения; при наличии новой версии показывать баннер с кнопкой «Перезапустить и обновить» | High | M | CI pipeline (`release.yml`) | ⏳ |
 | **Интеграции** | Добавить `.sh`-лаунчер для Linux/macOS аналогично `CodeViper.cmd`; в GitHub Actions настроить матрицу `windows-latest` / `ubuntu-latest` / `macos-latest`; исправить пути `app/electron/main` для POSIX | Medium | L | — | ⏳ |
 | **Интеграции** | Добавить в `AgentSettings` поля `jiraUrl`, `jiraToken`; реализовать инструмент `create_jira_issue` в `agentHandlersGitHub.ts`: POST `{jiraUrl}/rest/api/3/issue` с Basic-авторизацией через token | Low | M | — | ⏳ |
@@ -50,6 +49,7 @@
 ---
 
 ## ✅ Сделано
+- `disabledTools`: чекбоксы по 11 группам инструментов в SettingsModal (Поведение → Инструменты агента); `getAgentTools(selfImproveMode, disabledTools?)` фильтрует отключённые; кэш по ключу `${selfImproveMode}_${sorted disabled}`; поле `disabledTools?: string[]` в `AgentSettings` + Zod-схема
 - `commandBlocklist`: пользовательские запрещённые паттерны команд (`AgentSettings.commandBlocklist: string[]`); строки или regexp; редактирование в `SettingsModal.tsx` (Поведение → Безопасность); применяется в `validateCommand()` поверх встроенного списка
 - Per-chat `projectPath`: поле в `SavedChat`, агент берёт путь из чата через явный параметр `AgentRunner`, UI переключает проект при смене чата через изолированные `ChatContext.Provider`
 - `search_in_project`: `type="content"` → `grepInTreeWorker`, `type="name"` → `findFilesInTreeWorker`; единый инструмент вместо выбора между `grep_files` и `find_files`
