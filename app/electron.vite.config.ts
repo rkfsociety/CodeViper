@@ -44,6 +44,14 @@ export default defineConfig({
         '@': resolve('src')
       }
     },
-    plugins: [react()]
+    plugins: [
+      react(),
+      {
+        name: 'remove-crossorigin',
+        transformIndexHtml(html: string) {
+          return html.replace(/ crossorigin/g, '')
+        }
+      }
+    ]
   }
 })
