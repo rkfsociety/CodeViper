@@ -212,6 +212,22 @@ function Get-DepsHash {
   return (Get-FileHash -Path $lock -Algorithm SHA256).Hash
 }
 
+# out/ не в git — пересобираем, если исходники electron/ или shared/ новее собранного main.
+function Test-StaleBuild {
+  $outMain = Join-Path $root 'out\main\index.js'
+  if (-not (Test-Path $outMain)) { return $true }
+  $outTime = (Get-Item $outMain).LastWriteTimeUtc
+  foreach ($dir in @('electron', 'shared')) {
+    $srcDir = Join-Path $root $dir
+    if (-not (Test-Path $srcDir)) { continue }
+    $newer = Get-ChildItem -Path $srcDir -Recurse -File -Include *.ts,*.tsx -ErrorAction SilentlyContinue |
+      Where-Object { $_.LastWriteTimeUtc -gt $outTime } |
+      Select-Object -First 1
+    if ($newer) { return $true }
+  }
+  return $false
+}
+
 # Устанавливаем зависимости, если node_modules нет ИЛИ package-lock.json изменился.
 $stampFile = Join-Path $root 'node_modules\.codeviper-deps-hash'
 $currentHash = Get-DepsHash
@@ -229,12 +245,14 @@ if ($needInstall) {
   }
 }
 
-# Пересобираем, если код обновился из GitHub, out/ отсутствует или зависимости переустановились
+# Пересобираем, если код обновился из GitHub, out/ отсутствует, устарел или зависимости переустановились
 $outDir = Join-Path $root 'out'
-$needBuild = $codeChanged -or (-not (Test-Path $outDir)) -or $pendingApplied -or $needInstall
+$staleBuild = Test-StaleBuild
+$needBuild = $codeChanged -or (-not (Test-Path $outDir)) -or $staleBuild -or $pendingApplied -or $needInstall
 
 if ($needBuild) {
-  Write-Log 'npm run build... (код обновился с GitHub или out/ отсутствует)'
+  $buildReason = if ($staleBuild) { 'исходники новее out/' } else { 'код обновился с GitHub или out/ отсутствует' }
+  Write-Log "npm run build... ($buildReason)"
   if ((Invoke-Npm @('run', 'build')) -ne 0) {
     Show-Error "npm run build не удался.`nЛог: $devLogFile`nПопробуйте: CodeViper.cmd console"
     exit 1

@@ -33,6 +33,8 @@ cd CodeViper/app && npm install
 
 Затем двойной клик на **`CodeViper.cmd`** в корне репозитория.
 
+Если при запуске появляется ошибка «npm run start завершился с кодом 1» — запустите **`CodeViper.cmd console`**: лаунчер пересоберёт `out/`, если исходники новее сборки, и покажет полный лог в окне. Подробности — в `%LOCALAPPDATA%\CodeViper\dev.log`.
+
 ## Документация
 
 Подробности — в [вики проекта](https://github.com/rkfsociety/CodeViper/wiki):

@@ -30,7 +30,12 @@ if defined NEEDINSTALL (
   if errorlevel 1 exit /b 1
   if defined CURHASH >"%STAMP%" echo %CURHASH%
 )
-if not exist "out\main\index.js" (
+set "NEEDBUILD="
+if not exist "out\main\index.js" set "NEEDBUILD=1"
+if not defined NEEDBUILD (
+  for /f %%R in ('powershell -NoProfile -Command "$o=Get-Item 'out\main\index.js'; $t=$o.LastWriteTimeUtc; $d=@('electron','shared'); foreach($p in $d){if(Test-Path $p){$f=Get-ChildItem $p -Recurse -File -Include *.ts,*.tsx -ErrorAction SilentlyContinue|Where-Object{$_.LastWriteTimeUtc -gt $t}|Select-Object -First 1;if($f){'1';exit}}};'0'"') do if "%%R"=="1" set "NEEDBUILD=1"
+)
+if defined NEEDBUILD (
   echo [CodeViper] Сборка...
   call npm run build
   if errorlevel 1 pause & exit /b 1
