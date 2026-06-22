@@ -447,6 +447,21 @@ const FILE_TOOLS = [
         required: ['interpreter', 'script']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'review_code',
+      description:
+        'Проверить файл линтером: .ts/.tsx/.js/.jsx → ESLint, .py → Ruff. Возвращает список нарушений с позициями (строка:столбец) и правилами.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Путь к файлу относительно корня проекта' }
+        },
+        required: ['path']
+      }
+    }
   }
 ] as const
 
@@ -1325,6 +1340,7 @@ export interface ToolArgs {
   copy_folder: { from: string; to: string }
   run_command: { command: string }
   run_script: { interpreter: 'python' | 'powershell' | 'bash'; script: string; cwd?: string }
+  review_code: { path: string }
   git_status: { path?: string }
   git_diff: { path?: string; staged?: string; commit?: string }
   git_log: { limit?: string; path?: string; oneline?: string }

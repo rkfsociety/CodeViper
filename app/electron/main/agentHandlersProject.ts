@@ -36,6 +36,73 @@ function scanPercent(scanned: number): number {
   return Math.min(99, Math.round((scanned / MAX_WALK_FILES) * 100))
 }
 
+function formatEslintOutput(filePath: string, stdout: string): string {
+  const data = JSON.parse(stdout) as Array<{
+    messages: Array<{
+      ruleId: string | null
+      severity: number
+      message: string
+      line: number
+      column: number
+    }>
+    errorCount: number
+    warningCount: number
+  }>
+  const messages = data.flatMap((f) => f.messages)
+  if (!messages.length) return `Нарушений не найдено в ${filePath}`
+  const errors = messages.filter((m) => m.severity === 2).length
+  const warnings = messages.filter((m) => m.severity === 1).length
+  const header = `ESLint: ${errors} ошибок, ${warnings} предупреждений в ${filePath}\n`
+  return (
+    header +
+    messages
+      .map((m, i) => {
+        const level = m.severity === 2 ? 'error' : 'warning'
+        const rule = m.ruleId ?? '(без правила)'
+        return `[${i + 1}] L${m.line}:C${m.column}  ${rule} (${level})\n    ${m.message}`
+      })
+      .join('\n\n')
+  )
+}
+
+function formatRuffOutput(filePath: string, stdout: string): string {
+  const data = JSON.parse(stdout) as Array<{
+    code: string
+    message: string
+    location: { row: number; column: number }
+  }>
+  if (!data.length) return `Нарушений не найдено в ${filePath}`
+  const header = `Ruff: ${data.length} нарушений в ${filePath}\n`
+  return (
+    header +
+    data
+      .map(
+        (v, i) => `[${i + 1}] L${v.location.row}:C${v.location.column}  ${v.code}\n    ${v.message}`
+      )
+      .join('\n\n')
+  )
+}
+
+function formatLinterOutput(
+  linter: 'eslint' | 'ruff',
+  filePath: string,
+  stdout: string,
+  stderr: string,
+  exitCode: number | null
+): string {
+  if (!stdout.trim()) {
+    if (exitCode === 0) return `Нарушений не найдено в ${filePath}`
+    return `Ошибка запуска ${linter}: ${stderr.trim() || 'нет вывода'}`
+  }
+  try {
+    return linter === 'eslint'
+      ? formatEslintOutput(filePath, stdout)
+      : formatRuffOutput(filePath, stdout)
+  } catch {
+    return `${linter} вернул неожиданный формат:\n${stdout.slice(0, 2000)}`
+  }
+}
+
 const READONLY_ERROR = 'Режим только чтение: операции записи заблокированы'
 
 interface ProjectToolOptions {
@@ -669,6 +736,35 @@ export function createProjectToolHandlers(
         await unlink(tmpPath).catch(() => {})
       }
     }),
+
+    review_code: async (args) => {
+      assertInsideProject(args.path, 'файл')
+      const absPath = resolve(projectPath, args.path)
+      const ext = extname(args.path).toLowerCase()
+      let command: string
+      let linter: 'eslint' | 'ruff'
+      if (ext === '.ts' || ext === '.tsx' || ext === '.js' || ext === '.jsx') {
+        linter = 'eslint'
+        command = `npx eslint --format json "${absPath}"`
+      } else if (ext === '.py') {
+        linter = 'ruff'
+        command = `ruff check --output-format json "${absPath}"`
+      } else {
+        return `Неподдерживаемый тип файла: ${ext}. Поддерживаются .ts, .tsx, .js, .jsx, .py`
+      }
+      try {
+        emitProgress(`Проверка кода: ${args.path}`, null)
+        const result = await runCommand(
+          projectPath,
+          command,
+          commandTimeoutMs,
+          options?.commandBlocklist
+        )
+        return formatLinterOutput(linter, args.path, result.stdout, result.stderr, result.exitCode)
+      } finally {
+        clearProgress()
+      }
+    },
 
     git_status: async (args) => gitStatus(projectPath, args.path),
 
