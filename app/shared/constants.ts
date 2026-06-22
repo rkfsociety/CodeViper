@@ -67,9 +67,7 @@ export const GEMINI_FREE_MODELS = [
     rpm: 15,
     rpd: 500,
     tpm: 250_000
-  },
-  { id: 'gemma-4-26b', label: 'Gemma 4 26B', rpm: 15, rpd: null, tpm: null },
-  { id: 'gemma-4-31b', label: 'Gemma 4 31B', rpm: 15, rpd: null, tpm: null }
+  }
 ] as const
 
 export type GeminiFreeModelId = (typeof GEMINI_FREE_MODELS)[number]['id']
