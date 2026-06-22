@@ -35,18 +35,25 @@
     ${EndIf}
   ${EndIf}
 
-  ; Ярлык на рабочем столе — запускает CodeViper.cmd через cmd.exe скрыто
+  ; Ярлык на рабочем столе и в Start Menu — запускает CodeViper.cmd через cmd.exe скрыто
   ; Кавычки: /c ""путь"" — cmd.exe снимает внешние кавычки, выполняет внутренние
   DetailPrint "Создаём ярлык на рабочем столе..."
   CreateShortcut "$DESKTOP\CodeViper.lnk" "$SYSDIR\cmd.exe" '/c $\"$\"$APPDATA\CodeViper\source\CodeViper.cmd$\"$\"' "$INSTDIR\CodeViper.exe" 0 SW_SHOWMINIMIZED "" "CodeViper — локальный AI-агент"
+
+  ; Ярлык в Start Menu Programs
+  DetailPrint "Создаём ярлык в меню Пуск..."
+  CreateDirectory "$SMPROGRAMS\CodeViper"
+  CreateShortcut "$SMPROGRAMS\CodeViper\CodeViper.lnk" "$SYSDIR\cmd.exe" '/c $\"$\"$APPDATA\CodeViper\source\CodeViper.cmd$\"$\"' "$INSTDIR\CodeViper.exe" 0 SW_SHOWMINIMIZED "" "CodeViper — локальный AI-агент"
+  CreateShortcut "$SMPROGRAMS\CodeViper\Удалить.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0 SW_NORMAL
 
 !macroend
 
 ; ─── Удаление ────────────────────────────────────────────────────────────────
 !macro customUnInstall
 
-  ; Удаляем ярлык
+  ; Удаляем ярлыки
   Delete "$DESKTOP\CodeViper.lnk"
+  RMDir /r "$SMPROGRAMS\CodeViper"
 
   ; Предлагаем удалить исходный код (настройки и чаты в %APPDATA%\CodeViper\ остаются)
   MessageBox MB_YESNO|MB_ICONQUESTION \
