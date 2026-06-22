@@ -6,6 +6,7 @@ import type {
   ModelPlacement
 } from '../../../shared/modelProvider'
 import { modelsMatch } from '../../../shared/modelRouter'
+import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
 function translateOllamaError(status: number, raw: string): string {
   const r = raw.toLowerCase()
@@ -55,8 +56,76 @@ function translateOllamaError(status: number, raw: string): string {
   return `Ошибка Ollama (${status})`
 }
 
-export class OllamaProvider implements ModelProvider {
-  constructor(private baseUrl: string) {}
+export class OllamaProvider extends StreamingChatProvider implements ModelProvider {
+  constructor(private baseUrl: string) {
+    super()
+  }
+
+  protected override buildRequest(options: ChatOptions): { url: string; init: FetchInit } {
+    return {
+      url: `${this.baseUrl.replace(/\/$/, '')}/api/chat`,
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: options.model,
+          stream: true,
+          messages: options.messages,
+          temperature: options.temperature,
+          top_p: options.top_p,
+          tools: options.tools,
+          // tool_choice не поддерживается Ollama — не передаём
+          keep_alive: options.keep_alive ?? 5 * 60,
+          num_ctx: 4096,
+          num_predict: options.max_tokens ?? 2048,
+          ...(options.num_gpu != null ? { num_gpu: options.num_gpu } : {})
+        })
+      }
+    }
+  }
+
+  protected override createChunkParser(_options: ChatOptions): ChunkParser {
+    return {
+      parse(line: string): ChatChunk | null {
+        try {
+          const chunk = JSON.parse(line) as {
+            message?: { content?: string; thinking?: string }
+            stop_reason?: string
+            eval_count?: number
+            eval_duration?: number
+            prompt_eval_count?: number
+            prompt_eval_duration?: number
+            model?: string
+          }
+          return {
+            content: chunk.message?.content ?? '',
+            thinking: chunk.message?.thinking,
+            stop_reason: chunk.stop_reason,
+            eval_count: chunk.eval_count,
+            eval_duration: chunk.eval_duration,
+            prompt_eval_count: chunk.prompt_eval_count,
+            prompt_eval_duration: chunk.prompt_eval_duration,
+            model: chunk.model
+          }
+        } catch {
+          return null
+        }
+      },
+      finalize(): ChatChunk[] {
+        return []
+      }
+    }
+  }
+
+  protected override handleHttpError(status: number, body: string): never {
+    let raw = ''
+    try {
+      raw = (JSON.parse(body) as { error?: string }).error ?? ''
+    } catch {
+      /* ignore */
+    }
+    throw new Error(translateOllamaError(status, raw))
+  }
 
   async ping(signal?: AbortSignal): Promise<boolean> {
     try {
@@ -84,95 +153,6 @@ export class OllamaProvider implements ModelProvider {
       }))
     } catch {
       return []
-    }
-  }
-
-  async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
-    const url = this.baseUrl.replace(/\/$/, '')
-    const res = await fetch(`${url}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: options.model,
-        stream: true,
-        messages: options.messages,
-        temperature: options.temperature,
-        top_p: options.top_p,
-        tools: options.tools,
-        // tool_choice не поддерживается Ollama — не передаём
-        keep_alive: options.keep_alive ?? 5 * 60,
-        num_ctx: 4096,
-        num_predict: options.max_tokens ?? 2048,
-        ...(options.num_gpu != null ? { num_gpu: options.num_gpu } : {})
-      }),
-      signal: options.signal
-    })
-
-    if (!res.ok) {
-      let rawError = ''
-      try {
-        const body = (await res.json()) as { error?: string }
-        rawError = body.error ?? ''
-      } catch {
-        /* ignore */
-      }
-      throw new Error(translateOllamaError(res.status, rawError))
-    }
-
-    const reader = res.body?.getReader()
-    if (!reader) throw new Error('No response body')
-
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (!line.trim()) continue
-          try {
-            const chunk = JSON.parse(line)
-            yield {
-              content: chunk.message?.content ?? '',
-              thinking: chunk.message?.thinking,
-              stop_reason: chunk.stop_reason,
-              eval_count: chunk.eval_count,
-              eval_duration: chunk.eval_duration,
-              prompt_eval_count: chunk.prompt_eval_count,
-              prompt_eval_duration: chunk.prompt_eval_duration,
-              model: chunk.model
-            }
-          } catch {
-            // skip malformed JSON
-          }
-        }
-      }
-
-      if (buffer.trim()) {
-        try {
-          const chunk = JSON.parse(buffer)
-          yield {
-            content: chunk.message?.content ?? '',
-            thinking: chunk.message?.thinking,
-            stop_reason: chunk.stop_reason,
-            eval_count: chunk.eval_count,
-            eval_duration: chunk.eval_duration,
-            prompt_eval_count: chunk.prompt_eval_count,
-            prompt_eval_duration: chunk.prompt_eval_duration,
-            model: chunk.model
-          }
-        } catch {
-          // skip malformed JSON
-        }
-      }
-    } finally {
-      reader.releaseLock()
     }
   }
 
@@ -234,19 +214,17 @@ export class OllamaProvider implements ModelProvider {
   }
 
   async ensureModelLoaded(model: string, signal?: AbortSignal): Promise<void> {
-    // Проверяем, загружена ли модель
     const loaded = await this.listModels()
     if (loaded.some((item) => modelsMatch(item.name, model))) {
-      return // модель уже загружена
+      return
     }
 
-    // Загружаем модель через pull
     const url = this.baseUrl.replace(/\/$/, '')
     const res = await fetch(`${url}/api/pull`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: model, stream: false }),
-      signal: signal || AbortSignal.timeout(10 * 60 * 1000) // 10 минут таймаут для загрузки
+      signal: signal || AbortSignal.timeout(10 * 60 * 1000)
     })
 
     if (!res.ok) {
@@ -257,7 +235,6 @@ export class OllamaProvider implements ModelProvider {
   async getModelMemoryInfo(
     model?: string
   ): Promise<{ name: string; size?: number; vram?: number }[]> {
-    // Получить информацию о памяти, занимаемой моделями
     try {
       const res = await fetch(`${this.baseUrl}/api/ps`)
       if (!res.ok) return []

@@ -5,8 +5,12 @@ import type {
   LoadedModel,
   ModelPlacement
 } from '../../../shared/modelProvider'
+import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
-export class OpenAIProvider implements ModelProvider {
+export class OpenAIProvider extends StreamingChatProvider implements ModelProvider {
+  /** Exponential backoff при HTTP 429: 1 с → 2 с → 4 с → 8 с. */
+  protected override readonly BACKOFF_MS = [1000, 2000, 4000, 8000]
+
   constructor(
     private baseUrl: string,
     private apiKey: string,
@@ -14,7 +18,192 @@ export class OpenAIProvider implements ModelProvider {
     private extraHeaders: Record<string, string> = {},
     /** Полный URL для GET-запроса списка моделей (переопределяет дефолтный /models) */
     private listModelsUrl?: string
-  ) {}
+  ) {
+    super()
+  }
+
+  protected override buildRequest(options: ChatOptions): { url: string; init: FetchInit } {
+    const url = `${this.baseUrl.replace(/\/$/, '')}/chat/completions`
+
+    // ChatOptions использует Anthropic-формат { name, description, input_schema }.
+    // OpenAI-совместимые API (DeepSeek и др.) ожидают { type, function: { name, description, parameters } }.
+    const openAiTools = options.tools?.map((t) => ({
+      type: 'function' as const,
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: t.input_schema
+      }
+    }))
+
+    // DeepSeek и OpenAI v2 поддерживают 'required'; другие провайдеры понимают 'auto'.
+    const toolChoice = options.tool_choice ?? 'auto'
+
+    // Маппинг сообщений с поддержкой нативных tool calls (assistant) и tool results (tool_call_id).
+    const mappedMessages = options.messages.map((msg) => {
+      const m: Record<string, unknown> = {
+        role: msg.role,
+        // OpenAI spec: content должен быть null (не "") для assistant-сообщений с tool_calls
+        content: msg.tool_calls?.length && !msg.content ? null : (msg.content ?? null)
+      }
+      if (msg.tool_calls?.length) {
+        m.tool_calls = msg.tool_calls
+      }
+      if (msg.tool_call_id) {
+        m.tool_call_id = msg.tool_call_id
+      }
+      return m
+    })
+
+    const body: Record<string, unknown> = {
+      model: options.model || this.modelName,
+      stream: true,
+      messages: mappedMessages,
+      temperature: options.temperature,
+      top_p: options.top_p,
+      max_tokens: options.max_tokens,
+      tools: openAiTools,
+      tool_choice: toolChoice
+    }
+
+    // Некоторые OpenAI-совместимые API (DeepSeek, др.) поддерживают thinking
+    // для моделей с расширенными возможностями (о1, о3, r1)
+    const modelName = options.model || this.modelName
+    if (modelName && /^(o1|o3|deepseek-r1|qwq)/.test(modelName)) {
+      body.reasoning_effort = 'medium'
+    }
+
+    return {
+      url,
+      init: {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+          ...this.extraHeaders
+        },
+        body: JSON.stringify(body)
+      }
+    }
+  }
+
+  protected override createChunkParser(options: ChatOptions): ChunkParser {
+    // Аккумулятор нативных tool calls из стриминга (OpenAI формат — delta по index).
+    type AccToolCall = { id: string; name: string; arguments: string }
+    const accToolCalls: AccToolCall[] = []
+    let toolCallsYielded = false
+    const modelName = options.model || this.modelName
+
+    return {
+      parse(line: string): ChatChunk | null {
+        if (!line.startsWith('data: ')) return null
+        const data = line.slice(6).trim()
+        if (data === '[DONE]') return null
+
+        try {
+          const chunk = JSON.parse(data) as {
+            choices?: Array<{
+              delta?: {
+                content?: string
+                reasoning?: string
+                thinking?: string
+                tool_calls?: Array<{
+                  index: number
+                  id?: string
+                  type?: string
+                  function?: { name?: string; arguments?: string }
+                }>
+              }
+              finish_reason?: string | null
+            }>
+            usage?: { total_tokens?: number }
+          }
+          const choice = chunk.choices?.[0]
+          const delta = choice?.delta
+          if (!delta) return null
+
+          // Накапливаем delta.tool_calls по индексу
+          if (delta.tool_calls) {
+            for (const tc of delta.tool_calls) {
+              if (!accToolCalls[tc.index]) {
+                accToolCalls[tc.index] = { id: tc.id ?? '', name: '', arguments: '' }
+              }
+              const acc = accToolCalls[tc.index]
+              if (tc.id) acc.id = tc.id
+              if (tc.function?.name) acc.name += tc.function.name
+              if (tc.function?.arguments) acc.arguments += tc.function.arguments
+            }
+          }
+
+          // Конвертируем в единый формат ChatChunk
+          const chatChunk: ChatChunk = {
+            content: delta.content ?? '',
+            stop_reason: choice?.finish_reason ?? undefined,
+            model: modelName
+          }
+
+          // Некоторые провайдеры могут передавать thinking в delta
+          if (delta.reasoning) {
+            chatChunk.thinking = delta.reasoning
+          } else if (delta.thinking) {
+            chatChunk.thinking = delta.thinking
+          }
+
+          // При завершении с tool_calls — выдаём финальный чанк с накопленными вызовами
+          if (choice?.finish_reason === 'tool_calls' && accToolCalls.length > 0) {
+            const assembled = accToolCalls
+              .filter((tc) => tc.id && tc.name)
+              .map((tc) => ({
+                id: tc.id,
+                type: 'function' as const,
+                function: { name: tc.name, arguments: tc.arguments }
+              }))
+            if (assembled.length > 0) {
+              chatChunk.tool_calls = assembled
+              toolCallsYielded = true
+            }
+          }
+
+          // Некоторые стриминговые ответы включают usage прямо в chunk
+          if (chunk.usage?.total_tokens) {
+            chatChunk.total_tokens = chunk.usage.total_tokens
+          }
+
+          return chatChunk
+        } catch {
+          return null
+        }
+      },
+
+      finalize(): ChatChunk[] {
+        // Fallback: стрим закончился без finish_reason='tool_calls', но tool_calls накоплены
+        if (!toolCallsYielded && accToolCalls.length > 0) {
+          const assembled = accToolCalls
+            .filter((tc) => tc.id && tc.name)
+            .map((tc) => ({
+              id: tc.id,
+              type: 'function' as const,
+              function: { name: tc.name, arguments: tc.arguments }
+            }))
+          if (assembled.length > 0) {
+            return [{ content: '', tool_calls: assembled }]
+          }
+        }
+        return []
+      }
+    }
+  }
+
+  protected override handleHttpError(status: number, body: string): never {
+    let detail = body
+    try {
+      const parsed = JSON.parse(body) as { error?: { message?: string } }
+      if (parsed?.error?.message) detail = parsed.error.message
+    } catch {
+      /* keep raw body */
+    }
+    throw new Error(`OpenAI API error ${status}: ${detail}`)
+  }
 
   async ping(signal?: AbortSignal): Promise<boolean> {
     try {
@@ -54,210 +243,6 @@ export class OpenAIProvider implements ModelProvider {
         .filter(Boolean) as LoadedModel[]
     } catch {
       return []
-    }
-  }
-
-  async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
-    const url = this.baseUrl.replace(/\/$/, '')
-    // ChatOptions использует Anthropic-формат { name, description, input_schema }.
-    // OpenAI-совместимые API (DeepSeek и др.) ожидают { type, function: { name, description, parameters } }.
-    const openAiTools = options.tools?.map((t) => ({
-      type: 'function' as const,
-      function: {
-        name: t.name,
-        description: t.description,
-        parameters: t.input_schema
-      }
-    }))
-
-    // DeepSeek и OpenAI v2 поддерживают 'required'; другие провайдеры понимают 'auto'.
-    const toolChoice = options.tool_choice ?? 'auto'
-
-    // Маппинг сообщений с поддержкой нативных tool calls (assistant) и tool results (tool_call_id).
-    const mappedMessages = options.messages.map((msg) => {
-      const m: Record<string, unknown> = {
-        role: msg.role,
-        // OpenAI spec: content должен быть null (не "") для assistant-сообщений с tool_calls
-        content: msg.tool_calls?.length && !msg.content ? null : (msg.content ?? null)
-      }
-      if (msg.tool_calls?.length) {
-        m.tool_calls = msg.tool_calls
-      }
-      if (msg.tool_call_id) {
-        m.tool_call_id = msg.tool_call_id
-      }
-      return m
-    })
-
-    const body = {
-      model: options.model || this.modelName,
-      stream: true,
-      messages: mappedMessages,
-      temperature: options.temperature,
-      top_p: options.top_p,
-      max_tokens: options.max_tokens,
-      tools: openAiTools,
-      tool_choice: toolChoice
-    } as Record<string, unknown>
-
-    // Некоторые OpenAI-совместимые API (DeepSeek, др.) поддерживают thinking
-    // для моделей с расширенными возможностями (о1, о3, r1)
-    const modelName = options.model || this.modelName
-    if (modelName && /^(o1|o3|deepseek-r1|qwq)/.test(modelName)) {
-      body.reasoning_effort = 'medium'
-    }
-
-    const BACKOFF_MS = [1000, 2000, 4000, 8000]
-
-    const fetchChat = () =>
-      fetch(`${url}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-          ...this.extraHeaders
-        },
-        body: JSON.stringify(body),
-        signal: options.signal
-      })
-
-    let res = await fetchChat()
-    for (let attempt = 0; res.status === 429 && attempt < BACKOFF_MS.length; attempt++) {
-      const jitter = Math.floor(Math.random() * 200)
-      const waitMs = BACKOFF_MS[attempt]! + jitter
-      options.onRetry429?.(waitMs, attempt + 1)
-      await new Promise<void>((resolve) => setTimeout(resolve, waitMs))
-      res = await fetchChat()
-    }
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '')
-      let detail = errBody
-      try {
-        const parsed = JSON.parse(errBody) as { error?: { message?: string } }
-        if (parsed?.error?.message) detail = parsed.error.message
-      } catch {
-        /* keep raw body */
-      }
-      throw new Error(`OpenAI API error ${res.status}: ${detail}`)
-    }
-
-    const reader = res.body?.getReader()
-    if (!reader) throw new Error('No response body')
-
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    // Аккумулятор нативных tool calls из стриминга (OpenAI формат — delta по index).
-    type AccToolCall = { id: string; name: string; arguments: string }
-    const accToolCalls: AccToolCall[] = []
-    let toolCallsYielded = false
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (!line.trim() || !line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
-
-          try {
-            const chunk = JSON.parse(data) as {
-              choices?: Array<{
-                delta?: {
-                  content?: string
-                  reasoning?: string
-                  thinking?: string
-                  tool_calls?: Array<{
-                    index: number
-                    id?: string
-                    type?: string
-                    function?: { name?: string; arguments?: string }
-                  }>
-                }
-                finish_reason?: string | null
-              }>
-              usage?: { total_tokens?: number }
-            }
-            const choice = chunk.choices?.[0]
-            const delta = choice?.delta
-            if (!delta) continue
-
-            // Накапливаем delta.tool_calls по индексу
-            if (delta.tool_calls) {
-              for (const tc of delta.tool_calls) {
-                if (!accToolCalls[tc.index]) {
-                  accToolCalls[tc.index] = { id: tc.id ?? '', name: '', arguments: '' }
-                }
-                const acc = accToolCalls[tc.index]
-                if (tc.id) acc.id = tc.id
-                if (tc.function?.name) acc.name += tc.function.name
-                if (tc.function?.arguments) acc.arguments += tc.function.arguments
-              }
-            }
-
-            // Конвертируем в единый формат ChatChunk
-            const chatChunk: ChatChunk = {
-              content: delta.content ?? '',
-              stop_reason: choice?.finish_reason ?? undefined,
-              model: options.model || this.modelName
-            }
-
-            // Некоторые провайдеры могут передавать thinking в delta
-            if (delta.reasoning) {
-              chatChunk.thinking = delta.reasoning
-            } else if (delta.thinking) {
-              chatChunk.thinking = delta.thinking
-            }
-
-            // При завершении с tool_calls — выдаём финальный чанк с накопленными вызовами
-            if (choice?.finish_reason === 'tool_calls' && accToolCalls.length > 0) {
-              const assembled = accToolCalls
-                .filter((tc) => tc.id && tc.name)
-                .map((tc) => ({
-                  id: tc.id,
-                  type: 'function' as const,
-                  function: { name: tc.name, arguments: tc.arguments }
-                }))
-              if (assembled.length > 0) {
-                chatChunk.tool_calls = assembled
-                toolCallsYielded = true
-              }
-            }
-
-            // Некоторые стриминговые ответы включают usage прямо в chunk
-            if (chunk.usage?.total_tokens) {
-              chatChunk.total_tokens = chunk.usage.total_tokens
-            }
-
-            yield chatChunk
-          } catch {
-            // skip malformed JSON
-          }
-        }
-      }
-
-      // Fallback: стрим закончился без finish_reason='tool_calls', но tool_calls накоплены
-      if (!toolCallsYielded && accToolCalls.length > 0) {
-        const assembled = accToolCalls
-          .filter((tc) => tc.id && tc.name)
-          .map((tc) => ({
-            id: tc.id,
-            type: 'function' as const,
-            function: { name: tc.name, arguments: tc.arguments }
-          }))
-        if (assembled.length > 0) {
-          yield { content: '', tool_calls: assembled }
-        }
-      }
-    } finally {
-      reader.releaseLock()
     }
   }
 
