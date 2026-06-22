@@ -1,4 +1,582 @@
-# Changelog
+### [0.1.1] — 2026-06-22
+
+### Новые возможности
+- feat: инструмент create_linear_issue для создания Issue в Linear GraphQL API
+- feat: инструмент create_jira_issue для создания Issue в Jira REST API
+- feat: дополнить NSIS-установщик — ярлыки в Start Menu
+- feat: POSIX-лаунчер CodeViper.sh для Linux/macOS, CI матрица ubuntu/macos
+- feat: изоляция плагинов в worker_thread для безопасности
+- feat: компиляция plugins/*.ts через esbuild с кэшем по mtime
+- feat: вкладка «Плагины» в настройках с кнопкой открытия папки
+- feat: сканирование plugins/*.js при старте — регистрация инструментов плагинов
+- feat: собрать первый NSIS-установщик, добавить electron-builder и icon.ico
+- feat: авто-тег при commit+push в packaged-режиме
+- feat: пропуск build в packaged-режиме при самообучении
+- feat: добавить поле «Путь к исходникам» в настройки
+- feat: добавить node-llama-cpp и @electron/rebuild, скрипт rebuild
+- feat: electron-updater для GitHub Releases + формат ROADMAP для самообучения
+- feat: коллективная память на GitHub с UI в статус-баре агента
+- feat: отдельная ветка agent/self-improve для самоулучшения
+- feat: POST /tools/result после выполнения MCP-инструментов
+- feat: динамические MCP-инструменты агента через POST /tools/call
+- feat: секция MCP-серверов в настройках (вкладка Интеграции)
+- feat: mcpRegistry — регистрация MCP-серверов через /.well-known/mcp
+- feat: getBundledNodeBin и PATH для самопересборки через bundled Node
+- feat: extraResources для portable Node.js в дистрибутиве
+- feat: скрипт setup-node для portable Node.js LTS перед dist
+- feat: RPD лимиты для моделей Gemini Free; добавить Gemini 2.5 Flash и 3.5 Flash
+- feat: NSIS-скрипт installer.nsh — git clone репозитория при установке, ярлык CodeViper.cmd на рабочем столе
+- feat: disabledTools — отключение групп инструментов агента в настройках
+- feat: release.yml — electron-builder для win/linux/macos при push тега v*
+- feat: agentHandlersGitLab — list_gitlab_mrs, create_gitlab_mr, get_gitlab_pipeline
+- feat: инструмент review_code — ESLint для TS/JS, Ruff для Python
+- feat: инструмент run_script — запуск Python/PowerShell/Bash-скриптов через интерпретатор
+- feat: инструмент search_in_project — type=content (grep) или type=name (find) в одном вызове
+- feat: инструмент read_multiple_files — читает массив файлов за один вызов, снижает round-trip
+- feat: FileTimelinePanel — история изменений файла из ПКМ-меню в ответе агента; IPC read-file-history
+- feat: ChatHistoryPanel — группировка чатов по projectPath с авторазворачиванием активной группы
+- feat: OllamaDownloadStatus — скользящее окно 10 с, скорость загрузки, «Осталось ~N мин»
+- feat: поле customSystemPrompt — дополнительные инструкции в конец системного промпта агента
+- feat: шпаргалка горячих клавиш — открытие по ? или кнопке в топбаре; 4 секции с kbd-бейджами
+- feat: поиск по настройкам в SettingsModal — фильтрация по всем вкладкам, подсветка совпадений
+- feat: circuit breaker в modelRuntime — open/half-open/closed; статус в AgentStatusBar с обратным отсчётом
+- feat: shared/ipcContracts.ts — Zod-схемы и константы всех IPC-каналов
+- feat: exponential backoff для HTTP 429 в OpenAI-провайдере + статус в AgentStatusBar
+- feat: commandBlocklist — пользовательские запрещённые паттерны команд; редактирование в SettingsModal.tsx
+- feat: добавить провайдеры Groq и Together AI — togetherProvider.ts, UI в SettingsModal.tsx, поля groqApiKey/togetherApiKey
+- feat: пресеты суммаризации (55/70/85%), провайдер Groq; fix: артефакты Read-инструмента в settings.ts/modelRuntime.ts/contextSummarizer.ts
+- feat: удалять ошибочные tool results если для того же инструмента есть более поздний успешный результат
+- feat: LRU-кэш 200 записей для find_files в fileSearchInWorker, инвалидация по mtime корневой директории
+- feat: веб-инструменты агента — web_search и web_fetch
+- feat: VectorStore абстракция — Qdrant и Milvus как альтернатива локальному RAG
+- feat: авто-превью файлов >20 КБ — первые/последние 50 строк с маркером обрезки
+- feat: дедупликация повторяющихся tool results перед суммаризацией контекста
+- feat: LLM-верификация граничных случаев в actionVerification; fix ChatChunk.content в classifyMutationNeededByLLM
+- feat: убрать 3b/4b модели из списка скачивания — минимум 7b для агента
+- feat: preview_patch + защита от усечения в preview_edit + восстановить agentTools/agent после поломки
+- feat: показывать RPM/TPM лимиты в пикере модели для Gemini free tier
+- feat: переключатель бесплатный/платный уровень для Gemini с фиксированными лимитами
+- feat: настройка RPM для Gemini API в настройках (по умолчанию 5)
+- feat: чип 'Планирую' в статус-баре при оркестрации агента
+- feat: трассировка пишет в буфер всегда, даже когда панель закрыта
+- feat: показывать живой таймер и токены в строке статуса агента
+- feat: добавить ссылки на страницы моделей Ollama в каталоге ModelPanel
+- feat: переводить ошибки Ollama на русский с советами по исправлению (OOM, модель не найдена и др.)
+- feat: настройка числа GPU-слоёв Ollama (num_gpu) — запускать крупные модели при нехватке VRAM
+- feat: добавить панель трассировки агента — сырой лог запросов к модели и вызовов инструментов
+- feat: автоустановка React DevTools при старте приложения
+- feat: кнопка DevTools в топбаре — открывает консоль разработчика в отдельном окне
+- feat: параллельные агенты в разных чатах — Map<chatId, messages> + отдельный ChatPanel на каждый смонтированный чат
+- feat: виртуализация списка сообщений в ChatPanel (@tanstack/react-virtual)
+- feat: иконка-пульс в списке чатов когда агент работает
+- feat: сворачиваемые вызовы инструментов по образцу Claude Code — каждый инструмент отдельной строкой с раскрытием результата
+- feat: кнопка «Сжать историю» в превью контекста при заполнении > 60%
+- feat: добавить TRON (Token Reduced Object Notation) для компактизации данных
+- feat: добавить поддержку .ignore-файлов для оптимизации анализа кода
+- feat: добавить провайдер Claude (Anthropic API) со стримингом и tool use
+- feat: добавить rate limiting для Gemini API с защитой от 429 quota exceeded
+- feat: добавить информационную полосу над чатом с кружком контекста, селектором модели и статистикой
+- feat: добавить селектор режимов работы агента под блоком ввода (Ask/Accept/Bypass)
+- feat: добавить стриминг в Gemini провайдер, обновить список моделей
+- feat: Zod-схема AgentSettings + AbortSignal diffUtil + кэш контекст-превью + PR-панель isOpen + create_issue
+- feat: вкладка Производительность в настройках — энергосбережение, CPU/GPU-статы, ручной PR
+- feat: настройки Qdrant — вкладка Интеграции, URL + API key, проверка соединения, qdrant-client
+- feat: AbortSignal в createUnifiedDiff — проверка каждые 500 итераций LCS, fallback на построчный diff
+- feat: статистика под сообщением, пульс вместо бегунка, убран CPU/GPU из статусбара
+- feat: агент автоматически создаёт todo-лист для нетривиальных задач и выполняет по пунктам; удалён неиспользуемый useTodoList.ts
+- feat: скилл Todo List — агент управляет задачами через инструменты, компактная панель над полем ввода
+- feat: оптимизация токенов + новый инструмент search_in_file
+- feat: раздельные списки чатов для режимов Chat и Code
+- feat: скрыть кнопки чата в список — появляются при наведении
+- feat: кнопки сообщения убраны в меню ··· (три точки)
+- feat: новый стиль чата — user пузырёк справа, assistant без бокса
+- feat: добавить Co-authored-by CodeViperApp в автокоммиты агента
+- feat: исключение reasoning из истории контекста — опция в настройках
+- feat: логотип из icon.png в топбаре вместо эмодзи змеи
+- feat: список моделей OpenRouter с фильтром tool calling; поиск по имени; отображение размера контекста
+- feat: раздельные API ключи для DeepSeek, OpenAI и OpenRouter; миграция со старого providerApiKey
+- feat: провайдер OpenRouter — агрегатор моделей (GPT-4o, Claude, Gemini, Llama и др.)
+- feat: многофайловые вложения — размер в чипах, лимит 10 файлов, список над полем ввода
+- feat: drag-and-drop файлов в поле ввода — чипы + путь в сообщении
+- feat: dual-provider режим — Ollama и облачный API одновременно
+- feat: показывать замок на кнопке проекта если чат уже содержит сообщения
+- feat: контекст — компактный попап справа снизу вместо большого модала
+- feat: переместить выбор модели из топбара под поле ввода
+- feat: история правок файлов — NDJSON-лог при edit/write/create + инструмент show_file_history
+- feat: preview_edit — diff-предпросмотр правок с кнопками Применить/Отмена
+- feat: отложенное применение правок агента через git stash + pending-restart
+- feat: переключатель Chat / Code в боковой панели
+- feat: компактный input — textarea + однострочный футер с чипами
+- feat: адаптивные лимиты контекста по окну модели
+- feat: совместимость моделей — зелёная галочка / оранжевое предупреждение, несовместимые disabled
+- feat: клик на путь файла в сообщении агента открывает его в проводнике
+- feat: detect merged updates and offer restart for rebuild
+- feat: PR status panel (gh pr list + CI status, poll every 60s)
+- feat: agent can open PRs via create_codeviper_pr (gh pr create)
+- feat: extended git-sync settings (strategy + uncommitted warning)
+- feat: progress indicator for long operations
+- feat: GPU/CPU indicator in status bar during agent generation
+- feat: virtualize chat history, memory, and skills lists via @tanstack/react-virtual
+- feat: terminal command autocomplete with history (up to 200 cmds in localStorage)
+- feat: add husky pre-commit hook + lint-staged, lint step in CI
+- feat: add semantic versioning script and CHANGELOG
+- feat: implement error interception and logging (ROADMAP items 1-3)
+- feat: implement queue reliability ROADMAP items 38-44
+- feat: implement Level 2a ROADMAP items 31-37
+- feat: implement all Level 2 ROADMAP items 20–30
+- feat: implement all Level 1 ROADMAP items 6–19
+- feat: debounce previewAgentContext 350→600 мс; настраиваемый таймаут команд
+### Исправления
+- fix: переиндексировать пункты ROADMAP — нумерация 1-61 без пропусков (удалены 8, 11-14, 16, 42)
+- fix: исправить навигацию в подсказке GitHub Token и удалить неиспользуемые @ts-expect-error
+- fix: исправить типы и включить автоматический rebuild native-модулей
+- fix: пересборка out/ при устаревших исходниках electron/shared
+- fix: запускать electron напрямую (npm run start) вместо electron-vite dev — исключает пересборку с кэшем
+- fix: пересборка при изменении зависимостей (npm install → needBuild)
+- fix: починить провальные тесты в CI (electron mock, binary name, provider mocks, backoff)
+- fix: исправить импорт autoUpdater из electron-updater (CommonJS default export)
+- fix: не требовать node_modules без зависимостей в package.json
+- fix: убрать Gemma 4 26B и 31B из списка бесплатных моделей Gemini
+- fix: бандлить zod в preload — sandbox-режим не может require() npm-пакеты
+- fix: вернуть npm run dev — electron. и electron-vite preview не грузят ES-модули через file:// в sandbox-режиме
+- fix: убрать crossorigin из собранного HTML — блокировал скрипты при file:// в Electron
+- fix: npm run start — electron . вместо electron-vite preview (чёрный экран при запуске)
+- fix: обновить тест recommendedModels — убрать устаревший тир '6-8' и минимум 16 моделей
+- fix: подсказка про размер контекста при пустом ответе маленькой модели
+- fix: синхронизировать AGENT_TOOL_NAMES со всеми инструментами; скрывать JSON-попытки вызова несуществующих инструментов
+- fix: промпт — запрет на лишнее исследование проекта, явный порядок отметки todo
+- fix: preview_edit в режиме bypass применяется без подтверждения; восстановить selfCommit.ts после поломки агентом
+- fix: set_todo_list принимает нативный массив от Gemini (и строку от Ollama)
+- fix: синхронизировать пикер модели в чате с free-режимом Gemini, обновить ID gemini-2.5-flash-lite
+- fix: скрыть CloudModelSelector для Gemini в бесплатном режиме
+- fix: исправить тесты embeddingQueue — добавить await Promise.resolve() для микротасков scheduleFlush
+- fix: исправить моргание таймера и '0.0 tok/s' для Gemini в статус-баре
+- fix: перевести ошибку rate limit Gemini на русский, починить парсинг 'retry in 60 seconds'
+- fix: запускать из собранного out/ (npm run start), а не dev-сервера с hot-reload
+- fix: резолвить пути файловых операций от projectPath, уточнить инструкцию в промпте
+- fix: выравнивать дропдаун выбора модели по правому краю
+- fix: скрывать размер модели если данных нет (убрать NaN MB)
+- fix: фильтровать модели без tool calling через capabilities Ollama API
+- fix: убрать скроллбары при открытии селектора моделей (overflow:hidden на body); показывать размер модели (3B/7B) в дропдауне
+- fix: embeddingWorker не слал ready — очередь эмбеддингов зависала, агент не стартовал; добавить таймаут 5с на RAG-поиск
+- fix: добавить unsafe-inline в script-src CSP — Vite HMR требует инлайн-скрипт для React Refresh
+- fix: добавить Content-Security-Policy — meta-тег + webRequest.onHeadersReceived
+- fix: бесконечный ре-рендер QueueContext — onBusyChange через ref, убран из deps useEffect
+- fix: retry-цикл в selfCommit.ts — 3 попытки 1с→2с, throw с деталями при исчерпании
+- fix: показывать блок размышлений во время стриминга (live ThinkingBlock)
+- fix: разрешить создание новых чатов и переключение между чатами пока агент работает
+- fix: обновлять список моделей при смене провайдера
+- fix: use unique values in embeddingQueue test to avoid cache conflicts
+- fix: убрать повторное трансформирование инструментов в agent.ts
+- fix: уменьшить размер кружка контекста (48px → 32px)
+- fix: показывать облачные модели в селекторе при выборе Gemini/DeepSeek/OpenAI
+- fix: скрывать селектор моделей для суммаризации при облачных провайдерах
+- fix: убрать предупреждение о частичном/CPU размещении модели
+- fix: Object has been destroyed при закрытии окна во время стриминга
+- fix: скрыть полоску прогресса в статус-баре агента
+- fix: sidebar-стили настроек (CSS не попал в предыдущий коммит)
+- fix: e2e тесты чата — создавать чат перед проверкой пикера и ввода текста
+- fix: e2e тесты — data-testid для пикера модели, ожидание enabled для textarea
+- fix: ESM совместимость в e2e/helpers.ts — заменить __dirname на fileURLToPath
+- fix: убрать projects:[] из playwright.config — Playwright не находил тесты
+- fix: убрать таймер времени из топбара, оставить только счётчик токенов
+- fix: заменить эмодзи змеи на логотип приложения в WelcomePanel
+- fix: убрать loopRecoveryCount — при зацикливании всегда nudge, никогда не останавливаться
+- fix: защита от циклов — вместо обрыва просим модель дать финальный текстовый ответ
+- fix: удалить maxSteps полностью — лимит шагов прерывает сложные задачи
+- fix: реализовать лимит шагов агента maxSteps — emit error + done при превышении
+- fix: добавить maxSteps в AgentSettings и реализовать лимит шагов агента
+- fix: корректный лимит контекста для облачных моделей (deepseek-chat → 64k)
+- fix: гонка инициализации embeddingQueue — очередь до ready, сброс при падении воркера
+- fix: сбрасывать draft и draftMessageId при tool_start — ответы больше не сшиваются в одно сообщение
+- fix: очищать editSnapshots в начале каждого прогона агента
+- fix: устойчивость при смене монитора — флаги GPU + авто-reload рендерера при краше
+- fix: исправить заголовок X-Title -> X-OpenRouter-Title согласно документации; удалить мусорный файл agentHandlersProject.ts из src/
+- fix: убрать заголовок чата из топбара; добавить пункт о стабильности при смене монитора в ROADMAP
+- fix: восстановление после циклов агента вместо остановки — подсказка модели и продолжение прогона; React.memo на MessageBody
+- fix: поднять MAX_SAME_TOOL_TOTAL с 15 до 50 — не мешать чтению многих файлов
+- fix: коалесцирование writeJsonAtomic — не более 1 активной + 1 ожидающей записи, устраняет таймаут updateChat при стриминге
+- fix: удалять сирот tool/assistant после обрезки истории cloud-провайдера — устраняет 400 tool without tool_calls
+- fix: очередь записи per-path в writeJsonAtomic — устраняет гонку rename на Windows
+- fix: убрать tool_choice из Ollama-запроса — Ollama не поддерживает этот параметр, он вызывал 500
+- fix: разрешить удаление неактивных чатов пока агент работает в другом чате
+- fix: убрать fallback на Ollama при сбое облачного API — ошибка теперь показывается напрямую
+- fix: подставлять URL DeepSeek автоматически при отсутствии baseUrl
+- fix: агент не завершается молча при пустом ответе модели
+- fix: агент не завершается на коротком намерении без вызова инструментов
+- fix: не требовать Ollama при облачном провайдере (предстартовая проверка)
+- fix: корректное масштабирование UI, сообщения не вылезают за окно
+- fix: единый husky — канонический app/.husky, pre-commit с cd app
+- fix: define dark-theme accent colors in :root (were self-referential)
+- fix: remove completed queue-reliability group from В планах (items 38-44 already in ✅ Сделано)
+- fix: useContextPreview — логировать ошибки и показывать в AgentContextBar
+- fix: useContextPreview — пропускать запрос при пустом вводе
+- fix: разорвать цикл самоулучшения при JSON-плане и tool_response в тексте
+- fix: не прерывать автономное самоулучшение после изучения кода
+- fix: восстановить импорт sanitizeAssistantContent в agent.ts.
+- fix: убрать self-import в AgentContextBar (Duplicate declaration).
+### Прочее
+- docs: завершить пункты 9-12 (плагины), обновить ROADMAP
+- docs: завершить пункт 1 ROADMAP (авто-тег после самообучения), перенумеровать оставшиеся на 1-68
+- docs: завершить задачу 2 (NSIS-установщик), перенумеровать оставшиеся пункты
+- docs: добавить в ROADMAP цепочку «Установленный CodeViper — самообновление без краша» (пункты 1–4)
+- docs: правила под формат ROADMAP для самообучения
+- ROADMAP: +26 пунктов (42–67) — агент, RAG, UX, subagents
+- ROADMAP: единый формат задач для самообучения (41 пункт)
+- docs(ROADMAP): декомпозиция цепочки коллективного обучения и UI агента
+- chore(self): автоправки агента — Самоулучшение CodeViper: прочитай app/shared/agentPrerequisites.ts, добавь JSDoc
+- docs: упоминание MCP-реестра в README
+- docs: память проекта — правило portable Node.js и обновление CLAUDE/AGENTS
+- docs: переструктурировать ROADMAP — цепочки с нумерацией вместо плоской таблицы
+- docs: декомпозиция node-llama-cpp на 4 подзадачи в ROADMAP
+- docs: декомпозиция задачи portable Node.js на 3 подзадачи в ROADMAP
+- docs: правило декомпозиции сложных задач перед реализацией
+- docs: перенести search_in_project из «В планах» в «Сделано»
+- docs: перенести read_multiple_files из «В планах» в «Сделано»
+- docs: перенести Qdrant/RAG из «В планах» в «Сделано» — все три пункта реализованы
+- debug: логировать console-ошибки рендерера и did-fail-load в logs/renderer-*.ndjson
+- docs: обновить ROADMAP — StreamingChatProvider выполнен
+- refactor: StreamingChatProvider — выделить общий стриминг из Ollama/OpenAI
+- docs: обновить ROADMAP — ipcContracts и TaskPlanner выполнены
+- refactor: вынести планирование в TaskPlanner, убрать ветвление из AgentRunner
+- docs: сократить README — детали в вики
+- docs: обновить ROADMAP (backoff 429 выполнен) + правило обновлять ROADMAP после задач
+- docs: правила синхронизации с GitHub и коммита после каждого изменения
+- perf: батчинг find_files — findMultiInTree обходит ФС один раз для нескольких паттернов, multi-find воркер
+- perf: LRU-кэш grep_files 500 записей; invalidateGrepCache подключён к fs.watch-вотчеру services.ts
+- docs: уточнить правило пуша — после любого коммита, не откладывать
+- docs: обновить ROADMAP — добавить 26 новых задач, убрать выполненные; добавить правило проверки перед реализацией в CLAUDE.md
+- docs: упорядочить ROADMAP по зависимостям, перенести разбивку agent.ts в Сделано
+- refactor: разбить agent.ts на 5 классов — ContextManager, ToolExecutor, SelfImprovementOrchestrator, LoopGuard, ResponseEmitter; AgentRunner стал фасадом
+- docs: обновить ROADMAP — MemoryStorage абстракция выполнена
+- refactor: web_search без Docker — скрапинг DuckDuckGo Lite, удалён SearXNG
+- refactor: MemoryStorage абстракция — FsMemoryStorage и InMemoryStorage для тестов
+- docs: убрать из планов per-chat projectPath — уже реализовано
+- docs: правило — обновлять ROADMAP после каждого коммита с изменением кода
+- docs: обновить ROADMAP — перенести 5 выполненных задач в раздел Сделано
+- perf: батчинг параллельных grep-запросов за один тик event loop
+- test: интеграционные тесты OllamaProvider и OpenAIProvider — стриминг, tool call, 429, разрыв соединения
+- docs: расширить CLAUDE.md — команды, архитектура, ограничения TS, нейминг, константы
+- docs: батчинг embeddingQueue уже реализован — перенести в сделано
+- docs: обновить README и ROADMAP — новые фичи, минимум 7b моделей, Gemini free tier
+- perf: батчинг эмбед��ингов до 4 запросов через Promise.all в embeddingQueue.ts
+- docs: обновить ROADMAP — отметить параллельные агенты, виртуализацию и пульс-иконку как выполненные
+- docs: обновить README (Anthropic/Gemini, вики, архитектура), пересортировать ROADMAP по модулю → приоритет
+- docs: расширить описания задач в ROADMAP — добавить файлы, логику и ожидаемый результат для каждой задачи
+- docs: убрать расшифровку сложности из дорожной карты
+- docs: дорожная карта отсортирована по приоритету (High → Medium → Low), внутри — по сложности
+- perf: обрезка старых tool-результатов в контексте — последние 5, остальные [результат обрезан]
+- perf: LRU-кэш 500 записей для read_file/read_codeviper_file с инвалидацией по mtime
+- docs: дорожная карта в табличном формате (модуль, приоритет, сложность, зависимости)
+- docs: убрать номера из пунктов дорожной карты
+- docs: убрать правило об отсутствии номеров в разделе Сделано
+- docs: убрать правило проверки внутренних ссылок при переносе пунктов
+- docs: убрать правило перенумерации пунктов ROADMAP из CLAUDE.md
+- docs: отметить порог суммаризации как выполненный, перенумеровать ROADMAP
+- refactor: перегруппировать ROADMAP с добавлением раздела 🟢 Лёгкие
+- docs: обновить ROADMAP по результатам TokenJam анализа
+- refactor: добавить в ROADMAP пункты про 'забывание лишнего' из контекста
+- refactor: оптимизировать инструменты агента с категоризацией и кэшированием
+- perf: сократить системные промпты агента через Instruction Distillation (~50% экономия)
+- refactor: обновить ROADMAP — переместить провайдер Claude в Сделано
+- refactor: объединять thinking и tool сообщения в одну группу для менее загромождённого UI
+- refactor: переместить селектор модели в metaRight рядом с кружком контекста
+- refactor: переместить кружок контекста в inputMeta (нижняя строка) с визуальным прогрессом
+- docs: обновить ROADMAP — актуализировать записи о провайдере Gemini
+- refactor: переписать Gemini провайдер — REST SSE стриминг, thinking, tool_config, убрать SDK
+- selfCommit_retry_backoff
+- refactor: удалить мёртвый CSS и неиспользуемые элементы полосы прогресса
+- refactor: sidebar-навигация в настройках + fix: лишний проп manualRefresh
+- docs: обязательный git push после каждого коммита
+- docs: удалить выполненный пункт (вкладка Производительность), перенумеровать
+- perf: динамический системный промпт — в режиме Chat только базовый промпт без инструментов и дерева проекта
+- perf: LRU-кэш grep (100 записей, инвалидация по mtime) и эмбеддингов (500 записей)
+- docs: PR-панель — опрос при открытой панели уже реализован, обновить ROADMAP
+- docs: обновить ROADMAP — create_issue и Gemini выполнены, перенумерация
+- perf: кэш контекст-превью по паре messagesKey+model в useContextPreview
+- chore: хук prepare-commit-msg — добавлять CodeViper как соавтора в каждый коммит
+- chore: проверка хука Co-authored-by
+- 'fix: update tests for createProjectToolHandlers return type'
+- docs: вернуть URL на rkfsociety/CodeViper — репо не переносится
+- docs: обновить URL организации на Code-Viper-AI
+- docs: обновить URL с rkfsociety на CodeViperAI
+- docs: профиль GitHub — README, CONTRIBUTING, LICENSE, шаблоны issues
+- docs: отметить опрос статов 3 с как выполненный; обновить ROADMAP — перенумерация пунктов
+- perf: дебаунс контекст-превью 600 мс → 1000 мс — меньше IPC при наборе текста
+- docs: отметить React.memo MessageBody и авто-восстановление циклов как выполненные
+- perf: батчинг токенов UI 80 мс → 150 мс — снижение CPU при Markdown-рендере
+- docs: реорганизовать дорожную карту по сложности выполнения; сжать раздел Сделано
+- docs: добавить разделы качества кода и надёжности в дорожную карту (пп. 61-73)
+- docs: добавить раздел оптимизации токенов в дорожную карту (пп. 45-51)
+- docs: добавить раздел производительности в дорожную карту (пп. 37-44)
+- refactor: объединить resetStreamState + resetQueue в один вызов — onReset в useMessageQueue
+- refactor: выделить QueueContext — chatBusy из App.tsx в контекст; убрать пропс-цепочку App → ChatPanel → ChatHistoryPanel
+- refactor: выделить ChatContext — messages, activeChatId, chatStore в единый контекст; убрать пропс-цепочку App → ChatPanel → ChatHistoryPanel
+- refactor: AgentStore — agentPhase/runStats/metrics/runModel вынесены в useReducer + Context
+- Вставка скриншотов из буфера обмена через Ctrl+V
+- Превью изображений в чате и передача base64 агенту
+- Передача содержимого текстовых файлов агенту при отправке
+- Кнопка «+» для прикрепления файлов к сообщению
+- docs: план встроенного оркестратора (пп. 40-46) в дорожной карте
+- docs: обновлён ROADMAP — preview_edit, file history, perf, cloud-API fix перенесены в Сделано; перенумерованы пункты
+- perf: батчинг IPC token/thinking (50 мс) в main + setInterval runStats 1с→3с
+- perf: убрать рендер AllToolsGroup — компонент всегда скрыт, рендерить его незачем docs: README сокращён — детали перенесены в вики
+- perf: батчинг upsertMessage при стриминге — обновление messages раз в 80 мс вместо каждого токена
+- art: иконка без фона (прозрачный PNG)
+- docs: обновлён README — провайдеры, параллельные агенты, pending restart, актуальные возможности
+- perf: agentRunState → Map<chatId>, параллельные агенты per-chat
+- docs: ROADMAP — план вложений в чат, сквозная нумерация 1–52
+- ui: контекст и модель вынесены под поле ввода
+- perf: снижение лагов UI во время стриминга
+- docs: ROADMAP — совместимость моделей выполнена
+- docs: ROADMAP — Открытие файлов из чата выполнено, перенумерация
+- docs: ROADMAP — Worker для больших файлов, удалена группа Производительность, перенумерация
+- perf: чтение и разбивка файлов >512 КБ вынесены в worker_thread
+- docs: ROADMAP — отмечен Worker для эмбеддингов
+- perf: эмбеддинги Ollama вынесены в worker_thread с LRU-кешем 500 записей
+- docs: ROADMAP — отмечен Worker для grep/find
+- perf: grep_files и find_files перенесены в worker_threads, прогресс через postMessage
+- Пересмотреть дорожную карту: разбить крупные пункты на мелкие по группам
+- Не требовать инструменты для информационных вопросов
+- Исправить сообщение об ошибке пустого ответа модели
+- Сделать видимым что удаление чатов блокируется во время работы агента
+- Добавить сброс draftRef и draftThinkingRef в resetStreamState хука useAgentStream
+- Полностью убрать ограничения на шаги и прогоны агента
+- Убрать настройку 'Макс. шагов агента' из UI
+- Улучшить обнаружение циклов: учитывать аргументы инструментов
+- Исправить финализацию черновика и удалить дублирующий рендер
+- Исправить критическую ошибку накопления контента в useAgentStream
+- Скрыть окошко с инструментами - убрать отвлекающее моргание
+- Убрать лимит на количество шагов, добавить защиту от циклов
+- Оптимизировать расход токенов при облачных API
+- Обновить ROADMAP: отметить параллельное выполнение инструментов как завершённое
+- Оптимизировать выполнение инструментов: параллельное выполнение вместо последовательного
+- Добавить поля совместимости в OllamaModel интерфейс
+- Обновить ROADMAP: добавить отображение совместимости моделей в UI
+- Интегрировать фильтрацию моделей по возможностям системы
+- Ограничить контекст и генерацию Ollama для экономии памяти (4k контекст вместо 262k)
+- Добавить логирование размера модели в памяти Ollama для отладки
+- Уменьшить keep_alive и выгружать модель сразу после завершения чата
+- Выгружать остальные модели Ollama при загрузке нужной
+- Загружать только нужную модель в Ollama перед использованием
+- Добавить testMatch для TypeScript тестов в playwright.config.ts
+- Использовать абсолютный путь для testDir в playwright.config.ts
+- Исправить __dirname в playwright.config.ts для ES модулей
+- Восстановить draftThinking в useAgentStream
+- \"fix: stable sort in listMemories\"
+- fix-require-tool-after-plan
+- fix-model-tools-data_path-resolution
+- Умный автоскролл: не тянет вниз, если пользователь прокрутил чат вверх
+- Отображение токенов/времени в топбаре + max_tokens/temperature для cloud + оптимизация промптов
+- ROADMAP: уточнить пункт открытия файлов — проводник/отдельное окно вместо встроенной панели
+- Снять ограничения режима самоулучшения
+- Фича: экспорт/импорт чатов (JSON + Markdown, merge по id)
+- UI: группировать повторяющиеся tool-вызовы в сворачиваемый блок
+- Фикс 400: двухпроходный фильтр tool-сообщений после суммаризации контекста
+- Фикс 400: фильтровать role:tool без tool_call_id и orphan assistant+tool_calls для cloud
+- Исправить: Ollama статус всегда проверяется независимо от провайдера
+- Плашка 'ждёт уточнения' только при реальном вопросе в ответе ассистента
+- Исправить openaiProvider: content:null для assistant с tool_calls, убрать double-yield
+- Нативный tool calling для DeepSeek/OpenAI: delta.tool_calls + tool_call_id
+- Исправить retry при read-задачах DeepSeek: передавать tool_choice required, не ретраить длинный ответ
+- Черновики при обрыве стрима: сохранение interruptedDraft и баннер восстановления
+- Нагрузочное тестирование: 60 сообщений, параллельные чаты, длинная история
+- E2E-тесты Playwright для Electron
+- refactor: migrate TerminalPanel and dialogs styles to CSS modules
+- refactor: migrate ModelPanel and Memory/Skills styles to CSS modules
+- docs: скрипт настройки branch protection для master
+- refactor: migrate SettingsModal and ChatPanel styles to CSS modules
+- refactor: migrate ChatHistoryPanel styles to CSS module
+- docs: update ROADMAP after GPU/CPU indicator task
+- docs: update ROADMAP after virtualization task
+- docs: update ROADMAP after lazy loading task
+- perf: lazy-load MessageBody, SettingsModal, TerminalPanel via React.lazy + Suspense
+- chore: mark CI+pre-commit done in ROADMAP, renumber 1-44
+- docs: remove tools rule from CLAUDE.md (belongs in global rules only)
+- docs: copy global rules into CLAUDE.md (tools, roadmap workflow)
+- chore: update package-lock.json after npm install
+- Исправить запуск агента с DeepSeek: пропустить проверки Ollama
+- Динамическая загрузка моделей DeepSeek в пикере хидера
+- Авто-сборка при запуске + правило build перед коммитом в CLAUDE.md
+- Выбор модели в хидере: дропдаун с режимом Авто по умолчанию
+- Исправить формат tools для DeepSeek: Anthropic → OpenAI format, tool_choice required→auto
+- DeepSeek: авто-модель, вразумительные ошибки, без fallback на 4xx
+- Исправить baseUrl для DeepSeek: передавать DEEPSEEK_API_BASE_URL вместо ollamaUrl
+- Редизайн настроек: iOS-переключатели, секции, inline таймаут
+- Фикс: preload собирается как index.js (CJS) вместо index.mjs
+- Ветки для саморедактирования: create_codeviper_branch и push_codeviper_branch
+- Автовосстановление после краша: appState.json каждые 30с + CrashRecoveryDialog при запуске
+- Защита parseToolArgs + тесты агента: try/catch fallback, 37 новых тестов (executeTool, permissions, nudge, self-improvement, интеграция)
+- Документация API инструментов: docs/tools-api.md со всеми 42 инструментами агента
+- Экспорт навыков и памяти: кнопка «Поделиться» создаёт GitHub Gist и копирует ссылку в буфер
+- Настройка git-sync при старте: тумблер в настройках + чтение флага из config.json в start-dev.ps1
+- ESLint: добавить недостающие глобальные переменные и исправить комментарии disable-line
+- Дорожная карта: переместить выполненные пункты 1-4 в «Сделано», удалить пустую категорию «Безопасность»
+- ESLint+Prettier: установка и конфигурация (npm install, eslint.config.js, .prettierrc, форматирование кода)
+- Правила проекта: удалять пустые категории в дорожной карте, если все пункты выполнены
+- Инструменты: ESLint + Prettier для единого кодового стиля (критично для саморедактирования)
+- Безопасность: шифрование API-ключей через safeStorage Electron (прозрачно для UI)
+- Безопасность: ограничить доступ к ФС на чтение (read_file, grep_files, find_files) + 4 теста
+- Безопасность: ужесточить дефолты (acceptEdits, sandbox, warning, .ps1/.bat check)
+- Безопасность: санитизация путей path/from/to в инструментах агента (AgentError readonly) + тесты
+- Дорожная карта: перенумеровать планы с 1; добавить CLAUDE.md с правилом нумерации
+- chore: renumber ROADMAP items from 1, update global rule for numbering
+- docs: regroup pending items by theme (max 10 per group, sorted by difficulty)
+- docs: collapse Done section into compact thematic groups
+- docs: re-sort and re-evaluate all pending ROADMAP items by difficulty
+- docs: move completed items 1-30 to Done section in ROADMAP
+- perf: мемоизация тяжёлых вычислений в ChatHistoryPanel и App
+- Дорожная карта: пронумеровать задачи и отсортировать по сложности (5 уровней, 106 пунктов)
+- UI: адаптивность, доступность модалок, анимации, ANSI-терминал, вкладки настроек, пагинация
+- Дорожная карта: добавить производительность (ленивая загрузка, виртуализация, мемоизация, Web Workers), безопасность, UX, интеграции и инфраструктуру
+- Дорожная карта: добавить раздел надёжности React-хуков (зависания очереди, утечки, гонки, таймауты)
+- CSS дизайн-система: все hex-цвета заменены на CSS-переменные :root
+- Дорожная карта: добавить рефакторинг CSS (переменные, мёртвые стили, контрастность, медиа-запросы)
+- Анимации: убрать box-shadow из keyframes, заменить на opacity+scale через ::after, добавить will-change
+- Дорожная карта: добавить анимации и микровзаимодействия в быстрые победы
+- Лимит прогонов в час: maxRunsPerHour в настройках, скользящее окно в index.ts
+- Детектор опасных задач: паттерны + диалог подтверждения перед запуском агента
+- Тест gitTools: заменить Windows-путь на платформонезависимый путь вне проекта
+- Дорожная карта: сжать секцию Сделано с 50 до 20 пунктов — объединить группы, убрать тривиальные детали реализации
+- Дорожная карта: объединить мелкие пункты в составные задачи
+- Дорожная карта: добавить тему, индикатор GPU/CPU и визуализацию операций с файлами
+- Тесты: исправить gitTools (убрать хардкод пути) и contextSummarizer (стрим-мок для Ollama)
+- Дорожная карта: добавить раздел распределённой сети узлов с общим пулом мощностей
+- Дорожная карта: детализировать установщик и саморедактирование через PR для installed-режима
+- Дорожная карта: добавить раздел саморедактирование через PR и автообновление
+- Дорожная карта: перенести выполненные пункты облачных API в секцию Сделано
+- Облачные API: UI провайдеров, fallback на Ollama, счётчик токенов, каталог облачных моделей
+- Обёртка чата ModelRuntime: унифицировать ответы разных провайдеров в единый ChatChunk
+- Обновить дорожную карту: отметить завершённые пункты облачных API
+- Добавить ModelRuntime в AgentRunner, разбить интеграцию на подзадачи в дорожной карте
+- Добавить конфигурацию для провайдеров моделей (Ollama, DeepSeek, OpenAI)
+- Добавить в дорожную карту интеграцию ModelRuntime в agent.ts и contextSummarizer.ts
+- Создать абстракцию провайдеров моделей: интерфейс ModelProvider + реализации Ollama и OpenAI-совместимые
+- Добавить в дорожную карту категорию: Облачные API моделей (DeepSeek, OpenAI и т.д.)
+- Перенести выполненные пункты в раздел ✅ Сделано
+- Anti-loop в плане самоулучшения: блокировка пункта после 3 попыток
+- Сократить README: детали вынесены в docs/{models,usage,self-improvement,architecture}.md
+- Привязать projectPath к папке чатов: новый чат наследует проект папки
+- Новый чат наследует projectPath последнего чата
+- Минимальный размер модели по сложности задачи: 7B при 60+, 14B при 75+
+- Расширить паттерны рефьюзала и вынести эскалацию до retry
+- Эскалация на более тяжёлую модель при рефьюзале агента
+- Исправить кодировку start-dev.ps1: добавить UTF-8 BOM для PowerShell 5.1
+- Семантический поиск памяти через Ollama embeddings (nomic-embed-text)
+- Вынести магические числа в shared/constants.ts
+- О программе: версия и ссылки GitHub/Issues в настройках
+- Индикатор clarifyMode: баннер «Агент ждёт ответа на уточнение»
+- Частичное чтение файлов: offset/limit в read_file, авточанкинг >500 KB
+- Параллельные tool calls: read-only инструменты выполняются через Promise.all
+- ROADMAP: перенести выполненные пункты из «В планах» в «✅ Сделано»
+- ROADMAP: убрать упоминания источника идей
+- ROADMAP: добавить три пункта из анализа Skales (anti-loop, detectCriticalAction, лимит шагов)
+- Разгрузить ChatPanel.tsx: хуки useAgentStream, useMessageQueue, useContextPreview
+- Обновить ROADMAP: логирование и разбивка agent.ts выполнены
+- Разбить agent.ts: реестр инструментов вынесен в 6 доменных модулей
+- Структурированный логгер агента: run, tool calls, LLM-токены, время шага
+- auto: автокоммит правок
+- Показывать tok/s и время шага LLM в статус-баре из метрик Ollama.
+- Суммаризация контекста через лёгкую модель: авто-выбор или настройка.
+- Вернуть read-only панель дерева файлов с вставкой пути в чат.
+- Добавить безопасные git-инструменты git_status, git_diff, git_log для агента.
+- Подсветка синтаксиса в блоках кода чата через rehype-highlight
+- План самоулучшения привязан к экземпляру AgentRunner вместо модульного глобала.
+- Вынести дорожную карту в ROADMAP.md, в README оставить ссылку
+- UI-индикатор суммаризации контекста + вывод потерянных context-уведомлений
+- Строгая типизация инструментов: ToolName/ToolArgs/ToolHandlers вместо Record<string,string>
+- docs: топ-10 приоритетов в roadmap, «Сделано» внизу
+- Дорожная карта: надёжность parseToolArgs, план в AgentRunner, ESLint, метрики и др.
+- docs: добавить дорожную карту «В планах» в README
+- Блок «Размышления» для think-моделей + автокоммит только app/
+- Починить CI: buildSkillsContext.test использует временный путь проекта
+- Автокоммит и пуш самоправок агента
+- Переключатель «Глубокое рассуждение»
+- GPU keep_alive + предупреждение о CPU и git-синк при запуске
+- Визуальная полировка интерфейса
+- Новые инструменты агента: delete_file и move_file (+ codeviper-аналоги)
+- Режимы доступа (ask/acceptEdits/bypass) и режим уточняющих вопросов
+- Реестр инструментов агента вместо switch в executeTool
+- Опциональное подтверждение мутирующих действий агента
+- Единый chatTitle в shared, рефлексия только после изменений
+- Устойчивость хранилищ, таймауты Ollama и тесты shared
+- Проверка зависимостей перед запуском агента с предложением установки.
+- Очередь скачивания моделей Ollama в фоне при закрытых настройках.
+- Скрывать установленные модели из каталога скачивания.
+- Запретить удаление встроенных системных навыков viper-*.
+- README: документировать суммаризацию контекста при 85%+ лимита.
+- Суммаризация контекста при приближении к лимиту модели.
+- Каталог моделей только с tool calling, блокировка pull и удаление.
+- Навыки агента только глобальные с автоприменением по триггерам.
+- Автовыбор модели Ollama под задачу с выгрузкой из RAM.
+- Расширить каталог моделей Ollama по уровням RAM.
+- Навыки чтения/поиска и инструменты grep/find как в Cursor.
+- Автономное самоулучшение: цикл до выполнения всех пунктов плана.
+- Добавить create_file, edit_file и append_file для агента.
+- Заставить агента действовать, а не советовать Figma и планы.
+- Улучшить UI: шаблоны задач, быстрые подсказки и бейджи сообщений.
+- Добавить навык и инструменты адаптации моделей Ollama.
+- Добавить очередь сообщений во время ответа модели.
+- Shift+Enter для новой строки в поле ввода чата.
+- Исправить сохранение навыков агента между перезапусками.
+- Добавить просмотр контекста модели как в Cursor.
+- Добавить навык Viper Memory и хранилище ViperMemory.md.
+- Добавить саморедактирование: инструменты для правки исходников CodeViper.
+- Добавить кнопку «Копировать» для сообщений в чате.
+- Исправить зацикливание проверки инструментов.
+- Блокировать ложные заявления агента без вызова инструментов.
+- Исправить дубли ответов и сократить вывод инструментов в чате.
+- Добавить рендеринг Markdown в сообщениях чата.
+- Добавить статус-бар активности агента в чате.
+- Улучшить отображение ответов агента и вывод list_directory.
+- Запоминать позицию и размер окна между запусками.
+- Исправить отображение JSON tool call в чате.
+- Заблокировать смену проекта после первого сообщения в чате.
+- README: увеличить иконку в шапке до 512px.
+- README: увеличить иконку в шапке до 256px.
+- README: иконка приложения в шапке.
+- P3: хранилище чатов v2, рефакторинг утилит и иконка приложения.
+- Добавить vitest, unit-тесты и CI на GitHub Actions.
+- P2: Enter/Ctrl+Enter в чате, поиск, drag-and-drop и модалки в истории.
+- Проект выбирается в чате, а не глобально перед созданием.
+- Roadmap: сделано перенесено вниз, сверху только TODO.
+- Убрать тёмную/светлую тему из roadmap.
+- Убрать «не планируется» из roadmap — только сделано и TODO.
+- Обновить roadmap и TODO в README по актуальному состоянию.
+- Перенести README в корень репозитория.
+- Убрать LM Studio и autocomplete из roadmap: только Ollama и агент.
+- P1: стоп агента, обрезка контекста, сохранение настроек, безопасность команд.
+- Настройки в модальном окне по кнопке, терминал выдвижной.
+- Исправить запуск CodeViper.cmd: убрать mshta, разделить логи, проверка Electron.
+- Исправить запуск CodeViper.cmd: лог npm через cmd без конфликта redirect.
+- Перенести проект в app/, в корне оставить только CodeViper.cmd.
+- В корне только CodeViper.cmd для запуска.
+- Скрытый запуск CodeViper.cmd без окна консоли.
+- Добавить skills: агент создаёт навыки по запросу (todo и др.).
+- Добавить запуск двойным кликом: CodeViper.cmd и сборка CodeViper.exe.
+- Убрать сборку exe: приложение запускается только из папки проекта.
+- Разрешить пересборку exe из portable через выбор папки исходников.
+- Передавать путь проекта и дерево файлов в системный промпт агента.
+- Сохранять чат немедленно при переключении, не дожидаясь debounce 500 ms.
+- Привязать agent-stream к chatId и блокировать параллельный run-agent.
+- Удалить неиспользуемый IPC autocomplete из main, preload и types.
+- Передавать tool/system сообщения в контекст Ollama между turn'ами.
+- Заменить проводник файлов на историю чатов с папками и автосохранением.
+- Исправить синтаксис rethrow в build-win.js (throw error).
+- Добавить кнопку самопересборки exe в настройках агента.
+- Создавать родительские папки при записи файла в safeWriteFile.
+- Добавить скрипт rebuild-exe.bat в корне для пересборки exe.
+- Добавить таймаут 120 с и принудительное завершение команд в runCommand.
+- Исправить тип content в ChatPanel через event.content ?? ''.
+- Исправить выбор модели по умолчанию в App.tsx.
+- Исправить путь импорта типов в preload.
+- Копировать собранный exe в корень проекта как CodeViper.exe.
+- Добавить самообучение агента: память, рефлексия и инструменты remember/forget.
+- Добавить сборку .exe и скачивание моделей Ollama из приложения.
+- Добавить стриминг ответов Ollama в реальном времени.
+- Перенести CodeViper в F:\github и исправить сборку electron-vite.
+
+ Changelog
 
 Все значимые изменения в проекте.
 
