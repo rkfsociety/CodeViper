@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
-import { writeFile } from 'fs/promises'
+import { writeFile, readFile } from 'fs/promises'
 import { join } from 'path'
+import { app } from 'electron'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { getCodeViperSourceRoot } from './codeviperSource'
 
@@ -357,9 +358,61 @@ export async function createCodeViperPr(title?: string, body?: string): Promise<
   }
 }
 
+/** Получает текущую версию из package.json */
+async function getCurrentVersion(appPath: string): Promise<string | null> {
+  try {
+    const pkgPath = join(appPath, 'package.json')
+    const content = await readFile(pkgPath, 'utf8')
+    const pkg = JSON.parse(content)
+    return pkg.version ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Создаёт release-тег и пушит его в GitHub.
+ * Вызывается автоматически после успешного push если app.isPackaged.
+ * Триггирит GitHub Actions workflow для создания release.
+ */
+async function createAndPushReleaseTag(cwd: string): Promise<string> {
+  // Вызываем npm run bump patch
+  const bumpResult = await runCmd('npm', cwd, ['run', 'bump', 'patch'])
+  if (bumpResult.code !== 0) {
+    throw new Error(`npm run bump patch не удался: ${bumpResult.stderr || bumpResult.stdout}`)
+  }
+
+  // Читаем новую версию из package.json
+  const newVersion = await getCurrentVersion(cwd)
+  if (!newVersion) {
+    throw new Error('не удалось прочитать версию после bump')
+  }
+
+  // git push (отправляем коммит от bump)
+  try {
+    await runGitWithRetry(cwd, ['push'], 'push after bump')
+  } catch (err) {
+    throw new Error(
+      `git push после bump не удался: ${err instanceof Error ? err.message : String(err)}`
+    )
+  }
+
+  // git push --tags (отправляем тег)
+  try {
+    await runGitWithRetry(cwd, ['push', '--tags'], 'push --tags')
+  } catch (err) {
+    throw new Error(
+      `git push --tags не удался: ${err instanceof Error ? err.message : String(err)}`
+    )
+  }
+
+  return newVersion
+}
+
 /**
  * Коммитит и пушит изменения исходников CodeViper (самоправки агента).
  * Best-effort: не git-репозиторий, отсутствие изменений или офлайн — не ошибка приложения.
+ * Если app.isPackaged, после успешного push создаёт release-тег и пушит его.
  */
 export async function commitAndPushSelfEdits(
   summary: string,
@@ -408,6 +461,26 @@ export async function commitAndPushSelfEdits(
     return {
       ok: false,
       message: `коммит сделан в ${branch}, но push не удался (офлайн?): ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+
+  // Если приложение в packaged-режиме и мы на master, создать release-тег
+  if (app.isPackaged && branch === 'master') {
+    try {
+      const repoRoot = await getRepoRoot(source)
+      if (repoRoot) {
+        const version = await createAndPushReleaseTag(repoRoot)
+        return {
+          ok: true,
+          message: `самоправки запушены в ${branch}, создан release-тег v${version}. GitHub Actions запустит workflow: https://github.com/rkfsociety/CodeViper/actions`
+        }
+      }
+    } catch (err) {
+      // Коммит+push успешен, но тег не создан — это не критично
+      return {
+        ok: true,
+        message: `самоправки закоммичены и запушены в ветку ${branch}, но создание release-тага не удалось: ${err instanceof Error ? err.message : String(err)}`
+      }
     }
   }
 
