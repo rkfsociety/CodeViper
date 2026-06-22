@@ -20,12 +20,6 @@
 | 8 | В `SettingsModal.tsx` добавить секцию «Оркестратор»: тумблер включить/выключить (`AgentSettings.orchestratorEnabled`), числовое поле порога длины сообщения (`minMessageLength`, дефолт 80), кнопка «Удалить модель» | S | Low |
 | 9 | Интегрировать `OrchestratorModel.analyze()` в `AgentRunner.run()`: вызывать перед первым прогоном, добавлять `plan` в системный промпт, при `isComplex=true` использовать перефразированный запрос вместо оригинального | M | Low |
 
-### 🔗 MCP-серверы
-
-| # | Задача | Сложность | Приоритет |
-|---|--------|-----------|-----------|
-| 1 | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | M | Low |
-
 ### 🔗 Плагины
 
 | # | Задача | Сложность | Приоритет |
@@ -209,4 +203,4 @@
 **MCP-серверы**
 - `mcpRegistry.ts`: регистрация MCP по `/.well-known/mcp`, хранение в `AgentSettings.mcpServers`; IPC `add-mcp-server` / `remove-mcp-server`
 - Секция MCP в `SettingsModal` (вкладка «Интеграции»): список серверов, добавление и удаление по URL
-- `getAgentTools()` + `mcpTools.ts`: динамические инструменты MCP, вызов через `POST /tools/call`
+- `getAgentTools()` + `mcpTools.ts`: динамические инструменты MCP, вызов через `POST /tools/call`, результат через `POST /tools/result`

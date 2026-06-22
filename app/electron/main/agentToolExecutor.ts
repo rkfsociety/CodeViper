@@ -9,7 +9,7 @@ import { createSkillsToolHandlers } from './agentHandlersSkills'
 import { createSelfImprovementToolHandlers } from './agentHandlersSelfImprovement'
 import { createModelToolHandlers } from './agentHandlersModels'
 import { createTodoToolHandlers } from './agentHandlersTodo'
-import { createMcpToolHandlers } from './mcpTools'
+import { createMcpToolHandlers, notifyMcpToolResult } from './mcpTools'
 import { createWebToolHandlers } from './agentHandlersWeb'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import type { SelfImprovementItem } from '../../shared/selfImprovement'
@@ -186,6 +186,19 @@ export class ToolExecutor {
         error: output
       })
     }
+
+    try {
+      await notifyMcpToolResult(name, id, output, this.settings.mcpServers)
+    } catch (error) {
+      void agentLogger.write({
+        event: 'mcp_tool_result_error',
+        step,
+        tool: name,
+        tool_call_id: id,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+
     return { id, name, output }
   }
 

@@ -4,7 +4,9 @@ import {
   buildMcpAgentTools,
   callMcpTool,
   getMcpAgentToolNames,
-  resolveMcpToolBinding
+  notifyMcpToolResult,
+  resolveMcpToolBinding,
+  sendMcpToolResult
 } from '../electron/main/mcpTools'
 
 describe('mcpTools', () => {
@@ -72,5 +74,36 @@ describe('mcpTools', () => {
       })
     )
     expect(result).toBe('ok')
+  })
+
+  it('sendMcpToolResult POST на /tools/result', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await sendMcpToolResult('https://mcp.example.com', 'call-123', 'done')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://mcp.example.com/tools/result',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ toolCallId: 'call-123', result: 'done' })
+      })
+    )
+  })
+
+  it('notifyMcpToolResult использует makeId если toolCallId отсутствует', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const toolName = buildMcpAgentToolName('https://mcp.example.com', 'search')
+    await notifyMcpToolResult(toolName, undefined, 'ok', servers)
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string) as {
+      toolCallId: string
+      result: string
+    }
+    expect(body.result).toBe('ok')
+    expect(body.toolCallId).toBeTruthy()
   })
 })

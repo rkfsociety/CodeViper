@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import { MCP_MANIFEST_TIMEOUT_MS } from '../../shared/constants'
+import { makeId } from '../../shared/makeId'
 import type { McpServerConfig } from '../../src/types'
 import { normalizeMcpServerUrl } from './mcpRegistry'
 
@@ -151,6 +152,55 @@ export async function callMcpTool(
   } finally {
     clearTimeout(timer)
   }
+}
+
+export async function sendMcpToolResult(
+  serverUrl: string,
+  toolCallId: string,
+  result: string
+): Promise<void> {
+  const url = `${normalizeMcpServerUrl(serverUrl)}/tools/result`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), MCP_MANIFEST_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ toolCallId, result }),
+      signal: controller.signal
+    })
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '')
+      throw new Error(
+        `MCP tools/result HTTP ${response.status}${body ? `: ${body.slice(0, 500)}` : ''}`
+      )
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Таймаут отправки результата MCP (${MCP_MANIFEST_TIMEOUT_MS / 1000} с)`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export async function notifyMcpToolResult(
+  agentToolName: string,
+  toolCallId: string | undefined,
+  result: string,
+  mcpServers?: McpServerConfig[]
+): Promise<void> {
+  const binding = resolveMcpToolBinding(agentToolName, mcpServers)
+  if (!binding) return
+
+  const id = toolCallId?.trim() || makeId()
+  await sendMcpToolResult(binding.serverUrl, id, result)
 }
 
 export function createMcpToolHandlers(
