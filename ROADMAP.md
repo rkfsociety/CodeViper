@@ -10,7 +10,6 @@
 |---|---|---|---|---|---|
 | **Провайдеры** | В `ollamaProvider.ts` и `openaiProvider.ts` выделить общую логику стриминга в абстрактный класс `StreamingChatProvider`; конкретные провайдеры реализуют только `buildRequest()` и `parseChunk()` | Medium | M | — | ⏳ |
 | **Провайдеры** | В `modelRuntime.ts` реализовать circuit breaker: при 5 последовательных ошибках переходить в состояние `open` (запросы отклоняются немедленно), через 30 с — `half-open` (пробный запрос); статус отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
-| **Архитектура** | В `modelRuntime.ts` добавить exponential backoff с jitter для HTTP 429: 1 с → 2 с → 4 с → 8 с, максимум 4 попытки; статус ожидания отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
 | **Архитектура** | Создать `shared/ipcContracts.ts`: Zod-схемы для всех IPC-каналов; валидировать данные при `ipcMain.handle` и `ipcRenderer.invoke`; устранить дублирование типов между `types.ts` и main | Low | L | — | ⏳ |
 | **Архитектура** | Вынести логику планирования задачи из `AgentRunner` и `SelfImprovementOrchestrator` в отдельный класс `TaskPlanner`; упростить замену стратегий и изолированное тестирование | Low | L | — | ⏳ |
 | **UI/UX** | В `SettingsModal.tsx` добавить поле поиска по названиям настроек; при вводе фильтровать пункты на всех вкладках и подсвечивать совпадения | Medium | S | — | ⏳ |
@@ -77,6 +76,7 @@
 - Авто-превью файлов >20 КБ: первые/последние 50 строк с маркером `... (X строк обрезано) ...`
 - Батчинг параллельных grep-запросов за один тик event loop в `fileSearch.ts`
 - Интеграционные тесты OllamaProvider и OpenAIProvider: стриминг, tool call, 429, разрыв соединения
+- Exponential backoff с jitter для HTTP 429 в `openaiProvider.ts`: 1 с → 2 с → 4 с → 8 с, макс. 4 попытки; статус «Лимит запросов, жду N с…» в `AgentStatusBar`
 - Чип «Планирую…» в `AgentStatusBar` при получении stream-события `orchestrating`; раскрывающийся блок с текстом плана
 - `selfCommit.ts`: retry-цикл 3 попытки 1 с → 2 с → 4 с для всех git-операций; throw с деталями при исчерпании
 - `preview_patch`: новый инструмент точечной правки (old_string → new_string) с показом diff и подтверждением; `preview_edit` в режиме bypass применяется без диалога; защита от усечения файла (отклонение если новый контент < 50% старого)
