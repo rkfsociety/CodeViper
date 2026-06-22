@@ -79,43 +79,17 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** вызов оркестратора при `orchestratorEnabled`  
 - **Проверка:** чип «Планирую…» в `AgentStatusBar`; `npm run typecheck`
 
-### 🔗 Плагины
-
-**9 · M · Сканирование plugins/*.js** — приор. Low  
-- **Цель:** при старте main — загрузка `~/.codeviper/plugins/*.js`, регистрация tools  
-- **Файлы:** `app/electron/main/pluginLoader.ts` (новый), `app/electron/main/index.ts`, `agentTools.ts`  
-- **Действие:** `require()` + `export default { name, description, tools }`  
-- **Проверка:** тест с фиктивным плагином в temp-папке
-
-**10 · S · Вкладка «Плагины» в настройках** — приор. Low  
-- **Цель:** список плагинов, вкл/выкл, «Открыть папку»  
-- **Файлы:** `SettingsModal.tsx`, `settings.ts` (`AgentSettings.plugins`)  
-- **Действие:** вкладка + `shell.openPath`  
-- **Проверка:** UI отображает установленные плагины
-
-**11 · M · Компиляция plugins/*.ts** — приор. Low  
-- **Цель:** esbuild CommonJS во temp, кэш по mtime  
-- **Файлы:** `app/electron/main/pluginLoader.ts`  
-- **Действие:** `esbuild.buildSync` перед require  
-- **Проверка:** тест: изменение mtime → перекомпиляция
-
-**12 · L · Плагины в worker_thread** — приор. Low  
-- **Цель:** изоляция плагина; fs только в projectPath; net заблокирован  
-- **Файлы:** `app/electron/main/pluginWorker.ts` (новый), `pluginLoader.ts`  
-- **Действие:** worker + ограниченный API  
-- **Проверка:** краш воркера не роняет main; `npm test -- plugin`
-
 ### 🔗 P2P-вычисления
 
-> Пункты 13–14 — код сервера в репозитории (`server/p2p/`); деплой VPS — вручную пользователем.
+> Пункты 9–10 — код сервера в репозитории (`server/p2p/`); деплой VPS — вручную пользователем.
 
-**13 · XL · REST API сигнального сервера** — приор. Low  
+**9 · XL · REST API сигнального сервера** — приор. Low  
 - **Цель:** API `POST /nodes/register`, `GET /nodes/available`, `DELETE /nodes/{id}`  
 - **Файлы:** `server/p2p/` (новый каталог), `package.json` в корне или в server  
 - **Действие:** Node + Express/Fastify + Redis для реестра узлов  
 - **Проверка:** `curl` регистрации тестового узла локально
 
-**14 · XL · Auth на сигнальном сервере** — приор. Low  
+**10 · XL · Auth на сигнальном сервере** — приор. Low  
 - **Цель:** JWT после email/GitHub OAuth; лимиты по токену  
 - **Файлы:** `server/p2p/auth.ts`  
 - **Действие:** регистрация + middleware  
@@ -609,5 +583,6 @@ N · [S/M/L/XL] · Краткое название
 - Пропуск `npm run build` при app.isPackaged: функция `buildSelfEditContext(isPackaged)` в `codeviperSource.ts` условно исключает команду build из инструкций агента; вызовы в `agentContext.ts` передают `app.isPackaged`; в dev-режиме агент может запускать build, в installed режиме GitHub Actions соберёт
 - Авто-тег после commit+push в packaged-режиме: в `selfCommit.ts` функции `getCurrentVersion()` и `createAndPushReleaseTag()`; после успешного push проверка `app.isPackaged` и ветки `master`, вызов `npm run bump patch`, `git push` и `git push --tags`; сообщение пользователю с версией и ссылкой на GitHub Actions
 - NSIS-установщик собран и установлен: `electron-builder` добавлена как devDependency; PNG-иконка конвертирована в ICO через Python Pillow; конфигурация `package.json` обновлена для использования `icon.ico` в NSIS-установщике; установщик собирается командой `npm run dist` и создаёт `.exe` файл в `release/{version}/`; приложение устанавливается в `C:\Users\roman\AppData\Local\Programs\CodeViper\` и успешно запускается
+- **Плагины для агента:** сканирование `~/.codeviper/plugins/*.js` и `*.ts` при старте main; `pluginLoader.ts` загружает плагины и регистрирует их инструменты в AGENT_TOOLS; компиляция TypeScript через esbuild с кэшем по mtime; вкладка «Плагины» в настройках с кнопкой открытия папки (`shell.openPath`); изоляция плагинов в `worker_thread` через `pluginWorker.ts` для безопасности; тесты убеждают в правильной загрузке и что краш воркера не роняет main
 
 
