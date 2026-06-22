@@ -1,6 +1,10 @@
 import type { McpServerConfig } from '../../src/types'
 import { buildMcpAgentTools } from './mcpTools'
+import { loadPlugins } from './pluginLoader'
 // ============================================================================
+
+// Загрузить плагины при инициализации модуля
+const PLUGIN_TOOLS = loadPlugins().flatMap((plugin) => plugin.tools)
 const FILE_TOOLS = [
   {
     type: 'function',
@@ -1301,14 +1305,22 @@ export const AGENT_TOOLS = [
   ...CODEVIPER_TOOLS,
   ...OLLAMA_TOOLS,
   ...INDEXING_TOOLS,
-  ...WEB_TOOLS
+  ...WEB_TOOLS,
+  ...PLUGIN_TOOLS
 ] as const
 
 // Кэш преобразованных схем для провайдеров (ключ = JSON хеш)
-const transformedToolsCache = new Map<string, any[]>()
+const transformedToolsCache = new Map<
+  string,
+  Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
+>()
 
 /** Трансформировать инструменты в формат провайдера */
-function transformTools(tools: readonly any[]) {
+function transformTools(
+  tools: readonly Array<{
+    function: { name: string; description: string; parameters: Record<string, unknown> }
+  }>
+) {
   return tools.map((tool) => ({
     name: tool.function.name,
     description: tool.function.description,
