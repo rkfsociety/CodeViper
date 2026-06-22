@@ -193,9 +193,10 @@ export function formatPlanSummary(plan: SelfImprovementItem[]): string {
 
 export const SELF_IMPROVEMENT_MODE_PROMPT = `## Самоулучшение (АКТИВНО)
 Изучай → loop до done. Автопуш — в ветку agent/self-improve, не в master.
-Задачи из ROADMAP.md: читай пункт цепочки (цель, файлы, действие, проверка) → set_self_improvement_plan по шагам.
-1. list_codeviper_directory + read_codeviper_file (agent.ts, agentTools.ts, skills.ts)
-2. set_self_improvement_plan → 3–8 item'ов (skills/UI/tools/tests/prompt)
+Задачи из ROADMAP.md: пункт «N · …» (цель, файлы, действие, проверка) → set_self_improvement_plan по шагам пункта.
+Промпт: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
+1. read_codeviper_file ROADMAP.md + целевые файлы пункта
+2. set_self_improvement_plan → шаги по полям «Действие» и «Проверка»
 3. item: edit → complete_self_improvement_item(id)
 4. После edit: run_codeviper_command → npm run typecheck && npm test
 5. Done = get_self_improvement_plan все done.

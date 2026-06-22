@@ -4,99 +4,288 @@
 
 > **Принцип чтения:** задачи сгруппированы в цепочки — внутри каждой группы строгий порядок сверху вниз. Следующий шаг начинать только после завершения предыдущего. Между группами порядок произвольный.
 
+
 ### Формат задач для самообучения агента
 
-Каждый пункт цепочки формулируется **атомарно**, чтобы агент построил `set_self_improvement_plan` без уточнений:
+Каждый пункт в «📋 В планах» следует **одному шаблону** — агент читает `ROADMAP.md` и строит `set_self_improvement_plan` без уточнений.
 
-| Поле | Что писать |
-|------|------------|
-| **Цель** | Один измеримый результат («баннер X при условии Y») |
-| **Файлы** | Конкретные пути (`app/electron/main/…`, `app/src/…`) |
-| **Действие** | Одна правка: добавить / изменить / удалить |
-| **Проверка** | `npm run typecheck`, `npm test -- …`, сценарий в UI |
-| **Инструменты** | `read_codeviper_file` → `edit_codeviper_file` → `run_codeviper_command` |
+**Шаблон пункта:**
 
-**Промпт для теста:** `Выполни пункт N цепочки «…» из ROADMAP.md — самоулучшение CodeViper.`
+```text
+N · [S/M/L/XL] · Краткое название
+- Цель: один измеримый результат
+- Файлы: конкретные пути (app/electron/main/…, app/src/…)
+- Действие: одна атомарная правка
+- Проверка: npm run typecheck | npm test -- … | сценарий в UI
+```
 
-**Пример разбивки** (цепочка «Автообновление» — выполнена):
+**Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-1. Установить `electron-updater` в `app/package.json`
-2. В `updateChecker.ts`: packaged → `autoUpdater` + GitHub Releases; dev → git fetch (уже было)
-3. Тип `UpdateInfo` (`git` \| `release`) в `shared/updateInfo.ts` + Zod в `ipcContracts.ts`
-4. Баннер в `App.tsx`: кнопка «Перезапустить и обновить» → `quitAndInstall`
-5. Тест `updateInfo.test.ts`; перенос в «✅ Сделано»
+**Правила:** нумерация сквозная (1…N); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
 
 ## 📋 В планах
 
+> Нумерация сквозная. Сложность: S / M / L / XL. Приоритет указан в конце пункта.
+
 ### 🔗 node-llama-cpp + Оркестратор
 
-| # | Задача | Сложность | Приоритет |
-|---|--------|-----------|-----------|
-| 1 | Установить `node-llama-cpp` и `@electron/rebuild` в `app/`; добавить скрипт `"rebuild": "electron-rebuild -f -w node-llama-cpp"` в `package.json`; запустить `npm run rebuild` и убедиться что `.node`-файл появился в `node_modules/node-llama-cpp/` | S | Low |
-| 2 | В `package.json` секция `build`: добавить `"npmRebuild": true` и `"buildDependenciesFromSource": false`; проверить что `npm run dist` перекомпилирует `node-llama-cpp` под целевую платформу без ручного вызова `electron-rebuild` | S | Low |
-| 3 | Создать `app/electron/main/nodeLlama.ts`: обёртка над `node-llama-cpp` — `loadModel(path: string)`, `complete(prompt: string, maxTokens: number): Promise<string>`, `unloadModel()`; singleton с ленивой инициализацией; экспортировать тип `NodeLlamaHandle` | M | Low |
-| 4 | Создать `app/tests/nodeLlama.test.ts` (vitest): если `TEST_GGUF_PATH` не задан — `test.skip`; иначе `loadModel → complete('Hello', 1) → unloadModel`; проверить что ответ — непустая строка; добавить в `README` инструкцию по запуску с реальным GGUF | S | Low |
-| 5 | В `SettingsModal.tsx` → вкладка «Модель» → раздел оркестратора добавить кнопку «Выбрать GGUF-модель» (`dialog.showOpenDialog` с фильтром `*.gguf`); путь сохранять в `AgentSettings.orchestratorModelPath` | M | Low |
-| 6 | Создать `orchestratorModel.ts`: singleton, загружает GGUF через `node-llama-cpp`, реализует метод `analyze(message: string): Promise<{ plan: string; rephrased: string; isComplex: boolean }>`; без стриминга, только итоговый JSON | L | Low |
-| 7 | При первом запуске с включённым оркестратором скачивать `Qwen2.5-1.5B-Instruct.Q4_K_M.gguf` (~900 МБ) в `app.getPath('userData')/orchestrator/`; показывать прогресс через `onProgressEvent`; кнопка «Скачать» в настройках | M | Low |
-| 8 | В `SettingsModal.tsx` добавить секцию «Оркестратор»: тумблер включить/выключить (`AgentSettings.orchestratorEnabled`), числовое поле порога длины сообщения (`minMessageLength`, дефолт 80), кнопка «Удалить модель» | S | Low |
-| 9 | Интегрировать `OrchestratorModel.analyze()` в `AgentRunner.run()`: вызывать перед первым прогоном, добавлять `plan` в системный промпт, при `isComplex=true` использовать перефразированный запрос вместо оригинального | M | Low |
+**1 · S · Зависимости node-llama-cpp** — приор. Low  
+- **Цель:** `node-llama-cpp` и `@electron/rebuild` установлены, скрипт `rebuild` в `package.json`  
+- **Файлы:** `app/package.json`  
+- **Действие:** добавить зависимости и `"rebuild": "electron-rebuild -f -w node-llama-cpp"`; выполнить `npm run rebuild`  
+- **Проверка:** существует `.node`-файл в `node_modules/node-llama-cpp/`
+
+**2 · S · electron-builder rebuild** — приор. Low  
+- **Цель:** `npm run dist` пересобирает native-модуль без ручного rebuild  
+- **Файлы:** `app/package.json` (секция `build`)  
+- **Действие:** добавить `"npmRebuild": true`, `"buildDependenciesFromSource": false`  
+- **Проверка:** сборка dist проходит (или документировать ограничение в README)
+
+**3 · M · Обёртка nodeLlama.ts** — приор. Low  
+- **Цель:** модуль с `loadModel`, `complete`, `unloadModel`, singleton  
+- **Файлы:** `app/electron/main/nodeLlama.ts` (новый)  
+- **Действие:** реализовать `NodeLlamaHandle`, ленивая инициализация  
+- **Проверка:** `npm run typecheck`
+
+**4 · S · Тест nodeLlama** — приор. Low  
+- **Цель:** vitest-тест с `TEST_GGUF_PATH`, skip без пути  
+- **Файлы:** `app/tests/nodeLlama.test.ts`, `README.md`  
+- **Действие:** тест `loadModel → complete → unloadModel`; инструкция в README  
+- **Проверка:** `npm test -- nodeLlama` (skip без env)
+
+**5 · M · Выбор GGUF в настройках** — приор. Low  
+- **Цель:** кнопка выбора `*.gguf`, путь в `AgentSettings.orchestratorModelPath`  
+- **Файлы:** `app/src/components/SettingsModal.tsx`, `app/electron/main/settings.ts`, `app/src/types.ts`  
+- **Действие:** `dialog.showOpenDialog` + поле в Zod-схеме  
+- **Проверка:** UI сохраняет путь после выбора файла
+
+**6 · L · orchestratorModel.ts** — приор. Low  
+- **Цель:** `analyze(message)` → `{ plan, rephrased, isComplex }` JSON без стриминга  
+- **Файлы:** `app/electron/main/orchestratorModel.ts` (новый)  
+- **Действие:** singleton на `nodeLlama`, парсинг JSON ответа  
+- **Проверка:** `npm run typecheck`; unit-тест с моком nodeLlama
+
+**7 · M · Скачивание GGUF по умолчанию** — приор. Low  
+- **Цель:** при первом включении оркестратора — загрузка Qwen2.5-1.5B в userData с прогрессом  
+- **Файлы:** `app/electron/main/orchestratorModel.ts`, `SettingsModal.tsx`  
+- **Действие:** download + `onProgressEvent`; кнопка «Скачать»  
+- **Проверка:** прогресс в UI; файл появляется в `userData/orchestrator/`
+
+**8 · S · UI секция «Оркестратор»** — приор. Low  
+- **Цель:** тумблер `orchestratorEnabled`, поле `minMessageLength` (80), «Удалить модель»  
+- **Файлы:** `SettingsModal.tsx`, `settings.ts`, `types.ts`  
+- **Действие:** секция на вкладке «Модель»  
+- **Проверка:** настройки сохраняются после перезапуска
+
+**9 · M · Интеграция в AgentRunner** — приор. Low  
+- **Цель:** перед прогоном — `analyze()`, plan в системный промпт, rephrased при `isComplex`  
+- **Файлы:** `app/electron/main/agent.ts`  
+- **Действие:** вызов оркестратора при `orchestratorEnabled`  
+- **Проверка:** чип «Планирую…» в `AgentStatusBar`; `npm run typecheck`
 
 ### 🔗 Плагины
 
-| # | Задача | Сложность | Приоритет |
-|---|--------|-----------|-----------|
-| 1 | При старте main process сканировать `~/.codeviper/plugins/*.js`; для каждого файла делать `require()` и читать `export default { name, description, tools: AgentTool[] }`; регистрировать инструменты в `agentTools.ts` | M | Low |
-| 2 | В `SettingsModal.tsx` добавить вкладку «Плагины»: список установленных плагинов из `AgentSettings.plugins`, кнопки включить/выключить и «Открыть папку плагинов» (`shell.openPath`) | S | Low |
-| 3 | При загрузке плагина `*.ts` компилировать его через `esbuild.buildSync` в CommonJS во временную папку; кэшировать скомпилированный результат по `mtime` исходника | M | Low |
-| 4 | Запускать код плагина в `worker_thread` с ограниченным API: доступ к `fs` только внутри `projectPath`, модуль `net` заблокирован через `--experimental-permission`; краш воркера не роняет main process | L | Low |
+**10 · M · Сканирование plugins/*.js** — приор. Low  
+- **Цель:** при старте main — загрузка `~/.codeviper/plugins/*.js`, регистрация tools  
+- **Файлы:** `app/electron/main/pluginLoader.ts` (новый), `app/electron/main/index.ts`, `agentTools.ts`  
+- **Действие:** `require()` + `export default { name, description, tools }`  
+- **Проверка:** тест с фиктивным плагином в temp-папке
+
+**11 · S · Вкладка «Плагины» в настройках** — приор. Low  
+- **Цель:** список плагинов, вкл/выкл, «Открыть папку»  
+- **Файлы:** `SettingsModal.tsx`, `settings.ts` (`AgentSettings.plugins`)  
+- **Действие:** вкладка + `shell.openPath`  
+- **Проверка:** UI отображает установленные плагины
+
+**12 · M · Компиляция plugins/*.ts** — приор. Low  
+- **Цель:** esbuild CommonJS во temp, кэш по mtime  
+- **Файлы:** `app/electron/main/pluginLoader.ts`  
+- **Действие:** `esbuild.buildSync` перед require  
+- **Проверка:** тест: изменение mtime → перекомпиляция
+
+**13 · L · Плагины в worker_thread** — приор. Low  
+- **Цель:** изоляция плагина; fs только в projectPath; net заблокирован  
+- **Файлы:** `app/electron/main/pluginWorker.ts` (новый), `pluginLoader.ts`  
+- **Действие:** worker + ограниченный API  
+- **Проверка:** краш воркера не роняет main; `npm test -- plugin`
 
 ### 🔗 P2P-вычисления
 
-| # | Задача | Сложность | Приоритет |
-|---|--------|-----------|-----------|
-| 1 | Развернуть Node.js + WebSocket + Redis сервер на VPS; реализовать REST API: `POST /nodes/register`, `GET /nodes/available?model=X`, `DELETE /nodes/{id}`; хранить список узлов с GPU/RAM/нагрузкой | XL | Low |
-| 2 | Реализовать аккаунтную систему на сигнальном сервере: регистрация по email или GitHub OAuth, JWT-токен передаётся при регистрации узла и запросах задач, определяет лимиты и репутацию | XL | Low |
-| 3 | В `SettingsModal.tsx` добавить тумблер «Поделиться мощностью»; при включении регистрировать узел на сигнальном сервере (POST `/nodes/register`) с параметрами GPU/RAM/модели | M | Low |
-| 4 | При первом включении режима «Поделиться мощностью» показывать модальный диалог с явным описанием: что передаётся (промпты, модель), лимиты ресурсов, как отключить; без согласия режим не активируется | S | Low |
-| 5 | В `AgentRunner` перед выполнением задачи проверять загрузку через `systeminformation`; если GPU > 20% или CPU > 15% — ставить входящую P2P-задачу в паузу и не принимать новые | M | Low |
-| 6 | На узле принимать не более 3 входящих P2P-задач одновременно; новые задачи сверх лимита — в очередь с таймаутом 60 с; при превышении таймаута отклонять с кодом 503 | M | Low |
-| 7 | Использовать TLS для WebSocket-соединений между узлами; шифровать тело промптов симметричным ключом сессии (ECDH); владелец узла не должен иметь доступа к содержимому чужих запросов | M | Low |
-| 8 | На сигнальном сервере при запросе задачи искать свободный узел с нужной моделью по реестру; если свободных нет — возвращать `{ fallback: true }`, клиент выполняет локально через Ollama | L | Low |
-| 9 | Реализовать систему кредитов: +N кредитов за каждую обработанную чужую задачу, −N за использование чужого узла; хранить баланс на сигнальном сервере; отображать в `AgentStatusBar.tsx` | L | Low |
+> Пункты 14–15 — код сервера в репозитории (`server/p2p/`); деплой VPS — вручную пользователем.
+
+**14 · XL · REST API сигнального сервера** — приор. Low  
+- **Цель:** API `POST /nodes/register`, `GET /nodes/available`, `DELETE /nodes/{id}`  
+- **Файлы:** `server/p2p/` (новый каталог), `package.json` в корне или в server  
+- **Действие:** Node + Express/Fastify + Redis для реестра узлов  
+- **Проверка:** `curl` регистрации тестового узла локально
+
+**15 · XL · Auth на сигнальном сервере** — приор. Low  
+- **Цель:** JWT после email/GitHub OAuth; лимиты по токену  
+- **Файлы:** `server/p2p/auth.ts`  
+- **Действие:** регистрация + middleware  
+- **Проверка:** запрос без токена → 401
+
+**16 · M · Тумблер «Поделиться мощностью»** — приор. Low  
+- **Цель:** UI + `POST /nodes/register` с GPU/RAM/моделью  
+- **Файлы:** `SettingsModal.tsx`, `app/electron/main/p2pClient.ts` (новый), `settings.ts`  
+- **Действие:** тумблер + регистрация узла  
+- **Проверка:** mock-сервер принимает register
+
+**17 · S · Диалог согласия P2P** — приор. Low  
+- **Цель:** модалка при первом включении: что передаётся, лимиты, отказ блокирует режим  
+- **Файлы:** `app/src/components/P2PConsentModal.tsx` (новый), `SettingsModal.tsx`  
+- **Действие:** показ один раз, флаг в settings  
+- **Проверка:** без согласия тумблер не активен
+
+**18 · M · Пауза P2P при нагрузке** — приор. Low  
+- **Цель:** GPU>20% или CPU>15% → входящие P2P-задачи в паузу  
+- **Файлы:** `app/electron/main/agent.ts`, `p2pClient.ts`, `systemStats.ts`  
+- **Действие:** проверка перед приёмом задачи  
+- **Проверка:** unit-тест с моком systeminformation
+
+**19 · M · Лимит 3 входящих P2P-задач** — приор. Low  
+- **Цель:** очередь с таймаутом 60 с, сверх лимита → 503  
+- **Файлы:** `app/electron/main/p2pClient.ts`  
+- **Действие:** счётчик активных + очередь  
+- **Проверка:** тест на отклонение 4-й задачи
+
+**20 · M · TLS + шифрование промптов** — приор. Low  
+- **Цель:** WSS между узлами; ECDH для тела промпта  
+- **Файлы:** `server/p2p/`, `app/electron/main/p2pClient.ts`  
+- **Действие:** TLS certs; симметричный ключ сессии  
+- **Проверка:** узел не читает чужой plaintext в логах
+
+**21 · L · Маршрутизация задач на сервере** — приор. Low  
+- **Цель:** поиск свободного узла с моделью; иначе `{ fallback: true }`  
+- **Файлы:** `server/p2p/router.ts`  
+- **Действие:** логика выбора узла  
+- **Проверка:** интеграционный тест с 2 mock-узлами
+
+**22 · L · Кредиты P2P в UI** — приор. Low  
+- **Цель:** баланс кредитов на сервере, отображение в `AgentStatusBar`  
+- **Файлы:** `server/p2p/credits.ts`, `AgentStatusBar.tsx`, `p2pClient.ts`  
+- **Действие:** +N/−N за задачи; IPC статуса  
+- **Проверка:** баланс обновляется после mock-задачи
 
 ### 🔗 Коллективное обучение и UI агента
 
-> **База уже в коде:** ветка `agent/self-improve`, push `docs/collective/ViperMemory.md`, чип ☁️ в статус-баре. Ниже — доработки до полноценного «агент сам учится у всех пользователей».
+> База в коде: ветка `agent/self-improve`, `docs/collective/ViperMemory.md`, чип ☁️.
 
-| # | Задача | Сложность | Приоритет |
-|---|--------|-----------|-----------|
-| 1 | `AgentLearningPanel.tsx` в `ChatPanel`: ветка git, очередь знаний, последний sync, статус push/pull, кнопки «Синхронизировать сейчас» и «Создать PR»; IPC `get-collective-sync-status` | M | High |
-| 2 | При `gitSyncOnStartup` подтягивать `docs/collective/ViperMemory.md` с `origin/agent/self-improve` (fetch + checkout файла или merge); обновлять локальный контекст без ручного pull | M | High |
-| 3 | `MemoryPanel.tsx`: разделить «Локальные» и «Коллективные (GitHub)» знания; бейдж источника; счётчик новых с remote | S | Medium |
-| 4 | Фильтр перед push в collective: минимальная длина, дедуп с remote, отклонение пустых/технических фраз; лог отклонённых в UI панели | S | Medium |
-| 5 | Аналогичная синхронизация глобальных навыков → `docs/collective/ViperSkills.md`; подгрузка в `list_skills` / системный промпт | M | Medium |
-| 6 | Кнопка «Создать PR» в панели: вызов `create_codeviper_pr` с заголовком «Коллективные знания» после успешного push | S | Medium |
-| 7 | Обработка конфликтов push (non-fast-forward): `git pull --rebase` на ветке агента + retry; понятное сообщение в чате и панели | M | Low |
-| 8 | Панель самоулучшения: визуальный прогресс плана (не только system-сообщения) — чеклист с `self_improve_plan` sticky над вводом | M | Low |
+**23 · M · AgentLearningPanel** — приор. High  
+- **Цель:** панель в чате: ветка, очередь, sync, кнопки «Синхронизировать» и «Создать PR»  
+- **Файлы:** `app/src/components/AgentLearningPanel.tsx`, `ChatPanel.tsx`, `app/electron/main/index.ts`, `ipcContracts.ts`  
+- **Действие:** IPC `get-collective-sync-status`  
+- **Проверка:** панель показывает ветку и pending count
 
----
+**24 · M · Pull collective при старте** — приор. High  
+- **Цель:** при `gitSyncOnStartup` — fetch `origin/agent/self-improve`, обновить `docs/collective/ViperMemory.md`  
+- **Файлы:** `app/electron/main/collectiveMemorySync.ts`, launcher sync  
+- **Действие:** checkout/merge файла collective  
+- **Проверка:** после pull знания из remote в контексте агента
+
+**25 · S · MemoryPanel: локальные vs коллективные** — приор. Medium  
+- **Цель:** две секции, бейдж источника, счётчик новых с remote  
+- **Файлы:** `app/src/components/MemoryPanel.tsx`, `memory.ts`  
+- **Действие:** разделить списки в UI  
+- **Проверка:** коллективные записи видны отдельно
+
+**26 · S · Фильтр перед push collective** — приор. Medium  
+- **Цель:** отсечь короткий/пустой/дублирующий текст; лог отклонённых  
+- **Файлы:** `app/electron/main/collectiveMemorySync.ts`, `AgentLearningPanel.tsx`  
+- **Действие:** `minLength`, dedup с remote  
+- **Проверка:** тест: пустая строка не пушится
+
+**27 · M · Collective ViperSkills** — приор. Medium  
+- **Цель:** sync навыков в `docs/collective/ViperSkills.md` + подгрузка в промпт  
+- **Файлы:** `collectiveMemorySync.ts` или `collectiveSkillsSync.ts`, `skills.ts`  
+- **Действие:** аналог памяти для global skills  
+- **Проверка:** skill из remote в `list_skills`
+
+**28 · S · Кнопка PR из панели** — приор. Medium  
+- **Цель:** «Создать PR» → `create_codeviper_pr` с заголовком «Коллективные знания»  
+- **Файлы:** `AgentLearningPanel.tsx`  
+- **Действие:** вызов IPC существующего PR-инструмента  
+- **Проверка:** после push кнопка создаёт PR (или сообщение «уже есть»)
+
+**29 · M · Rebase при конфликте push** — приор. Low  
+- **Цель:** non-fast-forward → `git pull --rebase` + retry  
+- **Файлы:** `app/electron/main/selfCommit.ts`, `collectiveMemorySync.ts`  
+- **Действие:** retry-цикл с rebase  
+- **Проверка:** тест с моком git conflict
+
+**30 · M · Чеклист плана самоулучшения** — приор. Low  
+- **Цель:** sticky чеклист `self_improve_plan` над полем ввода (не только system-msg)  
+- **Файлы:** `app/src/components/SelfImprovePlanPanel.tsx`, `ChatPanel.tsx`  
+- **Действие:** подписка на `self_improve_plan` stream  
+- **Проверка:** пункты done/pending видны при самоулучшении
 
 ### ⚡ Независимые задачи
 
-| Модуль | Задача | Сложность | Приоритет |
-|--------|--------|-----------|-----------|
-| **Интеграции** | Добавить `.sh`-лаунчер для Linux/macOS аналогично `CodeViper.cmd`; в GitHub Actions настроить матрицу `windows-latest` / `ubuntu-latest` / `macos-latest`; исправить пути `app/electron/main` для POSIX | L | Medium |
-| **Инфраструктура** | Написать NSIS-скрипт для `electron-builder`: при установке клонировать репозиторий CodeViper в `%APPDATA%\CodeViper\source\` через `git clone`, создавать ярлык на рабочем столе, запускающий `CodeViper.cmd` | L | Medium |
-| **Интеграции** | Добавить в `AgentSettings` поля `jiraUrl`, `jiraToken`; реализовать инструмент `create_jira_issue` в `agentHandlersGitHub.ts`: POST `{jiraUrl}/rest/api/3/issue` с Basic-авторизацией через token | M | Low |
-| **Интеграции** | Добавить в `AgentSettings` поле `linearApiKey`; реализовать инструмент `create_linear_issue` в `agentHandlersGitHub.ts`: GraphQL-мутация `issueCreate` через `https://api.linear.app/graphql` | M | Low |
-| **Интеграции** | Создать `Dockerfile` с Node.js 20 + Ollama; `docker-compose.yml` с томом исходников CodeViper и hot reload через `npm run dev`; документировать запуск в README | M | Low |
-| **Безопасность** | При скачивании через `pullOllamaModel` сравнивать SHA-256 финального файла с манифестом реестра Ollama; при несовпадении — удалять файл и показывать ошибку | S | Low |
-| **Безопасность** | Добавить режим «Инкогнито» (переключатель в топбаре): отключает сохранение истории чатов и NDJSON-логов на диск; данные живут только в памяти до закрытия окна | M | Low |
-| **Документация** | Добавить в `README.md` раздел «Примеры запросов» с 5–7 готовыми диалогами, иллюстрирующими работу агента (поиск по коду, правка, самоулучшение, веб-поиск) | S | Low |
-| **Документация** | Записать скринкасты/GIF для README: поиск и правка кода, режим самоулучшения, загрузка модели Ollama | M | Low |
-| **Документация** | Улучшить `CONTRIBUTING.md`: добавить диаграмму последовательности ReAct-цикла, описание ключевых классов и модулей, пример добавления нового инструмента от схемы до теста | M | Low |
-| **Документация** | Настроить `typedoc` для генерации API-документации из JSDoc-комментариев в `electron/main/` и `shared/`; добавить `npm run docs` и GitHub Pages деплой в Actions | M | Low |
+**31 · L · POSIX-лаунчер и CI** — приор. Medium  
+- **Цель:** `CodeViper.sh` для Linux/macOS; матрица CI ubuntu/macos  
+- **Файлы:** `CodeViper.sh`, `.github/workflows/release.yml`  
+- **Действие:** sh-скрипт аналог `.cmd`; пути POSIX в workflow  
+- **Проверка:** `bash CodeViper.sh` на Linux (CI)
+
+**32 · L · NSIS git clone при установке** — приор. Medium  
+- **Цель:** установщик клонирует репо в `%APPDATA%\CodeViper\source\` (дополнить если нужно)  
+- **Файлы:** `app/resources/installer.nsh`, `app/package.json`  
+- **Действие:** проверить/дополнить clone + ярлык на `CodeViper.cmd`  
+- **Проверка:** тестовая установка NSIS (или ревью скрипта)
+
+**33 · M · Инструмент create_jira_issue** — приор. Low  
+- **Цель:** POST Jira REST с `jiraUrl` + `jiraToken` из settings  
+- **Файлы:** `agentHandlersGitHub.ts` или `agentHandlersJira.ts`, `agentTools.ts`, `settings.ts`, `SettingsModal.tsx`  
+- **Действие:** схема инструмента + handler + поля settings  
+- **Проверка:** `npm run typecheck`; mock POST
+
+**34 · M · Инструмент create_linear_issue** — приор. Low  
+- **Цель:** GraphQL `issueCreate` через Linear API  
+- **Файлы:** `agentHandlersGitHub.ts`, `agentTools.ts`, `settings.ts` (`linearApiKey`)  
+- **Действие:** handler + UI поле ключа  
+- **Проверка:** `npm run typecheck`
+
+**35 · M · Docker dev-окружение** — приор. Low  
+- **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
+- **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
+- **Действие:** образ + том исходников + `npm run dev`  
+- **Проверка:** `docker compose up` поднимает приложение
+
+**36 · S · SHA-256 при pull Ollama** — приор. Low  
+- **Цель:** сверка хеша с манифестом; при несовпадении — удалить файл и ошибка  
+- **Файлы:** `app/electron/main/agentHandlersModels.ts` или `ollamaPull.ts`  
+- **Действие:** проверка после скачивания  
+- **Проверка:** тест с неверным хешем
+
+**37 · M · Режим «Инкогнито»** — приор. Low  
+- **Цель:** тумблер в топбаре; чаты и NDJSON-логи только в RAM  
+- **Файлы:** `App.tsx`, `chats.ts`, `agentLogger.ts`, `settings.ts`  
+- **Действие:** флаг `incognitoMode`; skip persist  
+- **Проверка:** после перезапуска история инкогнито-чата пуста
+
+**38 · S · README «Примеры запросов»** — приор. Low  
+- **Цель:** 5–7 готовых диалогов (поиск, правка, самоулучшение, веб)  
+- **Файлы:** `README.md`  
+- **Действие:** новый раздел с промптами  
+- **Проверка:** ревью текста
+
+**39 · M · Скринкасты для README** — приор. Low  
+- **Цель:** GIF/видео: поиск, самоулучшение, Ollama  
+- **Файлы:** `docs/media/` (новый), `README.md`  
+- **Действие:** добавить assets + ссылки  
+- **Проверка:** файлы в репозитории, README ссылается
+
+**40 · M · CONTRIBUTING.md** — приор. Low  
+- **Цель:** диаграмма ReAct, ключевые модули, пример нового инструмента  
+- **Файлы:** `CONTRIBUTING.md`  
+- **Действие:** mermaid sequence + пошаговый гайд  
+- **Проверка:** ревью документа
+
+**41 · M · typedoc + GitHub Pages** — приор. Low  
+- **Цель:** `npm run docs` генерирует API из JSDoc; деплой в Actions  
+- **Файлы:** `package.json`, `.github/workflows/docs.yml` (новый), `typedoc.json`  
+- **Действие:** typedoc config + workflow  
+- **Проверка:** `npm run docs` локально без ошибок
 
 ---
 
@@ -246,3 +435,4 @@
 - Самоулучшение: автопуш в ветку `agent/self-improve` (настройка `selfImproveBranch`), checkout в начале прогона
 - Коллективная память: синхронизация глобальных знаний в `docs/collective/ViperMemory.md` + push; UI-чип в статус-баре; подгрузка в контекст всех пользователей
 - `electron-updater`: packaged-сборка проверяет GitHub Releases при старте; dev — git fetch `app/`; баннер с «Перезапустить и обновить»; `UpdateInfo` git/release
+- ROADMAP «В планах»: все 41 пункт в едином формате самообучения (цель / файлы / действие / проверка), сквозная нумерация 1–41
