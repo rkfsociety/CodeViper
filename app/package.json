@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "dist": "electron-vite build && electron-builder",
+    "setup-node": "node ../scripts/download-node.js",
+    "dist": "npm run setup-node && electron-vite build && electron-builder",
     "start": "electron .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

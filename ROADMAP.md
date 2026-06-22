@@ -10,9 +10,8 @@
 
 | # | Задача | Сложность | Приоритет |
 |---|--------|-----------|-----------|
-| 1 | Создать `scripts/download-node.js`: определяет платформу/arch, скачивает Node.js LTS с nodejs.org в `app/resources/node/`, распаковывает, пропускает если уже актуален; добавить `npm run setup-node` в `package.json` scripts и вызов перед `npm run dist` | S | Low |
-| 2 | В `package.json` в секцию `build` добавить `extraResources: [{ from: "resources/node/", to: "node/" }]` — так portable Node.js попадёт в установленный дистрибутив рядом с `resources/` | XS | Low |
-| 3 | В `codeviperSource.ts` добавить `getBundledNodeBin()` (ищет `resources/node/node.exe` или `bin/node` рядом с `app.getAppPath()`); изменить `runCodeViperCommand` — при наличии bundled Node прокидывать его директорию в начало `PATH` среды перед вызовом `runCommand` | S | Low |
+| 1 | В `package.json` в секцию `build` добавить `extraResources: [{ from: "resources/node/", to: "node/" }]` — так portable Node.js попадёт в установленный дистрибутив рядом с `resources/` | XS | Low |
+| 2 | В `codeviperSource.ts` добавить `getBundledNodeBin()` (ищет `resources/node/node.exe` или `bin/node` рядом с `app.getAppPath()`); изменить `runCodeViperCommand` — при наличии bundled Node прокидывать его директорию в начало `PATH` среды перед вызовом `runCommand` | S | Low |
 
 ### 🔗 node-llama-cpp + Оркестратор
 
@@ -211,3 +210,6 @@
 - Семантическое версионирование; GitHub Actions CI; branch protection; доступность (WCAG AA)
 - Статус PR в UI (CI-статус); `PrStatusPanel` опрашивает только при открытой панели (`isOpen`), интервал 300 с; автодополнение в терминале; метрики (tok/s, NDJSON-лог)
 - Zod-схема `PersistedSettingsSchema` в `settings.ts`: тип `PersistedSettings` выведен через `z.infer<>`; `safeParse()` при загрузке с детальным логом ошибок и fallback на `normalize()`
+
+**Portable Node.js**
+- `scripts/download-node.js`: скачивание Node.js LTS в `app/resources/node/`; `npm run setup-node`; вызов перед `npm run dist`

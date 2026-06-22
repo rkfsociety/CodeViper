@@ -2,6 +2,7 @@ app/node_modules
 app/dist
 app/out
 app/release
+app/resources/node/
 app/dist-electron
 app/.vitest-tmp
 app/.pending-restart
