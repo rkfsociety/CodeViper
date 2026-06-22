@@ -7,9 +7,9 @@
 - Порядок перед каждым коммитом: `npm run typecheck` → `npm run build` → обновить ROADMAP/README → `git commit` → `git push`.
 - `npm run dist` автоматически вызывает `setup-node` (скачивание portable Node.js LTS в `app/resources/node/`). Папка в `.gitignore`, не коммитить.
 
-## Portable Node.js (ROADMAP)
+## Portable Node.js
 
-Цепочка «самопересборка»: `getBundledNodeBin()` в `codeviperSource.ts`. Скачивание и `extraResources` уже есть.
+Цепочка самопересборки завершена: `setup-node` → `extraResources` → `getBundledNodeBin()` + PATH в `runCodeViperCommand`.
 
 ## После каждой выполненной задачи (ROADMAP)
 

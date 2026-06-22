@@ -75,18 +75,24 @@ export function validateCommand(command: string, extraBlocklist?: string[]): str
   return null
 }
 
-function spawnShell(command: string, cwd: string): ChildProcess {
+function spawnShell(
+  command: string,
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env
+): ChildProcess {
   if (process.platform === 'win32') {
     return spawn('cmd.exe', ['/d', '/s', '/c', command], {
       cwd,
       windowsHide: true,
-      shell: false
+      shell: false,
+      env
     })
   }
 
   return spawn('/bin/sh', ['-c', command], {
     cwd,
-    shell: false
+    shell: false,
+    env
   })
 }
 
@@ -546,7 +552,8 @@ export async function runCommand(
   cwd: string,
   command: string,
   timeoutMs = COMMAND_TIMEOUT_MS,
-  extraBlocklist?: string[]
+  extraBlocklist?: string[],
+  env: NodeJS.ProcessEnv = process.env
 ): Promise<TerminalResult> {
   const blocked = validateCommand(command, extraBlocklist)
   if (blocked) {
@@ -569,7 +576,7 @@ export async function runCommand(
       resolvePromise(result)
     }
 
-    const child = spawnShell(command, cwd)
+    const child = spawnShell(command, cwd, env)
 
     const timer = setTimeout(() => {
       killProcessTree(child)

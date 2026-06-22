@@ -1,35 +1,23 @@
 ---
-description: Portable Node.js для самопересборки CodeViper — что сделано и следующие шаги
+description: Portable Node.js для самопересборки CodeViper — цепочка завершена
 alwaysApply: true
 ---
 
 # Portable Node.js
 
-Цепочка из ROADMAP «Portable Node.js для самопересборки». Порядок строгий — следующий шаг только после предыдущего.
+Цепочка «Portable Node.js для самопересборки» **завершена**.
 
-## Сделано
+## Компоненты
 
-- `scripts/download-node.js` — определяет платформу/arch, скачивает Node.js LTS с nodejs.org, распаковывает в `app/resources/node/`, пропускает если `.node-version` совпадает с LTS и бинарник на месте
-- `npm run setup-node` в `app/package.json` → `node ../scripts/download-node.js`
-- `npm run dist` → `setup-node` → `electron-vite build` → `electron-builder`
-- `app/resources/node/` в `.gitignore` (бинарники не коммитятся, скачиваются при dist)
-
-Структура после распаковки:
-- Windows: `app/resources/node/node.exe`, `npm.cmd`, …
-- Linux/macOS: `app/resources/node/bin/node`
-
-Маркер версии: `app/resources/node/.node-version` (например `v24.17.0`).
-
-## Следующие шаги (ROADMAP)
-
-1. **getBundledNodeBin()** в `codeviperSource.ts` — ищет `node.exe` или `bin/node` рядом с `app.getAppPath()`; в `runCodeViperCommand` прокинуть директорию Node в начало `PATH`
-
-## Готово в electron-builder
-
-- `extraResources`: `{ from: "resources/node/", to: "node/" }` — portable Node в установленном дистрибутиве
+1. `scripts/download-node.js` — LTS → `app/resources/node/`; `npm run setup-node`; вызов перед `npm run dist`
+2. `extraResources` в `app/package.json`: `{ from: "resources/node/", to: "node/" }`
+3. `getBundledNodeBin()` в `codeviperSource.ts` — ищет бинарник в:
+   - `{appPath}/resources/node/node.exe` или `bin/node` (dev)
+   - `{dirname(appPath)}/node/...` (packaged, рядом с app.asar)
+   - `{process.resourcesPath}/node/...`
+4. `runCodeViperCommand` — prepend директории Node в `PATH`/`Path` перед `runCommand`
 
 ## Не делать
 
-- Не коммитить содержимое `app/resources/node/`
-- Не дублировать логику скачивания — только `scripts/download-node.js`
-- Не менять порядок цепочки: getBundledNodeBin после extraResources (extraResources уже сделан)
+- Не коммитить `app/resources/node/`
+- Не дублировать логику скачивания или поиска бинарника

@@ -8,7 +8,20 @@ vi.mock('electron', () => ({
   }
 }))
 
-import { getCodeViperSourceRoot, isAllowedSelfPath } from '../electron/main/codeviperSource'
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>()
+  return {
+    ...actual,
+    existsSync: vi.fn(actual.existsSync)
+  }
+})
+
+import { existsSync } from 'fs'
+import {
+  getBundledNodeBin,
+  getCodeViperSourceRoot,
+  isAllowedSelfPath
+} from '../electron/main/codeviperSource'
 
 describe('codeviperSource', () => {
   it('находит корень с agent.ts', () => {
@@ -24,5 +37,18 @@ describe('codeviperSource', () => {
   it('запрещает out', () => {
     const root = getCodeViperSourceRoot()
     expect(isAllowedSelfPath(root, join(root, 'out', 'main', 'index.js'))).toBe(false)
+  })
+
+  it('getBundledNodeBin находит node.exe в resources/node', () => {
+    const expected = join(process.cwd(), 'resources', 'node', 'node.exe')
+    vi.mocked(existsSync).mockImplementation((path) => path === expected)
+
+    expect(getBundledNodeBin()).toBe(expected)
+  })
+
+  it('getBundledNodeBin возвращает null если бинарник не найден', () => {
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    expect(getBundledNodeBin()).toBeNull()
   })
 })

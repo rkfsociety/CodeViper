@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
-import { join, resolve, sep } from 'path'
+import { dirname, join, resolve, sep } from 'path'
 import {
   isInsideProject,
   runCommand,
@@ -127,9 +127,45 @@ export async function moveCodeViperFile(fromPath: string, toPath: string): Promi
   await safeMoveFile(root, fromPath, toPath)
 }
 
+function bundledNodeBinaryName(): string {
+  return process.platform === 'win32' ? 'node.exe' : join('bin', 'node')
+}
+
+export function getBundledNodeBin(): string | null {
+  const appPath = app.getAppPath()
+  const binaryName = bundledNodeBinaryName()
+  const candidates = [
+    join(appPath, 'resources', 'node', binaryName),
+    join(dirname(appPath), 'node', binaryName),
+    ...(process.resourcesPath ? [join(process.resourcesPath, 'node', binaryName)] : [])
+  ]
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+
+  return null
+}
+
+function prependBundledNodeToPath(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const bundledBin = getBundledNodeBin()
+  if (!bundledBin) return env
+
+  const nodeDir = dirname(bundledBin)
+  const pathSep = process.platform === 'win32' ? ';' : ':'
+  const currentPath = env.PATH ?? env.Path ?? ''
+  const nextPath = currentPath ? `${nodeDir}${pathSep}${currentPath}` : nodeDir
+
+  return {
+    ...env,
+    PATH: nextPath,
+    ...(process.platform === 'win32' ? { Path: nextPath } : {})
+  }
+}
+
 export async function runCodeViperCommand(command: string) {
   const root = getCodeViperSourceRoot()
-  return runCommand(root, command)
+  return runCommand(root, command, undefined, undefined, prependBundledNodeToPath(process.env))
 }
 
 export function buildSelfEditContext(): string {

@@ -129,17 +129,11 @@ app/
 
 ### Portable Node.js (самопересборка)
 
-Цепочка ROADMAP «Portable Node.js для самопересборки» — строгий порядок сверху вниз.
+Цепочка завершена: `setup-node` → `extraResources` → `getBundledNodeBin()` + PATH в `runCodeViperCommand`.
 
-**Готово:**
-- `scripts/download-node.js` — LTS с nodejs.org → `app/resources/node/`; платформа win/linux/darwin, arch x64/arm64
-- `npm run setup-node`, вызов перед `npm run dist`
-- `app/resources/node/` в `.gitignore`
-
-**Дальше по ROADMAP:**
-1. `getBundledNodeBin()` в `codeviperSource.ts` + PATH в `runCodeViperCommand`
-
-Бинарник: Windows `node.exe` в корне, Unix `bin/node`. Версия — файл `.node-version`. В дистрибутиве Node лежит в `resources/node/` → копируется в `node/` через `extraResources`.
+- Dev: `app/resources/node/` (`node.exe` / `bin/node`)
+- Дистрибутив: `resources/node/` через `extraResources`
+- Поиск: `getBundledNodeBin()` — `resources/node/` рядом с `app.getAppPath()`, `node/` рядом с asar, `process.resourcesPath/node/`
 
 ---
 

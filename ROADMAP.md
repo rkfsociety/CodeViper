@@ -6,12 +6,6 @@
 
 ## 📋 В планах
 
-### 🔗 Portable Node.js для самопересборки
-
-| # | Задача | Сложность | Приоритет |
-|---|--------|-----------|-----------|
-| 1 | В `codeviperSource.ts` добавить `getBundledNodeBin()` (ищет `resources/node/node.exe` или `bin/node` рядом с `app.getAppPath()`); изменить `runCodeViperCommand` — при наличии bundled Node прокидывать его директорию в начало `PATH` среды перед вызовом `runCommand` | S | Low |
-
 ### 🔗 node-llama-cpp + Оркестратор
 
 | # | Задача | Сложность | Приоритет |
@@ -213,3 +207,4 @@
 **Portable Node.js**
 - `scripts/download-node.js`: скачивание Node.js LTS в `app/resources/node/`; `npm run setup-node`; вызов перед `npm run dist`
 - `extraResources` в electron-builder: portable Node в `node/` рядом с `resources/` в установленном дистрибутиве
+- `getBundledNodeBin()` и PATH в `runCodeViperCommand` — самопересборка через bundled Node
