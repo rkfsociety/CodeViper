@@ -40,7 +40,8 @@ describe('codeviperSource', () => {
   })
 
   it('getBundledNodeBin находит node.exe в resources/node', () => {
-    const expected = join(process.cwd(), 'resources', 'node', 'node.exe')
+    const binaryName = process.platform === 'win32' ? 'node.exe' : join('bin', 'node')
+    const expected = join(process.cwd(), 'resources', 'node', binaryName)
     vi.mocked(existsSync).mockImplementation((path) => path === expected)
 
     expect(getBundledNodeBin()).toBe(expected)

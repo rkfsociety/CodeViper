@@ -215,7 +215,7 @@ export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_im
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
   'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'
 
-export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_codeviper_file ROADMAP.md (если задан пункт N) → файлы из «Файлы» → set_self_improvement_plan.`
+export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: list_codeviper_directory (обзор структуры) → read_codeviper_file ROADMAP.md (если задан пункт N) → файлы из «Файлы» → set_self_improvement_plan.`
 
 export function buildSelfImprovementContinueNudge(plan: SelfImprovementItem[]): string {
   const { done, total, pending } = planProgress(plan)

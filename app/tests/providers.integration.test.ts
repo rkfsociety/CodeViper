@@ -166,7 +166,7 @@ describe('OllamaProvider', () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 429,
-      json: async () => ({ error: 'rate limit exceeded' }),
+      text: async () => JSON.stringify({ error: 'rate limit exceeded' }),
       body: makeStream([])
     } as unknown as Response)
 
@@ -177,7 +177,8 @@ describe('OllamaProvider', () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 404,
-      json: async () => ({ error: "model 'llama3' not found, try ollama pull llama3" }),
+      text: async () =>
+        JSON.stringify({ error: "model 'llama3' not found, try ollama pull llama3" }),
       body: makeStream([])
     } as unknown as Response)
 
@@ -236,6 +237,8 @@ describe('OpenAIProvider', () => {
 
   beforeEach(() => {
     provider = new OpenAIProvider('https://api.openai.com/v1', 'sk-test', 'gpt-4o')
+    // Отключаем retry-backoff чтобы тесты на 429 не ждали реальных задержек
+    ;(provider as unknown as { BACKOFF_MS: number[] }).BACKOFF_MS = []
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
   })

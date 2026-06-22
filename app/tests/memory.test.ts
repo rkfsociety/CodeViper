@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 
+vi.mock('electron', () => ({
+  app: {
+    getPath: () => process.cwd(),
+    getAppPath: () => process.cwd()
+  }
+}))
+
 vi.mock('../electron/main/embeddings', () => ({
   upsertEmbedding: vi.fn(),
   removeEmbedding: vi.fn(),
