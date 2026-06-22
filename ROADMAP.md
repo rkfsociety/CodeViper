@@ -185,47 +185,39 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Независимые задачи
 
-**25 · L · POSIX-лаунчер и CI** — приор. Medium  
-- **Цель:** `CodeViper.sh` для Linux/macOS; матрица CI ubuntu/macos  
-- **Файлы:** `CodeViper.sh`, `.github/workflows/release.yml`  
-- **Действие:** sh-скрипт аналог `.cmd`; пути POSIX в workflow  
-- **Проверка:** `bash CodeViper.sh` на Linux (CI)
-
-**26 · M · Инструмент create_jira_issue** — приор. Low  
-**27 · M · Инструмент create_linear_issue** — приор. Low  
-**28 · M · Docker dev-окружение** — приор. Low  
-**29 · S · SHA-256 при pull Ollama** — приор. Low  
-**30 · M · Режим «Инкогнито»** — приор. Low  
-**31 · S · README «Примеры запросов»** — приор. Low  
-**32 · M · Скринкасты для README** — приор. Low  
-**33 · M · CONTRIBUTING.md** — приор. Low  
-**34 · M · typedoc + GitHub Pages** — приор. Low  
-**35 · S · Whitelist шаблонов команд** — приор. High  
-**36 · M · Автопроверка после правок** — приор. High  
-**37 · S · UI правил проекта** — приор. High  
-**38 · M · Slash-команды** — приор. High  
-**39 · M · Панель выбора ROADMAP** — приор. High  
-**40 · M · Автоиндексация при открытии проекта** — приор. Medium  
-**41 · S · Nudge «используй RAG»** — приор. Medium  
-**42 · L · Символьный индекс (find_symbol)** — приор. Medium  
-**43 · M · Дерево файлов проекта** — приор. High  
-**44 · M · Side-by-side diff** — приор. Medium  
-**45 · S · Уведомление «агент закончил»** — приор. Medium  
-**46 · M · Шаблоны чатов** — приор. Medium  
-**47 · M · Авто-PR collective** — приор. Medium  
-**48 · M · Рейтинг знаний collective** — приор. Low  
-**49 · S · Экспорт урока в skill** — приор. Medium  
-**50 · M · Контракт subagent** — приор. Medium  
-**51 · L · Explorer subagent** — приор. Medium  
-**52 · L · Editor subagent в цикле** — приор. Low  
-**53 · M · Бенчмарк локальных моделей** — приор. Low  
-**54 · S · Каналы обновлений stable/beta** — приор. Low  
-**55 · M · Webhook «агент готов»** — приор. Low  
-**56 · L · Песочница для run_script** — приор. Low  
-**57 · L · Голосовой ввод и озвучка** — приор. Low  
-**58 · XL · LSP в редакторе** — приор. Low  
-**59 · L · Skill marketplace** — приор. Low  
-**60 · M · E2E на Linux/macOS в CI** — приор. Medium  
+**25 · M · Docker dev-окружение** — приор. Low  
+**26 · S · SHA-256 при pull Ollama** — приор. Low  
+**27 · M · Режим «Инкогнито»** — приор. Low  
+**28 · S · README «Примеры запросов»** — приор. Low  
+**29 · M · Скринкасты для README** — приор. Low  
+**30 · M · CONTRIBUTING.md** — приор. Low  
+**31 · M · typedoc + GitHub Pages** — приор. Low  
+**32 · S · Whitelist шаблонов команд** — приор. High  
+**33 · M · Автопроверка после правок** — приор. High  
+**34 · S · UI правил проекта** — приор. High  
+**35 · M · Slash-команды** — приор. High  
+**36 · M · Панель выбора ROADMAP** — приор. High  
+**37 · M · Автоиндексация при открытии проекта** — приор. Medium  
+**38 · S · Nudge «используй RAG»** — приор. Medium  
+**39 · L · Символьный индекс (find_symbol)** — приор. Medium  
+**40 · M · Дерево файлов проекта** — приор. High  
+**41 · M · Side-by-side diff** — приор. Medium  
+**42 · S · Уведомление «агент закончил»** — приор. Medium  
+**43 · M · Шаблоны чатов** — приор. Medium  
+**44 · M · Авто-PR collective** — приор. Medium  
+**45 · M · Рейтинг знаний collective** — приор. Low  
+**46 · S · Экспорт урока в skill** — приор. Medium  
+**47 · M · Контракт subagent** — приор. Medium  
+**48 · L · Explorer subagent** — приор. Medium  
+**49 · L · Editor subagent в цикле** — приор. Low  
+**50 · M · Бенчмарк локальных моделей** — приор. Low  
+**51 · S · Каналы обновлений stable/beta** — приор. Low  
+**52 · M · Webhook «агент готов»** — приор. Low  
+**53 · L · Песочница для run_script** — приор. Low  
+**54 · L · Голосовой ввод и озвучка** — приор. Low  
+**55 · XL · LSP в редакторе** — приор. Low  
+**56 · L · Skill marketplace** — приор. Low  
+**57 · M · E2E на Linux/macOS в CI** — приор. Medium  
 ---
 
 ## ✅ Сделано
