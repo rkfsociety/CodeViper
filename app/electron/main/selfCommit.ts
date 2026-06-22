@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import { writeFile } from 'fs/promises'
 import { join } from 'path'
+import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { getCodeViperSourceRoot } from './codeviperSource'
 
 interface GitResult {
@@ -76,6 +77,56 @@ function sanitizeBranchName(name: string): string {
 
 const PROTECTED_BRANCHES = new Set(['master', 'main', 'develop', 'release'])
 
+async function localBranchExists(cwd: string, branch: string): Promise<boolean> {
+  const result = await runGit(cwd, ['show-ref', '--verify', '--quiet', `refs/heads/${branch}`])
+  return result.code === 0
+}
+
+/**
+ * Переключает репозиторий на ветку самоулучшения (создаёт agent/* при отсутствии).
+ * Незакоммиченные правки переносятся вместе с checkout.
+ */
+export async function ensureSelfImproveBranch(
+  configuredBranch?: string,
+  cwd?: string
+): Promise<SelfCommitResult & { branch?: string }> {
+  const source = cwd ?? getCodeViperSourceRoot()
+  const branch = resolveSelfImproveBranch(configuredBranch)
+
+  if (PROTECTED_BRANCHES.has(branch)) {
+    return { ok: false, message: `ветка самоулучшения не может называться «${branch}»` }
+  }
+  if (!branch.startsWith('agent/')) {
+    return { ok: false, message: 'ветка самоулучшения должна начинаться с agent/' }
+  }
+
+  try {
+    await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
+  } catch {
+    return { ok: false, message: 'не git-репозиторий — переключение ветки пропущено' }
+  }
+
+  const current = await getCurrentBranch(source)
+  if (current === branch) {
+    return { ok: true, message: `уже на ветке ${branch}`, branch }
+  }
+
+  try {
+    if (await localBranchExists(source, branch)) {
+      await runGitWithRetry(source, ['checkout', branch], 'checkout')
+    } else {
+      await runGitWithRetry(source, ['checkout', '-b', branch], 'checkout')
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      message: `не удалось переключиться на ${branch}: ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+
+  return { ok: true, message: `переключено на ветку ${branch}`, branch }
+}
+
 /**
  * Создаёт ветку `agent/<name>` и переключается на неё.
  * Имя санитизируется: только строчные буквы, цифры, дефисы.
@@ -110,7 +161,7 @@ export async function createCodeViperBranch(name: string): Promise<SelfCommitRes
 
 /**
  * Пушит текущую ветку на origin с установкой upstream.
- * Отказывает, если текущая ветка — master/main (для них используй autoPushSelfEdits).
+ * Отказывает, если текущая ветка — master/main.
  */
 export async function pushCodeViperBranch(): Promise<SelfCommitResult> {
   const source = getCodeViperSourceRoot()
@@ -127,7 +178,7 @@ export async function pushCodeViperBranch(): Promise<SelfCommitResult> {
   if (PROTECTED_BRANCHES.has(branch)) {
     return {
       ok: false,
-      message: `push_codeviper_branch не работает на ветке "${branch}" — используй autoPushSelfEdits`
+      message: `push_codeviper_branch не работает на ветке "${branch}" — сначала create_codeviper_branch`
     }
   }
 
@@ -240,16 +291,18 @@ export async function createCodeViperPr(title?: string, body?: string): Promise<
  * Коммитит и пушит изменения исходников CodeViper (самоправки агента).
  * Best-effort: не git-репозиторий, отсутствие изменений или офлайн — не ошибка приложения.
  */
-export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommitResult> {
+export async function commitAndPushSelfEdits(
+  summary: string,
+  configuredBranch?: string
+): Promise<SelfCommitResult> {
   // Все операции выполняются в каталоге исходников (app/) и ограничены им
   // через pathspec '.', чтобы не затронуть прочие файлы репозитория.
   const source = getCodeViperSourceRoot()
 
-  try {
-    await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
-  } catch {
-    return { ok: false, message: 'не git-репозиторий — автокоммит пропущен' }
-  }
+  const branchResult = await ensureSelfImproveBranch(configuredBranch, source)
+  if (!branchResult.ok) return branchResult
+
+  const branch = branchResult.branch ?? resolveSelfImproveBranch(configuredBranch)
 
   let status: GitResult
   try {
@@ -280,15 +333,15 @@ export async function commitAndPushSelfEdits(summary: string): Promise<SelfCommi
   }
 
   try {
-    await runGitWithRetry(source, ['push'], 'push')
+    await runGitWithRetry(source, ['push', '--set-upstream', 'origin', branch], 'push')
   } catch (err) {
     return {
       ok: false,
-      message: `коммит сделан, но push не удался (офлайн?): ${err instanceof Error ? err.message : String(err)}`
+      message: `коммит сделан в ${branch}, но push не удался (офлайн?): ${err instanceof Error ? err.message : String(err)}`
     }
   }
 
-  return { ok: true, message: 'самоправки закоммичены и запушены на GitHub' }
+  return { ok: true, message: `самоправки закоммичены и запушены в ветку ${branch}` }
 }
 
 /**

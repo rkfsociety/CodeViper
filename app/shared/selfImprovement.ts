@@ -1,3 +1,6 @@
+/** Ветка git по умолчанию для автономного самоулучшения (не master/main). */
+export const DEFAULT_SELF_IMPROVE_BRANCH = 'agent/self-improve'
+
 export interface SelfImprovementItem {
   id: string
   title: string
@@ -5,6 +8,15 @@ export interface SelfImprovementItem {
   attemptCount?: number
   blocked?: boolean
   blockReason?: string
+}
+
+/** Имя ветки самоулучшения: только agent/*, иначе дефолт. */
+export function resolveSelfImproveBranch(configured?: string): string {
+  const raw = configured?.trim() || DEFAULT_SELF_IMPROVE_BRANCH
+  if (!/^agent\/[a-z0-9][a-z0-9\-_.]*$/i.test(raw)) {
+    return DEFAULT_SELF_IMPROVE_BRANCH
+  }
+  return raw.toLowerCase()
 }
 
 /** Запрос на автономное самоулучшение до выполнения всех пунктов плана. */
@@ -180,7 +192,7 @@ export function formatPlanSummary(plan: SelfImprovementItem[]): string {
 }
 
 export const SELF_IMPROVEMENT_MODE_PROMPT = `## Самоулучшение (АКТИВНО)
-Изучай → loop до done.
+Изучай → loop до done. Автопуш — в ветку agent/self-improve, не в master.
 1. list_codeviper_directory + read_codeviper_file (agent.ts, agentTools.ts, skills.ts)
 2. set_self_improvement_plan → 3–8 item'ов (skills/UI/tools/tests/prompt)
 3. item: edit → complete_self_improvement_item(id)

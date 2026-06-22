@@ -121,6 +121,7 @@ export const AgentSettingsSchema = z.object({
   clarifyMode: z.boolean().optional(),
   deepReasoning: z.boolean().optional(),
   autoPushSelfEdits: z.boolean().optional(),
+  selfImproveBranch: z.string().optional(),
   summarizeModel: z.string().optional(),
   modelProvider: ModelProviderSchema.optional(),
   providerApiKey: z.string().optional(),

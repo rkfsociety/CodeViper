@@ -137,6 +137,8 @@ export interface AgentSettings {
   deepReasoning?: boolean
   /** Автоматически коммитить и пушить самоправки агента (правки исходников CodeViper) */
   autoPushSelfEdits?: boolean
+  /** Ветка git для самоулучшения (по умолчанию agent/self-improve) */
+  selfImproveBranch?: string
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */

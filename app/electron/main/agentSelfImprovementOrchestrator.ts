@@ -144,7 +144,7 @@ export class SelfImprovementOrchestrator {
 
   async autoCommitSelfEdits(userMessage: string, emit: typeof this.emit): Promise<void> {
     try {
-      const result = await commitAndPushSelfEdits(userMessage)
+      const result = await commitAndPushSelfEdits(userMessage, this.settings.selfImproveBranch)
       emit({
         type: 'context',
         content: result.ok ? `🔁 Самоправки: ${result.message}` : `⚠️ Автокоммит: ${result.message}`

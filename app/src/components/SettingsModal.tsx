@@ -1407,10 +1407,31 @@ export function SettingsModal({
                         <span className={styles.toggleContent}>
                           <span className={styles.title}>Автокоммит самоправок</span>
                           <span className={styles.desc}>
-                            После правки кода агентом — автоматически git commit + push на GitHub
+                            После самоулучшения — commit + push в ветку{' '}
+                            <code>
+                              {settings.selfImproveBranch?.trim() || 'agent/self-improve'}
+                            </code>
+                            , не в master
                           </span>
                         </span>
                       </label>
+
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <div className={styles.sectionLabel}>Ветка самоулучшения</div>
+                        <input
+                          type="text"
+                          className={styles.searchInput}
+                          placeholder="agent/self-improve"
+                          value={settings.selfImproveBranch ?? ''}
+                          onChange={(e) =>
+                            onSettingsChange({ selfImproveBranch: e.target.value || undefined })
+                          }
+                          spellCheck={false}
+                        />
+                        <div className={styles.hint}>
+                          Только <code>agent/*</code> — агент переключится в начале самоулучшения
+                        </div>
+                      </div>
 
                       <label className={styles.toggle}>
                         <input

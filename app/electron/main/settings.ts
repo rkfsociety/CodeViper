@@ -33,6 +33,7 @@ export const PersistedSettingsSchema = z.object({
   deepReasoning: z.boolean(),
   excludeThinkingFromHistory: z.boolean(),
   autoPushSelfEdits: z.boolean(),
+  selfImproveBranch: z.string().optional(),
   summarizeModel: z.string(),
   modelProvider: ModelProviderSchema,
   providerApiKey: z.string(),
@@ -187,6 +188,9 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.gitlabToken?.trim() ? { gitlabToken: settings.gitlabToken.trim() } : {}),
     ...(settings.gitlabUrl?.trim() ? { gitlabUrl: settings.gitlabUrl.trim() } : {}),
     ...(settings.disabledTools?.length ? { disabledTools: settings.disabledTools } : {}),
+    ...(settings.selfImproveBranch?.trim()
+      ? { selfImproveBranch: settings.selfImproveBranch.trim() }
+      : {}),
     ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {})
   }
 }

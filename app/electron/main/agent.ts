@@ -11,6 +11,8 @@ import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
 import { TaskPlanner } from './taskPlanner'
 import { CircuitBreakerOpenError } from './modelRuntime'
+import { ensureSelfImproveBranch } from './selfCommit'
+import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
@@ -104,7 +106,25 @@ export class AgentRunner {
     )
 
     const taskMode = TaskPlanner.detectMode(userMessage)
-    if (taskMode === 'self-improve') this.selfImprovementPlan.reset()
+    if (taskMode === 'self-improve') {
+      this.selfImprovementPlan.reset()
+      if (this.settings.autoPushSelfEdits !== false) {
+        const branchResult = await ensureSelfImproveBranch(this.settings.selfImproveBranch)
+        const branchName =
+          branchResult.branch ?? resolveSelfImproveBranch(this.settings.selfImproveBranch)
+        if (branchResult.ok) {
+          this.emitter.emit({
+            type: 'context',
+            content: `🌿 Ветка самоулучшения: ${branchName}`
+          })
+        } else {
+          this.emitter.emit({
+            type: 'context',
+            content: `⚠️ Ветка самоулучшения: ${branchResult.message}`
+          })
+        }
+      }
+    }
 
     const prepared = await prepareAgentRunContext(
       this.projectPath,
