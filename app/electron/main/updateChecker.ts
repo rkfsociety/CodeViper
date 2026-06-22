@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import { app } from 'electron'
-import { autoUpdater } from 'electron-updater'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
 import type { WebContents } from 'electron'
 import type { UpdateInfo } from '../../shared/updateInfo'
 import { getCodeViperSourceRoot } from './codeviperSource'
