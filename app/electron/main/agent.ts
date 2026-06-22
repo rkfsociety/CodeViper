@@ -72,8 +72,8 @@ export class AgentRunner {
 
     // Нужно зарегистрировать preview_edit/preview_patch через ссылку на методы ToolExecutor.
     this.toolExecutor.overrideHandlers({
-      preview_edit: (args) => this.toolExecutor.handlePreviewEdit(args),
-      preview_patch: (args) => this.toolExecutor.handlePreviewPatch(args)
+      preview_edit: (args: any) => this.toolExecutor.handlePreviewEdit(args),
+      preview_patch: (args: any) => this.toolExecutor.handlePreviewPatch(args)
     })
 
     this.selfImproveOrchestrator = new SelfImprovementOrchestrator(

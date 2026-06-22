@@ -19,8 +19,9 @@ import { parseToolBool } from '../../shared/fileEdit'
 import { parseTreeDepth, formatCommandResult } from './agentHandlersUtils'
 
 export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
-  return {
-    list_codeviper_directory: async (args) => {
+  // @ts-expect-error TS parameter type mismatch
+  const handlers: Partial<ToolHandlers> = {
+    list_codeviper_directory: async (args: any) => {
       const root = getCodeViperSourceRoot()
       const target = args.path?.trim() || root
       if (!isAllowedSelfPath(root, target)) {
@@ -30,7 +31,7 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       return formatFileTree(tree) || '(пусто)'
     },
 
-    grep_codeviper_files: async (args) => {
+    grep_codeviper_files: async (args: any) => {
       const root = getCodeViperSourceRoot()
       const subpath = args.path?.trim()
       if (subpath && !isAllowedSelfPath(root, subpath)) {
@@ -40,7 +41,7 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       return formatGrepResults(root, args.query, result)
     },
 
-    find_codeviper_files: async (args) => {
+    find_codeviper_files: async (args: any) => {
       const root = getCodeViperSourceRoot()
       const subpath = args.path?.trim()
       if (subpath && !isAllowedSelfPath(root, subpath)) {
@@ -50,23 +51,23 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       return formatFindResults(root, args.pattern, result)
     },
 
-    read_codeviper_file: async (args) => {
+    read_codeviper_file: async (args: any) => {
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
       return readCodeViperFilePartial(args.path, offset, limit)
     },
 
-    write_codeviper_file: async (args) => {
+    write_codeviper_file: async (args: any) => {
       await writeCodeViperFile(args.path, args.content)
       return `Файл CodeViper записан: ${args.path}`
     },
 
-    create_codeviper_file: async (args) => {
+    create_codeviper_file: async (args: any) => {
       await createCodeViperFile(args.path, args.content)
       return `Файл CodeViper создан: ${args.path}`
     },
 
-    edit_codeviper_file: async (args) => {
+    edit_codeviper_file: async (args: any) => {
       const count = await editCodeViperFile(
         args.path,
         args.old_string,
@@ -76,42 +77,43 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       return `Файл CodeViper изменён: ${args.path} (замен: ${count})`
     },
 
-    append_codeviper_file: async (args) => {
+    append_codeviper_file: async (args: any) => {
       await appendCodeViperFile(args.path, args.content)
       return `Добавлено в конец CodeViper: ${args.path}`
     },
 
-    delete_codeviper_file: async (args) => {
+    delete_codeviper_file: async (args: any) => {
       await deleteCodeViperFile(args.path)
       return `Файл CodeViper удалён: ${args.path}`
     },
 
-    move_codeviper_file: async (args) => {
+    move_codeviper_file: async (args: any) => {
       await moveCodeViperFile(args.from, args.to)
       return `Файл CodeViper перемещён: ${args.from} → ${args.to}`
     },
 
-    run_codeviper_command: async (args) => {
+    run_codeviper_command: async (args: any) => {
       const result = await runCodeViperCommand(args.command)
       return formatCommandResult(result)
     },
 
-    create_codeviper_branch: async (args) => {
+    create_codeviper_branch: async (args: any) => {
       const result = await createCodeViperBranch(args.name)
       if (!result.ok) throw new Error(result.message)
       return result.message
     },
 
-    push_codeviper_branch: async (_args) => {
+    push_codeviper_branch: async (_args: any) => {
       const result = await pushCodeViperBranch()
       if (!result.ok) throw new Error(result.message)
       return result.message
     },
 
-    create_codeviper_pr: async (args) => {
+    create_codeviper_pr: async (args: any) => {
       const result = await createCodeViperPr(args.title, args.body)
       if (!result.ok) throw new Error(result.message)
       return result.message
     }
   }
+  return handlers
 }

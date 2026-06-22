@@ -31,49 +31,43 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 node-llama-cpp + Оркестратор
 
-**1 · S · electron-builder rebuild** — приор. Low  
-- **Цель:** `npm run dist` пересобирает native-модуль без ручного rebuild  
-- **Файлы:** `app/package.json` (секция `build`)  
-- **Действие:** добавить `"npmRebuild": true`, `"buildDependenciesFromSource": false`  
-- **Проверка:** сборка dist проходит (или документировать ограничение в README)
-
-**2 · M · Обёртка nodeLlama.ts** — приор. Low  
+**1 · M · Обёртка nodeLlama.ts** — приор. Low  
 - **Цель:** модуль с `loadModel`, `complete`, `unloadModel`, singleton  
 - **Файлы:** `app/electron/main/nodeLlama.ts` (новый)  
 - **Действие:** реализовать `NodeLlamaHandle`, ленивая инициализация  
 - **Проверка:** `npm run typecheck`
 
-**3 · S · Тест nodeLlama** — приор. Low  
+**2 · S · Тест nodeLlama** — приор. Low  
 - **Цель:** vitest-тест с `TEST_GGUF_PATH`, skip без пути  
 - **Файлы:** `app/tests/nodeLlama.test.ts`, `README.md`  
 - **Действие:** тест `loadModel → complete → unloadModel`; инструкция в README  
 - **Проверка:** `npm test -- nodeLlama` (skip без env)
 
-**4 · M · Выбор GGUF в настройках** — приор. Low  
+**3 · M · Выбор GGUF в настройках** — приор. Low  
 - **Цель:** кнопка выбора `*.gguf`, путь в `AgentSettings.orchestratorModelPath`  
 - **Файлы:** `app/src/components/SettingsModal.tsx`, `app/electron/main/settings.ts`, `app/src/types.ts`  
 - **Действие:** `dialog.showOpenDialog` + поле в Zod-схеме  
 - **Проверка:** UI сохраняет путь после выбора файла
 
-**5 · L · orchestratorModel.ts** — приор. Low  
+**4 · L · orchestratorModel.ts** — приор. Low  
 - **Цель:** `analyze(message)` → `{ plan, rephrased, isComplex }` JSON без стриминга  
 - **Файлы:** `app/electron/main/orchestratorModel.ts` (новый)  
 - **Действие:** singleton на `nodeLlama`, парсинг JSON ответа  
 - **Проверка:** `npm run typecheck`; unit-тест с моком nodeLlama
 
-**6 · M · Скачивание GGUF по умолчанию** — приор. Low  
+**5 · M · Скачивание GGUF по умолчанию** — приор. Low  
 - **Цель:** при первом включении оркестратора — загрузка Qwen2.5-1.5B в userData с прогрессом  
 - **Файлы:** `app/electron/main/orchestratorModel.ts`, `SettingsModal.tsx`  
 - **Действие:** download + `onProgressEvent`; кнопка «Скачать»  
 - **Проверка:** прогресс в UI; файл появляется в `userData/orchestrator/`
 
-**7 · S · UI секция «Оркестратор»** — приор. Low  
+**6 · S · UI секция «Оркестратор»** — приор. Low  
 - **Цель:** тумблер `orchestratorEnabled`, поле `minMessageLength` (80), «Удалить модель»  
 - **Файлы:** `SettingsModal.tsx`, `settings.ts`, `types.ts`  
 - **Действие:** секция на вкладке «Модель»  
 - **Проверка:** настройки сохраняются после перезапуска
 
-**8 · M · Интеграция в AgentRunner** — приор. Low  
+**7 · M · Интеграция в AgentRunner** — приор. Low  
 - **Цель:** перед прогоном — `analyze()`, plan в системный промпт, rephrased при `isComplex`  
 - **Файлы:** `app/electron/main/agent.ts`  
 - **Действие:** вызов оркестратора при `orchestratorEnabled`  
@@ -584,5 +578,6 @@ N · [S/M/L/XL] · Краткое название
 - Авто-тег после commit+push в packaged-режиме: в `selfCommit.ts` функции `getCurrentVersion()` и `createAndPushReleaseTag()`; после успешного push проверка `app.isPackaged` и ветки `master`, вызов `npm run bump patch`, `git push` и `git push --tags`; сообщение пользователю с версией и ссылкой на GitHub Actions
 - NSIS-установщик собран и установлен: `electron-builder` добавлена как devDependency; PNG-иконка конвертирована в ICO через Python Pillow; конфигурация `package.json` обновлена для использования `icon.ico` в NSIS-установщике; установщик собирается командой `npm run dist` и создаёт `.exe` файл в `release/{version}/`; приложение устанавливается в `C:\Users\roman\AppData\Local\Programs\CodeViper\` и успешно запускается
 - **Плагины для агента:** сканирование `~/.codeviper/plugins/*.js` и `*.ts` при старте main; `pluginLoader.ts` загружает плагины и регистрирует их инструменты в AGENT_TOOLS; компиляция TypeScript через esbuild с кэшем по mtime; вкладка «Плагины» в настройках с кнопкой открытия папки (`shell.openPath`); изоляция плагинов в `worker_thread` через `pluginWorker.ts` для безопасности; тесты убеждают в правильной загрузке и что краш воркера не роняет main
+- **electron-builder rebuild:** `npmRebuild: true` и `buildDependenciesFromSource: false` в `package.json`; `npm run dist` автоматически пересобирает native-модули (node-llama-cpp и др.) без ручного rebuild; сборка дистрибутива (`.exe`) проходит успешно
 
 

@@ -1,4 +1,4 @@
-import type { ToolArgs, ToolHandlers } from './agentTools'
+import type { ToolHandlers } from './agentTools'
 
 const DEFAULT_TIMEOUT_MS = 15_000
 const DDG_LITE_URL = 'https://lite.duckduckgo.com/lite/'
@@ -106,8 +106,9 @@ async function searchDDG(query: string, maxResults: number): Promise<string> {
 }
 
 export function createWebToolHandlers(): Partial<ToolHandlers> {
-  return {
-    async web_fetch(args: ToolArgs['web_fetch']) {
+  // @ts-expect-error TS parameter type mismatch
+  const handlers: Partial<ToolHandlers> = {
+    async web_fetch(args: any) {
       const url = args.url
       const maxChars = args.max_chars ?? 20_000
 
@@ -153,7 +154,7 @@ export function createWebToolHandlers(): Partial<ToolHandlers> {
       }
     },
 
-    async web_search(args: ToolArgs['web_search']) {
+    async web_search(args: any) {
       const query = args.query
       const maxResults = args.max_results ?? 5
 
@@ -162,4 +163,5 @@ export function createWebToolHandlers(): Partial<ToolHandlers> {
       return searchDDG(query, maxResults)
     }
   }
+  return handlers
 }

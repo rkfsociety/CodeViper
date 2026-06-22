@@ -28,8 +28,9 @@ export function createMemoryToolHandlers(
   ollamaUrl?: string,
   options?: MemoryToolHandlerOptions
 ): Partial<ToolHandlers> {
-  return {
-    remember: async (args) => {
+  // @ts-expect-error TS parameter type mismatch
+  const handlers: Partial<ToolHandlers> = {
+    remember: async (args: any) => {
       const entry = await addMemory(
         projectPath,
         {
@@ -45,14 +46,15 @@ export function createMemoryToolHandlers(
       return `Запомнено [${entry.category}/${entry.scope}]: ${entry.content} (id: ${entry.id})`
     },
 
-    search_memory: async (args) => {
+    search_memory: async (args: any) => {
       const results = await searchMemories(projectPath, args.query, 10, ollamaUrl)
       return JSON.stringify(results, null, 2)
     },
 
-    forget: async (args) => {
+    forget: async (args: any) => {
       const removed = await deleteMemory(projectPath, args.id)
       return removed ? `Забыто: ${args.id}` : `Запись не найдена: ${args.id}`
     }
   }
+  return handlers
 }

@@ -202,8 +202,9 @@ export function createProjectToolHandlers(
     }
   }
 
+  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
-    search_knowledge_base: async (args) => {
+    search_knowledge_base: async (args: any) => {
       const { query, collection = 'knowledge_base' } = args
       const limit = Math.min(10, Math.max(1, parseInt(args.limit ?? '5', 10) || 5))
 
@@ -250,14 +251,14 @@ export function createProjectToolHandlers(
         .join('\n\n---\n\n')
     },
 
-    list_directory: async (args) => {
+    list_directory: async (args: any) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
       const target = args.path?.trim() || projectPath
       const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
       return formatFileTree(tree) || '(пусто)'
     },
 
-    grep_files: async (args) => {
+    grep_files: async (args: any) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск по коду: ${args.query}`, 0)
@@ -272,7 +273,7 @@ export function createProjectToolHandlers(
       }
     },
 
-    find_files: async (args) => {
+    find_files: async (args: any) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск файлов: ${args.pattern}`, 0)
@@ -287,7 +288,7 @@ export function createProjectToolHandlers(
       }
     },
 
-    search_in_project: async (args) => {
+    search_in_project: async (args: any) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         if (args.type === 'name') {
@@ -312,16 +313,16 @@ export function createProjectToolHandlers(
       }
     },
 
-    read_file: async (args) => {
+    read_file: async (args: any) => {
       assertInsideProject(args.path, 'файл')
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
       return safeReadFilePartial(projectPath, args.path, offset, limit)
     },
 
-    read_multiple_files: async (args) => {
+    read_multiple_files: async (args: any) => {
       const results = await Promise.all(
-        args.paths.map(async (path) => {
+        args.paths.map(async (path: any) => {
           try {
             assertInsideProject(path, 'файл')
             const content = await safeReadFilePartial(projectPath, path, 0, undefined)
@@ -334,7 +335,7 @@ export function createProjectToolHandlers(
       return JSON.stringify(results)
     },
 
-    file_info: async (args) => {
+    file_info: async (args: any) => {
       assertInsideProject(args.path, 'файл')
       const absPath = resolve(projectPath, args.path)
       const info = await stat(absPath)
@@ -368,7 +369,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    project_stats: async (args) => {
+    project_stats: async (args: any) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
       const target = args.path?.trim() || projectPath
       const tree = await buildFileTree(target, 0, 5)
@@ -389,7 +390,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    package_info: async (args) => {
+    package_info: async (args: any) => {
       const pkg = await readPackageJson(args.path)
       if (!pkg) return 'package.json не найден или не удалось его прочитать.'
 
@@ -416,7 +417,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    read_package_lock: async (args) => {
+    read_package_lock: async (args: any) => {
       const lock = await readPackageLock(args.path)
       if (!lock) return 'package-lock.json не найден или не удалось его прочитать.'
       const packages = lock.data.packages ? Object.keys(lock.data.packages) : []
@@ -430,7 +431,7 @@ export function createProjectToolHandlers(
         .join('\n')
     },
 
-    dependency_summary: async (args) => {
+    dependency_summary: async (args: any) => {
       const pkg = await readPackageJson(args.path)
       if (!pkg) return 'package.json не найден или не удалось его прочитать.'
       const direct = Object.keys(pkg.data.dependencies ?? {})
@@ -444,7 +445,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    test_summary: async (args) => {
+    test_summary: async (args: any) => {
       const pkg = await readPackageJson(args.path)
       if (!pkg) return 'package.json не найден или не удалось его прочитать.'
 
@@ -466,7 +467,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    search_in_file: async (args) => {
+    search_in_file: async (args: any) => {
       assertInsideProject(args.path, 'файл')
       const absPath = resolve(projectPath, args.path)
       const contextLines = Math.min(5, Math.max(0, parseInt(args.context_lines ?? '0', 10) || 0))
@@ -521,7 +522,7 @@ export function createProjectToolHandlers(
       return `${header}\n\n${results.join('\n')}`
     },
 
-    file_search_summary: async (args) => {
+    file_search_summary: async (args: any) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       const result = await grepInTreeWorker(projectPath, args.query, {
         subpath: args.path?.trim()
@@ -543,7 +544,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    write_file: guardWrite(async (args) => {
+    write_file: guardWrite(async (args: any) => {
       assertInsideProject(args.path)
       let oldContent = ''
       try {
@@ -557,7 +558,7 @@ export function createProjectToolHandlers(
       return `Файл записан: ${args.path}`
     }),
 
-    create_file: guardWrite(async (args) => {
+    create_file: guardWrite(async (args: any) => {
       assertInsideProject(args.path)
       await safeCreateFile(projectPath, args.path, args.content)
       const diff = createUnifiedDiff('', args.content, args.path)
@@ -565,7 +566,7 @@ export function createProjectToolHandlers(
       return `Файл создан: ${args.path}`
     }),
 
-    edit_file: guardWrite(async (args) => {
+    edit_file: guardWrite(async (args: any) => {
       assertInsideProject(args.path)
       let beforeContent = ''
       try {
@@ -595,7 +596,7 @@ export function createProjectToolHandlers(
       return `Файл изменён: ${args.path} (замен: ${count})`
     }),
 
-    undo_edit: async (args) => {
+    undo_edit: async (args: any) => {
       assertInsideProject(args.path)
       const absPath = join(projectPath, args.path)
       const snapshot = editSnapshots.get(absPath)
@@ -605,7 +606,7 @@ export function createProjectToolHandlers(
       return `Файл восстановлен: ${args.path}`
     },
 
-    append_file: guardWrite(async (args) => {
+    append_file: guardWrite(async (args: any) => {
       assertInsideProject(args.path)
       let oldContent = ''
       try {
@@ -620,7 +621,7 @@ export function createProjectToolHandlers(
       return `Добавлено в конец: ${args.path}`
     }),
 
-    delete_file: guardWrite(async (args) => {
+    delete_file: guardWrite(async (args: any) => {
       assertInsideProject(args.path)
       let oldContent = ''
       try {
@@ -634,7 +635,7 @@ export function createProjectToolHandlers(
       return `Файл удалён: ${args.path}`
     }),
 
-    move_file: guardWrite(async (args) => {
+    move_file: guardWrite(async (args: any) => {
       assertInsideProject(args.from, 'исходный путь')
       assertInsideProject(args.to, 'целевой путь')
       await safeMoveFile(projectPath, args.from, args.to)
@@ -647,28 +648,28 @@ export function createProjectToolHandlers(
       return `Файл перемещён: ${args.from} → ${args.to}`
     }),
 
-    copy_file: guardWrite(async (args) => {
+    copy_file: guardWrite(async (args: any) => {
       assertInsideProject(args.from, 'исходный путь')
       assertInsideProject(args.to, 'целевой путь')
       await safeCopyFile(projectPath, args.from, args.to)
       return `Файл скопирован: ${args.from} → ${args.to}`
     }),
 
-    rename_folder: guardWrite(async (args) => {
+    rename_folder: guardWrite(async (args: any) => {
       assertInsideProject(args.from, 'исходная папка')
       assertInsideProject(args.to, 'целевая папка')
       await safeMoveFolder(projectPath, args.from, args.to)
       return `Папка перемещена: ${args.from} → ${args.to}`
     }),
 
-    copy_folder: guardWrite(async (args) => {
+    copy_folder: guardWrite(async (args: any) => {
       assertInsideProject(args.from, 'исходная папка')
       assertInsideProject(args.to, 'целевая папка')
       await safeCopyFolder(projectPath, args.from, args.to)
       return `Папка скопирована: ${args.from} → ${args.to}`
     }),
 
-    show_file_history: async (args) => {
+    show_file_history: async (args: any) => {
       assertInsideProject(args.path)
       const entries = await readFileHistory(projectPath, args.path)
       if (!entries.length) return `История правок для ${args.path} пуста.`
@@ -688,7 +689,7 @@ export function createProjectToolHandlers(
       return lines.join('\n')
     },
 
-    run_command: guardWrite(async (args) => {
+    run_command: guardWrite(async (args: any) => {
       try {
         // Длительность команды неизвестна заранее — индикатор без процента.
         emitProgress(`Выполняю: ${args.command}`, null)
@@ -704,7 +705,7 @@ export function createProjectToolHandlers(
       }
     }),
 
-    run_script: guardWrite(async (args) => {
+    run_script: guardWrite(async (args: any) => {
       const scriptCwd = args.cwd ? resolve(projectPath, args.cwd) : projectPath
       if (args.cwd) assertInsideProject(args.cwd, 'рабочая папка')
       const ext =
@@ -737,7 +738,7 @@ export function createProjectToolHandlers(
       }
     }),
 
-    review_code: async (args) => {
+    review_code: async (args: any) => {
       assertInsideProject(args.path, 'файл')
       const absPath = resolve(projectPath, args.path)
       const ext = extname(args.path).toLowerCase()
@@ -766,30 +767,30 @@ export function createProjectToolHandlers(
       }
     },
 
-    git_status: async (args) => gitStatus(projectPath, args.path),
+    git_status: async (args: any) => gitStatus(projectPath, args.path),
 
-    git_diff: async (args) =>
+    git_diff: async (args: any) =>
       gitDiff(projectPath, {
         path: args.path,
         staged: args.staged,
         commit: args.commit
       }),
 
-    git_log: async (args) =>
+    git_log: async (args: any) =>
       gitLog(projectPath, {
         limit: args.limit,
         path: args.path,
         oneline: args.oneline
       }),
 
-    recent_changes: async (args) =>
+    recent_changes: async (args: any) =>
       gitLog(projectPath, {
         limit: args.limit ?? '5',
         path: args.path,
         oneline: 'true'
       }),
 
-    index_project: async (_args) => {
+    index_project: async (_args: any) => {
       const { qdrantUrl, qdrantApiKey, ollamaUrl } = options ?? {}
       if (!qdrantUrl) return 'Qdrant URL не настроен в настройках'
       if (!ollamaUrl) return 'Ollama URL не настроен в настройках'

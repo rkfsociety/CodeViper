@@ -38,6 +38,8 @@
     "appId": "com.codeviper.app",
     "productName": "CodeViper",
     "copyright": "Copyright © 2025 roman",
+    "npmRebuild": true,
+    "buildDependenciesFromSource": false,
     "directories": {
       "buildResources": "resources",
       "output": "release/${version}"

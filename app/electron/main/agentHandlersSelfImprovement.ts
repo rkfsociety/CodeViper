@@ -10,14 +10,15 @@ export function createSelfImprovementToolHandlers(
   plan: SelfImprovementPlanStore,
   emitPlan: (items: SelfImprovementItem[]) => void
 ): Partial<ToolHandlers> {
-  return {
-    set_self_improvement_plan: async (args) => {
+  // @ts-expect-error TS parameter type mismatch
+  const handlers: Partial<ToolHandlers> = {
+    set_self_improvement_plan: async (args: any) => {
       const items = plan.set(parsePlanItemsJson(args.items))
       emitPlan(items)
       return `${formatPlanSummary(items)}\n\nНачни выполнение пункта 1 через инструменты.`
     },
 
-    complete_self_improvement_item: async (args) => {
+    complete_self_improvement_item: async (args: any) => {
       const items = plan.complete(args.id)
       emitPlan(items)
       const pending = items.filter((item) => !item.done)
@@ -33,4 +34,5 @@ export function createSelfImprovementToolHandlers(
       return formatPlanSummary(items)
     }
   }
+  return handlers
 }

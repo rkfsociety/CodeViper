@@ -2104,7 +2104,9 @@ export function SettingsModal({
                     </p>
                     <button
                       className={styles.button}
-                      onClick={() => window.electron?.ipcRenderer.invoke('open-plugins-folder')}
+                      onClick={() =>
+                        (window as any).electron?.ipcRenderer.invoke('open-plugins-folder')
+                      }
                     >
                       📂 Открыть папку
                     </button>

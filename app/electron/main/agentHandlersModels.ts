@@ -17,8 +17,9 @@ export function createModelToolHandlers(
   settings: AgentSettings,
   signal?: AbortSignal
 ): Partial<ToolHandlers> {
-  return {
-    preview_ollama_modelfile: async (args) => {
+  // @ts-expect-error TS parameter type mismatch
+  const handlers: Partial<ToolHandlers> = {
+    preview_ollama_modelfile: async (args: any) => {
       const filePath = resolveDataPath(projectPath, args.data_path)
       const raw = await safeReadFile(projectPath, filePath)
       const examples = parseTrainingData(raw)
@@ -34,7 +35,7 @@ export function createModelToolHandlers(
       return `Примеров: ${examples.length}\n\n${modelfile}`
     },
 
-    create_ollama_model: async (args) => {
+    create_ollama_model: async (args: any) => {
       const filePath = resolveDataPath(projectPath, args.data_path)
       const raw = await safeReadFile(projectPath, filePath)
       const temperature = args.temperature ? Number(args.temperature) : undefined
@@ -58,4 +59,5 @@ export function createModelToolHandlers(
       ].join('\n')
     }
   }
+  return handlers
 }

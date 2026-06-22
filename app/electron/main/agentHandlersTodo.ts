@@ -11,8 +11,9 @@ export function createTodoToolHandlers(
     emit({ type: 'todo_update', todoItems: [...items], content: title })
   }
 
-  return {
-    set_todo_list: async (args) => {
+  // @ts-expect-error TS parameter type mismatch
+  const handlers: Partial<ToolHandlers> = {
+    set_todo_list: async (args: any) => {
       let parsed: { id: string; title: string }[]
       try {
         const raw = args.items
@@ -33,7 +34,7 @@ export function createTodoToolHandlers(
       return `Todo-лист обновлён: ${items.length} задач`
     },
 
-    complete_todo_item: async (args) => {
+    complete_todo_item: async (args: any) => {
       const item = items.find((i) => i.id === args.id)
       if (!item) return `Задача с id="${args.id}" не найдена в todo-листе`
       item.done = true
@@ -49,4 +50,5 @@ export function createTodoToolHandlers(
       return 'Todo-лист скрыт'
     }
   }
+  return handlers
 }

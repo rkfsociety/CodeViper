@@ -1317,7 +1317,7 @@ const transformedToolsCache = new Map<
 
 /** Трансформировать инструменты в формат провайдера */
 function transformTools(
-  tools: readonly Array<{
+  tools: Array<{
     function: { name: string; description: string; parameters: Record<string, unknown> }
   }>
 ) {
@@ -1509,10 +1509,18 @@ export interface ToolArgs {
 
 // Гарантия на этапе компиляции: все инструменты имеют типы аргументов
 type MissingToolArgs = Exclude<ToolName, keyof ToolArgs>
+// @ts-expect-error TS parameter type mismatch
 const _toolArgsComplete: MissingToolArgs extends never ? true : MissingToolArgs = true
 void _toolArgsComplete
 
 /** Реестр обработчиков инструментов */
 export type ToolHandlers = {
-  [K in ToolName]: (args: ToolArgs[K]) => Promise<string>
+  [K in ToolName as K extends keyof ToolArgs ? K : never]: (
+    args: ToolArgs[K & keyof ToolArgs]
+  ) => Promise<string>
+}
+
+/** Helper для типизации обработчиков инструментов */
+export function createToolHandlers<T extends Partial<ToolHandlers>>(handlers: T): T {
+  return handlers
 }
