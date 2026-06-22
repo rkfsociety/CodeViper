@@ -44,7 +44,7 @@ cd CodeViper/app && npm install
 - [🏗 Архитектура](https://github.com/rkfsociety/CodeViper/wiki/Архитектура)
 - [📋 Дорожная карта](ROADMAP.md)
 
-Поддержка MCP-серверов: регистрация по URL через `/.well-known/mcp`, инструменты кэшируются в `AgentSettings.mcpServers` (UI — в планах).
+Поддержка MCP-серверов: регистрация по URL через `/.well-known/mcp` в настройках → вкладка «Интеграции» → MCP-серверы.
 
 ## Участие
 

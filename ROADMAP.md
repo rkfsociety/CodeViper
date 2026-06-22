@@ -24,9 +24,8 @@
 
 | # | Задача | Сложность | Приоритет |
 |---|--------|-----------|-----------|
-| 1 | В `SettingsModal.tsx` на вкладке «Интеграции» добавить секцию MCP: список подключённых серверов из настроек, кнопка «+ Добавить», поле ввода URL; вызывать `addMcpServer` | S | Medium |
-| 2 | В `agentTools.ts` в функции `getAgentTools()` динамически добавлять инструменты из `AgentSettings.mcpServers` перед каждым прогоном агента; вызовы проксировать через `POST {serverUrl}/tools/call` | M | Medium |
-| 3 | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | M | Low |
+| 1 | В `agentTools.ts` в функции `getAgentTools()` динамически добавлять инструменты из `AgentSettings.mcpServers` перед каждым прогоном агента; вызовы проксировать через `POST {serverUrl}/tools/call` | M | Medium |
+| 2 | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | M | Low |
 
 ### 🔗 Плагины
 
@@ -210,3 +209,4 @@
 
 **MCP-серверы**
 - `mcpRegistry.ts`: регистрация MCP по `/.well-known/mcp`, хранение в `AgentSettings.mcpServers`; IPC `add-mcp-server` / `remove-mcp-server`
+- Секция MCP в `SettingsModal` (вкладка «Интеграции»): список серверов, добавление и удаление по URL

@@ -250,6 +250,31 @@
   gap: 6px;
 }
 
+.mcpServerList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.mcpServerUrl {
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.mcpServerMeta {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.mcpError {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--red-bright, #f85149);
+}
+
 .hint strong {
   color: var(--text-primary);
 }

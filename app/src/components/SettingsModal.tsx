@@ -243,6 +243,9 @@ export function SettingsModal({
   const [milvusPingState, setMilvusPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>(
     'idle'
   )
+  const [mcpUrl, setMcpUrl] = useState('')
+  const [mcpBusy, setMcpBusy] = useState(false)
+  const [mcpError, setMcpError] = useState<string | null>(null)
 
   function toggleKeyVisible(key: string) {
     setApiKeyVisible((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -253,6 +256,9 @@ export function SettingsModal({
   useEffect(() => {
     if (!open) {
       setSearchQuery('')
+      setMcpUrl('')
+      setMcpError(null)
+      setMcpBusy(false)
       return
     }
     function onKeyDown(e: KeyboardEvent) {
@@ -329,6 +335,38 @@ export function SettingsModal({
       setMilvusPingState('fail')
     }
     setTimeout(() => setMilvusPingState('idle'), 3000)
+  }
+
+  async function handleAddMcpServer() {
+    const url = mcpUrl.trim()
+    if (!url || mcpBusy) return
+
+    setMcpBusy(true)
+    setMcpError(null)
+    try {
+      const updated = await window.codeviper.addMcpServer(settings, url)
+      onSettingsChange({ mcpServers: updated.mcpServers })
+      setMcpUrl('')
+    } catch (error) {
+      setMcpError(error instanceof Error ? error.message : 'Не удалось добавить MCP-сервер')
+    } finally {
+      setMcpBusy(false)
+    }
+  }
+
+  async function handleRemoveMcpServer(serverUrl: string) {
+    if (mcpBusy) return
+
+    setMcpBusy(true)
+    setMcpError(null)
+    try {
+      const updated = await window.codeviper.removeMcpServer(settings, serverUrl)
+      onSettingsChange({ mcpServers: updated.mcpServers })
+    } catch (error) {
+      setMcpError(error instanceof Error ? error.message : 'Не удалось удалить MCP-сервер')
+    } finally {
+      setMcpBusy(false)
+    }
   }
 
   if (!open) return null
@@ -1859,6 +1897,80 @@ export function SettingsModal({
                           большинства пользователей — внешний сервер не нужен.
                         </div>
                       )}
+                    </div>
+                  </SettingItem>
+
+                  {/* ── MCP-серверы ── */}
+                  <SettingItem
+                    tab="integrations"
+                    label="MCP-серверы"
+                    desc="mcp model context protocol инструменты tools well-known интеграция сервер"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>MCP-серверы</div>
+
+                      {(settings.mcpServers ?? []).length > 0 ? (
+                        <div className={styles.mcpServerList}>
+                          {(settings.mcpServers ?? []).map((server) => (
+                            <div key={server.url} className={styles.row}>
+                              <div className={styles.rowContent}>
+                                <span className={styles.mcpServerUrl}>{server.url}</span>
+                                <span className={styles.mcpServerMeta}>
+                                  {server.tools.length}{' '}
+                                  {server.tools.length === 1 ? 'инструмент' : 'инструментов'}
+                                </span>
+                              </div>
+                              <div className={styles.rowRight}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm"
+                                  onClick={() => void handleRemoveMcpServer(server.url)}
+                                  disabled={mcpBusy}
+                                  title="Удалить сервер"
+                                >
+                                  Удалить
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={`${styles.hint} ${styles.hintInline}`}>
+                          Подключённых MCP-серверов нет. Укажите URL и нажмите «+ Добавить» —
+                          приложение загрузит инструменты из <code>/.well-known/mcp</code>.
+                        </div>
+                      )}
+
+                      <label>
+                        URL сервера
+                        <div className="settings-api-key-row">
+                          <input
+                            placeholder="https://mcp.example.com"
+                            value={mcpUrl}
+                            onChange={(e) => {
+                              setMcpUrl(e.target.value)
+                              if (mcpError) setMcpError(null)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                void handleAddMcpServer()
+                              }
+                            }}
+                            disabled={mcpBusy}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary"
+                            onClick={() => void handleAddMcpServer()}
+                            disabled={mcpBusy || !mcpUrl.trim()}
+                          >
+                            {mcpBusy ? '…' : '+ Добавить'}
+                          </button>
+                        </div>
+                      </label>
+
+                      {mcpError && <div className={styles.mcpError}>{mcpError}</div>}
                     </div>
                   </SettingItem>
                 </>
