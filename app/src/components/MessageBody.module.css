@@ -22,3 +22,31 @@
 .filePathCode:hover {
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
+
+.ctxMenu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 180px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+.ctxMenuItem {
+  display: block;
+  width: 100%;
+  padding: 7px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ctxMenuItem:hover {
+  background: var(--bg-element);
+}

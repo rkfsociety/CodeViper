@@ -310,6 +310,13 @@ const codeviper = {
       'triggerGithubWorkflow'
     ),
 
+  readFileHistory: (projectPath: string, filePath: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.READ_FILE_HISTORY, projectPath, filePath),
+      IPC_TIMEOUT_MS,
+      'readFileHistory'
+    ),
+
   openExternal: (url: string) => ipcRenderer.send(IPC.OPEN_EXTERNAL, url),
 
   showItemInFolder: (filePath: string) => ipcRenderer.send(IPC.SHOW_ITEM_IN_FOLDER, filePath),

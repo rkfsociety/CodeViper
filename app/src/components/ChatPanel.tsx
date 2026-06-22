@@ -36,6 +36,9 @@ import styles from './ChatPanel.module.css'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
 const MessageBody = lazy(() => import('./MessageBody').then((m) => ({ default: m.MessageBody })))
+const FileTimelinePanel = lazy(() =>
+  import('./FileTimelinePanel').then((m) => ({ default: m.FileTimelinePanel }))
+)
 import { MessageCopyButton } from './MessageCopyButton'
 import { MessageRoleBadge } from './MessageRoleBadge'
 import { ThinkingBlock } from './ThinkingBlock'
@@ -174,7 +177,8 @@ const MessageRow = memo(function MessageRow({
   isStreaming,
   onPin,
   onRetry,
-  onEdit
+  onEdit,
+  onFileTimeline
 }: {
   message: ChatMessage
   pinned: boolean
@@ -183,6 +187,7 @@ const MessageRow = memo(function MessageRow({
   onPin: (id: string) => void
   onRetry: (message: ChatMessage) => void
   onEdit: (message: ChatMessage) => void
+  onFileTimeline?: (path: string) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -259,6 +264,7 @@ const MessageRow = memo(function MessageRow({
               ? visibleAssistantContent(message.content)
               : message.content
           }
+          onFileTimeline={onFileTimeline}
         />
       </Suspense>
     </div>
@@ -298,6 +304,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
   const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
   const [contextModalOpen, setContextModalOpen] = useState(false)
+  const [fileTimelinePath, setFileTimelinePath] = useState<string | null>(null)
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
   const [showQuickBar, setShowQuickBar] = useState(false)
@@ -974,6 +981,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                           ? visibleAssistantContent(item.message.content)
                           : item.message.content
                       }
+                      onFileTimeline={setFileTimelinePath}
                     />
                   </Suspense>
                 </div>
@@ -1017,6 +1025,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                     onPin={togglePinMessage}
                     onRetry={retryUserMessage}
                     onEdit={editUserMessage}
+                    onFileTimeline={setFileTimelinePath}
                   />
                 )
               }
@@ -1469,6 +1478,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           setDangerBlock(null)
         }}
       />
+
+      {fileTimelinePath && projectPath && (
+        <Suspense fallback={null}>
+          <FileTimelinePanel
+            open={!!fileTimelinePath}
+            filePath={fileTimelinePath}
+            projectPath={projectPath}
+            onClose={() => setFileTimelinePath(null)}
+          />
+        </Suspense>
+      )}
     </div>
   )
 })

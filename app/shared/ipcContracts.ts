@@ -356,6 +356,7 @@ export const IPC = {
   LIST_ISSUES: 'list-issues',
   OPEN_ISSUE: 'open-issue',
   TRIGGER_GITHUB_WORKFLOW: 'trigger-github-workflow',
+  READ_FILE_HISTORY: 'read-file-history',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   SAVE_APP_STATE: 'save-app-state',

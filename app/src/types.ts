@@ -417,6 +417,14 @@ export interface AppState {
   crashedAt: string
 }
 
+export interface FileHistoryEntry {
+  ts: string
+  tool: 'edit_file' | 'write_file' | 'create_file' | 'append_file' | 'delete_file' | 'move_file'
+  path: string
+  projectPath: string
+  diff: string
+}
+
 export interface TerminalResult {
   stdout: string
   stderr: string
@@ -557,6 +565,7 @@ export interface CodeViperAPI {
   listIssues: () => Promise<string>
   openIssue: (number: string) => Promise<string>
   triggerGithubWorkflow: (workflowId: string, ref?: string, fields?: string) => Promise<string>
+  readFileHistory: (projectPath: string, filePath: string) => Promise<FileHistoryEntry[]>
   openExternal: (url: string) => void
   showItemInFolder: (filePath: string) => void
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void

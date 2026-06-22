@@ -48,6 +48,7 @@ import { startSystemStatsPush, stopSystemStatsPush, getSystemCapabilities } from
 import { enrichModelCapabilities } from './modelSelection'
 import { setProgressTarget, clearProgress } from './progress'
 import { listPullRequests } from './githubPr'
+import { readFileHistory } from './fileHistory'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
 import { startUpdateChecks } from './updateChecker'
 import type {
@@ -585,6 +586,10 @@ ipcMain.handle(
   'trigger-github-workflow',
   async (_e, workflowId: string, ref?: string, fields?: string) =>
     triggerGithubWorkflow(workflowId, ref, fields)
+)
+
+ipcMain.handle(IPC.READ_FILE_HISTORY, async (_e, projectPath: string, filePath: string) =>
+  readFileHistory(projectPath, filePath)
 )
 
 ipcMain.on(IPC.OPEN_DEVTOOLS, () => {
