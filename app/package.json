@@ -60,7 +60,8 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "resources/icon.png",
       "uninstallerIcon": "resources/icon.png",
-      "shortcutName": "CodeViper"
+      "shortcutName": "CodeViper",
+      "include": "resources/installer.nsh"
     },
     "linux": {
       "target": [

@@ -16,7 +16,6 @@
 | **Интеграции** | Добавить в `AgentSettings` поля `jiraUrl`, `jiraToken`; реализовать инструмент `create_jira_issue` в `agentHandlersGitHub.ts`: POST `{jiraUrl}/rest/api/3/issue` с Basic-авторизацией через token | Low | M | — | ⏳ |
 | **Интеграции** | Добавить в `AgentSettings` поле `linearApiKey`; реализовать инструмент `create_linear_issue` в `agentHandlersGitHub.ts`: GraphQL-мутация `issueCreate` через `https://api.linear.app/graphql` | Low | M | — | ⏳ |
 | **Интеграции** | Создать `Dockerfile` с Node.js 20 + Ollama; `docker-compose.yml` с томом исходников CodeViper и hot reload через `npm run dev`; документировать запуск в README | Low | M | — | ⏳ |
-| **Инфраструктура** | Написать NSIS-скрипт для `electron-builder`: при установке клонировать репозиторий CodeViper в `%APPDATA%\CodeViper\source\` через `git clone`, создавать ярлык на рабочем столе, запускающий `CodeViper.cmd` | Medium | L | — | ⏳ |
 | **Инфраструктура** | При сборке `electron-builder` скачивать портативный Node.js в `resources/node/`; при самопересборке агента (`npm run build` в CodeViper) использовать этот Node.js, а не системный | Low | M | — | ⏳ |
 | **Инфраструктура** | Установить и скомпилировать `node-llama-cpp` как нативный Electron-модуль для win32/linux/darwin; smoke-тест: загрузить GGUF, получить один токен, выгрузить; без этого оркестратор не работает | Low | XL | — | ⏳ |
 | **Оркестратор** | В `SettingsModal.tsx` → вкладка «Модель» → раздел оркестратора добавить кнопку «Выбрать GGUF-модель» (`dialog.showOpenDialog` с фильтром `*.gguf`); путь сохранять в `AgentSettings.orchestratorModelPath` | Low | M | — | ⏳ |
@@ -172,6 +171,7 @@
 - Отложенное применение правок вне режима самоулучшения (git stash); автовосстановление после краша
 
 **Безопасность и инфраструктура**
+- NSIS-скрипт (`resources/installer.nsh`): `git clone --depth 1` репозитория в `%APPDATA%\CodeViper\source\` при установке; ярлык на рабочем столе запускает `CodeViper.cmd` через `cmd.exe /c`; при повторной установке — `git pull`; при удалении — опциональное удаление исходников
 - `run_command` без `shell: true`; `assertInsideProject`; blocklist; шифрование API-ключей (`safeStorage`)
 - ESLint + Prettier + lint-staged + husky; vitest 37+ тестов; E2E Playwright+Electron; нагрузочные тесты
 - Семантическое версионирование; GitHub Actions CI; branch protection; доступность (WCAG AA)
