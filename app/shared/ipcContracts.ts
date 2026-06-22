@@ -389,6 +389,8 @@ export const IPC = {
   INSTALL_UPDATE: 'install-update',
   OPEN_EXTERNAL: 'open-external',
   SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
+  GET_COLLECTIVE_SYNC_STATUS: 'get-collective-sync-status',
+  FLUSH_COLLECTIVE_MEMORY: 'flush-collective-memory',
 
   // ── Broadcast (main → renderer) ───────────────────────────────────────
   AGENT_STREAM: 'agent-stream',
@@ -638,6 +640,12 @@ export const Contracts = {
     args: z.tuple([z.string()])
   },
   [IPC.SHOW_ITEM_IN_FOLDER]: {
+    args: z.tuple([z.string()])
+  },
+  [IPC.GET_COLLECTIVE_SYNC_STATUS]: {
+    args: z.tuple([])
+  },
+  [IPC.FLUSH_COLLECTIVE_MEMORY]: {
     args: z.tuple([z.string()])
   }
 } as const

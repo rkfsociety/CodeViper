@@ -1,0 +1,136 @@
+.panel {
+  margin: 0 8px 6px;
+  background: color-mix(in srgb, var(--bg-panel) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 4px;
+}
+
+.icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+
+.branch {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--accent, #4a9eff);
+  background: color-mix(in srgb, var(--accent, #4a9eff) 12%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 0 2px;
+  opacity: 0.6;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.close:hover {
+  opacity: 1;
+}
+
+.body {
+  padding: 4px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.statValue {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, var(--text));
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 6px;
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn {
+  flex: 1;
+  background: var(--accent, #4a9eff);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  background: var(--bg-input, var(--bg-panel));
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--border) 40%, var(--bg-input, var(--bg-panel)));
+  opacity: 1;
+}
+
+.message {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+  line-height: 1.4;
+  word-break: break-word;
+}

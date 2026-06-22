@@ -54,6 +54,8 @@ import { listPullRequests } from './githubPr'
 import { readFileHistory } from './fileHistory'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
 import { startUpdateChecks, installPendingUpdate } from './updateChecker'
+import { getPendingCollectiveMemoryCount, flushCollectiveMemoryToGit } from './collectiveMemorySync'
+import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
   AgentSettings,
   AgentStreamEvent,
@@ -651,6 +653,20 @@ ipcMain.on(IPC.SHOW_ITEM_IN_FOLDER, (_e, filePath: string) => {
 })
 
 ipcMain.handle(IPC.LOAD_SETTINGS, async () => loadSettings())
+
+ipcMain.handle(IPC.GET_COLLECTIVE_SYNC_STATUS, async (_e, ...a) => {
+  parseIpcArgs(Contracts[IPC.GET_COLLECTIVE_SYNC_STATUS].args, a)
+  const settings = await loadSettings()
+  const branch = resolveSelfImproveBranch(settings.selfImproveBranch)
+  const pendingCount = getPendingCollectiveMemoryCount()
+  return { branch, pendingCount }
+})
+
+ipcMain.handle(IPC.FLUSH_COLLECTIVE_MEMORY, async (_e, ...a) => {
+  const [summary] = parseIpcArgs(Contracts[IPC.FLUSH_COLLECTIVE_MEMORY].args, a)
+  const settings = await loadSettings()
+  return flushCollectiveMemoryToGit(summary, settings.selfImproveBranch)
+})
 
 ipcMain.handle(IPC.SAVE_SETTINGS, async (_e, ...a) => {
   const [settings] = parseIpcArgs(Contracts[IPC.SAVE_SETTINGS].args, a)

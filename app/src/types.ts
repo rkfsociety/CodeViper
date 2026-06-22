@@ -607,6 +607,13 @@ export interface CodeViperAPI {
   readFileHistory: (projectPath: string, filePath: string) => Promise<FileHistoryEntry[]>
   openExternal: (url: string) => void
   showItemInFolder: (filePath: string) => void
+  getCollectiveSyncStatus: () => Promise<{ branch: string; pendingCount: number }>
+  flushCollectiveMemory: (summary: string) => Promise<{
+    ok: boolean
+    message: string
+    branch?: string
+    syncedCount: number
+  }>
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
   restartApp: () => void
   installUpdate: () => void

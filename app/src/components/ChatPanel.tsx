@@ -32,6 +32,7 @@ const CLOUD_KNOWN_MODELS: Record<string, string[]> = {
 }
 import { AgentStatusBar } from './AgentStatusBar'
 import { TodoPanel } from './TodoPanel'
+import { AgentLearningPanel } from './AgentLearningPanel'
 import styles from './ChatPanel.module.css'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
@@ -308,6 +309,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
   const [showQuickBar, setShowQuickBar] = useState(false)
+  const [showLearningPanel, setShowLearningPanel] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const modelPickerRef = useRef<HTMLDivElement>(null)
@@ -1073,6 +1075,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           <TodoPanel items={todoItems} title={todoTitle} onClose={() => setTodoItems(null)} />
         )}
 
+        {showLearningPanel && <AgentLearningPanel onClose={() => setShowLearningPanel(false)} />}
+
         {showQuickBar && chatId && projectPath && (
           <QuickPromptBar
             onInsert={(text) => {
@@ -1259,6 +1263,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             </div>
 
             <div className={styles.metaRight}>
+              {/* Коллективное обучение */}
+              <button
+                type="button"
+                className={`${styles.metaBtn}${showLearningPanel ? ' ' + styles.metaBtnActive : ''}`}
+                title="Коллективное обучение"
+                onClick={() => setShowLearningPanel((v) => !v)}
+              >
+                ☁️
+              </button>
+
               {/* Быстрые промпты */}
               <button
                 type="button"
