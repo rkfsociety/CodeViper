@@ -191,47 +191,244 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** sh-скрипт аналог `.cmd`; пути POSIX в workflow  
 - **Проверка:** `bash CodeViper.sh` на Linux (CI)
 
-**26 · M · Инструмент create_jira_issue** — приор. Low  
-**27 · M · Инструмент create_linear_issue** — приор. Low  
-**28 · M · Docker dev-окружение** — приор. Low  
-**29 · S · SHA-256 при pull Ollama** — приор. Low  
-**30 · M · Режим «Инкогнито»** — приор. Low  
-**31 · S · README «Примеры запросов»** — приор. Low  
-**32 · M · Скринкасты для README** — приор. Low  
-**33 · M · CONTRIBUTING.md** — приор. Low  
-**34 · M · typedoc + GitHub Pages** — приор. Low  
-**35 · S · Whitelist шаблонов команд** — приор. High  
-**36 · M · Автопроверка после правок** — приор. High  
-**37 · S · UI правил проекта** — приор. High  
-**38 · M · Slash-команды** — приор. High  
-**39 · M · Панель выбора ROADMAP** — приор. High  
-**40 · M · Автоиндексация при открытии проекта** — приор. Medium  
-**41 · S · Nudge «используй RAG»** — приор. Medium  
-**42 · L · Символьный индекс (find_symbol)** — приор. Medium  
-**43 · M · Дерево файлов проекта** — приор. High  
-**44 · M · Side-by-side diff** — приор. Medium  
-**45 · S · Уведомление «агент закончил»** — приор. Medium  
-**46 · M · Шаблоны чатов** — приор. Medium  
-**47 · M · Авто-PR collective** — приор. Medium  
-**48 · M · Рейтинг знаний collective** — приор. Low  
-**49 · S · Экспорт урока в skill** — приор. Medium  
-**50 · M · Контракт subagent** — приор. Medium  
-**51 · L · Explorer subagent** — приор. Medium  
-**52 · L · Editor subagent в цикле** — приор. Low  
-**53 · M · Бенчмарк локальных моделей** — приор. Low  
-**54 · S · Каналы обновлений stable/beta** — приор. Low  
-**55 · M · Webhook «агент готов»** — приор. Low  
-**56 · L · Песочница для run_script** — приор. Low  
-**57 · L · Голосовой ввод и озвучка** — приор. Low  
-**58 · XL · LSP в редакторе** — приор. Low  
-**59 · L · Skill marketplace** — приор. Low  
-**60 · M · E2E на Linux/macOS в CI** — приор. Medium  
+**26 · L · NSIS git clone при установке** — приор. Medium  
+- **Цель:** установщик клонирует репо в `%APPDATA%\CodeViper\source\` (дополнить если нужно)  
+- **Файлы:** `app/resources/installer.nsh`, `app/package.json`  
+- **Действие:** проверить/дополнить clone + ярлык на `CodeViper.cmd`  
+- **Проверка:** тестовая установка NSIS (или ревью скрипта)
+
+**27 · M · Инструмент create_jira_issue** — приор. Low  
+- **Цель:** POST Jira REST с `jiraUrl` + `jiraToken` из settings  
+- **Файлы:** `agentHandlersGitHub.ts` или `agentHandlersJira.ts`, `agentTools.ts`, `settings.ts`, `SettingsModal.tsx`  
+- **Действие:** схема инструмента + handler + поля settings  
+- **Проверка:** `npm run typecheck`; mock POST
+
+**28 · M · Инструмент create_linear_issue** — приор. Low  
+- **Цель:** GraphQL `issueCreate` через Linear API  
+- **Файлы:** `agentHandlersGitHub.ts`, `agentTools.ts`, `settings.ts` (`linearApiKey`)  
+- **Действие:** handler + UI поле ключа  
+- **Проверка:** `npm run typecheck`
+
+**29 · M · Docker dev-окружение** — приор. Low  
+- **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
+- **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
+- **Действие:** образ + том исходников + `npm run dev`  
+- **Проверка:** `docker compose up` поднимает приложение
+
+**30 · S · SHA-256 при pull Ollama** — приор. Low  
+- **Цель:** сверка хеша с манифестом; при несовпадении — удалить файл и ошибка  
+- **Файлы:** `app/electron/main/agentHandlersModels.ts` или `ollamaPull.ts`  
+- **Действие:** проверка после скачивания  
+- **Проверка:** тест с неверным хешем
+
+**31 · M · Режим «Инкогнито»** — приор. Low  
+- **Цель:** тумблер в топбаре; чаты и NDJSON-логи только в RAM  
+- **Файлы:** `App.tsx`, `chats.ts`, `agentLogger.ts`, `settings.ts`  
+- **Действие:** флаг `incognitoMode`; skip persist  
+- **Проверка:** после перезапуска история инкогнито-чата пуста
+
+**32 · S · README «Примеры запросов»** — приор. Low  
+- **Цель:** 5–7 готовых диалогов (поиск, правка, самоулучшение, веб)  
+- **Файлы:** `README.md`  
+- **Действие:** новый раздел с промптами  
+- **Проверка:** ревью текста
+
+**33 · M · Скринкасты для README** — приор. Low  
+- **Цель:** GIF/видео: поиск, самоулучшение, Ollama  
+- **Файлы:** `docs/media/` (новый), `README.md`  
+- **Действие:** добавить assets + ссылки  
+- **Проверка:** файлы в репозитории, README ссылается
+
+**34 · M · CONTRIBUTING.md** — приор. Low  
+- **Цель:** диаграмма ReAct, ключевые модули, пример нового инструмента  
+- **Файлы:** `CONTRIBUTING.md`  
+- **Действие:** mermaid sequence + пошаговый гайд  
+- **Проверка:** ревью документа
+
+**35 · M · typedoc + GitHub Pages** — приор. Low  
+- **Цель:** `npm run docs` генерирует API из JSDoc; деплой в Actions  
+- **Файлы:** `package.json`, `.github/workflows/docs.yml` (новый), `typedoc.json`  
+- **Действие:** typedoc config + workflow  
+- **Проверка:** `npm run docs` локально без ошибок
+
+### 🔗 Агент и проверки
+
+**36 · S · Whitelist шаблонов команд** — приор. High  
+- **Цель:** «Всегда разрешать» для паттернов (`npm test`, `git status`) поверх blocklist  
+- **Файлы:** `app/electron/main/services.ts` (`validateCommand`), `settings.ts`, `SettingsModal.tsx` (Безопасность)  
+- **Действие:** поле `commandAllowlist: string[]`; проверка allow перед deny  
+- **Проверка:** `npm test -- validateCommand`; команда из allowlist не требует подтверждения
+
+**37 · M · Автопроверка после правок** — приор. High  
+- **Цель:** после успешного `edit_file` / `preview_patch` в self-improve — опционально `npm run typecheck` и/или `npm test`  
+- **Файлы:** `app/electron/main/agentToolExecutor.ts`, `settings.ts` (`autoVerifyAfterEdit`)  
+- **Действие:** детектор скриптов в `package.json`; запуск verify; результат tool_result в чат  
+- **Проверка:** при включённой опции после edit появляется вывод typecheck/test
+
+**38 · S · UI правил проекта** — приор. High  
+- **Цель:** редактор `{projectPath}/.codeviper/rules.md` в настройках чата или панели проекта  
+- **Файлы:** `app/src/components/ProjectRulesPanel.tsx` (новый), `ChatPanel.tsx`, `index.ts` (IPC read/write)  
+- **Действие:** загрузка/сохранение rules; подсказка при отсутствии файла  
+- **Проверка:** правка в UI → файл на диске; агент видит блок в контексте
+
+**39 · M · Slash-команды** — приор. High  
+- **Цель:** префиксы `/test`, `/commit`, `/roadmap N` раскрываются в готовый промпт перед отправкой  
+- **Файлы:** `app/src/components/ChatInput.tsx` или `useSlashCommands.ts`, `app/shared/slashCommands.ts`  
+- **Действие:** словарь команд + подстановка текста; `/roadmap 23` → «Выполни пункт 23…»  
+- **Проверка:** ввод `/test` → в агент уходит полный промпт
+
+**40 · M · Панель выбора ROADMAP** — приор. High  
+- **Цель:** в режиме самоулучшения — список пунктов ROADMAP с кнопкой «Выполнить»  
+- **Файлы:** `app/src/components/RoadmapPickerPanel.tsx`, `app/electron/main/roadmapParser.ts`, `ChatPanel.tsx`  
+- **Действие:** парсинг `ROADMAP.md` (номер, название, цепочка); IPC `list-roadmap-items`  
+- **Проверка:** клик по пункту 42 подставляет промпт в поле ввода
+
+### 🔗 RAG и контекст
+
+**41 · M · Автоиндексация при открытии проекта** — приор. Medium  
+- **Цель:** при смене `projectPath` и настроенном Qdrant/Milvus — фоновый `index_project`  
+- **Файлы:** `app/electron/main/contextRAG.ts`, `index.ts`, `settings.ts` (`autoIndexOnOpen`)  
+- **Действие:** debounced index; статус в `AgentStatusBar`  
+- **Проверка:** смена проекта → чип «Индексация…»; `search_knowledge_base` находит файлы
+
+**42 · S · Nudge «используй RAG»** — приор. Medium  
+- **Цель:** если grep пустой, RAG включён и проект проиндексирован — подсказка агенту вызвать `search_knowledge_base`  
+- **Файлы:** `app/electron/main/agent.ts`, `agentContext.ts`  
+- **Действие:** эвристика после пустого grep; system-hint в следующей итерации  
+- **Проверка:** тест с моком пустого grep + включённым RAG
+
+**43 · L · Символьный индекс (find_symbol)** — приор. Medium  
+- **Цель:** инструменты `find_symbol` и `find_references` по tree-sitter или LSP  
+- **Файлы:** `app/electron/main/symbolIndex.ts` (новый), `agentTools.ts`, `agentHandlersProject.ts`  
+- **Действие:** парсинг AST для ts/js/py; возврат path:line:col  
+- **Проверка:** `find_symbol` находит объявление известной функции в тестовом файле
+
+### 🔗 UX и продуктивность
+
+**44 · M · Дерево файлов проекта** — приор. High  
+- **Цель:** панель слева с деревом; клик открывает файл; ПКМ → «Спросить агента»  
+- **Файлы:** `app/src/components/ProjectTreePanel.tsx`, `services.ts` (`buildFileTree`), `App.tsx`  
+- **Действие:** IPC `get-project-tree`; контекстное меню с вставкой пути в чат  
+- **Проверка:** дерево совпадает с `list_directory`; ПКМ вставляет `@path`
+
+**45 · M · Side-by-side diff** — приор. Medium  
+- **Цель:** `preview_edit` показывает два столбца (было / стало), не только unified  
+- **Файлы:** `app/src/components/DiffPreviewModal.tsx`, стили diff  
+- **Действие:** переключатель unified / side-by-side; подсветка синтаксиса  
+- **Проверка:** визуально два столбца при preview правки
+
+**46 · S · Уведомление «агент закончил»** — приор. Medium  
+- **Цель:** системный toast + звук (если включены уведомления) при завершении прогона  
+- **Файлы:** `app/electron/main/index.ts` (`Notification`), `useAgentStream.ts`, `settings.ts`  
+- **Действие:** `new Notification` при phase `idle` после `busy`; уважать `soundEnabled`  
+- **Проверка:** фоновый чат → toast при готовности ответа
+
+**47 · M · Шаблоны чатов** — приор. Medium  
+- **Цель:** пресеты «Рефакторинг», «Новый модуль», «Code review» — стартовый промпт + preset tools  
+- **Файлы:** `app/shared/chatTemplates.ts`, `ChatHistoryPanel.tsx`, `settings.ts`  
+- **Действие:** создание чата из шаблона; опционально `disabledTools` preset  
+- **Проверка:** новый чат из шаблона содержит системное сообщение-инструкцию
+
+### 🔗 Коллективное обучение — продолжение
+
+**48 · M · Авто-PR collective** — приор. Medium  
+- **Цель:** после успешного push collective — опционально `create_codeviper_pr` без ручной кнопки  
+- **Файлы:** `collectiveMemorySync.ts`, `settings.ts` (`autoCollectivePr`)  
+- **Действие:** вызов PR-логики после push; дедуп «PR уже открыт»  
+- **Проверка:** при включённой опции после sync создаётся PR или сообщение «уже есть»
+
+**49 · M · Рейтинг знаний collective** — приор. Low  
+- **Цель:** upvote/downvote в MemoryPanel для коллективных записей; фильтр push по рейтингу  
+- **Файлы:** `MemoryPanel.tsx`, `docs/collective/ViperMemory.md` (метаданные), `collectiveMemorySync.ts`  
+- **Действие:** голосование локально + sync score в markdown frontmatter  
+- **Проверка:** downvote скрывает или понижает приоритет записи в UI
+
+**50 · S · Экспорт урока в skill** — приор. Medium  
+- **Цель:** кнопка «Сохранить как навык» у удачного ответа агента → `create_skill`  
+- **Файлы:** `MessageBody.tsx`, IPC обёртка над `skills.ts`  
+- **Действие:** диалог имени skill; тело из выбранных сообщений  
+- **Проверка:** skill появляется в `list_skills`
+
+### 🔗 Subagents
+
+**51 · M · Контракт subagent** — приор. Medium  
+- **Цель:** тип `SubagentRole` (explorer | editor), лимит инструментов, отдельный мини-прогон  
+- **Файлы:** `app/electron/main/subagentRunner.ts` (новый), `shared/subagent.ts`  
+- **Действие:** интерфейс запуска с урезанным tool set и max steps  
+- **Проверка:** `npm run typecheck`; unit-тест с мок-провайдером
+
+**52 · L · Explorer subagent** — приор. Medium  
+- **Цель:** read-only субагент (grep, read, list) для разведки перед основным прогоном  
+- **Файлы:** `subagentRunner.ts`, `agent.ts`  
+- **Действие:** `spawn_explorer` при сложном запросе; сводка в системный промпт  
+- **Проверка:** сложный запрос → сначала explorer, затем edit с контекстом сводки
+
+**53 · L · Editor subagent в цикле** — приор. Low  
+- **Цель:** субагент с mutating tools выполняет план, основной агент только координирует  
+- **Файлы:** `agent.ts`, `subagentRunner.ts`  
+- **Действие:** делегирование шагов плана editor-роли  
+- **Проверка:** E2E: «найди и исправь» — explorer + editor без зацикливания
+
+### 🔗 Модели и обновления
+
+**54 · M · Бенчмарк локальных моделей** — приор. Low  
+- **Цель:** UI «Проверить модель»: tok/s, latency, успех tool call на эталонном промпте  
+- **Файлы:** `app/electron/main/modelBenchmark.ts`, `SettingsModal.tsx` (вкладка Модель)  
+- **Действие:** 3 коротких прогона; таблица результатов в модалке  
+- **Проверка:** кнопка «Бенчмарк» выводит tok/s для выбранной Ollama-модели
+
+**55 · S · Каналы обновлений stable/beta** — приор. Low  
+- **Цель:** настройка канала: stable (latest release) / beta (pre-release) в `electron-updater`  
+- **Файлы:** `updateChecker.ts`, `settings.ts`, `SettingsModal.tsx`  
+- **Действие:** `allowPrerelease` по настройке; фильтр тегов GitHub  
+- **Проверка:** beta находит pre-release; stable — только релизы
+
+### 🔗 Интеграции и изоляция
+
+**56 · M · Webhook «агент готов»** — приор. Low  
+- **Цель:** POST на Slack/Discord/n8n URL при завершении прогона (опционально)  
+- **Файлы:** `app/electron/main/webhookNotify.ts`, `settings.ts` (`webhookUrl`), `agent.ts`  
+- **Действие:** fetch POST с `{ chatId, summary, projectPath }`  
+- **Проверка:** mock-сервер получает payload после idle
+
+**57 · L · Песочница для run_script** — приор. Low  
+- **Цель:** опциональный запуск скриптов в Docker-контейнере с mount только `projectPath`  
+- **Файлы:** `app/electron/main/scriptSandbox.ts`, `agentHandlersProject.ts`, `settings.ts`  
+- **Действие:** `docker run --rm -v projectPath` для python/bash; fallback на локальный run  
+- **Проверка:** скрипт не может писать вне projectPath в sandbox-режиме
+
+### 🔗 Далёкое будущее
+
+**58 · L · Голосовой ввод и озвучка** — приор. Low  
+- **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
+- **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
+- **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
+- **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
+
+**59 · XL · LSP в редакторе** — приор. Low  
+- **Цель:** go-to-definition, hover, diagnostics для открытого файла в встроенном просмотре  
+- **Файлы:** `app/electron/main/lspClient.ts`, Monaco или CodeMirror интеграция  
+- **Действие:** запуск typescript-language-server / pyright по типу файла  
+- **Проверка:** Ctrl+click на символ → переход к определению
+
+**60 · L · Skill marketplace** — приор. Low  
+- **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
+- **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
+- **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
+- **Проверка:** импорт skill из URL появляется локально
+
+**61 · M · E2E на Linux/macOS в CI** — приор. Medium  
+- **Цель:** Playwright+Electron в матрице ubuntu/macos для smoke-тестов UI  
+- **Файлы:** `.github/workflows/ci.yml`, `app/tests/e2e/`  
+- **Действие:** job `test:e2e` на linux/macos (headless); фикс путей POSIX  
+- **Проверка:** CI green на трёх ОС для e2e smoke
+
 ---
 
 ## ✅ Сделано
-- NSIS git clone: установщик клонирует репо в %APPDATA%\CodeViper\source\ с флагом --depth 1; проверка git перед установкой; обновление через git pull --ff-only при повторной установке; ярлыки на Desktop и в Start Menu Programs запускают CodeViper.cmd через cmd.exe; опция удалить исходный код при дезинсталляции; обработка ошибок (нет git, нет интернета)
 - create_linear_issue: инструмент для создания Issue в Linear через GraphQL API; поле linearApiKey в настройках с шифрованием; UI в разделе «Интеграции» с ссылкой на получение ключа; параметры: title, team_key, description, priority (0-4)
 - create_jira_issue: инструмент для создания Issue в Jira через REST API; поля jiraUrl и jiraToken в настройках с шифрованием; UI в разделе «Интеграции»; параметры: summary, project_key, description, issue_type
+- NSIS git clone: установщик клонирует репо в %APPDATA%\CodeViper\source\ с флагом --depth 1; обновление через git pull --ff-only при повторной установке; ярлыки на Desktop и в Start Menu Programs; при удалении — опция удалить исходный код (настройки/чаты остаются)
 - POSIX-лаунчер: CodeViper.sh для Linux/macOS; аналог CodeViper.cmd; проверка Node.js, хеш package-lock.json, автосборка если изменились файлы в electron/shared; интеграция в CI workflow на ubuntu/macos с проверкой синтаксиса bash
 - `disabledTools`: чекбоксы по 11 группам инструментов в SettingsModal (Поведение → Инструменты агента); `getAgentTools(selfImproveMode, disabledTools?)` фильтрует отключённые; кэш по ключу `${selfImproveMode}_${sorted disabled}`; поле `disabledTools?: string[]` в `AgentSettings` + Zod-схема
 - `commandBlocklist`: пользовательские запрещённые паттерны команд (`AgentSettings.commandBlocklist: string[]`); строки или regexp; редактирование в `SettingsModal.tsx` (Поведение → Безопасность); применяется в `validateCommand()` поверх встроенного списка
@@ -261,3 +458,134 @@ N · [S/M/L/XL] · Краткое название
 - Провайдер Claude (Anthropic API): streamed responses, tool use, JSON schema validation через `@anthropic-ai/sdk`
 - Провайдер Gemini: REST SSE стриминг (`streamGenerateContent`), thinking, `tool_config` (AUTO/ANY), убран SDK
 - TRON (Token Reduced Object Notation): парсер и сериализатор для сжатия данных (~27% экономия); применён в localStorage (история команд), логировании NDJSON (agent logs), IPC коммуникации
+
+**UI**
+- `FileTimelinePanel`: NDJSON-лог изменений файла с вертикальной шкалой; вызывается ПКМ по пути файла в ответе агента; IPC `read-file-history`; diff раскрывается кнопкой; lazy-загрузка
+- `ChatHistoryPanel`: группировка чатов без папки по `projectPath`; `collapsedProjects` state; `useEffect` авторазворачивает группу активного чата; сортировка по дате последнего обновления; группа «без проекта» — последняя
+- `OllamaDownloadStatus`: скользящее окно 10 с для расчёта средней скорости; вывод «< 1 мин» / «~N мин» / «~N ч» рядом с процентом загрузки
+- `customSystemPrompt`: поле «Дополнительные инструкции» в SettingsModal (Поведение); текст дописывается в конец системного промпта агента через `buildSystemPrompt()`
+- Шпаргалка горячих клавиш (`KeyboardShortcutsModal`): открывается по `?` вне поля ввода или кнопкой `?` в топбаре; 4 секции с `<kbd>`-бейджами; lazy-загрузка
+- Поиск по настройкам в `SettingsModal.tsx`: поле в sidebar, фильтрация по всем вкладкам через `SettingItem` + `SearchCtx`, подсветка совпадений `<mark>`, бейдж вкладки у каждого результата
+- Кнопка «Сжать историю» в превью контекста: при заполнении > 60% появляется в поповере; вызывает принудительную суммаризацию через IPC `summarize-context`
+- Убран заголовок активного чата из топбара (показывал внутренние задачи самоулучшения); иконка приложения из `resources/icon.png`; логотип PNG в топбаре вместо эмодзи
+- Раздельные API-ключи для DeepSeek / OpenAI / OpenRouter (шифрование `safeStorage`); миграция со старого единого `providerApiKey`
+- Список моделей OpenRouter с фильтром tool calling, поиском и отображением размера контекста
+- Раздельные списки чатов для вкладок Chat и Code (`SavedChat.mode`); кнопки чата скрыты по умолчанию, появляются при наведении
+
+**Производительность**
+- LRU-кэш 200 записей для `find_files` в `fileSearchInWorker.ts`; ключ `{pattern, root}`, инвалидация по `mtime` корневой директории
+- Профили суммаризации в `SettingsModal.tsx`: кнопки-пресеты «Экономичный» (55%), «Сбалансированный» (70%), «Качество» (85%) над слайдером; активный профиль подсвечивается
+- LRU-кэш 500 записей для `grep_files` в `fileSearchInWorker.ts`; ключ `{query, root, subpath}`; инвалидация через `invalidateGrepCache()`, подключённый к `fs.watch`-вотчеру в `services.ts` — срабатывает при изменении любого файла в проекте
+- Батчинг `find_files`: `findMultiInTree` в `fileSearch.ts` обходит ФС один раз для ≤5 паттернов; `fileSearchInWorker.ts` батчит `find` по аналогии с grep через `multi-find` тип воркера
+- Динамический системный промпт: в режиме Chat — только базовый промпт (~200 токенов), без инструментов, дерева проекта и памяти; экономия 10–20% токенов на запрос
+- `buildSystemPrompt()` динамически исключает неиспользуемые разделы: `buildProjectContext()` — только при непустом `projectPath`, `buildSelfEditContext()` — только в self-improve
+- Вкладка «Производительность» в настройках: тумблеры «Режим энергосбережения» (батчинг 300 мс, без анимаций), «Отключить CPU/GPU-статы», «Обновлять PR только вручную»
+- Интервал опроса CPU/GPU снижен с 1 с до 3 с (`systemStats.ts`)
+- Устойчивость при смене монитора: флаги `--disable-gpu-process-crash-limit` + `--in-process-gpu`; авто-reload рендерера при крашах GPU/renderer → `CrashRecoveryDialog` восстанавливает сессию
+
+**Ядро агента**
+- Очистка editSnapshots при старте каждого прогона — предотвращает утечку памяти в длинных сессиях
+- Стриминг, кнопка «Стоп», цикл `while(true)`, инструменты (create/edit/append/delete/move/grep/find/git), tool choice, парсинг text tool call, детектор опасных задач, защита `parseToolArgs`
+- Рефакторинг `agent.ts` → 6 модулей: `ContextManager`, `ToolExecutor`, `SelfImprovementOrchestrator`, `LoopGuard`, `ResponseEmitter`, `agentOllamaApi`; параллельное выполнение инструментов (Promise.all) при cloud API; удалены жёсткие лимиты шагов/прогонов
+- Агент не молчит при пустом ответе; не останавливается на «намерении»; пропускает tool call для информационных вопросов
+- Добавлены инструменты для GitHub, файловых операций и кратких сводок по проекту
+
+**Провайдеры**
+- `StreamingChatProvider` (`providers/streamingChatProvider.ts`): абстрактный базовый класс с общим I/O-циклом стриминга (fetch + backoff retry + reader + TextDecoder + буфер + releaseLock); хуки `buildRequest()`, `createChunkParser()` (возвращает `ChunkParser` с `parse` + `finalize`), `handleHttpError()`; `BACKOFF_MS` переопределяется в подклассе; `OllamaProvider` и `OpenAIProvider` реализуют только специфику
+- Circuit breaker в `modelRuntime.ts`: 5 последовательных ошибок → `open` (немедленный отказ), через 30 с → `half-open` (пробный запрос), успех → `closed`; модульный реестр `cbRegistry` для сохранения состояния между прогонами; статус отображается в `AgentStatusBar.tsx` с обратным отсчётом
+
+**Провайдеры и модели**
+- Провайдер Groq: `groqProvider.ts` (переиспользует `OpenAIProvider` с `baseUrl: 'https://api.groq.com/openai/v1'`); поле `groqApiKey` в `settings.ts` и `types.ts`
+- Провайдер Together AI: `togetherProvider.ts` (переиспользует `OpenAIProvider` с `baseUrl: 'https://api.together.xyz/v1'`); поле `togetherApiKey`; оба провайдера добавлены в UI (`SettingsModal.tsx`)
+- Dual-provider режим (Ollama + cloud одновременно); нативный tool calling OpenAI/DeepSeek; `max_tokens`, `temperature` для cloud; работа без Ollama при cloud-провайдере
+- Провайдер OpenRouter (агрегатор: GPT-4o, Claude, Gemini, Llama и др.) — основной и облачный
+- Выбор модели в топбаре; динамический список моделей DeepSeek; совместимость моделей (✓/⚠ по RAM); управление моделями Ollama (каталог, автовыбор, скачать/удалить)
+- Статистика «Xс · Yk токенов» под последним сообщением агента; пульсирующая индикаторная полоса вместо бегущей; убрана нагрузка CPU/GPU из статусбара; оптимизация промпта и описаний инструментов
+- Кэш контекст-превью в `useContextPreview`: IPC-запрос пропускается, если `{messagesKey, model}` не изменились с прошлого вызова
+
+**Контекст и память**
+- LRU-кэш 500 записей для `read_file` / `read_codeviper_file` в `services.ts`; ключ `{path, offset, limit}`, инвалидация по `mtime`; автоинвалидация при write/create/append/delete
+- Обрезка старых tool-результатов в `compressContextMessages()`: оставляются последние 5, более старые → `[результат обрезан]`; экономия 10–15% на длинных диалогах
+- Удаление ошибочных `tool_result` из истории: если для того же инструмента есть более поздний успешный результат, ошибочный удаляется
+- Настраиваемый порог суммаризации (50–85%, дефолт 85%) и тумблер «Агрессивное сжатие» (65%) в настройках вкладки Модель; слайдер заблокирован при включённом агрессивном сжатии
+- Исключение reasoning (<think>...</think>) из истории контекста: опция в настройках (вкладка Модель), экономия 20–50% токенов для think-моделей
+- Суммаризация при ~85% лимита; адаптивные лимиты (`computeAdaptiveLimits`); чип «Инструмент: Xk | История: N»
+- Самообучение: `remember`, рефлексия, план самоулучшения, anti-loop, эмбеддинги (LRU 500, worker)
+- Фикс гонки инициализации в `embeddingQueue.ts`: буферизация запросов до `ready`-события воркера, очистка очереди при падении воркера; 9 vitest-тестов
+- Корректный контекст для облачных моделей: `getModelContextLimitTokens` распознаёт deepseek-*, gpt-*, claude-*, gemini-*; `modelContextLength` из API сохраняется в настройках и прокидывается до `computeContextUsage`
+- Оптимизация токенов: инструменты разбиты на 9 категорий (file, git, github, memory, skills, todo, package, codeviper, ollama) с кэшированием преобразованных схем; `getAgentTools(selfImproveMode)` исключает 19 инструментов в обычном режиме — экономия ~35% tools JSON на каждый запрос, ~60% в обычном режиме; `buildSelfEditContext()` только в self-improve
+- Инструменты GitHub: `create_issue` (title, body, labels), `create_pr`, `list_issues`, `open_issue`, `trigger_github_workflow` — через `gh` CLI
+- Провайдер Gemini: прямой REST (`streamGenerateContent?alt=sse`), thinking chunks, `tool_config`, id в function calls/responses
+- Новый инструмент `search_in_file`: поиск текста в одном конкретном файле без ограничения по размеру (включает файлы >512KB)
+- `grep_files` теперь явно сообщает о пропущенных файлах >512KB и предлагает использовать `search_in_file`
+- Скилл Todo List для агента: инструменты `set_todo_list`, `complete_todo_item`, `clear_todo_list`; компактная панель `TodoPanel` прикреплена над полем ввода, обновляется через stream-событие `todo_update`
+- Черновики при обрыве стрима: `interruptedDraft`, баннер «Повторить»
+- RAG (Retrieval-Augmented Generation) для контекста: `contextRAG.ts` индексирует сообщения чата в векторной БД с эмбеддингами; при построении контекста вместо просто последних N сообщений ищет релевантные по семантике — экономия токенов на длинных диалогах и сохранение важной информации
+
+**UI/UX**
+- История чатов: папки, поиск, drag-and-drop, pin, теги, привязка к проекту; экспорт/импорт JSON+Markdown
+- Вложения: файлы, drag-and-drop, Ctrl+V скриншоты, base64 для мультимодальных, лимит 10 файлов/200 КБ
+- Группировка одинаковых вызовов инструментов в чате; открытие файлов из текста агента
+- Подсветка кода, ANSI-цвета, анимации, горячие клавиши, звуковые уведомления, тёмная тема
+
+**Архитектура**
+- `shared/ipcContracts.ts`: единый источник имён всех IPC-каналов (`IPC.*` константы) + Zod-схемы аргументов; `parseIpcArgs` валидирует входные данные на `write-file`, `run-terminal-command`, `save-settings`; `preload/index.ts` полностью переведён с строковых литералов на `IPC.*`
+- `TaskPlanner` в `electron/main/taskPlanner.ts`: вынесена логика планирования из `AgentRunner` и `SelfImprovementOrchestrator`; `PlanningStrategy` интерфейс для подмены в тестах; `TaskPlanner.decide()` + `finalize()` + `detectMode()`; `selfImproveMode`-флаг удалён из `AgentRunner`
+- `MemoryStorage` интерфейс в `memory.ts`: `FsMemoryStorage` (файловая система) и `InMemoryStorage` (для тестов); тесты переписаны без `vi.mock('electron')` и временных директорий
+
+**Архитектура фронтенда**
+- `AgentContext` (`useReducer` + Context): phase, runStats, метрики — без пропсов
+- `ChatContext`: messages, activeChatId, chatStore, activeChat, interruptedDraft — без пропсов
+- `QueueContext`: `busyChats: Set<string>` + `markChatBusy(chatId, busy)` — параллельный учёт занятых чатов; иконка-пульс в `ChatHistoryPanel` рядом с занятым чатом
+- Виртуализация списка сообщений в `ChatPanel` через `@tanstack/react-virtual` с `measureElement` для динамических высот
+- Параллельные агенты per-chat: `App.tsx` хранит `Map<chatId, ChatMessage[]>`, рендерит по одному `ChatPanel` на каждый смонтированный чат; переключение между чатами не блокируется
+
+**Производительность**
+- Workers: grep/find, эмбеддинги, парсинг больших файлов — main не блокируется
+- Батчинг IPC token/thinking; батчинг токенов в UI (150 мс flush); дебаунс контекст-превью 1000 мс; `setInterval` runStats снижен
+- `React.memo` на `MessageBody`; виртуализация длинных списков (`@tanstack/react-virtual`); ленивая загрузка (`React.lazy`)
+- Защита от зацикливания: подсказка модели + продолжение прогона без остановки (лимиты шагов/попыток удалены)
+
+**Git и проекты**
+- Параллельные агенты per-chat (`Map<chatId, ...>`); git-sync (stash/rebase/ff-only)
+- Diff перед правками (`preview_edit`): LCS → unified diff → UI с «Применить»/«Отмена»; `AbortSignal` в `createUnifiedDiff()` — проверка каждые 500 итераций LCS, fallback на построчный diff при отмене
+- История изменений файлов (NDJSON-лог, `show_file_history`); ветки и PR агента
+- Отложенное применение правок вне режима самоулучшения (git stash); автовосстановление после краша
+
+**Безопасность и инфраструктура**
+- NSIS-скрипт (`resources/installer.nsh`): `git clone --depth 1` репозитория в `%APPDATA%\CodeViper\source\` при установке; ярлык на рабочем столе запускает `CodeViper.cmd` через `cmd.exe /c`; при повторной установке — `git pull`; при удалении — опциональное удаление исходников
+- `run_command` без `shell: true`; `assertInsideProject`; blocklist; шифрование API-ключей (`safeStorage`)
+- ESLint + Prettier + lint-staged + husky; vitest 37+ тестов; E2E Playwright+Electron; нагрузочные тесты
+- Семантическое версионирование; GitHub Actions CI; branch protection; доступность (WCAG AA)
+- Статус PR в UI (CI-статус); `PrStatusPanel` опрашивает только при открытой панели (`isOpen`), интервал 300 с; автодополнение в терминале; метрики (tok/s, NDJSON-лог)
+- Zod-схема `PersistedSettingsSchema` в `settings.ts`: тип `PersistedSettings` выведен через `z.infer<>`; `safeParse()` при загрузке с детальным логом ошибок и fallback на `normalize()`
+
+**Portable Node.js**
+- `scripts/download-node.js`: скачивание Node.js LTS в `app/resources/node/`; `npm run setup-node`; вызов перед `npm run dist`
+- `extraResources` в electron-builder: portable Node в `node/` рядом с `resources/` в установленном дистрибутиве
+- `getBundledNodeBin()` и PATH в `runCodeViperCommand` — самопересборка через bundled Node
+
+**MCP-серверы**
+- `mcpRegistry.ts`: регистрация MCP по `/.well-known/mcp`, хранение в `AgentSettings.mcpServers`; IPC `add-mcp-server` / `remove-mcp-server`
+- Секция MCP в `SettingsModal` (вкладка «Интеграции»): список серверов, добавление и удаление по URL
+- `getAgentTools()` + `mcpTools.ts`: динамические инструменты MCP, вызов через `POST /tools/call`, результат через `POST /tools/result`
+
+**Агент**
+- Проверка `node_modules` перед запуском только при непустых секциях зависимостей в `package.json` — проекты без npm-пакетов не блокируются
+- Самоулучшение: автопуш в ветку `agent/self-improve` (настройка `selfImproveBranch`), checkout в начале прогона
+- Коллективная память: синхронизация глобальных знаний в `docs/collective/ViperMemory.md` + push; UI-чип в статус-баре; подгрузка в контекст всех пользователей
+- `electron-updater`: packaged-сборка проверяет GitHub Releases при старте; dev — git fetch `app/`; баннер с «Перезапустить и обновить»; `UpdateInfo` git/release
+- ROADMAP «В планах»: единый формат самообучения, сквозная нумерация; расширение до 67 пунктов; правила в AGENTS.md, CLAUDE.md, docs/self-improvement.md, навык viper-self-improvement v3
+- node-llama-cpp v3.18.1 и @electron/rebuild добавлены в зависимости; скрипт `npm run rebuild`; бинарник `llama-addon.node` (CPU, win-x64) загружен через `@node-llama-cpp/win-x64`
+- Переопределённый путь к исходникам CodeViper: поле `sourceRootOverride` в настройках, `getCodeViperSourceRoot()` проверяет его первым; UI с текстовым полем и кнопкой «Выбрать папку»; сохраняется в конфиге и восстанавливается при перезапуске
+- Пропуск `npm run build` при app.isPackaged: функция `buildSelfEditContext(isPackaged)` в `codeviperSource.ts` условно исключает команду build из инструкций агента; вызовы в `agentContext.ts` передают `app.isPackaged`; в dev-режиме агент может запускать build, в installed режиме GitHub Actions соберёт
+- Авто-тег после commit+push в packaged-режиме: в `selfCommit.ts` функции `getCurrentVersion()` и `createAndPushReleaseTag()`; после успешного push проверка `app.isPackaged` и ветки `master`, вызов `npm run bump patch`, `git push` и `git push --tags`; сообщение пользователю с версией и ссылкой на GitHub Actions
+- NSIS-установщик собран и установлен: `electron-builder` добавлена как devDependency; PNG-иконка конвертирована в ICO через Python Pillow; конфигурация `package.json` обновлена для использования `icon.ico` в NSIS-установщике; установщик собирается командой `npm run dist` и создаёт `.exe` файл в `release/{version}/`; приложение устанавливается в `C:\Users\roman\AppData\Local\Programs\CodeViper\` и успешно запускается
+- **Плагины для агента:** сканирование `~/.codeviper/plugins/*.js` и `*.ts` при старте main; `pluginLoader.ts` загружает плагины и регистрирует их инструменты в AGENT_TOOLS; компиляция TypeScript через esbuild с кэшем по mtime; вкладка «Плагины» в настройках с кнопкой открытия папки (`shell.openPath`); изоляция плагинов в `worker_thread` через `pluginWorker.ts` для безопасности; тесты убеждают в правильной загрузке и что краш воркера не роняет main
+- **electron-builder rebuild:** `npmRebuild: true` и `buildDependenciesFromSource: false` в `package.json`; `npm run dist` автоматически пересобирает native-модули (node-llama-cpp и др.) без ручного rebuild; сборка дистрибутива (`.exe`) проходит успешно
+
+
+
+
+
+
