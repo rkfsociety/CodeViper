@@ -28,7 +28,6 @@ export function createMemoryToolHandlers(
   ollamaUrl?: string,
   options?: MemoryToolHandlerOptions
 ): Partial<ToolHandlers> {
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     remember: async (args: any) => {
       const entry = await addMemory(

@@ -11,7 +11,6 @@ export function createTodoToolHandlers(
     emit({ type: 'todo_update', todoItems: [...items], content: title })
   }
 
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     set_todo_list: async (args: any) => {
       let parsed: { id: string; title: string }[]

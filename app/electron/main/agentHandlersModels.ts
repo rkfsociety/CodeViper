@@ -17,7 +17,6 @@ export function createModelToolHandlers(
   settings: AgentSettings,
   signal?: AbortSignal
 ): Partial<ToolHandlers> {
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     preview_ollama_modelfile: async (args: any) => {
       const filePath = resolveDataPath(projectPath, args.data_path)

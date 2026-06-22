@@ -19,7 +19,6 @@ import { parseToolBool } from '../../shared/fileEdit'
 import { parseTreeDepth, formatCommandResult } from './agentHandlersUtils'
 
 export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     list_codeviper_directory: async (args: any) => {
       const root = getCodeViperSourceRoot()

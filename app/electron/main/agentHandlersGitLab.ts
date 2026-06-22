@@ -7,7 +7,6 @@ export function createGitLabToolHandlers(
   settings: AgentSettings
 ): Partial<ToolHandlers> {
   const { gitlabToken, gitlabUrl } = settings
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     list_gitlab_mrs: async () => {
       return listGitlabMrs(projectPath, gitlabToken, gitlabUrl)

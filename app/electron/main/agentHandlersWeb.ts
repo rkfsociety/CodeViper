@@ -106,7 +106,6 @@ async function searchDDG(query: string, maxResults: number): Promise<string> {
 }
 
 export function createWebToolHandlers(): Partial<ToolHandlers> {
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     async web_fetch(args: any) {
       const url = args.url

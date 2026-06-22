@@ -16,7 +16,6 @@ export function createSkillsToolHandlers(
   projectPath: string,
   emit: (event: AgentStreamPayload) => void
 ): Partial<ToolHandlers> {
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     list_skills: async () => {
       const skills = await listSkills(projectPath)

@@ -61,7 +61,7 @@ export function MemoryPanel({
 
   async function share() {
     if (!githubToken) {
-      setShareResult('⚠ Укажите GitHub Token в настройках (вкладка Поведение)')
+      setShareResult('⚠ Укажите GitHub Token в настройках (вкладка Интеграции)')
       return
     }
     setSharing(true)

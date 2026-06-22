@@ -10,7 +10,6 @@ export function createSelfImprovementToolHandlers(
   plan: SelfImprovementPlanStore,
   emitPlan: (items: SelfImprovementItem[]) => void
 ): Partial<ToolHandlers> {
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     set_self_improvement_plan: async (args: any) => {
       const items = plan.set(parsePlanItemsJson(args.items))

@@ -202,7 +202,6 @@ export function createProjectToolHandlers(
     }
   }
 
-  // @ts-expect-error TS parameter type mismatch
   const handlers: Partial<ToolHandlers> = {
     search_knowledge_base: async (args: any) => {
       const { query, collection = 'knowledge_base' } = args
