@@ -19,7 +19,9 @@ const DEPENDENCY_SECTION_KEYS = [
   'peerDependencies'
 ] as const
 
-/** true если в package.json есть секции с пакетами для установки */
+/**
+ * Проверяет, содержит ли package.json какие-либо зависимости, требующие установки.
+ */
 export function packageJsonRequiresNodeInstall(
   pkg: Record<string, unknown> | null | undefined
 ): boolean {
