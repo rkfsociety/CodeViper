@@ -91,11 +91,13 @@ function buildSystemPrompt(
   selfImproveMode = false,
   clarifyMode = false,
   cotReasoning = false,
-  chatMode = false
+  chatMode = false,
+  customSystemPrompt = ''
 ): string {
   // В режиме Chat — только базовый промпт: без инструментов, дерева проекта и памяти.
   if (chatMode) {
-    return BASE_SYSTEM_PROMPT
+    const base = BASE_SYSTEM_PROMPT
+    return customSystemPrompt.trim() ? `${base}\n\n${customSystemPrompt.trim()}` : base
   }
 
   const parts = [BASE_SYSTEM_PROMPT]
@@ -121,6 +123,10 @@ function buildSystemPrompt(
 
   if (memoryContext.trim()) {
     parts.push(`# Память, правила и навыки\n${memoryContext}`)
+  }
+
+  if (customSystemPrompt.trim()) {
+    parts.push(`## Дополнительные инструкции\n${customSystemPrompt.trim()}`)
   }
 
   return parts.join('\n\n')
@@ -269,6 +275,8 @@ export interface PrepareAgentContextOptions {
   enableRAG?: boolean
   /** Конфиг векторного хранилища для RAG (провайдер + реквизиты) */
   ragStoreConfig?: VectorStoreConfig
+  /** Дополнительные инструкции, дописываемые в конец системного промпта */
+  customSystemPrompt?: string
 }
 
 function section(
@@ -340,7 +348,8 @@ export async function buildAgentContextPreview(
     selfImproveMode,
     options.clarifyMode,
     cotReasoning,
-    chatMode
+    chatMode,
+    options.customSystemPrompt ?? ''
   )
 
   const adaptiveLimits = computeAdaptiveLimits(model, options.modelContextLength)

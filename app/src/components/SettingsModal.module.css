@@ -351,6 +351,31 @@
   padding: 0 1px;
 }
 
+.customPromptTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 90px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  margin-top: 8px;
+}
+
+.customPromptTextarea:focus {
+  border-color: var(--blue-bright);
+}
+
+.customPromptTextarea::placeholder {
+  color: var(--text-faint);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .track,
   .thumb {

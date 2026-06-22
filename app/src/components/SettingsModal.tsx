@@ -1215,6 +1215,29 @@ export function SettingsModal({
                     </div>
                   </SettingItem>
 
+                  {/* ── Дополнительные инструкции ── */}
+                  <SettingItem
+                    tab="behavior"
+                    label="Дополнительные инструкции"
+                    desc="системный промпт кастомный инструкции system prompt custom instructions"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Дополнительные инструкции</div>
+                      <p className={styles.desc}>
+                        Текст дописывается в конец системного промпта агента. Используй для
+                        добавления правил, стиля ответов или ограничений.
+                      </p>
+                      <textarea
+                        className={styles.customPromptTextarea}
+                        placeholder="Например: всегда отвечай кратко и только по делу. Не используй markdown-заголовки."
+                        value={settings.customSystemPrompt ?? ''}
+                        onChange={(e) => onSettingsChange({ customSystemPrompt: e.target.value })}
+                        rows={5}
+                        spellCheck={false}
+                      />
+                    </div>
+                  </SettingItem>
+
                   {/* ── Автоматизация ── */}
                   <SettingItem
                     tab="behavior"

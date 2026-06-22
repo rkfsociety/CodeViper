@@ -221,6 +221,8 @@ export interface AgentSettings {
   ragProvider?: 'local' | 'qdrant' | 'milvus'
   /** Режим чата: только базовый промпт, без инструментов и дерева проекта (транзиентное, не сохраняется) */
   chatMode?: boolean
+  /** Дополнительные инструкции, дописываемые в конец системного промпта агента */
+  customSystemPrompt?: string
 }
 
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'
