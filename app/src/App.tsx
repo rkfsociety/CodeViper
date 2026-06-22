@@ -34,6 +34,11 @@ const PrStatusPanel = lazy(() =>
 const SettingsModal = lazy(() =>
   import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal }))
 )
+const KeyboardShortcutsModal = lazy(() =>
+  import('./components/KeyboardShortcutsModal').then((m) => ({
+    default: m.KeyboardShortcutsModal
+  }))
+)
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
 import { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL } from '../shared/constants'
@@ -77,6 +82,7 @@ function AppContent() {
   const [memoryRefreshKey, setMemoryRefreshKey] = useState(0)
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [prPanelOpen, setPrPanelOpen] = useState(false)
   const [tracePanelOpen, setTracePanelOpen] = useState(false)
@@ -339,6 +345,14 @@ function AppContent() {
       if (e.ctrlKey && e.key === 'k') {
         e.preventDefault()
         chatPanelRef.current?.focusInput()
+      }
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const tag = (e.target as HTMLElement).tagName
+        const editable = (e.target as HTMLElement).isContentEditable
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !editable) {
+          e.preventDefault()
+          setShortcutsOpen((v) => !v)
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -656,6 +670,14 @@ function AppContent() {
             </button>
             <button
               className="btn"
+              onClick={() => setShortcutsOpen(true)}
+              title="Горячие клавиши (?)"
+              aria-label="Горячие клавиши"
+            >
+              ?
+            </button>
+            <button
+              className="btn"
               onClick={() => setSettingsOpen(true)}
               title="Настройки (Ctrl+,)"
             >
@@ -783,6 +805,12 @@ function AppContent() {
             </section>
           )}
         </div>
+
+        {shortcutsOpen && (
+          <Suspense fallback={null}>
+            <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+          </Suspense>
+        )}
 
         {settingsOpen && (
           <Suspense fallback={null}>
