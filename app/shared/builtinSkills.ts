@@ -12,7 +12,7 @@ export const BUILTIN_SKILL_IDS = [
 
 export type BuiltinSkillId = (typeof BUILTIN_SKILL_IDS)[number]
 
-export const BUILTIN_SKILLS_VERSION = 2
+export const BUILTIN_SKILLS_VERSION = 3
 
 export function isBuiltinSkill(id: string): id is BuiltinSkillId {
   return (BUILTIN_SKILL_IDS as readonly string[]).includes(id)

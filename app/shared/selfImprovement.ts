@@ -193,24 +193,29 @@ export function formatPlanSummary(plan: SelfImprovementItem[]): string {
 
 export const SELF_IMPROVEMENT_MODE_PROMPT = `## Самоулучшение (АКТИВНО)
 Изучай → loop до done. Автопуш — в ветку agent/self-improve, не в master.
-Задачи из ROADMAP.md: пункт «N · …» (цель, файлы, действие, проверка) → set_self_improvement_plan по шагам пункта.
-Промпт: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
-1. read_codeviper_file ROADMAP.md + целевые файлы пункта
-2. set_self_improvement_plan → шаги по полям «Действие» и «Проверка»
-3. item: edit → complete_self_improvement_item(id)
-4. После edit: run_codeviper_command → npm run typecheck && npm test
-5. Done = get_self_improvement_plan все done.
-Без steps пользователю — tool_calling.`
 
-export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен plan = set_self_improvement_plan.
-[{"id":"1","title":"Изучить agent.ts и agentTools.ts"},...]
-Только tool_calling, без JSON-текста.
-После set_self_improvement_plan → пункт 1 (read_codeviper_file / edit / create_skill).`
+ROADMAP.md — формат пункта:
+«N · [S/M/L/XL] · Название» + Цель / Файлы / Действие / Проверка.
+Промпт пользователя: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
+
+Алгоритм:
+1. read_codeviper_file ROADMAP.md → найти пункт N; прочитать все пути из «Файлы»
+2. set_self_improvement_plan — шаги строго из «Действие» + «Проверка» (не выдумывать лишнее)
+3. edit_codeviper_file / create_codeviper_file → complete_self_improvement_item(id)
+4. run_codeviper_command — команды из «Проверка» (typecheck, test, UI-сценарий)
+5. Все item done → удалить пункт N из «В планах», перенумеровать с 1, кратко в «✅ Сделано» (тот же коммит)
+6. В цепочке 🔗 — не переходить к следующему номеру ROADMAP, пока текущий не закрыт
+
+Без steps пользователю — только tool_calling.`
+
+export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_improvement_plan по полям ROADMAP (Действие + Проверка).
+[{"id":"1","title":"…из Действие…"},{"id":"2","title":"…из Проверка…"},...]
+Только tool_calling. Первый шаг — read_codeviper_file файлов из «Файлы».`
 
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
   'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'
 
-export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: list_codeviper_directory + read_codeviper_file (agent.ts, agentTools.ts) → set_self_improvement_plan.`
+export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_codeviper_file ROADMAP.md (если задан пункт N) → файлы из «Файлы» → set_self_improvement_plan.`
 
 export function buildSelfImprovementContinueNudge(plan: SelfImprovementItem[]): string {
   const { done, total, pending } = planProgress(plan)

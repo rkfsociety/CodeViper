@@ -275,25 +275,39 @@ const VIPER_SELF_IMPROVEMENT_SKILL = {
     'изучи код и начни',
     'улучшай себя',
     'self-improve',
-    'self_improvement_plan'
+    'self_improvement_plan',
+    'roadmap',
+    'дорожн'
   ],
   scope: 'global' as const,
   instructions: `# Viper Self-Improvement
 
 ${BUILTIN_VERSION_TAG}
 
+## ROADMAP.md
+Пункт «В планах»:
+\`\`\`
+N · [S/M/L/XL] · Название — приор. …
+- Цель: …
+- Файлы: app/…
+- Действие: …
+- Проверка: typecheck | test | UI
+\`\`\`
+Промпт: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
+
 ## Инструменты плана
 | Инструмент | Назначение |
 |---|---|
-| \`set_self_improvement_plan\` | JSON [{id, title}, …] — 3–8 пунктов |
-| \`complete_self_improvement_item\` | Отметить пункт после реальной правки |
+| \`set_self_improvement_plan\` | Шаги из «Действие» + «Проверка» (3–8 item) |
+| \`complete_self_improvement_item\` | После реальной правки и проверки |
 | \`get_self_improvement_plan\` | Статус done/pending |
 
 ## Workflow
-1. Изучить код (viper-codebase / viper-self-edit)
-2. \`set_self_improvement_plan\`
-3. Каждый пункт: инструменты → \`complete_self_improvement_item\`
-4. Не останавливаться, пока все пункты done`
+1. \`read_codeviper_file\` ROADMAP.md → пункт N; прочитать «Файлы»
+2. \`set_self_improvement_plan\` по полям пункта
+3. Правки → \`run_codeviper_command\` из «Проверка» → \`complete_self_improvement_item\`
+4. Пункт ROADMAP → «✅ Сделано», перенумеровать «В планах» с 1 (тот же коммит)
+5. В цепочке 🔗 не брать следующий номер, пока текущий не закрыт`
 }
 
 const VIPER_MEMORY_SKILL = {

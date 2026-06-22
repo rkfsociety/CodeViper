@@ -607,4 +607,4 @@ N · [S/M/L/XL] · Краткое название
 - Самоулучшение: автопуш в ветку `agent/self-improve` (настройка `selfImproveBranch`), checkout в начале прогона
 - Коллективная память: синхронизация глобальных знаний в `docs/collective/ViperMemory.md` + push; UI-чип в статус-баре; подгрузка в контекст всех пользователей
 - `electron-updater`: packaged-сборка проверяет GitHub Releases при старте; dev — git fetch `app/`; баннер с «Перезапустить и обновить»; `UpdateInfo` git/release
-- ROADMAP «В планах»: единый формат самообучения, сквозная нумерация; расширение до 67 пунктов (агент/проверки, RAG, UX, subagents, webhooks, LSP)
+- ROADMAP «В планах»: единый формат самообучения, сквозная нумерация; расширение до 67 пунктов; правила в AGENTS.md, CLAUDE.md, docs/self-improvement.md, навык viper-self-improvement v3
