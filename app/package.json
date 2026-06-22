@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "start": "electron-vite preview",
+    "start": "electron .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
