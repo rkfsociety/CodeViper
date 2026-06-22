@@ -1,9 +1,10 @@
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { readdir } from 'fs/promises'
 import { join } from 'path'
 import {
   DEFAULT_SUGGESTED_MODELS,
   detectPackageManager,
+  packageJsonRequiresNodeInstall,
   type AgentPrerequisiteIssue,
   type AgentPrerequisitesResult
 } from '../../shared/agentPrerequisites'
@@ -18,6 +19,15 @@ export async function checkProjectNodeDependencies(
 
   const packageJsonPath = join(root, 'package.json')
   if (!existsSync(packageJsonPath)) return null
+
+  let packageJson: Record<string, unknown>
+  try {
+    packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as Record<string, unknown>
+  } catch {
+    return null
+  }
+
+  if (!packageJsonRequiresNodeInstall(packageJson)) return null
 
   const nodeModulesPath = join(root, 'node_modules')
   let needsInstall = !existsSync(nodeModulesPath)

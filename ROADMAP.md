@@ -204,3 +204,6 @@
 - `mcpRegistry.ts`: регистрация MCP по `/.well-known/mcp`, хранение в `AgentSettings.mcpServers`; IPC `add-mcp-server` / `remove-mcp-server`
 - Секция MCP в `SettingsModal` (вкладка «Интеграции»): список серверов, добавление и удаление по URL
 - `getAgentTools()` + `mcpTools.ts`: динамические инструменты MCP, вызов через `POST /tools/call`, результат через `POST /tools/result`
+
+**Агент**
+- Проверка `node_modules` перед запуском только при непустых секциях зависимостей в `package.json` — проекты без npm-пакетов не блокируются

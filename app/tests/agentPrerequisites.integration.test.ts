@@ -30,14 +30,26 @@ afterAll(() => {
 
 describe('checkProjectNodeDependencies', () => {
   it('требует npm install если есть package.json без node_modules', async () => {
-    writeFileSync(join(TMP, 'package.json'), JSON.stringify({ name: 'demo' }))
+    writeFileSync(
+      join(TMP, 'package.json'),
+      JSON.stringify({ name: 'demo', dependencies: { lodash: '^4.0.0' } })
+    )
     const issue = await checkProjectNodeDependencies(TMP)
     expect(issue?.type).toBe('node_install')
     expect(issue && issue.type === 'node_install' && issue.installCommand).toBe('npm install')
   })
 
+  it('не требует install если package.json без зависимостей', async () => {
+    writeFileSync(join(TMP, 'package.json'), JSON.stringify({ name: 'demo', type: 'module' }))
+    const issue = await checkProjectNodeDependencies(TMP)
+    expect(issue).toBeNull()
+  })
+
   it('не требует install если node_modules есть', async () => {
-    writeFileSync(join(TMP, 'package.json'), JSON.stringify({ name: 'demo' }))
+    writeFileSync(
+      join(TMP, 'package.json'),
+      JSON.stringify({ name: 'demo', dependencies: { lodash: '^4.0.0' } })
+    )
     mkdirSync(join(TMP, 'node_modules'))
     writeFileSync(join(TMP, 'node_modules', '.keep'), '')
     const issue = await checkProjectNodeDependencies(TMP)
@@ -47,7 +59,10 @@ describe('checkProjectNodeDependencies', () => {
 
 describe('checkAgentPrerequisites', () => {
   it('ok когда ollama и node_modules на месте', async () => {
-    writeFileSync(join(TMP, 'package.json'), JSON.stringify({ name: 'demo' }))
+    writeFileSync(
+      join(TMP, 'package.json'),
+      JSON.stringify({ name: 'demo', dependencies: { lodash: '^4.0.0' } })
+    )
     mkdirSync(join(TMP, 'node_modules'))
     writeFileSync(join(TMP, 'node_modules', '.keep'), '')
 

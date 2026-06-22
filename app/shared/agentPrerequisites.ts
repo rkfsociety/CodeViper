@@ -12,6 +12,27 @@ export interface AgentPrerequisitesResult {
 
 export const DEFAULT_SUGGESTED_MODELS = ['qwen2.5-coder:7b', 'llama3.1:8b', 'qwen3:8b'] as const
 
+const DEPENDENCY_SECTION_KEYS = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies'
+] as const
+
+/** true если в package.json есть секции с пакетами для установки */
+export function packageJsonRequiresNodeInstall(
+  pkg: Record<string, unknown> | null | undefined
+): boolean {
+  if (!pkg) return false
+  for (const key of DEPENDENCY_SECTION_KEYS) {
+    const section = pkg[key]
+    if (section && typeof section === 'object' && !Array.isArray(section)) {
+      if (Object.keys(section as Record<string, unknown>).length > 0) return true
+    }
+  }
+  return false
+}
+
 export function detectPackageManager(files: { pnpmLock: boolean; yarnLock: boolean }): {
   packageManager: PackageManager
   installCommand: string

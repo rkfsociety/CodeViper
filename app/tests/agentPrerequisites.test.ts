@@ -1,7 +1,18 @@
 import { describe, it, expect } from 'vitest'
-import { detectPackageManager, formatPrerequisitesMessage } from '../shared/agentPrerequisites'
+import {
+  detectPackageManager,
+  formatPrerequisitesMessage,
+  packageJsonRequiresNodeInstall
+} from '../shared/agentPrerequisites'
 
 describe('agentPrerequisites', () => {
+  it('packageJsonRequiresNodeInstall учитывает секции зависимостей', () => {
+    expect(packageJsonRequiresNodeInstall({ name: 'demo' })).toBe(false)
+    expect(packageJsonRequiresNodeInstall({ dependencies: { lodash: '4' } })).toBe(true)
+    expect(packageJsonRequiresNodeInstall({ devDependencies: { vitest: '1' } })).toBe(true)
+    expect(packageJsonRequiresNodeInstall({ dependencies: {} })).toBe(false)
+  })
+
   it('detectPackageManager выбирает pnpm/yarn/npm', () => {
     expect(detectPackageManager({ pnpmLock: true, yarnLock: false }).installCommand).toBe(
       'pnpm install'

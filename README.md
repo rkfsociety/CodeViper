@@ -46,6 +46,8 @@ cd CodeViper/app && npm install
 
 Поддержка MCP-серверов: настройки → «Интеграции» → MCP; инструменты с префиксом `mcp_`, вызов `/tools/call` и отправка результата на `/tools/result`.
 
+Перед запуском агента в Node-проекте проверяется наличие `node_modules` **только если** в `package.json` объявлены зависимости (`dependencies`, `devDependencies` и т.д.) — пустой `package.json` не блокирует запрос.
+
 ## Участие
 
 Баги и предложения — в [Issues](https://github.com/rkfsociety/CodeViper/issues). PR приветствуются.
