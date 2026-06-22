@@ -18,7 +18,7 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ['zod'] })],
     build: {
       rollupOptions: {
         input: resolve(__dirname, 'electron/preload/index.ts'),
