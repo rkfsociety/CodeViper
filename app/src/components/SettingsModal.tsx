@@ -1997,6 +1997,49 @@ export function SettingsModal({
                     </div>
                   </SettingItem>
 
+                  {/* ── Jira ── */}
+                  <SettingItem
+                    tab="integrations"
+                    label="Jira"
+                    desc="jira rest api issue инструмент создание задач"
+                  >
+                    <div className={styles.section}>
+                      <label>
+                        URL Jira
+                        <input
+                          type="text"
+                          placeholder="https://your-domain.atlassian.net"
+                          value={settings.jiraUrl ?? ''}
+                          onChange={(e) => onSettingsChange({ jiraUrl: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        API Token
+                        <div className="settings-api-key-row">
+                          <input
+                            type={apiKeyVisible['jira'] ? 'text' : 'password'}
+                            placeholder="(опционально)"
+                            value={settings.jiraToken ?? ''}
+                            onChange={(e) => onSettingsChange({ jiraToken: e.target.value })}
+                            autoComplete="off"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => toggleKeyVisible('jira')}
+                            title={apiKeyVisible['jira'] ? 'Скрыть' : 'Показать'}
+                          >
+                            {apiKeyVisible['jira'] ? '🙈' : '👁'}
+                          </button>
+                        </div>
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Создавайте Issue в Jira через инструмент агента. Используйте API Token
+                        вместо пароля.
+                      </div>
+                    </div>
+                  </SettingItem>
+
                   {/* ── MCP-серверы ── */}
                   <SettingItem
                     tab="integrations"

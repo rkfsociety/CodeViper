@@ -191,6 +191,10 @@ export interface AgentSettings {
   gitlabToken?: string
   /** GitLab базовый URL (по умолчанию https://gitlab.com); задай для self-hosted инстанса */
   gitlabUrl?: string
+  /** Jira базовый URL для REST API (например, https://your-domain.atlassian.net) */
+  jiraUrl?: string
+  /** Jira API Token для создания Issue (используй вместо пароля) */
+  jiraToken?: string
   /** Исключать thinking из истории контекста (экономия 20-50% для think-моделей) */
   excludeThinkingFromHistory?: boolean
   /** Размер контекста выбранной модели в токенах (сохраняется при выборе модели) */

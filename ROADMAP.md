@@ -426,6 +426,7 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
+- create_jira_issue: инструмент для создания Issue в Jira через REST API; поля jiraUrl и jiraToken в настройках с шифрованием; UI в разделе «Интеграции»; параметры: summary, project_key, description, issue_type
 - NSIS git clone: установщик клонирует репо в %APPDATA%\CodeViper\source\ с флагом --depth 1; обновление через git pull --ff-only при повторной установке; ярлыки на Desktop и в Start Menu Programs; при удалении — опция удалить исходный код (настройки/чаты остаются)
 - POSIX-лаунчер: CodeViper.sh для Linux/macOS; аналог CodeViper.cmd; проверка Node.js, хеш package-lock.json, автосборка если изменились файлы в electron/shared; интеграция в CI workflow на ubuntu/macos с проверкой синтаксиса bash
 - `disabledTools`: чекбоксы по 11 группам инструментов в SettingsModal (Поведение → Инструменты агента); `getAgentTools(selfImproveMode, disabledTools?)` фильтрует отключённые; кэш по ключу `${selfImproveMode}_${sorted disabled}`; поле `disabledTools?: string[]` в `AgentSettings` + Zod-схема
@@ -581,6 +582,7 @@ N · [S/M/L/XL] · Краткое название
 - NSIS-установщик собран и установлен: `electron-builder` добавлена как devDependency; PNG-иконка конвертирована в ICO через Python Pillow; конфигурация `package.json` обновлена для использования `icon.ico` в NSIS-установщике; установщик собирается командой `npm run dist` и создаёт `.exe` файл в `release/{version}/`; приложение устанавливается в `C:\Users\roman\AppData\Local\Programs\CodeViper\` и успешно запускается
 - **Плагины для агента:** сканирование `~/.codeviper/plugins/*.js` и `*.ts` при старте main; `pluginLoader.ts` загружает плагины и регистрирует их инструменты в AGENT_TOOLS; компиляция TypeScript через esbuild с кэшем по mtime; вкладка «Плагины» в настройках с кнопкой открытия папки (`shell.openPath`); изоляция плагинов в `worker_thread` через `pluginWorker.ts` для безопасности; тесты убеждают в правильной загрузке и что краш воркера не роняет main
 - **electron-builder rebuild:** `npmRebuild: true` и `buildDependenciesFromSource: false` в `package.json`; `npm run dist` автоматически пересобирает native-модули (node-llama-cpp и др.) без ручного rebuild; сборка дистрибутива (`.exe`) проходит успешно
+
 
 
 

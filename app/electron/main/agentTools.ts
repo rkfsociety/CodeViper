@@ -655,6 +655,29 @@ const GITLAB_TOOLS = [
   }
 ] as const
 
+const JIRA_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'create_jira_issue',
+      description: 'Создать Issue в Jira через REST API',
+      parameters: {
+        type: 'object',
+        properties: {
+          summary: { type: 'string', description: 'Заголовок issue' },
+          description: { type: 'string', description: 'Описание issue (необязательно)' },
+          issue_type: {
+            type: 'string',
+            description: 'Тип issue: Bug, Task, Story, etc. (по умолчанию Task)'
+          },
+          project_key: { type: 'string', description: 'Ключ проекта в Jira (например, PROJ)' }
+        },
+        required: ['summary', 'project_key']
+      }
+    }
+  }
+] as const
+
 const MEMORY_TOOLS = [
   {
     type: 'function',
@@ -1298,6 +1321,7 @@ export const AGENT_TOOLS = [
   ...GIT_TOOLS,
   ...GITHUB_TOOLS,
   ...GITLAB_TOOLS,
+  ...JIRA_TOOLS,
   ...MEMORY_TOOLS,
   ...PACKAGE_TOOLS,
   ...SKILLS_TOOLS,
@@ -1430,6 +1454,12 @@ export interface ToolArgs {
     description?: string
   }
   get_gitlab_pipeline: { pipeline_id?: string }
+  create_jira_issue: {
+    summary: string
+    description?: string
+    issue_type?: string
+    project_key: string
+  }
   recent_changes: { path?: string; limit?: string }
   remember: { content: string; category: string; tags?: string; scope?: string }
   package_info: { path?: string }
