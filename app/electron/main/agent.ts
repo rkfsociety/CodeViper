@@ -1,5 +1,5 @@
 import type { AgentSettings, AgentStreamPayload, ChatMessage } from '../../src/types'
-import { sanitizeAssistantContent, isRefusalResponse } from '../../shared/toolCalls'
+import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
   MUTATING_TOOLS,
   TOOL_VERIFICATION_FAILED_MESSAGE,
@@ -7,9 +7,9 @@ import {
 } from '../../shared/actionVerification'
 import { prepareAgentRunContext } from './agentContext'
 import { buildVectorStoreConfig } from './vectorStore'
-import { isSelfImprovementTask } from '../../shared/selfImprovement'
 import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
+import { TaskPlanner } from './taskPlanner'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
@@ -34,7 +34,6 @@ function isAbortError(error: unknown): boolean {
 
 export class AgentRunner {
   private readonly selfImprovementPlan = new SelfImprovementPlanStore()
-  private selfImproveMode = false
   private settings: AgentSettings
 
   private readonly emitter: ResponseEmitter
@@ -103,16 +102,15 @@ export class AgentRunner {
       }
     )
 
-    const autonomousSelfImprove = isSelfImprovementTask(userMessage)
-    this.selfImproveMode = autonomousSelfImprove
-    if (autonomousSelfImprove) this.selfImprovementPlan.reset()
+    const taskMode = TaskPlanner.detectMode(userMessage)
+    if (taskMode === 'self-improve') this.selfImprovementPlan.reset()
 
     const prepared = await prepareAgentRunContext(
       this.projectPath,
       history,
       userMessage,
       this.settings.model,
-      autonomousSelfImprove,
+      taskMode === 'self-improve',
       {
         ollamaUrl: this.settings.ollamaUrl,
         providerConfig: this.ctx.summarizeProviderConfig,
@@ -137,7 +135,7 @@ export class AgentRunner {
         content: `📋 Контекст ~${prepared.preview.contextUsagePercent}% — предыдущая история суммаризирована`
       })
     }
-    if (autonomousSelfImprove) {
+    if (taskMode === 'self-improve') {
       this.emitter.emit({
         type: 'self_improve_plan',
         content:
@@ -152,6 +150,12 @@ export class AgentRunner {
     let requireToolNext = false
 
     const loopGuard = new LoopGuard(this.settings, this.ctx.modelRuntime)
+    const taskPlanner = new TaskPlanner(
+      taskMode,
+      userMessage,
+      this.selfImproveOrchestrator,
+      loopGuard
+    )
 
     try {
       let step = 0
@@ -182,7 +186,7 @@ export class AgentRunner {
 
         let response
         try {
-          response = await this.ctx.chat(messages, this.settings.model, this.selfImproveMode, {
+          response = await this.ctx.chat(messages, this.settings.model, taskPlanner.isSelfImprove, {
             requireTool: requireToolNext
           })
         } catch (error) {
@@ -261,70 +265,56 @@ export class AgentRunner {
         }
 
         if (!toolCalls.length) {
-          // Режим самоулучшения
-          if (autonomousSelfImprove) {
-            const siAction = this.selfImproveOrchestrator.handleNoToolCalls(
-              assistantText,
-              assistantThinking,
-              usedTools
-            )
-            if (siAction.action === 'done') {
-              if (assistantText)
-                this.emitter.emit({
-                  type: 'assistant',
-                  content: assistantText,
-                  thinking: assistantThinking
-                })
-              if (this.settings.selfLearning !== false) {
-                await this.selfImproveOrchestrator.reflectAndLearn(messages, userMessage, usedTools)
-              }
-              this.emitter.emit({ type: 'done' })
-              return
-            }
-            if (siAction.action === 'error') {
-              if (assistantText) messages.pop()
-              this.emitter.emit({ type: 'clear_draft' })
-              this.emitter.emit({ type: 'error', content: siAction.content })
-              this.emitter.emit({ type: 'done' })
-              return
-            }
-            if (siAction.action === 'continue') {
-              if (siAction.clearDraft && assistantText) messages.pop()
-              if (siAction.clearDraft) this.emitter.emit({ type: 'clear_draft' })
-              if (siAction.emitAssistant) {
-                this.emitter.emit({
-                  type: 'assistant',
-                  content: siAction.emitAssistant.text,
-                  thinking: siAction.emitAssistant.thinking
-                })
-              }
-              messages.push({ role: 'user', content: siAction.nudgeMessage })
-              requireToolNext = siAction.requireTool
-              continue
-            }
-          }
-
-          // Проверка верификации и эскалации
-          const verAction = await loopGuard.decideNoToolAction(
-            userMessage,
+          const planAction = await taskPlanner.decide({
             assistantText,
-            mutatingToolsUsed,
+            assistantThinking,
             usedTools,
-            isRefusalResponse(assistantText)
-          )
+            mutatingToolsUsed
+          })
 
-          if (verAction.action === 'escalate') {
+          if (planAction.kind === 'done') {
+            if (assistantText)
+              this.emitter.emit({
+                type: 'assistant',
+                content: assistantText,
+                thinking: assistantThinking
+              })
+            await taskPlanner.finalize(messages, userMessage, usedTools, this.settings)
+            this.emitter.emit({ type: 'done' })
+            return
+          }
+          if (planAction.kind === 'error') {
+            if (assistantText) messages.pop()
+            this.emitter.emit({ type: 'clear_draft' })
+            this.emitter.emit({ type: 'error', content: planAction.content })
+            this.emitter.emit({ type: 'done' })
+            return
+          }
+          if (planAction.kind === 'continue') {
+            if (planAction.clearDraft && assistantText) messages.pop()
+            if (planAction.clearDraft) this.emitter.emit({ type: 'clear_draft' })
+            if (planAction.emitAssistant)
+              this.emitter.emit({
+                type: 'assistant',
+                content: planAction.emitAssistant.text,
+                thinking: planAction.emitAssistant.thinking
+              })
+            messages.push({ role: 'user', content: planAction.nudgeMessage })
+            requireToolNext = planAction.requireTool
+            continue
+          }
+          if (planAction.kind === 'escalate') {
             messages.pop()
             this.emitter.emit({ type: 'clear_draft' })
             this.emitter.emit({
               type: 'context',
-              content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${verAction.toModel}**…`
+              content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${planAction.toModel}**…`
             })
-            this.settings = { ...this.settings, model: verAction.toModel }
+            this.settings = { ...this.settings, model: planAction.toModel }
             requireToolNext = true
             continue
           }
-          if (verAction.action === 'retry') {
+          if (planAction.kind === 'retry') {
             if (assistantText) messages.pop()
             this.emitter.emit({ type: 'clear_draft' })
             this.emitter.emit({
@@ -336,7 +326,7 @@ export class AgentRunner {
             requireToolNext = true
             continue
           }
-          if (verAction.action === 'failed') {
+          if (planAction.kind === 'failed') {
             if (assistantText) messages.pop()
             this.emitter.emit({ type: 'clear_draft' })
             this.emitter.emit({ type: 'error', content: TOOL_VERIFICATION_FAILED_MESSAGE })
@@ -351,7 +341,7 @@ export class AgentRunner {
               content: assistantText,
               thinking: assistantThinking
             })
-          } else if (!autonomousSelfImprove) {
+          } else if (!taskPlanner.isSelfImprove) {
             const ctxTokensNow = Math.round(ctxChars / 4)
             const smallModelHint =
               ctxTokensNow > 2000
@@ -362,13 +352,12 @@ export class AgentRunner {
               content: `Модель не ответила и не вызвала инструменты.${smallModelHint} Попробуй выбрать другую модель или переформулировать задачу.`
             })
           }
-          if (this.settings.selfLearning !== false) {
-            await this.selfImproveOrchestrator.reflectAndLearn(
-              messages,
-              userMessage,
-              mutatingToolsUsed.size > 0
-            )
-          }
+          await taskPlanner.finalize(
+            messages,
+            userMessage,
+            mutatingToolsUsed.size > 0,
+            this.settings
+          )
           this.emitter.trace(
             'run_end',
             `■ Завершено за ${Date.now() - runStartMs}ms, шагов: ${step}, токенов: ${this.ctx.sessionTokens}`,
@@ -443,12 +432,12 @@ export class AgentRunner {
         total_ms: Date.now() - runStartMs
       })
       if (selfEdited) {
-        if (autonomousSelfImprove && this.settings.autoPushSelfEdits !== false) {
+        if (taskPlanner.isSelfImprove && this.settings.autoPushSelfEdits !== false) {
           await this.selfImproveOrchestrator.autoCommitSelfEdits(
             userMessage,
             this.emitter.emit.bind(this.emitter)
           )
-        } else if (!autonomousSelfImprove) {
+        } else if (!taskPlanner.isSelfImprove) {
           await this.selfImproveOrchestrator.stageSelfEditsForRestart(
             userMessage,
             this.emitter.emit.bind(this.emitter)
