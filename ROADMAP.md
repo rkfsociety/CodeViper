@@ -8,7 +8,6 @@
 
 | Модуль | Задача | Приоритет | Сложность | Зависит от | Статус |
 |---|---|---|---|---|---|
-| **Провайдеры** | В `ollamaProvider.ts` и `openaiProvider.ts` выделить общую логику стриминга в абстрактный класс `StreamingChatProvider`; конкретные провайдеры реализуют только `buildRequest()` и `parseChunk()` | Medium | M | — | ⏳ |
 | **Провайдеры** | В `modelRuntime.ts` реализовать circuit breaker: при 5 последовательных ошибках переходить в состояние `open` (запросы отклоняются немедленно), через 30 с — `half-open` (пробный запрос); статус отображать в `AgentStatusBar.tsx` | Medium | M | — | ⏳ |
 | **UI/UX** | В `SettingsModal.tsx` добавить поле поиска по названиям настроек; при вводе фильтровать пункты на всех вкладках и подсвечивать совпадения | Medium | S | — | ⏳ |
 | **UI/UX** | Показывать шпаргалку горячих клавиш при нажатии `?` вне поля ввода или через меню; перечень действий с их сочетаниями | Low | S | — | ⏳ |
@@ -113,6 +112,9 @@
 - Рефакторинг `agent.ts` → 6 модулей: `ContextManager`, `ToolExecutor`, `SelfImprovementOrchestrator`, `LoopGuard`, `ResponseEmitter`, `agentOllamaApi`; параллельное выполнение инструментов (Promise.all) при cloud API; удалены жёсткие лимиты шагов/прогонов
 - Агент не молчит при пустом ответе; не останавливается на «намерении»; пропускает tool call для информационных вопросов
 - Добавлены инструменты для GitHub, файловых операций и кратких сводок по проекту
+
+**Провайдеры**
+- `StreamingChatProvider` (`providers/streamingChatProvider.ts`): абстрактный базовый класс с общим I/O-циклом стриминга (fetch + backoff retry + reader + TextDecoder + буфер + releaseLock); хуки `buildRequest()`, `createChunkParser()` (возвращает `ChunkParser` с `parse` + `finalize`), `handleHttpError()`; `BACKOFF_MS` переопределяется в подклассе; `OllamaProvider` и `OpenAIProvider` реализуют только специфику
 
 **Провайдеры и модели**
 - Провайдер Groq: `groqProvider.ts` (переиспользует `OpenAIProvider` с `baseUrl: 'https://api.groq.com/openai/v1'`); поле `groqApiKey` в `settings.ts` и `types.ts`
