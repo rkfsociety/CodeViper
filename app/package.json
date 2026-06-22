@@ -45,6 +45,12 @@
       "out/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "resources/node/",
+        "to": "node/"
+      }
+    ],
     "win": {
       "target": [
         {

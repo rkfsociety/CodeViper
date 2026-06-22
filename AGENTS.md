@@ -9,7 +9,7 @@
 
 ## Portable Node.js (ROADMAP)
 
-Цепочка «самопересборка»: (1) `extraResources` в electron-builder → (2) `getBundledNodeBin()` в `codeviperSource.ts`. Скачивание уже есть: `scripts/download-node.js`, `npm run setup-node`.
+Цепочка «самопересборка»: `getBundledNodeBin()` в `codeviperSource.ts`. Скачивание и `extraResources` уже есть.
 
 ## После каждой выполненной задачи (ROADMAP)
 

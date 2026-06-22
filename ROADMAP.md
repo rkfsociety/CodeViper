@@ -10,8 +10,7 @@
 
 | # | Задача | Сложность | Приоритет |
 |---|--------|-----------|-----------|
-| 1 | В `package.json` в секцию `build` добавить `extraResources: [{ from: "resources/node/", to: "node/" }]` — так portable Node.js попадёт в установленный дистрибутив рядом с `resources/` | XS | Low |
-| 2 | В `codeviperSource.ts` добавить `getBundledNodeBin()` (ищет `resources/node/node.exe` или `bin/node` рядом с `app.getAppPath()`); изменить `runCodeViperCommand` — при наличии bundled Node прокидывать его директорию в начало `PATH` среды перед вызовом `runCommand` | S | Low |
+| 1 | В `codeviperSource.ts` добавить `getBundledNodeBin()` (ищет `resources/node/node.exe` или `bin/node` рядом с `app.getAppPath()`); изменить `runCodeViperCommand` — при наличии bundled Node прокидывать его директорию в начало `PATH` среды перед вызовом `runCommand` | S | Low |
 
 ### 🔗 node-llama-cpp + Оркестратор
 
@@ -213,3 +212,4 @@
 
 **Portable Node.js**
 - `scripts/download-node.js`: скачивание Node.js LTS в `app/resources/node/`; `npm run setup-node`; вызов перед `npm run dist`
+- `extraResources` в electron-builder: portable Node в `node/` рядом с `resources/` в установленном дистрибутиве

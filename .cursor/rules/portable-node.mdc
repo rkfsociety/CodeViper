@@ -22,12 +22,14 @@ alwaysApply: true
 
 ## Следующие шаги (ROADMAP)
 
-1. **extraResources** в `app/package.json` → `build`:
-   `{ from: "resources/node/", to: "node/" }` — portable Node в установленном дистрибутиве
-2. **getBundledNodeBin()** в `codeviperSource.ts` — ищет `node.exe` или `bin/node` рядом с `app.getAppPath()`; в `runCodeViperCommand` прокинуть директорию Node в начало `PATH`
+1. **getBundledNodeBin()** в `codeviperSource.ts` — ищет `node.exe` или `bin/node` рядом с `app.getAppPath()`; в `runCodeViperCommand` прокинуть директорию Node в начало `PATH`
+
+## Готово в electron-builder
+
+- `extraResources`: `{ from: "resources/node/", to: "node/" }` — portable Node в установленном дистрибутиве
 
 ## Не делать
 
 - Не коммитить содержимое `app/resources/node/`
 - Не дублировать логику скачивания — только `scripts/download-node.js`
-- Не менять порядок цепочки: extraResources до getBundledNodeBin
+- Не менять порядок цепочки: getBundledNodeBin после extraResources (extraResources уже сделан)

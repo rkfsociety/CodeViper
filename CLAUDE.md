@@ -137,10 +137,9 @@ app/
 - `app/resources/node/` в `.gitignore`
 
 **Дальше по ROADMAP:**
-1. `extraResources` в electron-builder: `{ from: "resources/node/", to: "node/" }`
-2. `getBundledNodeBin()` в `codeviperSource.ts` + PATH в `runCodeViperCommand`
+1. `getBundledNodeBin()` в `codeviperSource.ts` + PATH в `runCodeViperCommand`
 
-Бинарник: Windows `node.exe` в корне, Unix `bin/node`. Версия — файл `.node-version`.
+Бинарник: Windows `node.exe` в корне, Unix `bin/node`. Версия — файл `.node-version`. В дистрибутиве Node лежит в `resources/node/` → копируется в `node/` через `extraResources`.
 
 ---
 

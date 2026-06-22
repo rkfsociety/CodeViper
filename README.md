@@ -29,7 +29,7 @@ git clone https://github.com/rkfsociety/CodeViper.git
 cd CodeViper/app && npm install
 ```
 
-Для сборки установщика (`npm run dist`) portable Node.js LTS скачивается автоматически в `app/resources/node/` (`npm run setup-node`).
+Для сборки установщика (`npm run dist`) portable Node.js LTS скачивается автоматически в `app/resources/node/` (`npm run setup-node`) и включается в дистрибутив в папку `node/`.
 
 Затем двойной клик на **`CodeViper.cmd`** в корне репозитория.
 
