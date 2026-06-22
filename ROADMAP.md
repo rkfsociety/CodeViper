@@ -35,9 +35,6 @@
 | **MCP** | В `SettingsModal.tsx` на вкладке «Интеграции» добавить секцию MCP: список подключённых серверов из настроек, кнопка «+ Добавить», поле ввода URL; сохранять в `AgentSettings.mcpServers: string[]` | Medium | S | `mcpRegistry.ts` | ⏳ |
 | **MCP** | В `agentTools.ts` в функции `getAgentTools()` динамически добавлять инструменты из `AgentSettings.mcpServers` перед каждым прогоном агента; вызовы проксировать через `POST {serverUrl}/tools/call` | Medium | M | `mcpRegistry.ts` | ⏳ |
 | **MCP** | После выполнения инструмента MCP отправлять результат обратно на сервер: POST `{serverUrl}/tools/result` с `{ toolCallId, result }`; нужно для stateful MCP-серверов, хранящих контекст сессии | Low | M | `mcpRegistry.ts` + динамические инструменты | ⏳ |
-| **Qdrant / RAG** | Добавить в `SettingsModal.tsx` вкладку «Интеграции» поля для Qdrant URL и API-ключа с кнопкой проверки соединения; сохранять в `AgentSettings`; установить `@qdrant/js-client-rest` | Medium | M | — | ⏳ |
-| **Qdrant / RAG** | Реализовать инструмент `index_project` в `agentHandlersProject.ts`: рекурсивно читает файлы проекта, разбивает на чанки по 500 строк, получает эмбеддинги через `computeEmbeddingQueued`, записывает в Qdrant-коллекцию `codeviper_project`; прогресс через `onProgressEvent` | Medium | L | Qdrant настройки | ⏳ |
-| **Qdrant / RAG** | Реализовать инструмент `search_knowledge_base` в `agentHandlersProject.ts`: принимает `query: string`, возвращает top-5 чанков с путями файлов из проиндексированной Qdrant-коллекции | Medium | M | `index_project` | ⏳ |
 | **Плагины** | При старте main process сканировать `~/.codeviper/plugins/*.js`; для каждого файла делать `require()` и читать `export default { name, description, tools: AgentTool[] }`; регистрировать инструменты в `agentTools.ts` | Low | M | — | ⏳ |
 | **Плагины** | В `SettingsModal.tsx` добавить вкладку «Плагины»: список установленных плагинов из `AgentSettings.plugins`, кнопки включить/выключить и «Открыть папку плагинов» (`shell.openPath`) | Low | S | Загрузка плагинов | ⏳ |
 | **Плагины** | При загрузке плагина `*.ts` компилировать его через `esbuild.buildSync` в CommonJS во временную папку; кэшировать скомпилированный результат по `mtime` исходника | Low | M | Загрузка плагинов | ⏳ |
@@ -61,7 +58,7 @@
 ## ✅ Сделано
 - `commandBlocklist`: пользовательские запрещённые паттерны команд (`AgentSettings.commandBlocklist: string[]`); строки или regexp; редактирование в `SettingsModal.tsx` (Поведение → Безопасность); применяется в `validateCommand()` поверх встроенного списка
 - Per-chat `projectPath`: поле в `SavedChat`, агент берёт путь из чата через явный параметр `AgentRunner`, UI переключает проект при смене чата через изолированные `ChatContext.Provider`
-- `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`
+- `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`; поля `qdrantUrl`, `qdrantApiKey`, `ragProvider` в настройках; кнопка проверки соединения в SettingsModal; инструменты `index_project` (рекурсивная индексация проекта в Qdrant) и `search_knowledge_base` (top-5 чанков по семантическому запросу)
 - Дедупликация повторяющихся tool results перед суммаризацией: одинаковый инструмент + вывод → `(повторено N раз)`
 - Авто-превью файлов >20 КБ: первые/последние 50 строк с маркером `... (X строк обрезано) ...`
 - Батчинг параллельных grep-запросов за один тик event loop в `fileSearch.ts`
