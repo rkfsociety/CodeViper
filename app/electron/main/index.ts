@@ -25,6 +25,7 @@ import { setSourceRootOverride } from './codeviperSource'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
 import { ensureDefaultSkills } from './defaultSkills'
+import { getPluginsDirectory } from './pluginLoader'
 import {
   createChat,
   createFolder,
@@ -620,6 +621,12 @@ ipcMain.handle(IPC.READ_FILE_HISTORY, async (_e, projectPath: string, filePath: 
 
 ipcMain.on(IPC.OPEN_DEVTOOLS, () => {
   mainWindow?.webContents.openDevTools({ mode: 'detach' })
+})
+
+ipcMain.handle('open-plugins-folder', async () => {
+  const dir = getPluginsDirectory()
+  await shell.openPath(dir)
+  return dir
 })
 
 ipcMain.on(IPC.RESTART_APP, () => {

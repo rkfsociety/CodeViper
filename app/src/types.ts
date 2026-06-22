@@ -237,6 +237,8 @@ export interface AgentSettings {
   sourceRootOverride?: string
   /** Подключённые MCP-серверы с кэшем инструментов из /.well-known/mcp */
   mcpServers?: McpServerConfig[]
+  /** Включённые плагины (имена плагинов из ~/.codeviper/plugins) */
+  enabledPlugins?: string[]
 }
 
 export interface McpToolDefinition {

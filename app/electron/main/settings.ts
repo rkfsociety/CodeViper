@@ -79,7 +79,8 @@ export const PersistedSettingsSchema = z.object({
         )
       })
     )
-    .optional()
+    .optional(),
+  enabledPlugins: z.array(z.string()).optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -117,7 +118,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   qdrantApiKey: '',
   milvusUrl: '',
   milvusApiKey: '',
-  ragProvider: 'local' as const
+  ragProvider: 'local' as const,
+  enabledPlugins: []
 }
 
 function normalize(settings: Partial<AgentSettings>): PersistedSettings {

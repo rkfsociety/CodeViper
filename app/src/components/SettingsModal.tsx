@@ -22,7 +22,7 @@ import type { useOllamaDownloadQueue } from '../hooks/useOllamaDownloadQueue'
 
 type DownloadQueue = ReturnType<typeof useOllamaDownloadQueue>
 
-type SettingsTab = 'model' | 'behavior' | 'performance' | 'memory' | 'integrations'
+type SettingsTab = 'model' | 'behavior' | 'performance' | 'memory' | 'integrations' | 'plugins'
 
 const SETTINGS_TABS: { id: SettingsTab; label: string; icon: string }[] = [
   {
@@ -49,6 +49,11 @@ const SETTINGS_TABS: { id: SettingsTab; label: string; icon: string }[] = [
     id: 'integrations',
     label: 'Интеграции',
     icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="4" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="12" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h3l2.5-4M5 8h3l2.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  },
+  {
+    id: 'plugins',
+    label: 'Плагины',
+    icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="2" width="10" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M6 6h4M6 9h4M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
   }
 ]
 
@@ -2084,6 +2089,27 @@ export function SettingsModal({
                     refreshKey={skillsRefreshKey}
                   />
                 </>
+              )}
+
+              {!isSearching && tab === 'plugins' && (
+                <SettingItem
+                  tab="plugins"
+                  label="Плагины"
+                  desc="Подключить дополнительные инструменты"
+                >
+                  <div className={styles.settingSection}>
+                    <p>
+                      Плагины хранятся в <code>~/.codeviper/plugins</code>. Откройте папку и
+                      добавьте файлы <code>.js</code> с инструментами агента.
+                    </p>
+                    <button
+                      className={styles.button}
+                      onClick={() => window.electron?.ipcRenderer.invoke('open-plugins-folder')}
+                    >
+                      📂 Открыть папку
+                    </button>
+                  </div>
+                </SettingItem>
               )}
             </div>
           </SearchCtx.Provider>
