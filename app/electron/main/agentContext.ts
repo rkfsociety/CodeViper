@@ -1,3 +1,4 @@
+import { app } from 'electron'
 import type {
   AgentContextMessagePreview,
   AgentContextPreview,
@@ -102,7 +103,7 @@ function buildSystemPrompt(
   }
 
   const parts = [BASE_SYSTEM_PROMPT]
-  if (selfImproveMode) parts.push(buildSelfEditContext())
+  if (selfImproveMode) parts.push(buildSelfEditContext(app.isPackaged))
 
   // Для не-think моделей даём краткую подсказку к последовательной работе.
   if (cotReasoning) {
@@ -443,7 +444,7 @@ export async function buildAgentContextPreview(
     section('instructions', 'Инструкции агента', BASE_SYSTEM_PROMPT)
   ]
   if (selfImproveMode) {
-    sections.push(section('self-edit', 'Саморедактирование', buildSelfEditContext()))
+    sections.push(section('self-edit', 'Саморедактирование', buildSelfEditContext(app.isPackaged)))
   }
 
   if (projectContent) {

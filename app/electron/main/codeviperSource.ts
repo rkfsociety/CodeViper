@@ -178,8 +178,10 @@ export async function runCodeViperCommand(command: string) {
   return runCommand(root, command, undefined, undefined, prependBundledNodeToPath(process.env))
 }
 
-export function buildSelfEditContext(): string {
+export function buildSelfEditContext(isPackaged = false): string {
   const root = getCodeViperSourceRoot()
+  const buildCmd = !isPackaged ? ', npm run build' : ''
+  const buildStep = !isPackaged ? ' && npm run build' : ''
   return `# Исходники CodeViper (саморедактирование)
 Корень: ${root}
 
@@ -189,10 +191,10 @@ export function buildSelfEditContext(): string {
 - create_codeviper_file — новый файл (ошибка, если уже есть)
 - edit_codeviper_file — точечная замена old_string → new_string
 - append_codeviper_file — дописать в конец существующего файла
-- run_codeviper_command — команды в корне app/ (npm test, npm run typecheck, npm run build)
+- run_codeviper_command — команды в корне app/ (npm test, npm run typecheck${buildCmd})
 - create_codeviper_branch <name> — создать ветку agent/<name> вместо коммита в master
 - push_codeviper_branch — запушить ветку agent/... на GitHub
-- create_codeviper_pr — создать Pull Request из ветки agent/* (gh pr create); PR не мержится автоматически
+- create_codeviper_pr — создать Pull Request из ветки agent/* (gh pr create); PR не mержится автоматически
 
 Навыки (instructions без пересборки): create_skill / update_skill — всегда глобальные, %APPDATA%/CodeViper/ViperSkills.md.
 
@@ -200,8 +202,8 @@ export function buildSelfEditContext(): string {
 1. list_codeviper_directory + read_codeviper_file — изучить agent.ts, skills.ts, shared/
 2. create_codeviper_branch fix-<тема> — создать ветку для изменений
 3. create_skill — если достаточно инструкции; иначе write_codeviper_file — правка кода
-4. run_codeviper_command: npm run typecheck && npm test
+4. run_codeviper_command: npm run typecheck && npm test${buildStep}
 5. commit_and_push_self_edits — закоммитить изменения
-6. create_codeviper_pr — открыть PR на ревью (ветка пушится автоматически; PR не мержится сам)
+6. create_codeviper_pr — открыть PR на ревью (ветка пушится автоматически; PR не mержится сам)
 7. Кратко сообщить, что изменено; для main process нужен перезапуск приложения`
 }
