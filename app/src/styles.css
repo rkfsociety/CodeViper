@@ -1394,6 +1394,12 @@ button.topbar-pill.topbar-download-error {
   opacity: 0.85;
 }
 
+.topbar-download-eta {
+  margin-left: 5px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+
 .topbar-download-error-text {
   margin-left: 4px;
   font-size: 10px;
