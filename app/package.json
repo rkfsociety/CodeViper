@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "dist": "electron-vite build && electron-builder",
     "start": "electron .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -30,6 +31,70 @@
     "*.{js,json,md,css}": [
       "prettier --write"
     ]
+  },
+  "build": {
+    "appId": "com.codeviper.app",
+    "productName": "CodeViper",
+    "copyright": "Copyright © 2025 roman",
+    "directories": {
+      "buildResources": "resources",
+      "output": "release/${version}"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "resources/icon.png",
+      "uninstallerIcon": "resources/icon.png",
+      "shortcutName": "CodeViper"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.png",
+      "category": "Development"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.png",
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "sign": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "rkfsociety",
+      "repo": "CodeViper"
+    }
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
