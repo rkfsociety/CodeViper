@@ -107,22 +107,34 @@ export class OpenAIProvider implements ModelProvider {
       body.reasoning_effort = 'medium'
     }
 
-    const res = await fetch(`${url}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-        ...this.extraHeaders
-      },
-      body: JSON.stringify(body),
-      signal: options.signal
-    })
+    const BACKOFF_MS = [1000, 2000, 4000, 8000]
+
+    const fetchChat = () =>
+      fetch(`${url}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+          ...this.extraHeaders
+        },
+        body: JSON.stringify(body),
+        signal: options.signal
+      })
+
+    let res = await fetchChat()
+    for (let attempt = 0; res.status === 429 && attempt < BACKOFF_MS.length; attempt++) {
+      const jitter = Math.floor(Math.random() * 200)
+      const waitMs = BACKOFF_MS[attempt]! + jitter
+      options.onRetry429?.(waitMs, attempt + 1)
+      await new Promise<void>((resolve) => setTimeout(resolve, waitMs))
+      res = await fetchChat()
+    }
 
     if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      let detail = body
+      const errBody = await res.text().catch(() => '')
+      let detail = errBody
       try {
-        const parsed = JSON.parse(body) as { error?: { message?: string } }
+        const parsed = JSON.parse(errBody) as { error?: { message?: string } }
         if (parsed?.error?.message) detail = parsed.error.message
       } catch {
         /* keep raw body */

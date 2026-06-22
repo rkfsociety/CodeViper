@@ -12,6 +12,7 @@ export interface AgentState {
   runStats: RunStats | null
   orchestrating: boolean
   orchestratingPlan: string | null
+  retry429: { waitMs: number; attempt: number } | null
 }
 
 export type AgentAction =
@@ -21,6 +22,7 @@ export type AgentAction =
   | { type: 'SET_MODEL'; model: string }
   | { type: 'SET_STATS'; stats: RunStats | null }
   | { type: 'SET_ORCHESTRATING'; active: boolean; plan?: string | null }
+  | { type: 'SET_RETRY_429'; value: { waitMs: number; attempt: number } | null }
   | { type: 'RESET' }
 
 const initialState: AgentState = {
@@ -31,7 +33,8 @@ const initialState: AgentState = {
   runModel: '',
   runStats: null,
   orchestrating: false,
-  orchestratingPlan: null
+  orchestratingPlan: null,
+  retry429: null
 }
 
 function agentReducer(state: AgentState, action: AgentAction): AgentState {
@@ -56,6 +59,8 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
         orchestrating: action.active,
         orchestratingPlan: action.active ? (action.plan ?? state.orchestratingPlan) : null
       }
+    case 'SET_RETRY_429':
+      return { ...state, retry429: action.value }
     case 'RESET':
       return initialState
     default:

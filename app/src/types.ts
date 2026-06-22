@@ -360,7 +360,11 @@ export interface AgentStreamPayload {
     | 'preview'
     | 'trace'
     | 'orchestrating'
+    | 'retry_429'
   content?: string
+  /** Поля события retry_429 */
+  retryWaitMs?: number
+  retryAttempt?: number
   /** Поля события preview */
   previewId?: string
   previewPath?: string

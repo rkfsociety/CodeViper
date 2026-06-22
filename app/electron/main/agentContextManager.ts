@@ -259,7 +259,10 @@ export class ContextManager {
       ...(options?.requireTool ? { tool_choice: 'required' as const } : {}),
       ...(!isCloud && this.settings.ollamaNumGpu != null
         ? { num_gpu: this.settings.ollamaNumGpu }
-        : {})
+        : {}),
+      onRetry429: (waitMs: number, attempt: number) => {
+        this.emitter.emit({ type: 'retry_429', retryWaitMs: waitMs, retryAttempt: attempt })
+      }
     }
 
     let content = ''

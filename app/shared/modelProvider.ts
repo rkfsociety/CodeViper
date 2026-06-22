@@ -31,6 +31,8 @@ export interface ChatOptions {
   /** Ollama: кол-во слоёв на GPU (-1 = авто, 0 = только CPU) */
   num_gpu?: number
   signal?: AbortSignal
+  /** Вызывается перед каждой повторной попыткой после HTTP 429 */
+  onRetry429?: (waitMs: number, attempt: number) => void
 }
 
 export interface ChatChunk {

@@ -360,6 +360,20 @@ export function useAgentStream({
         })
       }
 
+      if (event.type === 'retry_429') {
+        const value =
+          event.retryWaitMs != null && event.retryAttempt != null
+            ? { waitMs: event.retryWaitMs, attempt: event.retryAttempt }
+            : null
+        dispatchRef.current({ type: 'SET_RETRY_429', value })
+        if (event.retryWaitMs != null) {
+          setTimeout(
+            () => dispatchRef.current({ type: 'SET_RETRY_429', value: null }),
+            event.retryWaitMs + 200
+          )
+        }
+      }
+
       if (event.type === 'done') {
         flushPending()
         const runId = runIdRef.current
@@ -385,6 +399,7 @@ export function useAgentStream({
         dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
         dispatchRef.current({ type: 'SET_SUMMARIZING', value: false })
         dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
+        dispatchRef.current({ type: 'SET_RETRY_429', value: null })
         genStartRef.current = null
         runActiveRef.current = false
         onAgentDoneRef?.current?.()

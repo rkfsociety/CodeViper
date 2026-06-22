@@ -67,23 +67,26 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
     runModel,
     runStats,
     orchestrating,
-    orchestratingPlan
+    orchestratingPlan,
+    retry429
   } = useAgentState()
   const displayModel = runModel || model
   const [planExpanded, setPlanExpanded] = useState(false)
 
-  const label = progress
-    ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-    : summarizing
-      ? `Сжимаю контекст…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-      : agentStatusLabel(
-          agentPhase,
-          activeToolName,
-          displayModel,
-          queueSize,
-          generationMetrics,
-          runStats
-        )
+  const label = retry429
+    ? `Лимит запросов, жду ${Math.round(retry429.waitMs / 1000)} с… (попытка ${retry429.attempt}/4)${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+    : progress
+      ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+      : summarizing
+        ? `Сжимаю контекст…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+        : agentStatusLabel(
+            agentPhase,
+            activeToolName,
+            displayModel,
+            queueSize,
+            generationMetrics,
+            runStats
+          )
 
   return (
     <div
