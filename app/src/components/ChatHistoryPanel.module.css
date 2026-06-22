@@ -109,6 +109,40 @@
   padding: 4px 6px;
 }
 
+.projectHead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-radius: 6px;
+}
+
+.projectHead:first-child {
+  margin-top: 0;
+}
+
+.projectHeadActive {
+  color: var(--text-secondary);
+}
+
+.projectLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.projectHead.dropTarget {
+  outline: 2px solid var(--blue-bright);
+  outline-offset: 2px;
+  background: rgba(56, 139, 253, 0.18);
+}
+
 .item {
   position: relative;
   display: block;

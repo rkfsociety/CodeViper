@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ChatFolder, ImportResult, SavedChat } from '../types'
 import { PromptDialog } from './PromptDialog'
@@ -38,8 +38,8 @@ type ConfirmState =
 type FlatItem =
   | { kind: 'folder-head'; folder: ChatFolder }
   | { kind: 'folder-chat'; chat: SavedChat; folderId: string }
-  | { kind: 'root-head' }
-  | { kind: 'root-chat'; chat: SavedChat }
+  | { kind: 'project-head'; projectPath: string; label: string; count: number }
+  | { kind: 'project-chat'; chat: SavedChat; projectPath: string }
 
 function formatProject(path: string): string {
   if (!path.trim()) return 'без проекта'
@@ -127,6 +127,7 @@ export function ChatHistoryPanel({
   const { chatStore: store, activeChatId } = useChatContext()
   const { busyChats, chatBusy } = useChatBusy()
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [tagFilter, setTagFilter] = useState('')
   const [draggingChatId, setDraggingChatId] = useState<string | null>(null)
@@ -217,6 +218,44 @@ export function ChatHistoryPanel({
   const folders = useMemo(() => store?.folders ?? [], [store])
   const rootChats = useMemo(() => chatsByFolder.get(null) ?? [], [chatsByFolder])
 
+  // Group root chats (no folder) by projectPath
+  const chatsByProject = useMemo(() => {
+    const map = new Map<string, SavedChat[]>()
+    for (const chat of rootChats) {
+      const key = chat.projectPath ?? ''
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(chat)
+    }
+    return map
+  }, [rootChats])
+
+  // Sort project keys by most recently updated chat; empty path last
+  const projectPaths = useMemo(() => {
+    return Array.from(chatsByProject.keys()).sort((a, b) => {
+      if (!a && b) return 1
+      if (a && !b) return -1
+      const aTime = Math.max(
+        ...(chatsByProject.get(a) ?? []).map((c) => new Date(c.updatedAt).getTime())
+      )
+      const bTime = Math.max(
+        ...(chatsByProject.get(b) ?? []).map((c) => new Date(c.updatedAt).getTime())
+      )
+      return bTime - aTime
+    })
+  }, [chatsByProject])
+
+  // Auto-expand the project group that contains the active chat
+  useEffect(() => {
+    if (!activeChatId) return
+    const activeChat = rootChats.find((c) => c.id === activeChatId)
+    if (!activeChat) return
+    const key = activeChat.projectPath ?? ''
+    setCollapsedProjects((prev) => {
+      if (!prev[key]) return prev
+      return { ...prev, [key]: false }
+    })
+  }, [activeChatId, rootChats])
+
   const formattedDates = useMemo(() => {
     const map = new Map<string, string>()
     for (const chat of store?.chats ?? []) {
@@ -235,21 +274,29 @@ export function ChatHistoryPanel({
         }
       }
     }
-    if (rootChats.length > 0 || draggingChatId) {
-      items.push({ kind: 'root-head' })
-      for (const chat of rootChats) {
-        items.push({ kind: 'root-chat', chat })
+    for (const projectPath of projectPaths) {
+      const chats = chatsByProject.get(projectPath) ?? []
+      items.push({
+        kind: 'project-head',
+        projectPath,
+        label: formatProject(projectPath),
+        count: chats.length
+      })
+      if (!collapsedProjects[projectPath]) {
+        for (const chat of chats) {
+          items.push({ kind: 'project-chat', chat, projectPath })
+        }
       }
     }
     return items
-  }, [folders, chatsByFolder, collapsed, rootChats, draggingChatId])
+  }, [folders, chatsByFolder, collapsed, collapsedProjects, chatsByProject, projectPaths])
 
   const rowVirtualizer = useVirtualizer({
     count: flatItems.length,
     getScrollElement: () => listRef.current,
     estimateSize: (i) => {
       const item = flatItems[i]
-      if (!item || item.kind === 'folder-head' || item.kind === 'root-head') return 42
+      if (!item || item.kind === 'folder-head' || item.kind === 'project-head') return 42
       return 74
     },
     overscan: 5
@@ -257,6 +304,10 @@ export function ChatHistoryPanel({
 
   const toggleFolder = useCallback((folderId: string) => {
     setCollapsed((prev) => ({ ...prev, [folderId]: !prev[folderId] }))
+  }, [])
+
+  const toggleProject = useCallback((projectPath: string) => {
+    setCollapsedProjects((prev) => ({ ...prev, [projectPath]: !prev[projectPath] }))
   }, [])
 
   const handleDragStart = useCallback(
@@ -470,6 +521,32 @@ export function ChatHistoryPanel({
     )
   }
 
+  function renderProjectHead(projectPath: string, label: string, count: number) {
+    const isCollapsed = collapsedProjects[projectPath]
+    const hasActive = rootChats.some(
+      (c) => c.id === activeChatId && (c.projectPath ?? '') === projectPath
+    )
+    return (
+      <div
+        className={`${styles.projectHead}${hasActive ? ' ' + styles.projectHeadActive : ''}${dropTarget === 'root' ? ' ' + styles.dropTarget : ''}`}
+        title={projectPath || 'Чаты без привязанного проекта'}
+        onDragOver={(e) => handleDragOver('root', e)}
+        onDragLeave={() => setDropTarget(undefined)}
+        onDrop={(e) => handleDrop('root', e)}
+      >
+        <button
+          className={styles.folderToggle}
+          onClick={() => toggleProject(projectPath)}
+          aria-label={isCollapsed ? 'Развернуть группу проекта' : 'Свернуть группу проекта'}
+        >
+          {isCollapsed ? '▶' : '▼'}
+        </button>
+        <span className={styles.projectLabel}>🗂 {label}</span>
+        <span className={styles.folderCount}>{count}</span>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.panel}>
       {/* Переключатель режима агента */}
@@ -610,18 +687,10 @@ export function ChatHistoryPanel({
                     </div>
                   )}
 
-                  {item.kind === 'root-head' && (
-                    <div
-                      className={`${styles.sectionTitle}${dropTarget === 'root' ? ' ' + styles.dropTarget : ''}`}
-                      onDragOver={(e) => handleDragOver('root', e)}
-                      onDragLeave={() => setDropTarget(undefined)}
-                      onDrop={(e) => handleDrop('root', e)}
-                    >
-                      Без папки
-                    </div>
-                  )}
+                  {item.kind === 'project-head' &&
+                    renderProjectHead(item.projectPath, item.label, item.count)}
 
-                  {item.kind === 'root-chat' && (
+                  {item.kind === 'project-chat' && (
                     <div
                       className={dropTarget === 'root' ? styles.dropTarget : ''}
                       onDragOver={(e) => handleDragOver('root', e)}
