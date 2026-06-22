@@ -127,6 +127,76 @@ export async function ensureSelfImproveBranch(
   return { ok: true, message: `переключено на ветку ${branch}`, branch }
 }
 
+/** Корень git-репозитория (родитель app/ при разработке из исходников). */
+export async function getRepoRoot(cwd?: string): Promise<string | null> {
+  const source = cwd ?? getCodeViperSourceRoot()
+  try {
+    const result = await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
+    return result.stdout.trim() || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Коммитит и пушит указанные пути от корня репозитория (например docs/collective/*).
+ */
+export async function commitAndPushRepoPaths(
+  summary: string,
+  paths: string[],
+  configuredBranch?: string
+): Promise<SelfCommitResult & { branch?: string }> {
+  const source = getCodeViperSourceRoot()
+  const branchResult = await ensureSelfImproveBranch(configuredBranch, source)
+  if (!branchResult.ok) return branchResult
+
+  const branch = branchResult.branch ?? resolveSelfImproveBranch(configuredBranch)
+  const repoRoot = await getRepoRoot(source)
+  if (!repoRoot) {
+    return { ok: false, message: 'не git-репозиторий — push коллективной памяти пропущен' }
+  }
+
+  let status: GitResult
+  try {
+    status = await runGitWithRetry(repoRoot, ['status', '--porcelain', '--', ...paths], 'status')
+  } catch (err) {
+    return { ok: false, message: `git status: ${err instanceof Error ? err.message : String(err)}` }
+  }
+  if (!status.stdout.trim()) {
+    return { ok: true, message: 'нет изменений для коммита', branch }
+  }
+
+  try {
+    await runGitWithRetry(repoRoot, ['add', '--', ...paths], 'add')
+  } catch (err) {
+    return { ok: false, message: `git add: ${err instanceof Error ? err.message : String(err)}` }
+  }
+
+  const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 80) || 'коллективная память'
+  const message = `chore(memory): ${shortSummary}\n\nCo-authored-by: CodeViper <295331836+CodeViperApp@users.noreply.github.com>`
+
+  try {
+    await runGitWithRetry(repoRoot, ['commit', '-m', message, '--', ...paths], 'commit')
+  } catch (err) {
+    return {
+      ok: false,
+      message: `git commit не удался: ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+
+  try {
+    await runGitWithRetry(repoRoot, ['push', '--set-upstream', 'origin', branch], 'push')
+  } catch (err) {
+    return {
+      ok: false,
+      message: `коммит в ${branch} сделан, но push не удался: ${err instanceof Error ? err.message : String(err)}`,
+      branch
+    }
+  }
+
+  return { ok: true, message: `изменения запушены в ветку ${branch}`, branch }
+}
+
 /**
  * Создаёт ветку `agent/<name>` и переключается на неё.
  * Имя санитизируется: только строчные буквы, цифры, дефисы.

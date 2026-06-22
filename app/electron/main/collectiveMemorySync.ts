@@ -1,0 +1,130 @@
+import { existsSync } from 'fs'
+import { mkdir, readFile, writeFile } from 'fs/promises'
+import { dirname, join } from 'path'
+import { COLLECTIVE_MEMORY_REPO_PATH } from '../../shared/constants'
+import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
+import type { MemoryEntry, MemoryStore } from '../../src/types'
+import { parseMemoryMarkdown, renderMemoryMarkdown } from './memory'
+import { commitAndPushRepoPaths, getRepoRoot } from './selfCommit'
+import { getCodeViperSourceRoot } from './codeviperSource'
+
+const pendingEntries: MemoryEntry[] = []
+
+export function queueCollectiveMemoryEntry(entry: MemoryEntry): boolean {
+  if (entry.scope !== 'global') return false
+  const duplicate = pendingEntries.some(
+    (item) => item.content.toLowerCase() === entry.content.toLowerCase()
+  )
+  if (duplicate) return false
+  pendingEntries.push({ ...entry })
+  return true
+}
+
+export function getPendingCollectiveMemoryCount(): number {
+  return pendingEntries.length
+}
+
+function drainPendingEntries(): MemoryEntry[] {
+  if (!pendingEntries.length) return []
+  const drained = [...pendingEntries]
+  pendingEntries.length = 0
+  return drained
+}
+
+function emptyStore(): MemoryStore {
+  return { version: 1, entries: [] }
+}
+
+export async function getCollectiveMemoryFilePath(): Promise<string | null> {
+  const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
+  if (!repoRoot) return null
+  return join(repoRoot, COLLECTIVE_MEMORY_REPO_PATH)
+}
+
+export async function readCollectiveMemoryStore(): Promise<MemoryStore> {
+  const filePath = await getCollectiveMemoryFilePath()
+  if (!filePath || !existsSync(filePath)) return emptyStore()
+
+  try {
+    const raw = await readFile(filePath, 'utf8')
+    return parseMemoryMarkdown(raw)
+  } catch {
+    return emptyStore()
+  }
+}
+
+export async function readCollectiveMemoryEntries(): Promise<MemoryEntry[]> {
+  const store = await readCollectiveMemoryStore()
+  return store.entries.map((entry) => ({ ...entry, scope: 'global' as const }))
+}
+
+async function mergeIntoCollectiveFile(entries: MemoryEntry[]): Promise<number> {
+  if (!entries.length) return 0
+
+  const filePath = await getCollectiveMemoryFilePath()
+  if (!filePath) return 0
+
+  const store = existsSync(filePath)
+    ? parseMemoryMarkdown(await readFile(filePath, 'utf8'))
+    : emptyStore()
+  let added = 0
+
+  for (const entry of entries) {
+    const duplicate = store.entries.find(
+      (item) => item.content.toLowerCase() === entry.content.toLowerCase()
+    )
+    if (duplicate) {
+      duplicate.useCount += 1
+      duplicate.lastUsedAt = new Date().toISOString()
+      continue
+    }
+    store.entries.unshift({
+      ...entry,
+      scope: 'global',
+      id: entry.id,
+      createdAt: entry.createdAt,
+      lastUsedAt: entry.lastUsedAt,
+      useCount: entry.useCount
+    })
+    added += 1
+  }
+
+  await mkdir(dirname(filePath), { recursive: true })
+  await writeFile(filePath, renderMemoryMarkdown(store), 'utf8')
+  return added
+}
+
+export interface CollectiveMemorySyncResult {
+  ok: boolean
+  message: string
+  branch?: string
+  syncedCount: number
+}
+
+export async function flushCollectiveMemoryToGit(
+  summary: string,
+  configuredBranch?: string
+): Promise<CollectiveMemorySyncResult> {
+  const entries = drainPendingEntries()
+  if (!entries.length) {
+    return { ok: true, message: 'нет новых знаний для синхронизации', syncedCount: 0 }
+  }
+
+  const added = await mergeIntoCollectiveFile(entries)
+  const branch = resolveSelfImproveBranch(configuredBranch)
+  const commitSummary =
+    added > 0 ? `${summary} (+${added} знаний)` : `${summary} (обновление существующих знаний)`
+
+  const result = await commitAndPushRepoPaths(
+    commitSummary,
+    [COLLECTIVE_MEMORY_REPO_PATH],
+    configuredBranch
+  )
+
+  return {
+    ok: result.ok,
+    message: result.message,
+    branch: result.branch ?? branch,
+    syncedCount: added > 0 ? added : entries.length
+  }
+}

@@ -275,6 +275,39 @@ export function useAgentStream({
         onLearningSavedRef.current?.()
       }
 
+      if (event.type === 'collective_sync') {
+        const status = event.collectiveSyncStatus ?? 'idle'
+        dispatchRef.current({
+          type: 'SET_COLLECTIVE_SYNC',
+          status,
+          branch: event.collectiveSyncBranch,
+          pending: event.collectiveSyncCount,
+          message: event.content
+        })
+        if (status === 'syncing') {
+          appendMessageRef.current({
+            id: makeId(),
+            role: 'system',
+            content: `☁️ Отправляю ${event.collectiveSyncCount ?? 1} знаний на GitHub (${event.collectiveSyncBranch ?? 'agent/self-improve'})…`,
+            timestamp: Date.now()
+          })
+        } else if (status === 'done') {
+          appendMessageRef.current({
+            id: makeId(),
+            role: 'system',
+            content: `☁️ Коллективная память на GitHub: ${event.content ?? 'готово'}`,
+            timestamp: Date.now()
+          })
+        } else if (status === 'error') {
+          appendMessageRef.current({
+            id: makeId(),
+            role: 'system',
+            content: `⚠️ Синхронизация памяти: ${event.content ?? 'ошибка'}`,
+            timestamp: Date.now()
+          })
+        }
+      }
+
       if (event.type === 'skill_saved') {
         appendMessageRef.current({
           id: makeId(),

@@ -70,7 +70,10 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
     orchestratingPlan,
     retry429,
     circuitBreakerState,
-    circuitBreakerOpenUntilMs
+    circuitBreakerOpenUntilMs,
+    collectiveSyncStatus,
+    collectiveSyncBranch,
+    collectiveSyncPending
   } = useAgentState()
   const displayModel = runModel || model
   const [planExpanded, setPlanExpanded] = useState(false)
@@ -128,6 +131,18 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
           >
             Планирую{orchestratingPlan ? (planExpanded ? ' ▾' : ' ▸') : '…'}
           </button>
+        )}
+        {(collectiveSyncStatus === 'queued' || collectiveSyncStatus === 'syncing') && (
+          <span className="agent-collective-sync-chip" title="Синхронизация знаний на GitHub">
+            ☁️ Память → {collectiveSyncBranch}
+            {collectiveSyncPending > 0 ? ` (${collectiveSyncPending})` : ''}
+            {collectiveSyncStatus === 'syncing' ? '…' : ''}
+          </span>
+        )}
+        {collectiveSyncStatus === 'done' && (
+          <span className="agent-collective-sync-chip done" title="Коллективная память обновлена">
+            ☁️ GitHub ✓
+          </span>
         )}
       </div>
       {orchestrating && orchestratingPlan && planExpanded && (

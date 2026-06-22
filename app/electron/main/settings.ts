@@ -34,6 +34,7 @@ export const PersistedSettingsSchema = z.object({
   excludeThinkingFromHistory: z.boolean(),
   autoPushSelfEdits: z.boolean(),
   selfImproveBranch: z.string().optional(),
+  syncCollectiveMemory: z.boolean().optional(),
   summarizeModel: z.string(),
   modelProvider: ModelProviderSchema,
   providerApiKey: z.string(),
@@ -191,6 +192,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.selfImproveBranch?.trim()
       ? { selfImproveBranch: settings.selfImproveBranch.trim() }
       : {}),
+    ...(settings.syncCollectiveMemory === false ? { syncCollectiveMemory: false } : {}),
     ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {})
   }
 }

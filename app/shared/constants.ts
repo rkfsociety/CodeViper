@@ -78,3 +78,7 @@ export const DEFAULT_MODEL_PROVIDER = 'ollama' as const
 // ── MCP ───────────────────────────────────────────────────────────────────────
 /** Таймаут запроса манифеста MCP-сервера (мс) */
 export const MCP_MANIFEST_TIMEOUT_MS = 15_000
+
+// ── Коллективная память ───────────────────────────────────────────────────────
+/** Общие знания агента в репозитории CodeViper (синхронизация через git) */
+export const COLLECTIVE_MEMORY_REPO_PATH = 'docs/collective/ViperMemory.md'

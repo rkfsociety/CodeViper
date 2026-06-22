@@ -48,6 +48,8 @@ cd CodeViper/app && npm install
 
 Самоулучшение: автоправки коммитятся в ветку `agent/self-improve` (настраивается в «Поведение → Автоматизация»), не в `master`.
 
+Коллективная память: глобальные знания автоматически синхронизируются в `docs/collective/ViperMemory.md` на GitHub; в статус-баре агента — чип **☁️ Память → agent/self-improve**.
+
 Перед запуском агента в Node-проекте проверяется наличие `node_modules` **только если** в `package.json` объявлены зависимости (`dependencies`, `devDependencies` и т.д.) — пустой `package.json` не блокирует запрос.
 
 ## Участие

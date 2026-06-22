@@ -1,11 +1,32 @@
-import type { AgentStreamPayload, MemoryCategory } from '../../src/types'
+import type { AgentStreamPayload, MemoryCategory, MemoryEntry } from '../../src/types'
 import type { ToolHandlers } from './agentTools'
+import { getPendingCollectiveMemoryCount, queueCollectiveMemoryEntry } from './collectiveMemorySync'
 import { addMemory, deleteMemory, searchMemories } from './memory'
+
+export interface MemoryToolHandlerOptions {
+  syncCollectiveMemory?: boolean
+}
+
+function emitCollectiveMemoryQueued(
+  emit: (event: AgentStreamPayload) => void,
+  entry: MemoryEntry,
+  enabled: boolean
+): void {
+  if (enabled === false || entry.scope !== 'global') return
+  if (!queueCollectiveMemoryEntry(entry)) return
+  emit({
+    type: 'collective_sync',
+    collectiveSyncStatus: 'queued',
+    collectiveSyncCount: getPendingCollectiveMemoryCount(),
+    content: entry.content
+  })
+}
 
 export function createMemoryToolHandlers(
   projectPath: string,
   emit: (event: AgentStreamPayload) => void,
-  ollamaUrl?: string
+  ollamaUrl?: string,
+  options?: MemoryToolHandlerOptions
 ): Partial<ToolHandlers> {
   return {
     remember: async (args) => {
@@ -20,6 +41,7 @@ export function createMemoryToolHandlers(
         ollamaUrl
       )
       emit({ type: 'learning_saved', content: entry.content, memoryId: entry.id })
+      emitCollectiveMemoryQueued(emit, entry, options?.syncCollectiveMemory !== false)
       return `Запомнено [${entry.category}/${entry.scope}]: ${entry.content} (id: ${entry.id})`
     },
 

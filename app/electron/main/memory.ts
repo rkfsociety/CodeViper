@@ -6,6 +6,7 @@ import { makeId } from '../../shared/makeId'
 import { backupCorruptFile } from './fsUtil'
 import type { MemoryCategory, MemoryEntry, MemoryScope, MemoryStore } from '../../src/types'
 import { upsertEmbedding, removeEmbedding, semanticSearch } from './embeddings'
+import { readCollectiveMemoryEntries } from './collectiveMemorySync'
 
 export const MEMORY_FILENAME = 'ViperMemory.md'
 const LEGACY_MEMORY_FILENAME = 'memory.json'
@@ -251,8 +252,19 @@ export async function listMemories(
   const s = storages ?? defaultStorages(projectPath)
   const global = await s.global.read()
   const project = projectPath ? await s.project.read() : emptyStore()
+  const collective = await readCollectiveMemoryEntries()
 
-  return [...global.entries, ...project.entries].sort((a, b) => {
+  const merged = [...global.entries, ...collective, ...project.entries]
+  const seen = new Set<string>()
+  const unique: MemoryEntry[] = []
+  for (const entry of merged) {
+    const key = entry.content.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(entry)
+  }
+
+  return unique.sort((a, b) => {
     const dateCmp = b.lastUsedAt.localeCompare(a.lastUsedAt)
     if (dateCmp !== 0) return dateCmp
     return b.createdAt.localeCompare(a.createdAt)

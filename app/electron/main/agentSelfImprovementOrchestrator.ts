@@ -15,6 +15,7 @@ import {
 } from '../../shared/selfImprovement'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import { commitAndPushSelfEdits, stageSelfEditsForRestart } from './selfCommit'
+import { getPendingCollectiveMemoryCount, queueCollectiveMemoryEntry } from './collectiveMemorySync'
 import { parseReflectionLearnings, addMemory } from './memory'
 
 const REFLECTION_PROMPT = `Проанализируй выполненную задачу. Если есть полезные уроки для будущих задач (ошибки, паттерны проекта, предпочтения пользователя, навыки работы), верни JSON-массив до 2 элементов:
@@ -195,6 +196,18 @@ export class SelfImprovementOrchestrator {
           this.settings.ollamaUrl
         )
         this.emit({ type: 'learning_saved', content: entry.content, memoryId: entry.id })
+        if (
+          this.settings.syncCollectiveMemory !== false &&
+          entry.scope === 'global' &&
+          queueCollectiveMemoryEntry(entry)
+        ) {
+          this.emit({
+            type: 'collective_sync',
+            collectiveSyncStatus: 'queued',
+            collectiveSyncCount: getPendingCollectiveMemoryCount(),
+            content: entry.content
+          })
+        }
       }
     } catch {
       /* рефлексия необязательна */

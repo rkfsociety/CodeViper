@@ -126,7 +126,9 @@ export class ToolExecutor {
       ...createGitHubToolHandlers(),
       ...createGitLabToolHandlers(this.projectPath, this.settings),
       ...createCodeViperToolHandlers(),
-      ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl),
+      ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl, {
+        syncCollectiveMemory: this.settings.syncCollectiveMemory
+      }),
       ...createSkillsToolHandlers(this.projectPath, this.emit),
       ...(this.selfImprovementPlan && this.onEmitPlan
         ? createSelfImprovementToolHandlers(this.selfImprovementPlan, this.onEmitPlan)

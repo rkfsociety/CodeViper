@@ -13,6 +13,7 @@ import { TaskPlanner } from './taskPlanner'
 import { CircuitBreakerOpenError } from './modelRuntime'
 import { ensureSelfImproveBranch } from './selfCommit'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
+import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
@@ -481,6 +482,36 @@ export class AgentRunner {
             userMessage,
             this.emitter.emit.bind(this.emitter)
           )
+        }
+      }
+
+      if (this.settings.syncCollectiveMemory !== false && getPendingCollectiveMemoryCount() > 0) {
+        const branch = resolveSelfImproveBranch(this.settings.selfImproveBranch)
+        this.emitter.emit({
+          type: 'collective_sync',
+          collectiveSyncStatus: 'syncing',
+          collectiveSyncBranch: branch,
+          collectiveSyncCount: getPendingCollectiveMemoryCount()
+        })
+        try {
+          const result = await flushCollectiveMemoryToGit(
+            userMessage,
+            this.settings.selfImproveBranch
+          )
+          this.emitter.emit({
+            type: 'collective_sync',
+            collectiveSyncStatus: result.ok ? 'done' : 'error',
+            collectiveSyncBranch: result.branch ?? branch,
+            collectiveSyncCount: result.syncedCount,
+            content: result.message
+          })
+        } catch (error) {
+          this.emitter.emit({
+            type: 'collective_sync',
+            collectiveSyncStatus: 'error',
+            collectiveSyncBranch: branch,
+            content: error instanceof Error ? error.message : String(error)
+          })
         }
       }
     }

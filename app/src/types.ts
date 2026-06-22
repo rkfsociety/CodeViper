@@ -139,6 +139,8 @@ export interface AgentSettings {
   autoPushSelfEdits?: boolean
   /** Ветка git для самоулучшения (по умолчанию agent/self-improve) */
   selfImproveBranch?: string
+  /** Синхронизировать глобальные знания в docs/collective/ViperMemory.md на GitHub */
+  syncCollectiveMemory?: boolean
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */
@@ -387,6 +389,7 @@ export interface AgentStreamPayload {
     | 'orchestrating'
     | 'retry_429'
     | 'circuit_breaker'
+    | 'collective_sync'
   content?: string
   /** Поля события retry_429 */
   retryWaitMs?: number
@@ -419,6 +422,10 @@ export interface AgentStreamPayload {
   circuitBreakerState?: CircuitBreakerState
   /** Момент когда circuit breaker перейдёт из open в half-open (Date.now() + 30 000) */
   circuitBreakerOpenUntilMs?: number
+  /** Синхронизация коллективной памяти на GitHub (type === 'collective_sync') */
+  collectiveSyncStatus?: 'queued' | 'syncing' | 'done' | 'error'
+  collectiveSyncBranch?: string
+  collectiveSyncCount?: number
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {

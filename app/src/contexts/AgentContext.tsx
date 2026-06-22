@@ -16,6 +16,10 @@ export interface AgentState {
   retry429: { waitMs: number; attempt: number } | null
   circuitBreakerState: CircuitBreakerState | null
   circuitBreakerOpenUntilMs: number | null
+  collectiveSyncStatus: 'idle' | 'queued' | 'syncing' | 'done' | 'error'
+  collectiveSyncBranch: string
+  collectiveSyncPending: number
+  collectiveSyncMessage: string
 }
 
 export type AgentAction =
@@ -31,6 +35,13 @@ export type AgentAction =
       state: CircuitBreakerState | null
       openUntilMs?: number | null
     }
+  | {
+      type: 'SET_COLLECTIVE_SYNC'
+      status: AgentState['collectiveSyncStatus']
+      branch?: string
+      pending?: number
+      message?: string
+    }
   | { type: 'RESET' }
 
 const initialState: AgentState = {
@@ -44,7 +55,11 @@ const initialState: AgentState = {
   orchestratingPlan: null,
   retry429: null,
   circuitBreakerState: null,
-  circuitBreakerOpenUntilMs: null
+  circuitBreakerOpenUntilMs: null,
+  collectiveSyncStatus: 'idle',
+  collectiveSyncBranch: 'agent/self-improve',
+  collectiveSyncPending: 0,
+  collectiveSyncMessage: ''
 }
 
 function agentReducer(state: AgentState, action: AgentAction): AgentState {
@@ -76,6 +91,15 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
         ...state,
         circuitBreakerState: action.state,
         circuitBreakerOpenUntilMs: action.openUntilMs ?? null
+      }
+    case 'SET_COLLECTIVE_SYNC':
+      return {
+        ...state,
+        collectiveSyncStatus: action.status,
+        collectiveSyncBranch: action.branch ?? state.collectiveSyncBranch,
+        collectiveSyncPending:
+          action.pending != null ? action.pending : state.collectiveSyncPending,
+        collectiveSyncMessage: action.message ?? state.collectiveSyncMessage
       }
     case 'RESET':
       return initialState

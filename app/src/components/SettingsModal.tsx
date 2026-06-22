@@ -1436,6 +1436,29 @@ export function SettingsModal({
                       <label className={styles.toggle}>
                         <input
                           type="checkbox"
+                          checked={settings.syncCollectiveMemory !== false}
+                          onChange={(e) =>
+                            onSettingsChange({ syncCollectiveMemory: e.target.checked })
+                          }
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Коллективная память на GitHub</span>
+                          <span className={styles.desc}>
+                            Глобальные знания (🧠 Запомнено) →{' '}
+                            <code>docs/collective/ViperMemory.md</code> в ветке{' '}
+                            <code>
+                              {settings.selfImproveBranch?.trim() || 'agent/self-improve'}
+                            </code>
+                          </span>
+                        </span>
+                      </label>
+
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
                           checked={settings.gitSyncOnStartup !== false}
                           onChange={(e) => onSettingsChange({ gitSyncOnStartup: e.target.checked })}
                         />
