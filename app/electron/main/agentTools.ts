@@ -423,6 +423,30 @@ const FILE_TOOLS = [
         required: ['command']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'run_script',
+      description:
+        'Запустить скрипт через интерпретатор. Используй для многострочных скриптов Python, PowerShell или Bash.',
+      parameters: {
+        type: 'object',
+        properties: {
+          interpreter: {
+            type: 'string',
+            enum: ['python', 'powershell', 'bash'],
+            description: 'Интерпретатор: python, powershell или bash'
+          },
+          script: { type: 'string', description: 'Текст скрипта' },
+          cwd: {
+            type: 'string',
+            description: 'Рабочая папка (необязательно, относительно корня проекта)'
+          }
+        },
+        required: ['interpreter', 'script']
+      }
+    }
   }
 ] as const
 
@@ -1300,6 +1324,7 @@ export interface ToolArgs {
   rename_folder: { from: string; to: string }
   copy_folder: { from: string; to: string }
   run_command: { command: string }
+  run_script: { interpreter: 'python' | 'powershell' | 'bash'; script: string; cwd?: string }
   git_status: { path?: string }
   git_diff: { path?: string; staged?: string; commit?: string }
   git_log: { limit?: string; path?: string; oneline?: string }

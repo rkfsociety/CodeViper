@@ -6,6 +6,7 @@ export const MUTATING_TOOLS = new Set([
   'delete_file',
   'move_file',
   'run_command',
+  'run_script',
   'remember',
   'forget',
   'create_skill',

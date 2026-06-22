@@ -26,6 +26,7 @@ export const AGENT_TOOL_NAMES = [
   'move_file',
   // Команды и Git
   'run_command',
+  'run_script',
   'git_status',
   'git_diff',
   'git_log',

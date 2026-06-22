@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
-import { readFile, readdir, stat, writeFile } from 'fs/promises'
+import { readFile, readdir, stat, writeFile, unlink } from 'fs/promises'
+import { tmpdir } from 'os'
 import { extname, join, relative, resolve } from 'path'
 import { QdrantClient } from '@qdrant/js-client-rest'
 import { computeEmbedding } from './embeddings'
@@ -633,6 +634,39 @@ export function createProjectToolHandlers(
         return formatCommandResult(result)
       } finally {
         clearProgress()
+      }
+    }),
+
+    run_script: guardWrite(async (args) => {
+      const scriptCwd = args.cwd ? resolve(projectPath, args.cwd) : projectPath
+      if (args.cwd) assertInsideProject(args.cwd, 'рабочая папка')
+      const ext =
+        args.interpreter === 'python' ? '.py' : args.interpreter === 'powershell' ? '.ps1' : '.sh'
+      const tmpPath = join(tmpdir(), `cv-script-${Date.now()}${ext}`)
+      await writeFile(tmpPath, args.script, 'utf8')
+      try {
+        emitProgress(`Запуск ${args.interpreter}...`, null)
+        let command: string
+        if (args.interpreter === 'python') {
+          command = process.platform === 'win32' ? `python "${tmpPath}"` : `python3 "${tmpPath}"`
+        } else if (args.interpreter === 'powershell') {
+          command =
+            process.platform === 'win32'
+              ? `powershell -NoProfile -ExecutionPolicy Bypass -File "${tmpPath}"`
+              : `pwsh -NoProfile -File "${tmpPath}"`
+        } else {
+          command = `bash "${tmpPath}"`
+        }
+        const result = await runCommand(
+          scriptCwd,
+          command,
+          commandTimeoutMs,
+          options?.commandBlocklist
+        )
+        return formatCommandResult(result)
+      } finally {
+        clearProgress()
+        await unlink(tmpPath).catch(() => {})
       }
     }),
 

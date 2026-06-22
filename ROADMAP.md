@@ -11,8 +11,7 @@
 | **Безопасность** | При скачивании через `pullOllamaModel` сравнивать SHA-256 финального файла с манифестом реестра Ollama; при несовпадении — удалять файл и показывать ошибку | Low | S | — | ⏳ |
 | **Безопасность** | Добавить режим «Инкогнито» (переключатель в топбаре): отключает сохранение истории чатов и NDJSON-логов на диск; данные живут только в памяти до закрытия окна | Low | M | — | ⏳ |
 | **Безопасность** | Для плагинов задокументировать и реализовать ограниченный API: только `fs` внутри `projectPath`, без `net` и системных модулей; `--experimental-permission` в `worker_thread` | Low | L | Компиляция плагинов | ⏳ |
-| **Инструменты** | В `agentHandlersProject.ts` добавить `run_script`: принимает `interpreter: 'python' \| 'powershell' \| 'bash'`, `script: string`, опционально `cwd`; запускает через соответствующий интерпретатор с проверкой `assertInsideProject` | Medium | M | — | ⏳ |
-| **Инструменты** | В `agentHandlersProject.ts` добавить `review_code`: принимает `path`, запускает ESLint (`.ts/.tsx/.js`) или Ruff (`.py`) через `run_command`; возвращает структурированный список нарушений с позициями | Low | M | `run_script` | ⏳ |
+| **Инструменты** | В `agentHandlersProject.ts` добавить `review_code`: принимает `path`, запускает ESLint (`.ts/.tsx/.js`) или Ruff (`.py`) через `run_command`; возвращает структурированный список нарушений с позициями | Low | M | — | ⏳ |
 | **Инструменты** | Создать `agentHandlersGitLab.ts`: обёртка над GitLab API (`GITLAB_TOKEN` из `AgentSettings`); инструменты `list_gitlab_mrs`, `create_gitlab_mr`, `get_gitlab_pipeline` — симметрично GitHub-инструментам | Low | L | — | ⏳ |
 | **Интеграции** | Создать `.github/workflows/release.yml`: при push тега `v*` запускать `electron-builder --publish always`, публиковать артефакты `.exe`/`.dmg`/`.AppImage` в GitHub Releases | High | M | — | ⏳ |
 | **Интеграции** | В `agentTools.ts` добавить параметр `disabledTools: string[]` в `AgentSettings`; в `getAgentTools()` фильтровать инструменты согласно настройкам; в `SettingsModal.tsx` показывать чекбоксы по группам инструментов | Medium | M | — | ⏳ |
@@ -58,6 +57,7 @@
 - Per-chat `projectPath`: поле в `SavedChat`, агент берёт путь из чата через явный параметр `AgentRunner`, UI переключает проект при смене чата через изолированные `ChatContext.Provider`
 - `search_in_project`: `type="content"` → `grepInTreeWorker`, `type="name"` → `findFilesInTreeWorker`; единый инструмент вместо выбора между `grep_files` и `find_files`
 - `read_multiple_files`: принимает `paths: string[]`, читает все файлы параллельно через `Promise.all`, возвращает `JSON.stringify([{path, content}])`; ошибки на уровне файла не прерывают остальные
+- `run_script`: принимает `interpreter: 'python' | 'powershell' | 'bash'`, `script: string`, опционально `cwd`; записывает скрипт во временный файл, запускает через соответствующий интерпретатор с проверкой `assertInsideProject`, удаляет файл после выполнения
 - `VectorStore` абстракция в `contextRAG.ts`: Qdrant и Milvus как взаимозаменяемые бэкенды; выбор через `AgentSettings.ragProvider`; поля `qdrantUrl`, `qdrantApiKey`, `ragProvider` в настройках; кнопка проверки соединения в SettingsModal; инструменты `index_project` (рекурсивная индексация проекта в Qdrant) и `search_knowledge_base` (top-5 чанков по семантическому запросу)
 - Дедупликация повторяющихся tool results перед суммаризацией: одинаковый инструмент + вывод → `(повторено N раз)`
 - Авто-превью файлов >20 КБ: первые/последние 50 строк с маркером `... (X строк обрезано) ...`
