@@ -19,9 +19,15 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: |
+            app/package-lock.json
+            server/p2p/package-lock.json
 
       - name: Install dependencies
+        run: npm ci
+
+      - name: Install P2P server dependencies
+        working-directory: server/p2p
         run: npm ci
 
       - name: Typecheck
