@@ -43,6 +43,21 @@ const codeviper = {
   selectGgufFile: (): Promise<string | null> =>
     withTimeout(ipcRenderer.invoke(IPC.SELECT_GGUF_FILE), IPC_TIMEOUT_MS, 'selectGgufFile'),
 
+  downloadGguf: (): Promise<string> =>
+    withTimeout(ipcRenderer.invoke(IPC.DOWNLOAD_GGUF), 60 * 60 * 1000, 'downloadGguf'),
+
+  cancelGgufDownload: (): void => {
+    ipcRenderer.send(IPC.CANCEL_GGUF_DOWNLOAD)
+  },
+
+  onGgufDownloadProgress: (
+    cb: (progress: { downloaded: number; total: number } | null) => void
+  ) => {
+    const handler = (_: unknown, p: { downloaded: number; total: number } | null) => cb(p)
+    ipcRenderer.on(IPC.GGUF_DOWNLOAD_PROGRESS, handler)
+    return () => ipcRenderer.removeListener(IPC.GGUF_DOWNLOAD_PROGRESS, handler)
+  },
+
   readAttachment: (
     filePath: string
   ): Promise<{

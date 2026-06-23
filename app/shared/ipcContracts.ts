@@ -405,8 +405,10 @@ export const IPC = {
   AUTO_INDEX_PROJECT: 'auto-index-project',
   LIST_ROADMAP_ITEMS: 'list-roadmap-items',
   SELECT_GGUF_FILE: 'select-gguf-file',
+  DOWNLOAD_GGUF: 'download-gguf',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
+  CANCEL_GGUF_DOWNLOAD: 'cancel-gguf-download',
   SAVE_APP_STATE: 'save-app-state',
   LOG_FRONTEND_ERROR: 'log-frontend-error',
   AGENT_CONFIRM_RESPONSE: 'agent-confirm-response',
@@ -422,6 +424,7 @@ export const IPC = {
   // ── Broadcast (main → renderer) ───────────────────────────────────────
   AGENT_STREAM: 'agent-stream',
   OLLAMA_PULL_PROGRESS: 'ollama-pull-progress',
+  GGUF_DOWNLOAD_PROGRESS: 'gguf-download-progress',
   AGENT_CONFIRM: 'agent-confirm',
   SYSTEM_STATS: 'system-stats',
   PROGRESS_EVENT: 'progress-event',

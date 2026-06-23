@@ -259,6 +259,9 @@ export function SettingsModal({
   const [mcpError, setMcpError] = useState<string | null>(null)
   const [benchRunning, setBenchRunning] = useState(false)
   const [benchResult, setBenchResult] = useState<BenchmarkResult | null>(null)
+  const [ggufDownloading, setGgufDownloading] = useState(false)
+  const [ggufDownloadPct, setGgufDownloadPct] = useState(0)
+  const [ggufDownloadLabel, setGgufDownloadLabel] = useState('')
 
   function toggleKeyVisible(key: string) {
     setApiKeyVisible((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -294,6 +297,35 @@ export function SettingsModal({
       setPingState('fail')
     }
     setTimeout(() => setPingState('idle'), 3000)
+  }
+
+  useEffect(() => {
+    return window.codeviper.onGgufDownloadProgress((p) => {
+      if (!p) {
+        setGgufDownloading(false)
+        return
+      }
+      setGgufDownloading(true)
+      const pct = p.total > 0 ? Math.round((p.downloaded / p.total) * 100) : 0
+      const mb = (p.downloaded / 1_048_576).toFixed(1)
+      const totalMb = p.total > 0 ? ` / ${(p.total / 1_048_576).toFixed(0)} МБ` : ''
+      setGgufDownloadPct(pct)
+      setGgufDownloadLabel(`${mb}${totalMb} МБ  ${pct}%`)
+    })
+  }, [])
+
+  async function handleDownloadGguf() {
+    setGgufDownloading(true)
+    try {
+      const path = await window.codeviper.downloadGguf()
+      onSettingsChange({ orchestratorModelPath: path })
+    } catch {
+      // отменено или ошибка сети — просто сбрасываем состояние
+    } finally {
+      setGgufDownloading(false)
+      setGgufDownloadPct(0)
+      setGgufDownloadLabel('')
+    }
   }
 
   async function handleBenchmark() {
@@ -1853,6 +1885,57 @@ export function SettingsModal({
                     <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
                       GGUF-файл для локального предпланирования задач
                     </div>
+
+                    {ggufDownloading ? (
+                      <div style={{ marginTop: 8 }}>
+                        <div
+                          style={{
+                            height: 6,
+                            borderRadius: 999,
+                            background: 'var(--bg-element)',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${ggufDownloadPct}%`,
+                              background: 'var(--green, #4caf7d)',
+                              transition: 'width 0.2s'
+                            }}
+                          />
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: 4
+                          }}
+                        >
+                          <span style={{ fontSize: 11, opacity: 0.65 }}>{ggufDownloadLabel}</span>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{ opacity: 0.7 }}
+                            onClick={() => window.codeviper.cancelGgufDownload()}
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      !settings.orchestratorModelPath && (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ marginTop: 6 }}
+                          onClick={() => void handleDownloadGguf()}
+                        >
+                          Скачать Qwen2.5-1.5B (~970 МБ)
+                        </button>
+                      )
+                    )}
                   </div>
                 </>
               )}

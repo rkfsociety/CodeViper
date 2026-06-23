@@ -64,6 +64,7 @@ import { createCodeViperPr } from './selfCommit'
 import { runBenchmark } from './modelBenchmark'
 import { runProjectAutoIndex } from './contextRAG'
 import { listRoadmapItems } from './roadmapParser'
+import { downloadDefaultGguf, cancelGgufDownload } from './orchestratorModel'
 import { agentLogger } from './agentLogger'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
@@ -336,6 +337,20 @@ ipcMain.handle(IPC.SELECT_GGUF_FILE, async () => {
     properties: ['openFile']
   })
   return result.canceled ? null : (result.filePaths[0] ?? null)
+})
+
+ipcMain.handle(IPC.DOWNLOAD_GGUF, async () => {
+  try {
+    return await downloadDefaultGguf(app.getPath('userData'), (downloaded, total) => {
+      mainWindow?.webContents.send(IPC.GGUF_DOWNLOAD_PROGRESS, { downloaded, total })
+    })
+  } finally {
+    mainWindow?.webContents.send(IPC.GGUF_DOWNLOAD_PROGRESS, null)
+  }
+})
+
+ipcMain.on(IPC.CANCEL_GGUF_DOWNLOAD, () => {
+  cancelGgufDownload()
 })
 
 ipcMain.handle('select-files', async () => {

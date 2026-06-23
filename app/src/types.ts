@@ -539,6 +539,11 @@ export interface CodeViperAPI {
   selectFolder: () => Promise<string | null>
   selectFiles: () => Promise<{ path: string; size: number }[]>
   selectGgufFile: () => Promise<string | null>
+  downloadGguf: () => Promise<string>
+  cancelGgufDownload: () => void
+  onGgufDownloadProgress: (
+    cb: (progress: { downloaded: number; total: number } | null) => void
+  ) => () => void
   readAttachment: (filePath: string) => Promise<{
     ok: boolean
     isImage?: boolean

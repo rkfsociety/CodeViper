@@ -43,6 +43,11 @@ export const MAX_QUEUE_SIZE = 50
 export const ORCHESTRATOR_MAX_TOKENS = 256
 /** Температура для JSON-генерации (низкая = детерминированный вывод) */
 export const ORCHESTRATOR_TEMPERATURE = 0.1
+/** URL GGUF-модели по умолчанию (Qwen2.5-1.5B-Instruct Q4_K_M, ~970 МБ) */
+export const ORCHESTRATOR_DEFAULT_GGUF_URL =
+  'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf'
+/** Имя файла GGUF-модели по умолчанию */
+export const ORCHESTRATOR_DEFAULT_GGUF_FILENAME = 'qwen2.5-1.5b-instruct-q4_k_m.gguf'
 
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
