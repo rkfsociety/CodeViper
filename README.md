@@ -56,6 +56,22 @@ cd CodeViper/app && npm install
 
 Перед запуском агента в Node-проекте проверяется наличие `node_modules` **только если** в `package.json` объявлены зависимости (`dependencies`, `devDependencies` и т.д.) — пустой `package.json` не блокирует запрос.
 
+## Разработка и тесты
+
+```bash
+cd app
+npm test                    # все unit-тесты
+npm test -- nodeLlama       # тесты модуля nodeLlama (unit, без GGUF)
+```
+
+Интеграционные тесты `nodeLlama` пропускаются без `TEST_GGUF_PATH`. Для запуска с реальной моделью:
+
+```bash
+TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
+```
+
+После `npm install` нативный модуль нужно собрать: `npm run rebuild`.
+
 ## Участие
 
 Баги и предложения — в [Issues](https://github.com/rkfsociety/CodeViper/issues). PR приветствуются.
