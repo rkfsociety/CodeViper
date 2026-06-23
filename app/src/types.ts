@@ -696,14 +696,15 @@ export interface CodeViperAPI {
     qdrantUrl: string,
     qdrantApiKey?: string
   ) => Promise<void>
-  registerP2pNode: (
-    settings: AgentSettings
-  ) => Promise<{
+  registerP2pNode: (settings: AgentSettings) => Promise<{
     ok: boolean
     id?: string
     message: string
     nodeKeys?: { publicKey: string; privateKey: string }
   }>
+  getP2pCredits: (
+    settings: AgentSettings
+  ) => Promise<{ ok: boolean; balance: number; message?: string }>
 }
 
 declare global {

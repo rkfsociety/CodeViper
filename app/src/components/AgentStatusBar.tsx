@@ -52,13 +52,23 @@ export function agentStatusLabel(
   return `${modelLabel} думает…${statsHint}${queueHint}`
 }
 
+export function formatP2pCreditsLabel(balance: number): string {
+  return `⚡ P2P ${balance} кр.`
+}
+
 interface Props {
   model?: string
   queueSize?: number
   progress?: ProgressInfo | null
+  p2pCredits?: number | null
 }
 
-export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props) {
+export function AgentStatusBar({
+  model,
+  queueSize = 0,
+  progress = null,
+  p2pCredits = null
+}: Props) {
   const {
     agentPhase,
     activeToolName,
@@ -142,6 +152,14 @@ export function AgentStatusBar({ model, queueSize = 0, progress = null }: Props)
         {collectiveSyncStatus === 'done' && (
           <span className="agent-collective-sync-chip done" title="Коллективная память обновлена">
             ☁️ GitHub ✓
+          </span>
+        )}
+        {p2pCredits != null && (
+          <span
+            className="agent-collective-sync-chip"
+            title="Баланс P2P-кредитов на сигнальном сервере"
+          >
+            {formatP2pCreditsLabel(p2pCredits)}
           </span>
         )}
       </div>

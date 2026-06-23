@@ -342,6 +342,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [todoItems, setTodoItems] = useState<TodoItem[] | null>(null)
   const [todoTitle, setTodoTitle] = useState<string | undefined>(undefined)
   const [indexingProgress, setIndexingProgress] = useState<ProgressInfo | null>(null)
+  const [p2pCredits, setP2pCredits] = useState<number | null>(null)
   const [slashMenuIndex, setSlashMenuIndex] = useState(0)
   const [showRoadmapPanel, setShowRoadmapPanel] = useState(false)
   const setTodoItemsRef = useRef<((items: TodoItem[] | null, title?: string) => void) | undefined>(
@@ -678,6 +679,22 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       setIndexingProgress(p)
     })
   }, [busy])
+
+  useEffect(() => {
+    const url = settings.p2pServerUrl?.trim()
+    const token = settings.p2pAuthToken?.trim()
+    if (!url || !token) {
+      setP2pCredits(null)
+      return
+    }
+    let cancelled = false
+    void window.codeviper.getP2pCredits(settings).then((result) => {
+      if (!cancelled && result.ok) setP2pCredits(result.balance)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [settings.p2pServerUrl, settings.p2pAuthToken, settings, busy])
 
   // Автоиндексация при смене проекта
   useEffect(() => {
@@ -1173,6 +1190,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             model={settings.model}
             queueSize={queueSize}
             progress={busy ? progress : indexingProgress}
+            p2pCredits={p2pCredits}
           />
         )}
 

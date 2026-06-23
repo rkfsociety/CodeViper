@@ -7,6 +7,7 @@ import type { AuthManager } from './auth.js'
 import { formatEncryptedTaskRelayLog } from './p2pCrypto.js'
 import { deliverEncryptedTask, registerNodeSocket } from './wssHub.js'
 import { routeTaskForModel } from './router.js'
+import { CreditStore, InsufficientCreditsError, P2P_TASK_CREDIT_COST, P2P_TASK_CREDIT_REWARD } from './credits.js'
 
 const RegisterBody = z.object({
   endpoint: z.string().url(),
@@ -75,7 +76,8 @@ function requireAuth(auth: AuthManager) {
 export async function registerRoutes(
   app: FastifyInstance,
   registry: NodeRegistry,
-  auth: AuthManager
+  auth: AuthManager,
+  credits: CreditStore
 ): Promise<void> {
   const authHook = requireAuth(auth)
   await app.register(websocket)
@@ -144,10 +146,13 @@ export async function registerRoutes(
     }
     const { endpoint, model, publicKey, gpuMemMb, cpuPct, ttlSec } = parsed.data
 
+    const ownerUserId = (req as FastifyRequest & { userId: string }).userId
+
     const node: P2PNode = {
       id: randomUUID(),
       endpoint,
       model,
+      ownerUserId,
       ...(publicKey !== undefined && { publicKey }),
       ...(gpuMemMb !== undefined && { gpuMemMb }),
       ...(cpuPct !== undefined && { cpuPct }),
@@ -168,6 +173,13 @@ export async function registerRoutes(
       return reply.send({ ok: true, count: nodes.length, nodes })
     }
   )
+
+  // ── Protected: GET /credits/balance ────────────────────────────────────────
+  app.get('/credits/balance', { preHandler: authHook }, async (req, reply) => {
+    const userId = (req as FastifyRequest & { userId: string }).userId
+    const balance = await credits.getBalance(userId)
+    return reply.send({ ok: true, balance })
+  })
 
   // ── Protected: POST /tasks/route — выбор свободного узла по модели ─────────
   app.post<{ Body: unknown }>('/tasks/route', { preHandler: authHook }, async (req, reply) => {
@@ -215,16 +227,34 @@ export async function registerRoutes(
       return reply.status(404).send({ ok: false, error: 'target node not found' })
     }
 
+    const senderUserId = (req as FastifyRequest & { userId: string }).userId
+    const providerUserId = target.ownerUserId ?? senderUserId
+
+    let senderBalance: number
+    try {
+      const settled = await credits.settleTask(senderUserId, providerUserId)
+      senderBalance = settled.senderBalance
+    } catch (e) {
+      if (e instanceof InsufficientCreditsError) {
+        return reply.status(402).send({ ok: false, error: e.message, fallback: true })
+      }
+      throw e
+    }
+
     const logLine = formatEncryptedTaskRelayLog({ taskId, targetNodeId: resolvedNodeId, payload })
     req.log.info(logLine)
 
     const wire = JSON.stringify({ type: 'task', taskId, payload })
     const delivery = deliverEncryptedTask(resolvedNodeId, wire)
     if (!delivery.delivered) {
+      await credits.adjust(senderUserId, P2P_TASK_CREDIT_COST)
+      if (providerUserId !== senderUserId) {
+        await credits.adjust(providerUserId, -P2P_TASK_CREDIT_REWARD)
+      }
       return reply.status(503).send({ ok: false, error: delivery.reason ?? 'delivery failed' })
     }
 
-    return reply.send({ ok: true, taskId, targetNodeId: resolvedNodeId })
+    return reply.send({ ok: true, taskId, targetNodeId: resolvedNodeId, balance: senderBalance })
   })
 
   // ── WSS: подписка узла на входящие задачи ────────────────────────────────

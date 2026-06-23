@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { formatEncryptedTaskRelayLog } from './p2pCrypto.js';
 import { deliverEncryptedTask, registerNodeSocket } from './wssHub.js';
 import { routeTaskForModel } from './router.js';
+import { InsufficientCreditsError, P2P_TASK_CREDIT_COST, P2P_TASK_CREDIT_REWARD } from './credits.js';
 const RegisterBody = z.object({
     endpoint: z.string().url(),
     model: z.string().min(1),
@@ -56,7 +57,7 @@ function requireAuth(auth) {
     };
 }
 // ─── Route registration ─────────────────────────────────────────────────────
-export async function registerRoutes(app, registry, auth) {
+export async function registerRoutes(app, registry, auth, credits) {
     const authHook = requireAuth(auth);
     await app.register(websocket);
     // ── Auth: email register ──────────────────────────────────────────────────
@@ -119,10 +120,12 @@ export async function registerRoutes(app, registry, auth) {
             return reply.status(400).send({ ok: false, error: parsed.error.flatten() });
         }
         const { endpoint, model, publicKey, gpuMemMb, cpuPct, ttlSec } = parsed.data;
+        const ownerUserId = req.userId;
         const node = {
             id: randomUUID(),
             endpoint,
             model,
+            ownerUserId,
             ...(publicKey !== undefined && { publicKey }),
             ...(gpuMemMb !== undefined && { gpuMemMb }),
             ...(cpuPct !== undefined && { cpuPct }),
@@ -136,6 +139,12 @@ export async function registerRoutes(app, registry, auth) {
         const { model } = req.query;
         const nodes = await registry.list(model);
         return reply.send({ ok: true, count: nodes.length, nodes });
+    });
+    // ── Protected: GET /credits/balance ────────────────────────────────────────
+    app.get('/credits/balance', { preHandler: authHook }, async (req, reply) => {
+        const userId = req.userId;
+        const balance = await credits.getBalance(userId);
+        return reply.send({ ok: true, balance });
     });
     // ── Protected: POST /tasks/route — выбор свободного узла по модели ─────────
     app.post('/tasks/route', { preHandler: authHook }, async (req, reply) => {
@@ -177,14 +186,31 @@ export async function registerRoutes(app, registry, auth) {
         if (!target) {
             return reply.status(404).send({ ok: false, error: 'target node not found' });
         }
+        const senderUserId = req.userId;
+        const providerUserId = target.ownerUserId ?? senderUserId;
+        let senderBalance;
+        try {
+            const settled = await credits.settleTask(senderUserId, providerUserId);
+            senderBalance = settled.senderBalance;
+        }
+        catch (e) {
+            if (e instanceof InsufficientCreditsError) {
+                return reply.status(402).send({ ok: false, error: e.message, fallback: true });
+            }
+            throw e;
+        }
         const logLine = formatEncryptedTaskRelayLog({ taskId, targetNodeId: resolvedNodeId, payload });
         req.log.info(logLine);
         const wire = JSON.stringify({ type: 'task', taskId, payload });
         const delivery = deliverEncryptedTask(resolvedNodeId, wire);
         if (!delivery.delivered) {
+            await credits.adjust(senderUserId, P2P_TASK_CREDIT_COST);
+            if (providerUserId !== senderUserId) {
+                await credits.adjust(providerUserId, -P2P_TASK_CREDIT_REWARD);
+            }
             return reply.status(503).send({ ok: false, error: delivery.reason ?? 'delivery failed' });
         }
-        return reply.send({ ok: true, taskId, targetNodeId: resolvedNodeId });
+        return reply.send({ ok: true, taskId, targetNodeId: resolvedNodeId, balance: senderBalance });
     });
     // ── WSS: подписка узла на входящие задачи ────────────────────────────────
     app.get('/nodes/ws', { websocket: true }, (socket, req) => {

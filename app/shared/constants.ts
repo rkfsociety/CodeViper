@@ -109,3 +109,9 @@ export const P2P_PAUSE_GPU_THRESHOLD = 20
 export const P2P_MAX_CONCURRENT_TASKS = 3
 /** Сколько ждать слот в очереди P2P (мс), затем 503 */
 export const P2P_QUEUE_WAIT_TIMEOUT_MS = 60_000
+/** Списание кредитов у отправителя за одну P2P-задачу */
+export const P2P_TASK_CREDIT_COST = 10
+/** Начисление кредитов провайдеру за выполненную задачу */
+export const P2P_TASK_CREDIT_REWARD = 10
+/** Стартовый баланс нового пользователя на сигнальном сервере */
+export const P2P_INITIAL_CREDITS = 100

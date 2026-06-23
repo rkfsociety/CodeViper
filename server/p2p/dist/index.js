@@ -3,6 +3,7 @@ import { NodeRegistry } from './nodes.js';
 import { AuthManager } from './auth.js';
 import { registerRoutes } from './routes.js';
 import { loadTlsOptions } from './tls.js';
+import { CreditStore } from './credits.js';
 const PORT = parseInt(process.env.PORT ?? '4242', 10);
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 const tls = loadTlsOptions();
@@ -10,8 +11,9 @@ const app = Fastify({ logger: { level: 'info' }, ...(tls ? { https: tls } : {}) 
 const registry = new NodeRegistry();
 async function main() {
     await registry.connect(REDIS_URL);
+    const credits = new CreditStore(registry.redisClient);
     const auth = new AuthManager(registry.redisClient);
-    await registerRoutes(app, registry, auth);
+    await registerRoutes(app, registry, auth, credits);
     try {
         await app.listen({ port: PORT, host: '0.0.0.0' });
         const scheme = tls ? 'https/wss' : 'http/ws';

@@ -449,7 +449,9 @@ const codeviper = {
     ),
 
   registerP2pNode: (settings: import('../../src/types').AgentSettings) =>
-    withTimeout(ipcRenderer.invoke(IPC.REGISTER_P2P_NODE, settings), 15_000, 'registerP2pNode')
+    withTimeout(ipcRenderer.invoke(IPC.REGISTER_P2P_NODE, settings), 15_000, 'registerP2pNode'),
+  getP2pCredits: (settings: import('../../src/types').AgentSettings) =>
+    withTimeout(ipcRenderer.invoke(IPC.GET_P2P_CREDITS, settings), 10_000, 'getP2pCredits')
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)

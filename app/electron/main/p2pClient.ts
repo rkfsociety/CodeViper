@@ -108,9 +108,40 @@ export function encryptPromptForP2pNode(
   return encryptP2pPrompt(prompt, recipientPublicKeyB64)
 }
 
+export interface P2pCreditsResult {
+  ok: boolean
+  balance: number
+  message?: string
+}
+
+/** Баланс P2P-кредитов текущего пользователя на сигнальном сервере. */
+export async function fetchP2pCreditsBalance(settings: AgentSettings): Promise<P2pCreditsResult> {
+  const url = settings.p2pServerUrl?.trim()
+  if (!url || !settings.p2pAuthToken?.trim()) {
+    return { ok: false, balance: 0, message: 'P2P не настроен' }
+  }
+
+  try {
+    const res = await fetch(`${toSecureP2pUrl(url)}/credits/balance`, {
+      headers: { Authorization: `Bearer ${settings.p2pAuthToken.trim()}` },
+      signal: AbortSignal.timeout(10_000)
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      return { ok: false, balance: 0, message: `баланс ${res.status}: ${text.slice(0, 200)}` }
+    }
+
+    const data = (await res.json()) as { ok: boolean; balance: number }
+    return { ok: true, balance: data.balance ?? 0 }
+  } catch (e) {
+    return { ok: false, balance: 0, message: (e as Error).message }
+  }
+}
+
 /**
  * Отправить зашифрованную задачу через сигнальный сервер (HTTPS/TLS).
- * Сервер ретранслирует только ciphertext по WSS.
+ * Сервер ретранслирует только ciphertext по WSS; списывает кредиты отправителя.
  */
 export async function relayEncryptedP2pTask(
   settings: AgentSettings,
@@ -118,7 +149,7 @@ export async function relayEncryptedP2pTask(
   recipientPublicKeyB64: string,
   prompt: string,
   taskId?: string
-): Promise<{ ok: boolean; message: string; taskId: string }> {
+): Promise<{ ok: boolean; message: string; taskId: string; balance?: number }> {
   const url = settings.p2pServerUrl?.trim()
   if (!url) return { ok: false, message: 'p2pServerUrl не задан', taskId: taskId ?? '' }
   if (!settings.p2pAuthToken?.trim()) {
@@ -145,7 +176,13 @@ export async function relayEncryptedP2pTask(
       return { ok: false, message: `relay ${res.status}: ${text.slice(0, 200)}`, taskId: id }
     }
 
-    return { ok: true, message: 'задача передана (шифротекст)', taskId: id }
+    const data = (await res.json()) as { ok: boolean; balance?: number }
+    return {
+      ok: true,
+      message: 'задача передана (шифротекст)',
+      taskId: id,
+      ...(data.balance != null ? { balance: data.balance } : {})
+    }
   } catch (e) {
     return { ok: false, message: `ошибка relay: ${(e as Error).message}`, taskId: id }
   }
