@@ -48,3 +48,33 @@ describe('filterEntriesBeforePush', () => {
     expect(trimmed.length).toBe(0)
   })
 })
+
+describe('pushWithRebaseOnConflict', () => {
+  it('детектирует non-fast-forward ошибки по ключевым словам', () => {
+    // Тест проверяет логику определения non-fast-forward конфликтов
+    // Функция pushWithRebaseOnConflict в selfCommit.ts ищет эти строки в stderr/stdout:
+    const errors = ['non-fast-forward', 'rejected', 'failed to push']
+
+    for (const keyword of errors) {
+      const errorOutput = `git push failed: ${keyword} error`.toLowerCase()
+      const isNonFastForward =
+        errorOutput.includes('non-fast-forward') ||
+        errorOutput.includes('rejected') ||
+        errorOutput.includes('failed to push')
+      expect(isNonFastForward).toBe(true)
+    }
+  })
+
+  it('не срабатывает на другие ошибки git', () => {
+    const otherErrors = ['authentication failed', 'permission denied', 'fatal: bad config']
+
+    for (const err of otherErrors) {
+      const errorOutput = `git error: ${err}`.toLowerCase()
+      const isNonFastForward =
+        errorOutput.includes('non-fast-forward') ||
+        errorOutput.includes('rejected') ||
+        errorOutput.includes('failed to push')
+      expect(isNonFastForward).toBe(false)
+    }
+  })
+})

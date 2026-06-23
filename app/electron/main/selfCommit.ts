@@ -53,6 +53,43 @@ async function runGitWithRetry(cwd: string, args: string[], label: string): Prom
   throw new Error(`Git operation '${label}' failed after 3 attempts: ${detail}`)
 }
 
+/**
+ * Пушит ветку, при non-fast-forward ошибке выполняет pull --rebase и повторяет попытку.
+ * Возвращает результат последней попытки push.
+ */
+async function pushWithRebaseOnConflict(cwd: string, branch: string): Promise<GitResult> {
+  let lastPushResult = await runGit(cwd, ['push', '--set-upstream', 'origin', branch])
+  if (lastPushResult.code === 0) return lastPushResult
+
+  const errorOutput = (lastPushResult.stderr || lastPushResult.stdout).toLowerCase()
+  const isNonFastForward =
+    errorOutput.includes('non-fast-forward') ||
+    errorOutput.includes('rejected') ||
+    errorOutput.includes('failed to push')
+
+  if (!isNonFastForward) {
+    return lastPushResult
+  }
+
+  // Пытаемся pull --rebase и повторить push
+  const rebaseResult = await runGitWithRetry(
+    cwd,
+    ['pull', '--rebase', 'origin', branch],
+    'pull-rebase'
+  )
+  if (rebaseResult.code !== 0) {
+    return rebaseResult // Rebase не удался, возвращаем ошибку
+  }
+
+  // Повторяем push после rebase
+  lastPushResult = await runGitWithRetry(
+    cwd,
+    ['push', '--set-upstream', 'origin', branch],
+    'push-after-rebase'
+  )
+  return lastPushResult
+}
+
 export interface SelfCommitResult {
   ok: boolean
   message: string
@@ -186,7 +223,15 @@ export async function commitAndPushRepoPaths(
   }
 
   try {
-    await runGitWithRetry(repoRoot, ['push', '--set-upstream', 'origin', branch], 'push')
+    const pushResult = await pushWithRebaseOnConflict(repoRoot, branch)
+    if (pushResult.code !== 0) {
+      const detail = (pushResult.stderr || pushResult.stdout).trim()
+      return {
+        ok: false,
+        message: `коммит в ${branch} сделан, но push не удался: ${detail}`,
+        branch
+      }
+    }
   } catch (err) {
     return {
       ok: false,
