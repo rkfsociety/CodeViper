@@ -1,0 +1,13 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "CodeViper API",
+  "entryPoints": ["shared"],
+  "entryPointStrategy": "expand",
+  "out": "docs-api",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "skipErrorChecking": true,
+  "readme": "none",
+  "githubPages": true,
+  "hostedBaseUrl": "https://rkfsociety.github.io/CodeViper/"
+}

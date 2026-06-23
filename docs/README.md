@@ -9,6 +9,7 @@
 | [example-prompts.md](example-prompts.md) | Промпты для копирования и самоулучшения |
 | [integrations.md](integrations.md) | MCP, P2P — дополнение к вики |
 | [tools-api.md](tools-api.md) | Справочник инструментов для разработчиков |
+| [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) | JSDoc shared-модулей; локально: `cd app && npm run docs` |
 | [collective/ViperMemory.md](collective/ViperMemory.md) | Синхронизация коллективной памяти |
 
 **В вики** (не дублировать в README): [Быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт), [Провайдеры](https://github.com/rkfsociety/CodeViper/wiki/Провайдеры-моделей), [Инструменты](https://github.com/rkfsociety/CodeViper/wiki/Инструменты-агента), [Память](https://github.com/rkfsociety/CodeViper/wiki/Память-и-самообучение), [Архитектура](https://github.com/rkfsociety/CodeViper/wiki/Архитектура), [Разработка](https://github.com/rkfsociety/CodeViper/wiki/Разработка).

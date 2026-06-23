@@ -6,6 +6,7 @@ app/resources/node/
 app/dist-electron
 app/.vitest-tmp
 app/.pending-restart
+app/docs-api
 CodeViper.exe
 CodeViper-Setup.exe
 CodeViper-new.exe
