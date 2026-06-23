@@ -47,12 +47,12 @@ cd CodeViper/app && npm install
 | | |
 |---|---|
 | [Демонстрации (GIF)](docs/demos.md) | [Примеры запросов](docs/example-prompts.md) |
-| [Интеграции (MCP, P2P)](docs/integrations.md) | [Индекс docs/](docs/README.md) |
+| [Интеграции (MCP, P2P)](docs/integrations.md) | [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) |
 | [ROADMAP](ROADMAP.md) | промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper` |
 
 ## Участие
 
-[Issues](https://github.com/rkfsociety/CodeViper/issues) · PR приветствуются.
+[Issues](https://github.com/rkfsociety/CodeViper/issues) · [CONTRIBUTING.md](CONTRIBUTING.md) (ReAct, новый инструмент) · PR приветствуются.
 
 ## Лицензия
 
