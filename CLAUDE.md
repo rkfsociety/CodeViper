@@ -78,7 +78,7 @@ N · [S/M/L/XL] · Название — приор. …
 const fs = require('fs');
 const TARGET = 17; // номер удаляемого пункта
 
-const lines = fs.readFileSync('ROADMAP.md', 'utf8').split('\n');
+const lines = fs.readFileSync('ROADMAP.md', 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
 let result = [], skipping = false, skipBlank = false;
 
 for (const line of lines) {
