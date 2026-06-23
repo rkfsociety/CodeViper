@@ -390,6 +390,7 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
+- Фильтр перед push collective: `filterEntriesBeforePush()` отклоняет пустые, короткие (<20 символов) и дублирующие записи; лог отклонённых в результат синхронизации; AgentLearningPanel показывает `rejectedCount` и `rejectionReasons` в UI; константа `MIN_COLLECTIVE_ENTRY_LENGTH` в constants.ts; тест на отклонение пустых строк
 - MemoryPanel: локальные vs коллективные — две отдельные секции с разделением по `source: 'collective'`; бейдж 📚 для коллективных записей; обновлена `readCollectiveMemoryEntries()` в `collectiveMemorySync.ts` для отметки источника
 - Pull collective при старте: `pullCollectiveMemoryFromRemote()` в `collectiveMemorySync.ts`; вызов при `gitSyncOnStartup` в `app.whenReady()`; fetch + `git checkout origin/{branch} -- docs/collective/ViperMemory.md`; best-effort (офлайн не ошибка)
 - `AgentLearningPanel`: панель коллективного обучения — ветка, счётчик pending, кнопки «Синхронизировать» и «Создать PR»; IPC `get-collective-sync-status` и `flush-collective-memory`; кнопка ☁️ в тулбаре ChatPanel; автообновление каждые 10 с

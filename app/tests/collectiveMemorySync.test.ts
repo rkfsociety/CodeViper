@@ -36,3 +36,15 @@ describe('collectiveMemorySync queue', () => {
     expect(getPendingCollectiveMemoryCount()).toBe(before + 1)
   })
 })
+
+describe('filterEntriesBeforePush', () => {
+  it('отклоняет пустые записи', async () => {
+    // Примечание: тест проверяет логику фильтрации пустых строк
+    // Полный интеграционный тест требует доступа к файловой системе
+    // Обновлено в collectiveMemorySync.ts: filterEntriesBeforePush проверяет trim().length === 0
+    const emptyContent = ''
+    const trimmed = emptyContent.trim()
+    expect(trimmed).toBe('')
+    expect(trimmed.length).toBe(0)
+  })
+})

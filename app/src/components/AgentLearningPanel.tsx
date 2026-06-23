@@ -42,7 +42,15 @@ export const AgentLearningPanel = memo(function AgentLearningPanel({
       const result = await window.codeviper.flushCollectiveMemory(
         'Синхронизация коллективной памяти'
       )
-      setMessage(result.ok ? `✓ ${result.message}` : `✗ ${result.message}`)
+      let msg = result.ok ? `✓ ${result.message}` : `✗ ${result.message}`
+      if (result.rejectedCount > 0) {
+        msg += ` (отклонено: ${result.rejectedCount})`
+        if (result.rejectionReasons && result.rejectionReasons.length > 0) {
+          const reasons = result.rejectionReasons.slice(0, 3).join('; ')
+          msg += `\n${reasons}${result.rejectionReasons.length > 3 ? '...' : ''}`
+        }
+      }
+      setMessage(msg)
       void loadStatus()
     } catch (e) {
       setMessage(`✗ Ошибка: ${e instanceof Error ? e.message : String(e)}`)

@@ -2,7 +2,7 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { spawn } from 'child_process'
-import { COLLECTIVE_MEMORY_REPO_PATH } from '../../shared/constants'
+import { COLLECTIVE_MEMORY_REPO_PATH, MIN_COLLECTIVE_ENTRY_LENGTH } from '../../shared/constants'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type { MemoryEntry, MemoryStore } from '../../src/types'
 import { parseMemoryMarkdown, renderMemoryMarkdown } from './memory'
@@ -123,6 +123,8 @@ export interface CollectiveMemorySyncResult {
   message: string
   branch?: string
   syncedCount: number
+  rejectedCount: number
+  rejectionReasons?: string[]
 }
 
 export async function pullCollectiveMemoryFromRemote(
@@ -159,16 +161,71 @@ export async function pullCollectiveMemoryFromRemote(
   return { ok: true, message: `коллективная память обновлена из ветки ${branch}` }
 }
 
+export interface FilterResult {
+  valid: MemoryEntry[]
+  rejected: Array<{ reason: string }>
+}
+
+export async function filterEntriesBeforePush(entries: MemoryEntry[]): Promise<FilterResult> {
+  const valid: MemoryEntry[] = []
+  const rejected: Array<{ reason: string }> = []
+  const remoteStore = await readCollectiveMemoryStore()
+  const remoteContents = new Set(remoteStore.entries.map((e) => e.content.toLowerCase()))
+
+  for (const entry of entries) {
+    const trimmed = entry.content.trim()
+
+    if (!trimmed) {
+      rejected.push({ reason: `пусто: "${entry.content.substring(0, 30)}"` })
+      continue
+    }
+
+    if (trimmed.length < MIN_COLLECTIVE_ENTRY_LENGTH) {
+      rejected.push({
+        reason: `коротко (${trimmed.length}/${MIN_COLLECTIVE_ENTRY_LENGTH}): "${trimmed.substring(0, 30)}"`
+      })
+      continue
+    }
+
+    if (remoteContents.has(trimmed.toLowerCase())) {
+      rejected.push({ reason: `дубль в remote: "${trimmed.substring(0, 30)}"` })
+      continue
+    }
+
+    valid.push(entry)
+  }
+
+  return { valid, rejected }
+}
+
 export async function flushCollectiveMemoryToGit(
   summary: string,
   configuredBranch?: string
 ): Promise<CollectiveMemorySyncResult> {
   const entries = drainPendingEntries()
   if (!entries.length) {
-    return { ok: true, message: 'нет новых знаний для синхронизации', syncedCount: 0 }
+    return {
+      ok: true,
+      message: 'нет новых знаний для синхронизации',
+      syncedCount: 0,
+      rejectedCount: 0
+    }
   }
 
-  const added = await mergeIntoCollectiveFile(entries)
+  const { valid, rejected } = await filterEntriesBeforePush(entries)
+
+  if (!valid.length) {
+    const reasons = rejected.map((r) => r.reason)
+    return {
+      ok: true,
+      message: `все ${entries.length} записей отклонены`,
+      syncedCount: 0,
+      rejectedCount: rejected.length,
+      rejectionReasons: reasons
+    }
+  }
+
+  const added = await mergeIntoCollectiveFile(valid)
   const branch = resolveSelfImproveBranch(configuredBranch)
   const commitSummary =
     added > 0 ? `${summary} (+${added} знаний)` : `${summary} (обновление существующих знаний)`
@@ -179,10 +236,14 @@ export async function flushCollectiveMemoryToGit(
     configuredBranch
   )
 
+  const reasons = rejected.map((r) => r.reason)
+
   return {
     ok: result.ok,
     message: result.message,
     branch: result.branch ?? branch,
-    syncedCount: added > 0 ? added : entries.length
+    syncedCount: added > 0 ? added : valid.length,
+    rejectedCount: rejected.length,
+    rejectionReasons: reasons.length > 0 ? reasons : undefined
   }
 }

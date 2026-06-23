@@ -613,6 +613,8 @@ export interface CodeViperAPI {
     message: string
     branch?: string
     syncedCount: number
+    rejectedCount: number
+    rejectionReasons?: string[]
   }>
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
   restartApp: () => void
