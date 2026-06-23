@@ -224,7 +224,11 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.orchestratorEnabled === true ? { orchestratorEnabled: true } : {}),
     ...(settings.orchestratorMinMessageLength !== undefined
       ? { orchestratorMinMessageLength: settings.orchestratorMinMessageLength }
-      : {})
+      : {}),
+    ...(settings.shareCompute === true ? { shareCompute: true } : {}),
+    ...(settings.p2pConsentGiven === true ? { p2pConsentGiven: true } : {}),
+    ...(settings.p2pServerUrl?.trim() ? { p2pServerUrl: settings.p2pServerUrl.trim() } : {}),
+    ...(settings.p2pAuthToken?.trim() ? { p2pAuthToken: settings.p2pAuthToken.trim() } : {})
   }
 }
 
