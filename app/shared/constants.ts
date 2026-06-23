@@ -105,3 +105,7 @@ export const COLLECTIVE_SKILLS_REPO_PATH = 'docs/collective/ViperSkills.md'
 export const P2P_PAUSE_CPU_THRESHOLD = 15
 /** GPU выше порога → входящие P2P-задачи на паузе */
 export const P2P_PAUSE_GPU_THRESHOLD = 20
+/** Максимум одновременно выполняемых входящих P2P-задач на узле */
+export const P2P_MAX_CONCURRENT_TASKS = 3
+/** Сколько ждать слот в очереди P2P (мс), затем 503 */
+export const P2P_QUEUE_WAIT_TIMEOUT_MS = 60_000

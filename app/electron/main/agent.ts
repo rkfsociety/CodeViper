@@ -24,7 +24,12 @@ import { ToolExecutor, PARALLEL_SAFE_TOOLS } from './agentToolExecutor'
 import { SelfImprovementOrchestrator } from './agentSelfImprovementOrchestrator'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
-import { tryAcceptIncomingP2pTask, type P2pAcceptResult, type P2pIncomingTask } from './p2pClient'
+import {
+  reserveIncomingP2pTask,
+  releaseP2pTaskSlot,
+  type P2pAcceptResult,
+  type P2pIncomingTask
+} from './p2pClient'
 
 export { parseToolArgs } from './agentToolExecutor'
 export {
@@ -51,21 +56,25 @@ export async function runIncomingP2pTask(
   emit: (event: AgentStreamPayload) => void,
   signal?: AbortSignal
 ): Promise<P2pAcceptResult> {
-  const accept = await tryAcceptIncomingP2pTask(settings, task)
+  const accept = await reserveIncomingP2pTask(settings, task)
   if (!accept.accepted) return accept
 
-  const runner = new AgentRunner(
-    settings,
-    projectPath,
-    emit,
-    signal,
-    undefined,
-    undefined,
-    undefined,
-    `p2p-${task.id}`
-  )
-  await runner.run([], task.prompt)
-  return { accepted: true, paused: false, message: 'задача выполнена' }
+  try {
+    const runner = new AgentRunner(
+      settings,
+      projectPath,
+      emit,
+      signal,
+      undefined,
+      undefined,
+      undefined,
+      `p2p-${task.id}`
+    )
+    await runner.run([], task.prompt)
+    return { accepted: true, paused: false, message: 'задача выполнена' }
+  } finally {
+    releaseP2pTaskSlot()
+  }
 }
 
 export class AgentRunner {
