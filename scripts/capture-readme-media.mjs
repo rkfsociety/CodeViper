@@ -17,10 +17,18 @@ const SOURCE_DIR = path.join(REPO_ROOT, 'docs/media/source')
 const OUT_DIR = path.join(REPO_ROOT, 'docs/media')
 
 const DEMOS = [
-  { html: 'search.html', out: 'search.gif', frames: 8, stepMs: 280 },
-  { html: 'self-improve.html', out: 'self-improve.gif', frames: 8, stepMs: 280 },
-  { html: 'ollama.html', out: 'ollama.gif', frames: 8, stepMs: 280 }
+  { html: 'search.html', out: 'search.gif' },
+  { html: 'self-improve.html', out: 'self-improve.gif' },
+  { html: 'ollama.html', out: 'ollama.gif' }
 ]
+
+/** Захват: ~8 с анимации; воспроизведение: 1 с/кадр + 5 с пауза на финале */
+const CAPTURE = {
+  stepMs: 700,
+  frames: 12,
+  frameDelayCs: 100,
+  holdFrames: 5
+}
 
 function pngBuffersToGif(pngBuffers, delayCs) {
   const first = PNG.sync.read(pngBuffers[0])
@@ -52,13 +60,18 @@ async function captureDemo(browser, demo) {
   await page.goto(fileUrl, { waitUntil: 'load' })
 
   const frames = []
-  for (let i = 0; i < demo.frames; i++) {
+  for (let i = 0; i < CAPTURE.frames; i++) {
     frames.push(await page.screenshot({ type: 'png' }))
-    await page.waitForTimeout(demo.stepMs)
+    await page.waitForTimeout(CAPTURE.stepMs)
+  }
+
+  const last = frames[frames.length - 1]
+  for (let i = 0; i < CAPTURE.holdFrames; i++) {
+    frames.push(last)
   }
 
   await page.close()
-  return pngBuffersToGif(frames, Math.round(demo.stepMs / 10))
+  return pngBuffersToGif(frames, CAPTURE.frameDelayCs)
 }
 
 async function main() {

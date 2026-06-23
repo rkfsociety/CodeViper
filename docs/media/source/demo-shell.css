@@ -94,7 +94,7 @@ body {
   line-height: 1.45;
   opacity: 0;
   transform: translateY(6px);
-  animation: fadeIn 0.35s ease forwards;
+  animation: fadeIn 0.5s ease forwards;
 }
 
 .msg.user {
@@ -118,16 +118,16 @@ body {
 }
 
 .msg.delay-1 {
-  animation-delay: 0.4s;
+  animation-delay: 1s;
 }
 .msg.delay-2 {
-  animation-delay: 0.9s;
+  animation-delay: 2.5s;
 }
 .msg.delay-3 {
-  animation-delay: 1.4s;
+  animation-delay: 4s;
 }
 .msg.delay-4 {
-  animation-delay: 1.9s;
+  animation-delay: 5.5s;
 }
 
 @keyframes fadeIn {
