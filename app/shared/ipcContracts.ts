@@ -93,6 +93,25 @@ export const ImportResultSchema = z.object({
   skipped: z.number()
 })
 
+export const FileNodeSchema: z.ZodType<{
+  name: string
+  path: string
+  isDirectory: boolean
+  children?: Array<{
+    name: string
+    path: string
+    isDirectory: boolean
+    children?: unknown[]
+  }>
+}> = z.lazy(() =>
+  z.object({
+    name: z.string(),
+    path: z.string(),
+    isDirectory: z.boolean(),
+    children: z.array(FileNodeSchema).optional()
+  })
+)
+
 export const OllamaModelSchema = z.object({
   name: z.string(),
   size: z.number(),
@@ -392,6 +411,7 @@ export const IPC = {
   STOP_AGENT: 'stop-agent',
   GET_RUN_CHECKPOINT: 'get-run-checkpoint',
   ROLLBACK_RUN: 'rollback-run',
+  GET_PROJECT_TREE: 'get-project-tree',
   PREVIEW_AGENT_CONTEXT: 'preview-agent-context',
   SUMMARIZE_CONTEXT: 'summarize-context',
   LOAD_SETTINGS: 'load-settings',
@@ -608,6 +628,10 @@ export const Contracts = {
   [IPC.ROLLBACK_RUN]: {
     args: z.tuple([z.string()]),
     result: z.object({ ok: z.boolean(), message: z.string() })
+  },
+  [IPC.GET_PROJECT_TREE]: {
+    args: z.tuple([z.string(), z.number().optional()]),
+    result: z.array(FileNodeSchema)
   },
   [IPC.PREVIEW_AGENT_CONTEXT]: {
     args: z.tuple([z.string(), z.array(ChatMessageSchema), z.string(), z.string()]),

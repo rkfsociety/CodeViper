@@ -20,7 +20,7 @@ import {
   shouldUseAutoModel,
   resolveSummarizeModel
 } from '../../shared/modelRouter'
-import { safeReadFile, safeWriteFile, runCommand } from './services'
+import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import { setSourceRootOverride } from './codeviperSource'
 import { deleteMemory, listMemories } from './memory'
 import { deleteSkill, listSkills } from './skills'
@@ -609,6 +609,11 @@ ipcMain.handle(IPC.ROLLBACK_RUN, async (_e, ...a) => {
     stream(chatId, { type: 'run_checkpoint', runCheckpointActive: false })
   }
   return result
+})
+
+ipcMain.handle(IPC.GET_PROJECT_TREE, async (_e, ...a) => {
+  const [projectPath, maxDepth] = parseIpcArgs(Contracts[IPC.GET_PROJECT_TREE].args, a)
+  return buildFileTree(projectPath, 0, maxDepth ?? 8)
 })
 
 ipcMain.on(IPC.AGENT_CONFIRM_RESPONSE, (_e, id: string, approved: boolean) => {

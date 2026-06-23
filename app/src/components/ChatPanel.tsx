@@ -61,6 +61,7 @@ import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
 import { AllToolsGroup } from './AllToolsGroup'
 import { RunRollbackButton } from './RunRollbackButton'
+import { ChatInput, type ChatInputHandle } from './ChatInput'
 
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
@@ -358,7 +359,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const atBottomRef = useRef(true)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const chatInputRef = useRef<ChatInputHandle>(null)
   const messagesRef = useRef(messages)
   const chatIdRef = useRef(chatId)
   const projectPathRef = useRef(projectPath)
@@ -589,7 +590,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       const slots = FILE_LIMIT - prev.length - clipboardImages.length
       return [...prev, ...fresh.slice(0, Math.max(0, slots))]
     })
-    inputRef.current?.focus()
+    chatInputRef.current?.focus()
   }
 
   function removeDroppedFile(path: string) {
@@ -797,9 +798,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     if (idx >= 0) commitMessages(messagesRef.current.slice(0, idx))
     setInput(message.content)
     requestAnimationFrame(() => {
-      inputRef.current?.focus()
-      const len = inputRef.current?.value.length ?? 0
-      inputRef.current?.setSelectionRange(len, len)
+      chatInputRef.current?.focus()
+      const ta = chatInputRef.current?.getTextarea()
+      const len = ta?.value.length ?? 0
+      ta?.setSelectionRange(len, len)
     })
   }
 
@@ -815,15 +817,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   function insertPrompt(text: string) {
     setInput((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
     requestAnimationFrame(() => {
-      inputRef.current?.focus()
-      const len = inputRef.current?.value.length ?? 0
-      inputRef.current?.setSelectionRange(len, len)
+      chatInputRef.current?.focus()
+      const ta = chatInputRef.current?.getTextarea()
+      const len = ta?.value.length ?? 0
+      ta?.setSelectionRange(len, len)
     })
   }
 
   useImperativeHandle(ref, () => ({
     insertPath: (path: string) => insertPrompt(path),
-    focusInput: () => inputRef.current?.focus()
+    focusInput: () => chatInputRef.current?.focus()
   }))
 
   async function send() {
@@ -878,12 +881,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       const prefix = `/${cmd.trigger} `
       setInput(prefix)
       requestAnimationFrame(() => {
-        inputRef.current?.setSelectionRange(prefix.length, prefix.length)
-        inputRef.current?.focus()
+        const ta = chatInputRef.current?.getTextarea()
+        ta?.setSelectionRange(prefix.length, prefix.length)
+        chatInputRef.current?.focus()
       })
     } else {
       setInput(cmd.expand())
-      inputRef.current?.focus()
+      chatInputRef.current?.focus()
     }
   }
 
@@ -1269,15 +1273,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                 Отпустите файл(ы)
               </div>
             )}
-            <textarea
-              ref={inputRef}
+            <ChatInput
+              ref={chatInputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={setInput}
+              projectPath={projectPath}
+              focused={inputFocused}
               onKeyDown={handleInputKeyDown}
               onPaste={handlePaste}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
-              placeholder="Напиши задачу… (/ — быстрые промпты)"
+              placeholder="Напиши задачу… (/ — промпты, @ — файлы)"
               disabled={!chatId}
               rows={3}
             />
@@ -1302,7 +1308,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                       const slots = FILE_LIMIT - prev.length - clipboardImages.length
                       return [...prev, ...fresh.slice(0, Math.max(0, slots))]
                     })
-                    inputRef.current?.focus()
+                    chatInputRef.current?.focus()
                   })
                 }}
                 disabled={!chatId}

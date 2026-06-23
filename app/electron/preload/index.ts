@@ -168,6 +168,13 @@ const codeviper = {
   rollbackRun: (chatId: string) =>
     withTimeout(ipcRenderer.invoke(IPC.ROLLBACK_RUN, chatId), IPC_TIMEOUT_MS, 'rollbackRun'),
 
+  getProjectTree: (projectPath: string, maxDepth?: number) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.GET_PROJECT_TREE, projectPath, maxDepth),
+      IPC_TIMEOUT_MS,
+      'getProjectTree'
+    ),
+
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],
