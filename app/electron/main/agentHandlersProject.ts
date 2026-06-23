@@ -111,6 +111,7 @@ interface ProjectToolOptions {
   qdrantUrl?: string
   qdrantApiKey?: string
   commandBlocklist?: string[]
+  commandAllowlist?: string[]
 }
 
 export function createProjectToolHandlers(
@@ -696,7 +697,9 @@ export function createProjectToolHandlers(
           projectPath,
           args.command,
           commandTimeoutMs,
-          options?.commandBlocklist
+          options?.commandBlocklist,
+          undefined,
+          options?.commandAllowlist
         )
         return formatCommandResult(result)
       } finally {
@@ -728,7 +731,9 @@ export function createProjectToolHandlers(
           scriptCwd,
           command,
           commandTimeoutMs,
-          options?.commandBlocklist
+          options?.commandBlocklist,
+          undefined,
+          options?.commandAllowlist
         )
         return formatCommandResult(result)
       } finally {
@@ -758,7 +763,9 @@ export function createProjectToolHandlers(
           projectPath,
           command,
           commandTimeoutMs,
-          options?.commandBlocklist
+          options?.commandBlocklist,
+          undefined,
+          options?.commandAllowlist
         )
         return formatLinterOutput(linter, args.path, result.stdout, result.stderr, result.exitCode)
       } finally {

@@ -376,3 +376,4 @@ N · [S/M/L/XL] · Краткое название
 - UI: FileTimelinePanel, ChatHistoryPanel, поиск по настройкам, горячие клавиши, виртуализация списка сообщений
 - Ядро агента: рефакторинг на 6 модулей; параллельное выполнение инструментов; суммаризация; LRU-кэши; workers
 - Режим инкогнито: тумблер в топбаре; чаты/NDJSON-логи только в RAM; skip persist в flushCurrentChat и agentLogger
+- commandAllowlist (whitelist команд): поле в settings/types; validateCommand проверяет allowlist до blocklist; UI в SettingsModal; 5 тестов

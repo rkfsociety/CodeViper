@@ -61,6 +61,7 @@ export const PersistedSettingsSchema = z.object({
   contextSummarizeThreshold: z.number().int().min(50).max(85).optional(),
   aggressiveCompression: z.boolean().optional(),
   commandBlocklist: z.array(z.string()).optional(),
+  commandAllowlist: z.array(z.string()).optional(),
   customSystemPrompt: z.string().optional(),
   gitlabToken: z.string().optional(),
   gitlabUrl: z.string().optional(),
@@ -189,6 +190,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
       : {}),
     ...(settings.aggressiveCompression ? { aggressiveCompression: true } : {}),
     ...(settings.commandBlocklist?.length ? { commandBlocklist: settings.commandBlocklist } : {}),
+    ...(settings.commandAllowlist?.length ? { commandAllowlist: settings.commandAllowlist } : {}),
     ...(settings.customSystemPrompt?.trim()
       ? { customSystemPrompt: settings.customSystemPrompt.trim() }
       : {}),

@@ -52,10 +52,28 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /\bnet\s+localgroup\b/i
 ]
 
-export function validateCommand(command: string, extraBlocklist?: string[]): string | null {
+export function validateCommand(
+  command: string,
+  extraBlocklist?: string[],
+  extraAllowlist?: string[]
+): string | null {
   const trimmed = command.trim()
   if (!trimmed) return 'Пустая команда'
   if (trimmed.length > MAX_COMMAND_LEN) return 'Команда слишком длинная'
+
+  // Allowlist проверяется первой: совпадение полностью разрешает команду.
+  if (extraAllowlist) {
+    for (const raw of extraAllowlist) {
+      const pat = raw.trim()
+      if (!pat) continue
+      try {
+        if (new RegExp(pat, 'i').test(trimmed)) return null
+      } catch {
+        if (trimmed.toLowerCase().includes(pat.toLowerCase())) return null
+      }
+    }
+  }
+
   if (BLOCKED_PATTERNS.some((pattern) => pattern.test(trimmed))) {
     return 'Команда заблокирована из соображений безопасности'
   }
@@ -553,9 +571,10 @@ export async function runCommand(
   command: string,
   timeoutMs = COMMAND_TIMEOUT_MS,
   extraBlocklist?: string[],
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  extraAllowlist?: string[]
 ): Promise<TerminalResult> {
-  const blocked = validateCommand(command, extraBlocklist)
+  const blocked = validateCommand(command, extraBlocklist, extraAllowlist)
   if (blocked) {
     return {
       stdout: '',

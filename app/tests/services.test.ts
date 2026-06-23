@@ -54,6 +54,33 @@ describe('validateCommand', () => {
       expect(validateCommand(cmd), cmd).not.toBeNull()
     }
   })
+
+  it('allowlist разрешает команды из extraBlocklist', () => {
+    const blocklist = ['npm publish']
+    const allowlist = ['npm publish']
+    expect(validateCommand('npm publish --access public', blocklist)).not.toBeNull()
+    expect(validateCommand('npm publish --access public', blocklist, allowlist)).toBeNull()
+  })
+
+  it('allowlist разрешает команды из встроенного blocklist', () => {
+    // sudo заблокировано встроенным паттерном, но allowlist снимает блок
+    const allowlist = ['sudo make install']
+    expect(validateCommand('sudo make install')).not.toBeNull()
+    expect(validateCommand('sudo make install', undefined, allowlist)).toBeNull()
+  })
+
+  it('allowlist поддерживает регулярные выражения', () => {
+    const allowlist = ['npm (test|run build)']
+    expect(validateCommand('npm test', undefined, allowlist)).toBeNull()
+    expect(validateCommand('npm run build', undefined, allowlist)).toBeNull()
+    // команды вне паттерна — не разрешены (пустой allowlist не блокирует)
+    expect(validateCommand('npm publish', undefined, allowlist)).toBeNull() // не в blocklist
+  })
+
+  it('пустые строки в allowlist игнорируются', () => {
+    const allowlist = ['', '  ', 'git status']
+    expect(validateCommand('git status', undefined, allowlist)).toBeNull()
+  })
 })
 
 describe('runCommand', () => {

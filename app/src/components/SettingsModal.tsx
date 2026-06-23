@@ -1277,6 +1277,24 @@ export function SettingsModal({
                         Каждая строка — паттерн (подстрока или регулярное выражение). Совпадение
                         блокирует команду. Применяется поверх встроенного списка.
                       </div>
+
+                      <label>
+                        Всегда разрешать команды
+                        <textarea
+                          rows={4}
+                          placeholder={'npm test\ngit status\ngit diff'}
+                          value={(settings.commandAllowlist ?? []).join('\n')}
+                          onChange={(e) => {
+                            const lines = e.target.value.split('\n')
+                            onSettingsChange({ commandAllowlist: lines })
+                          }}
+                          style={{ fontFamily: 'monospace', resize: 'vertical' }}
+                        />
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Паттерны команд, которые всегда разрешены — даже если совпадают с
+                        запрещёнными. Проверяется до blocklist.
+                      </div>
                     </div>
                   </SettingItem>
 

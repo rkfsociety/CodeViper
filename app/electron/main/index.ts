@@ -451,7 +451,14 @@ ipcMain.handle(
 ipcMain.handle(IPC.RUN_TERMINAL_COMMAND, async (_e, ...a) => {
   const [cwd, command] = parseIpcArgs(Contracts[IPC.RUN_TERMINAL_COMMAND].args, a)
   const settings = await loadSettings()
-  return runCommand(cwd, command, undefined, settings.commandBlocklist)
+  return runCommand(
+    cwd,
+    command,
+    undefined,
+    settings.commandBlocklist,
+    undefined,
+    settings.commandAllowlist
+  )
 })
 
 ipcMain.handle('list-memories', async (_e, projectPath: string) => listMemories(projectPath))

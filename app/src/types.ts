@@ -177,6 +177,8 @@ export interface AgentSettings {
   commandTimeoutSec?: number
   /** Пользовательский список запрещённых паттернов команд (строки или регулярные выражения) */
   commandBlocklist?: string[]
+  /** Всегда разрешать команды, совпадающие с паттернами; проверяется до blocklist */
+  commandAllowlist?: string[]
   /** Режим только чтение: блокирует все инструменты записи */
   readonlyMode?: boolean
   /** Звуковое уведомление при завершении задачи агента */
