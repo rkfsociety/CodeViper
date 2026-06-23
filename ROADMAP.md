@@ -230,47 +230,49 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
-- Тумблер «Поделиться мощностью»: `p2pClient.ts` (new) — `registerNode()` → `POST /nodes/register` с Bearer-токеном; Zod-поля `shareCompute/p2pServerUrl/p2pAuthToken` в `settings.ts` и `types.ts`; IPC `register-p2p-node`; UI-секция в вкладке «Интеграции» с тумблером, URL и токеном; typecheck ✅, build ✅.
-- Auth на сигнальном сервере: `server/p2p/src/auth.ts` — `AuthManager` с email-регистрацией (bcryptjs), JWT (jsonwebtoken, 24h), GitHub OAuth; rate limit per-token per-minute (Redis INCR + TTL или in-memory); middleware `requireAuth`; защищены `/nodes/*`; `/health` публичный; проверка: без токена → 401, с токеном → 200 ✅.
-- REST API сигнального сервера: `server/p2p/` — Fastify 5 + ioredis; `POST /nodes/register`, `GET /nodes/available?model=`, `DELETE /nodes/:id`, `GET /health`; in-memory fallback если Redis недоступен; автоистечение узлов по TTL (по умолчанию 120 с); typecheck ✅, проверка curl ✅.
-- Интеграция оркестратора в AgentRunner: перед `prepareAgentRunContext` — `analyze()` при `orchestratorEnabled`; эмит `orchestrating: true/false`; чип «Планирую…» в `AgentStatusBar`; `rephrased` → `effectiveMessage` при `isComplex`; план инжектируется в `customSystemPrompt` как `## План оркестратора`.
-- orchestratorModel.ts: `analyze(message, modelPath)` → `{plan, rephrased, isComplex}`; singleton через `nodeLlama`; `extractJsonString` + fallback; константы `ORCHESTRATOR_MAX_TOKENS/TEMPERATURE` в `shared/constants.ts`; 10 unit-тестов с моком nodeLlama.
-- Выбор GGUF в настройках: IPC `select-gguf-file` с фильтром `*.gguf`; `orchestratorModelPath` в Zod-схеме и `AgentSettings`; кнопка «Выбрать файл…» + кнопка ✕ на вкладке «Модель» в SettingsModal.
-- Тест nodeLlama: `app/tests/nodeLlama.test.ts` — 5 unit-тестов (без GGUF), 3 интеграционных (skip без `TEST_GGUF_PATH`); инструкция запуска в README раздел «Разработка и тесты».
-- Обёртка nodeLlama.ts: модуль `app/electron/main/nodeLlama.ts` с `loadModel`, `complete`, `unloadModel`, `getHandle`; динамический импорт через переменную-строку (typecheck без установленного пакета); ленивая инициализация синглтона; node-llama-cpp v3 API (getLlama → loadModel → createContext → LlamaChatSession).
-- Панель выбора ROADMAP: `roadmapParser.ts` парсит ROADMAP.md; IPC `list-roadmap-items`; `RoadmapPickerPanel` с фильтром и группировкой по цепочкам; кнопка 🗺 в панели чата; клик → промпт «Выполни пункт N…» в поле ввода.
-- Slash-команды: `expandSlashCommand` в `shared/slashCommands.ts`; `SlashCommandMenu` с автодополнением; 8 команд (/test, /typecheck, /commit, /review, /fix, /explain, /refactor, /roadmap N); стрелки+Tab+Escape; раскрытие перед отправкой.
-- Автоиндексация при открытии проекта: фоновый `runProjectAutoIndex` в Qdrant при смене `projectPath`; переключатель в настройках RAG; прогресс в AgentStatusBar.
 
-- Чеклист плана самоулучшения: SelfImprovePlanPanel.tsx над полем ввода; подписка на `self_improve_plan` stream через `setPlanItemsRef`; прогресс-бар, иконки ○/✓/✗, blocked-пункты; сброс при смене чата
-- Бенчмарк локальных моделей: modelBenchmark.ts; 3 текстовых прогона (tok/s, latency) + tool call тест; кнопка «Запустить бенчмарк» на вкладке Модель настроек; таблица результатов; только для Ollama-провайдера
-- Webhook «агент готов»: webhookNotify.ts; POST { chatId, projectPath, summary, durationMs } после каждого прогона; поле webhookUrl в настройках; UI в разделе Уведомления; best-effort (ошибка не прерывает агента)
-- UI правил проекта: кнопка 📋 в нижней панели чата открывает редактор `.codeviper/rules.md`; загрузка/сохранение через IPC read-file/write-file; подсказка при отсутствии файла; агент учитывает rules.md через memory.ts
-- Автопроверка после правок: после успешного SELF_EDIT_FILE_TOOLS при включённом autoVerifyAfterEdit — запуск npm run typecheck + npm test через runCodeViperCommand; вывод добавляется к tool_result в чате
-- SHA-256 при pull Ollama: `verifyOllamaModelDigest()` в `agentOllamaApi.ts` сравнивает digest из `/api/show` с последним завершённым digest из pull-стрима; при несовпадении — `deleteOllamaModel()` + ошибка; 5 тестов в `ollamaSha256.test.ts` (несовпадение, совпадение, нет поля digest, сеть недоступна, сообщение содержит оба хеша)
-- Rebase при конфликте push: функция `pushWithRebaseOnConflict()` в selfCommit.ts перехватывает non-fast-forward ошибки; автоматически выполняет `git pull --rebase` и повторяет push; детектирует ошибки по ключевым словам (non-fast-forward, rejected, failed to push); используется в commitAndPushRepoPaths; тесты на определение конфликтов в collectiveMemorySync.test.ts
-- Кнопка PR из панели коллективного обучения: IPC обработчик `create-codeviper-pr` в index.ts; AgentLearningPanel вызывает `window.codeviper.createCodeViperPr()` с заголовком «Коллективные знания»; обработка ошибок (уже существует, не git-репозиторий, gh не установлен); контракт в types.ts
-- Collective ViperSkills: синхронизация коллективных навыков в `docs/collective/ViperSkills.md`; `readCollectiveSkills()` подгружает навыки из remote; `pullCollectiveSkillsFromRemote()` при старте если `gitSyncOnStartup`; коллективные навыки объединены с локальными в `list_skills`; добавлено поле `source: 'collective'` в AgentSkill для отслеживания источника
-- Фильтр перед push collective: `filterEntriesBeforePush()` отклоняет пустые, короткие (<20 символов) и дублирующие записи; лог отклонённых в результат синхронизации; AgentLearningPanel показывает `rejectedCount` и `rejectionReasons` в UI; константа `MIN_COLLECTIVE_ENTRY_LENGTH` в constants.ts; тест на отклонение пустых строк
-- MemoryPanel: локальные vs коллективные — две отдельные секции с разделением по `source: 'collective'`; бейдж 📚 для коллективных записей; обновлена `readCollectiveMemoryEntries()` в `collectiveMemorySync.ts` для отметки источника
-- Pull collective при старте: `pullCollectiveMemoryFromRemote()` в `collectiveMemorySync.ts`; вызов при `gitSyncOnStartup` в `app.whenReady()`; fetch + `git checkout origin/{branch} -- docs/collective/ViperMemory.md`; best-effort (офлайн не ошибка)
-- `AgentLearningPanel`: панель коллективного обучения — ветка, счётчик pending, кнопки «Синхронизировать» и «Создать PR»; IPC `get-collective-sync-status` и `flush-collective-memory`; кнопка ☁️ в тулбаре ChatPanel; автообновление каждые 10 с
-- NSIS git clone: установщик клонирует репо в %APPDATA%CodeVipersource с флагом --depth 1; проверка git перед установкой; обновление через git pull --ff-only при повторной установке; ярлыки на Desktop и в Start Menu Programs запускают CodeViper.cmd через cmd.exe; опция удалить исходный код при дезинсталляции; обработка ошибок (нет git, нет интернета)
-- create_linear_issue: инструмент для создания Issue в Linear через GraphQL API; поле linearApiKey в настройках с шифрованием; UI в разделе «Интеграции»; параметры: title, team_key, description, priority (0-4)
-- create_jira_issue: инструмент для создания Issue в Jira через REST API; поля jiraUrl и jiraToken в настройках с шифрованием; UI в разделе «Интеграции»; параметры: summary, project_key, description, issue_type
-- POSIX-лаунчер: CodeViper.sh для Linux/macOS; аналог CodeViper.cmd; проверка Node.js, хеш package-lock.json, автосборка; интеграция в CI workflow на ubuntu/macos
-- `disabledTools`: чекбоксы по 11 группам инструментов в SettingsModal; getAgentTools() фильтрует отключённые; кэш по ключу
-- `commandBlocklist`: пользовательские запрещённые паттерны команд; редактирование в SettingsModal; применяется в validateCommand()
-- Per-chat `projectPath`, `search_in_project`, `read_multiple_files`, `run_script`, `review_code`
-- GitLab интеграция: list_gitlab_mrs, create_gitlab_mr, get_gitlab_pipeline
-- `.github/workflows/release.yml`: матрица windows/ubuntu/macos; публикация в GitHub Releases через GITHUB_TOKEN
-- Провайдеры Claude, Gemini, Groq, Together AI, OpenRouter; TRON-сжатие; RAG Qdrant/Milvus; exponential backoff; circuit breaker
-- Плагины: сканирование ~/.codeviper/plugins/*.js и *.ts; esbuild с кэшем; изоляция в worker_thread
-- UI: FileTimelinePanel, ChatHistoryPanel, поиск по настройкам, горячие клавиши, виртуализация списка сообщений
-- Ядро агента: рефакторинг на 6 модулей; параллельное выполнение инструментов; суммаризация; LRU-кэши; workers
-- Режим инкогнито: тумблер в топбаре; чаты/NDJSON-логи только в RAM; skip persist в flushCurrentChat и agentLogger
-- commandAllowlist (whitelist команд): поле в settings/types; validateCommand проверяет allowlist до blocklist; UI в SettingsModal; 5 тестов
+**P2P-вычисления**
+- REST API сигнального сервера (`server/p2p/`) — Fastify 5 + ioredis, TTL-реестр узлов, in-memory fallback
+- Auth на сервере — email/bcrypt + JWT + GitHub OAuth, rate limit, middleware `requireAuth`
+- Тумблер «Поделиться мощностью» — `p2pClient.ts`, IPC `register-p2p-node`, UI на вкладке «Интеграции»
 
-- Скачивание GGUF по умолчанию: downloadDefaultGguf() в orchestratorModel.ts; fetch + AbortController + .part temp file; IPC DOWNLOAD_GGUF/CANCEL_GGUF_DOWNLOAD/GGUF_DOWNLOAD_PROGRESS; прогресс-бар и кнопка «Отмена» в SettingsModal; URL Qwen2.5-1.5B в constants.ts
+**Оркестратор (node-llama-cpp)**
+- `nodeLlama.ts` — обёртка node-llama-cpp v3, ленивый singleton, unit + интеграционные тесты
+- `orchestratorModel.ts` — `analyze()` → `{plan, rephrased, isComplex}`, 10 unit-тестов
+- Выбор и скачивание GGUF — IPC `select-gguf-file` / `download-gguf`, прогресс + отмена в UI
+- UI секция «Оркестратор» — тумблер, `minMessageLength`, кнопка удалить модель
+- Интеграция в AgentRunner — `analyze()` перед запуском, чип «Планирую…», план в системный промпт
 
-- UI секция «Оркестратор»: тумблер orchestratorEnabled, поле orchestratorMinMessageLength (дефолт 80), кнопка «Удалить модель» (unlink + clear path); IPC DELETE_GGUF_FILE; все поля в Zod-схеме settings.ts и AgentSettingsSchema
+**Коллективное обучение**
+- `AgentLearningPanel` — синхронизация pending-записей, кнопка «Создать PR», автообновление
+- Collective ViperMemory + ViperSkills — pull при старте, фильтр дублей/коротких записей
+- MemoryPanel — раздельные секции локальных и коллективных записей, бейдж 📚
+
+**Установщик и самообновление**
+- NSIS — клонирование репо при установке, `git pull` при обновлении, ярлыки, удаление исходников
+- POSIX-лаунчер `CodeViper.sh` для Linux/macOS
+- CI матрица windows/ubuntu/macos, публикация в GitHub Releases
+
+**Инструменты агента**
+- GitLab: `list_gitlab_mrs`, `create_gitlab_mr`, `get_gitlab_pipeline`
+- Jira: `create_jira_issue` через REST API
+- Linear: `create_linear_issue` через GraphQL API
+- Панель выбора задачи из ROADMAP, slash-команды (/test, /commit, /review, /roadmap…)
+- `disabledTools`, `commandBlocklist`, `commandAllowlist`, per-chat `projectPath`
+
+**Качество и производительность**
+- SHA-256 верификация при pull Ollama
+- Rebase при конфликте push в `selfCommit.ts`
+- Автопроверка после саморедактирования (typecheck + test)
+- Бенчмарк моделей (tok/s, latency, tool call)
+- Автоиндексация проекта в Qdrant при открытии
+
+**UI и настройки**
+- FileTimelinePanel, ChatHistoryPanel, поиск по настройкам, горячие клавиши, виртуализация
+- Webhook «агент готов», режим инкогнито, редактор правил проекта `.codeviper/rules.md`
+- Чеклист плана самоулучшения (`SelfImprovePlanPanel`)
+
+**Ядро**
+- Провайдеры: Claude, Gemini, Groq, Together AI, OpenRouter; TRON-сжатие; RAG Qdrant/Milvus
+- Плагины: `~/.codeviper/plugins/`, esbuild + worker_thread изоляция
+- Рефакторинг агента на 6 модулей; параллельное выполнение инструментов; LRU-кэши
