@@ -159,6 +159,7 @@ export const AgentSettingsSchema = z.object({
   commandBlocklist: z.array(z.string()).optional(),
   readonlyMode: z.boolean().optional(),
   soundNotifications: z.boolean().optional(),
+  minimizeToTray: z.boolean().optional(),
   gitSyncOnStartup: z.boolean().optional(),
   gitSyncStrategy: GitSyncStrategySchema.optional(),
   githubToken: z.string().optional(),

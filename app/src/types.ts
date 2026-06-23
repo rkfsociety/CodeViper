@@ -185,6 +185,8 @@ export interface AgentSettings {
   readonlyMode?: boolean
   /** Звуковое уведомление при завершении задачи агента */
   soundNotifications?: boolean
+  /** Сворачивать в трей при закрытии окна (крестик). По умолчанию true. */
+  minimizeToTray?: boolean
   /** URL для POST-уведомления при завершении прогона агента (Slack/Discord/n8n) */
   webhookUrl?: string
   /** Автоиндексация проекта в Qdrant при смене projectPath */

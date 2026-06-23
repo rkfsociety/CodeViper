@@ -237,7 +237,8 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.p2pNodePublicKey?.trim()
       ? { p2pNodePublicKey: settings.p2pNodePublicKey.trim() }
       : {}),
-    ...(settings.soundNotifications === true ? { soundNotifications: true } : {})
+    ...(settings.soundNotifications === true ? { soundNotifications: true } : {}),
+    ...(settings.minimizeToTray === false ? { minimizeToTray: false } : {})
   }
 }
 

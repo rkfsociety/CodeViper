@@ -2211,6 +2211,23 @@ export function SettingsModal({
                           </span>
                         </label>
 
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
+                            checked={settings.minimizeToTray !== false}
+                            onChange={(e) => onSettingsChange({ minimizeToTray: e.target.checked })}
+                          />
+                          <span className={styles.track} aria-hidden="true">
+                            <span className={styles.thumb} />
+                          </span>
+                          <span className={styles.toggleContent}>
+                            <span className={styles.title}>Сворачивать в трей</span>
+                            <span className={styles.desc}>
+                              Крестик скрывает окно; иконка в трее — клик открывает снова
+                            </span>
+                          </span>
+                        </label>
+
                         <div style={{ marginTop: '0.75rem' }}>
                           <div className={styles.sectionLabel}>Webhook «агент готов»</div>
                           <input

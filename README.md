@@ -18,7 +18,7 @@
 
 ---
 
-Локальный AI-агент с GUI: читает проект, дерево файлов, side-by-side diff, toast при завершении агента, ищет символы по AST (`find_symbol`), правит файлы, запускает команды, git-откат, самоулучшение. Ollama, DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter.
+Локальный AI-агент с GUI: читает проект, дерево файлов, side-by-side diff, иконка в трее, toast при завершении агента, ищет символы по AST (`find_symbol`), правит файлы, запускает команды, git-откат, самоулучшение. Ollama, DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter.
 
 ## Быстрый старт
 

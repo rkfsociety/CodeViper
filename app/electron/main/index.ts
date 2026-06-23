@@ -1,5 +1,4 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification } from 'electron'
-import { existsSync } from 'fs'
 import { appendFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import {
@@ -56,6 +55,14 @@ import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } f
 import { startUpdateChecks, installPendingUpdate } from './updateChecker'
 import { registerShutdownHook } from './appShutdown'
 import { unloadModel } from './nodeLlama'
+import { resolveAppIconPath } from './appIcon'
+import {
+  createTray,
+  destroyTray,
+  handleMainWindowClose,
+  isAppQuitting,
+  updateTrayAgentActivity
+} from './tray'
 import {
   getPendingCollectiveMemoryCount,
   flushCollectiveMemoryToGit,
@@ -95,8 +102,17 @@ registerShutdownHook(() => stopSystemStatsPush())
 registerShutdownHook(async () => {
   await unloadModel().catch(() => {})
 })
+registerShutdownHook(() => destroyTray())
 
-// Батчинг IPC: token/thinking события накапливаем и шлём не чаще раз в 50 мс.
+let minimizeToTrayEnabled = true
+
+function syncTrayAgentBadge(): void {
+  updateTrayAgentActivity(agentRunStates.size)
+}
+
+function applyTraySettings(settings: AgentSettings): void {
+  minimizeToTrayEnabled = settings.minimizeToTray !== false
+}
 // webContents.send на каждый чанк имеет накладные расходы на сериализацию и IPC.
 const pendingTokenBuf = new Map<string, { token: string; thinking: string }>()
 let tokenFlushTimer: ReturnType<typeof setTimeout> | null = null
@@ -155,11 +171,7 @@ function recordRun(): void {
 }
 
 function appIconPath(): string | undefined {
-  const candidates = [
-    join(__dirname, '../../resources/icon.png'),
-    join(process.cwd(), 'resources/icon.png')
-  ]
-  return candidates.find((path) => existsSync(path))
+  return resolveAppIconPath()
 }
 
 const CSP =
@@ -196,6 +208,12 @@ async function createWindow(): Promise<void> {
   }
 
   trackWindowState(mainWindow)
+
+  mainWindow.on('close', (event) => {
+    if (mainWindow) handleMainWindowClose(event, minimizeToTrayEnabled, mainWindow)
+  })
+
+  createTray(() => mainWindow)
 
   // Автоперезагрузка при падении рендерера (GPU crash, OOM и т.п.).
   // appState уже сохранён на диске → CrashRecoveryDialog восстановит сессию.
@@ -272,6 +290,7 @@ app.whenReady().then(async () => {
   }
 
   const settings = await loadSettings()
+  applyTraySettings(settings)
   if (settings.sourceRootOverride) {
     setSourceRootOverride(settings.sourceRootOverride)
   }
@@ -304,7 +323,13 @@ app.on('child-process-gone', (_event, details) => {
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  if (process.platform === 'darwin') return
+  if (isAppQuitting()) {
+    app.quit()
+    return
+  }
+  if (minimizeToTrayEnabled && mainWindow && !mainWindow.isDestroyed()) return
+  app.quit()
 })
 
 // При нормальном завершении удаляем файл состояния — при следующем запуске
@@ -784,6 +809,7 @@ ipcMain.handle(IPC.FLUSH_COLLECTIVE_MEMORY, async (_e, ...a) => {
 ipcMain.handle(IPC.SAVE_SETTINGS, async (_e, ...a) => {
   const [settings] = parseIpcArgs(Contracts[IPC.SAVE_SETTINGS].args, a)
   const saved = await saveSettings(settings)
+  applyTraySettings(saved)
   if (saved.sourceRootOverride) {
     setSourceRootOverride(saved.sourceRootOverride)
   } else {
@@ -850,6 +876,7 @@ ipcMain.handle(
     const abortCtrl = new AbortController()
     agentRunStates.set(chatId, { chatId })
     activeAgentAborts.set(chatId, abortCtrl)
+    syncTrayAgentBadge()
     if (!settings.disableSystemStats) startSystemStatsPush(_e.sender)
     setProgressTarget(_e.sender)
 
@@ -861,6 +888,9 @@ ipcMain.handle(
         content: formatPrerequisitesMessage(prerequisites.issues)
       })
       stream(chatId, { type: 'done' })
+      activeAgentAborts.delete(chatId)
+      agentRunStates.delete(chatId)
+      syncTrayAgentBadge()
       return
     }
 
@@ -931,6 +961,7 @@ ipcMain.handle(
       setProgressTarget(null)
       activeAgentAborts.delete(chatId)
       agentRunStates.delete(chatId)
+      syncTrayAgentBadge()
     }
   }
 )
