@@ -1,5 +1,80 @@
 ### [0.1.1] — 2026-06-22
 
+## [0.2.0] — 2026-06-23
+
+### Новые возможности
+- feat: уведомление при завершении агента
+- feat: side-by-side diff в preview_edit
+- feat: панель дерева файлов проекта
+- feat: символьный индекс find_symbol и find_references
+- feat: nudge RAG после пустого grep
+- feat(p2p): кредиты на сервере и баланс в AgentStatusBar
+- feat(p2p): маршрутизация задач на сигнальном сервере
+- feat(p2p): TLS/WSS и ECDH-шифрование промптов между узлами
+- feat(p2p): лимит 3 параллельных задач и очередь 60 с
+- feat(p2p): пауза входящих задач при CPU>15% или GPU>20%
+- feat(p2p): диалог согласия при первом включении тумблера «Поделиться мощностью»
+- feat(ui): @-упоминание файлов в поле ввода чата
+- feat(security): маскирование секретов в логах и контексте
+- feat(agent): чекпоинт прогона и кнопка Откатить всё
+- feat(claude): prompt caching для system и tools между шагами ReAct
+- feat: тумблер «Поделиться мощностью» — p2pClient.ts, IPC register-p2p-node, UI в Интеграциях
+- feat: JWT auth на P2P сервере — email/GitHub OAuth, rate limit, middleware requireAuth (401 без токена)
+- feat: P2P сигнальный сервер — REST API реестра узлов (Fastify+ioredis, in-memory fallback)
+- feat: оркестратор в AgentRunner — analyze() при orchestratorEnabled, чип Планирую, rephrased+план в контекст
+- feat: UI секция «Оркестратор» — тумблер enabled, minMessageLength, кнопка удалить модель
+- feat: скачивание GGUF по умолчанию — downloadDefaultGguf, прогресс в SettingsModal, IPC cancel
+- feat: orchestratorModel.ts — analyze() → {plan,rephrased,isComplex}, JSON-парсинг, 10 unit-тестов
+- feat: выбор GGUF в настройках — orchestratorModelPath, IPC select-gguf-file, UI на вкладке Модель
+- feat: обёртка nodeLlama.ts — loadModel/complete/unloadModel, синглтон, динамический импорт
+- feat: панель выбора ROADMAP — список задач самоулучшения с кнопкой «Выполнить»
+- feat: slash-команды — /test /commit /roadmap N и другие
+- feat: автоиндексация проекта в Qdrant при смене пути
+- feat: sticky чеклист плана самоулучшения над полем ввода
+- feat: бенчмарк локальных моделей — tok/s, latency, tool call в настройках
+- feat: webhook «агент готов» — POST уведомление при завершении прогона
+- feat: UI правил проекта — панель редактора .codeviper/rules.md в чате
+- feat: автопроверка после правок CodeViper — typecheck + test после SELF_EDIT_FILE_TOOLS
+- feat: commandAllowlist — whitelist паттернов команд поверх blocklist
+- feat: режим Инкогнито — тумблер в топбаре, чаты и NDJSON-логи только в RAM
+- feat: SHA-256 проверка после pull Ollama — verifyOllamaModelDigest + тесты
+- feat: rebase при конфликте push — автоматическая синхронизация при non-fast-forward
+- feat: кнопка PR из панели коллективного обучения — создание PR с коллективными знаниями
+- feat: коллективные навыки (Collective ViperSkills) — синхронизация с remote
+- feat: фильтр перед push коллективной памяти — отсечь пустые/короткие/дублирующие
+- feat: MemoryPanel — две секции локальных и коллективных записей
+- feat: pull collective memory from remote on startup (gitSyncOnStartup)
+- feat: AgentLearningPanel — панель коллективного обучения (ветка, pending, sync, PR)
+### Исправления
+- fix(ci): установка зависимостей server/p2p для p2pRouter-тестов
+- fix(p2p): сохранять p2pConsentGiven и связанные поля в normalize()
+- fix: getCodeViperSourceRoot — try/catch вокруг app.getAppPath() для тестового окружения
+- fix: нормализовать CRLF в скрипте переиндексации ROADMAP — предотвратить потерю данных
+### Прочее
+- docs: TypeDoc API и деплой на GitHub Pages
+- docs: CONTRIBUTING — ReAct-диаграмма, модули и гайд инструмента
+- README: вики — основная документация, docs/ — репо-специфичное.
+- README: краткая витрина; детали в docs/.
+- Замедлить демо-GIF в README для читаемости текста.
+- README: скринкасты — GIF поиск, самоулучшение, Ollama.
+- Правило: поддерживать README.md актуальным.
+- README: раздел «Примеры запросов» с 7 готовыми диалогами.
+- docs(roadmap): высокая отдача, идеи и перенумерация 1..35
+- docs: суммаризировать раздел «✅ Сделано» в ROADMAP
+- docs: удалить пустые категории из ROADMAP (все задачи выполнены)
+- test: vitest-тест nodeLlama — unit (5) + integration skip без TEST_GGUF_PATH (3)
+- docs: актуализировать ROADMAP — убрать дубли пп. 18/23 из «В планах» (инкогнито, commandAllowlist уже реализованы)
+- docs: восстановить ROADMAP — вернуть пп. 25-47 (были потеряны из-за CRLF в Node.js скрипте)
+- docs: актуализировать ROADMAP — убрать пп. 17-21 (выполнены), переиндексировать 22..55 → 17..50
+- docs: восстановить полную структуру ROADMAP — убрать POSIX/NSIS/Jira/Linear из «В планах», 1..57 с описаниями
+- docs: убрать выполненные пункты POSIX/Jira/Linear из «В планах», переиндексировать 1..57
+- Reapply "docs: перенести пункт «NSIS git clone» в ✅ Сделано, переиндексировать 27..61→26..60"
+- Revert "Reapply "fix: исправить NSIS CreateShortcut — SW_NORMAL → SW_SHOWNORMAL""
+- Revert "docs: перенести пункт «NSIS git clone» в ✅ Сделано, переиндексировать 27..61→26..60"
+- Reapply "fix: исправить NSIS CreateShortcut — SW_NORMAL → SW_SHOWNORMAL"
+- Revert "fix: исправить NSIS CreateShortcut — SW_NORMAL → SW_SHOWNORMAL"
+- docs: перенести пункт «NSIS git clone» в ✅ Сделано, переиндексировать 27..61→26..60
+
 ### Новые возможности
 - feat: инструмент create_linear_issue для создания Issue в Linear GraphQL API
 - feat: инструмент create_jira_issue для создания Issue в Jira REST API
