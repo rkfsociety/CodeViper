@@ -15,6 +15,7 @@ import { ensureSelfImproveBranch } from './selfCommit'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyWebhook } from './webhookNotify'
+import { analyze } from './orchestratorModel'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
@@ -128,10 +129,44 @@ export class AgentRunner {
       }
     }
 
+    let effectiveMessage = userMessage
+    let orchestratorPlanHint = ''
+
+    const minLen = this.settings.orchestratorMinMessageLength ?? 30
+    if (
+      this.settings.orchestratorEnabled &&
+      this.settings.orchestratorModelPath &&
+      userMessage.length >= minLen
+    ) {
+      this.emitter.emit({ type: 'orchestrating', orchestrating: true })
+      try {
+        const result = await analyze(userMessage, this.settings.orchestratorModelPath)
+        if (result.isComplex && result.rephrased) {
+          effectiveMessage = result.rephrased
+        }
+        if (result.plan) {
+          orchestratorPlanHint = result.plan
+        }
+        this.emitter.emit({
+          type: 'orchestrating',
+          orchestrating: false,
+          content: result.plan || undefined
+        })
+      } catch {
+        // оркестратор не критичен — продолжаем без плана
+        this.emitter.emit({ type: 'orchestrating', orchestrating: false })
+      }
+    }
+
+    const baseSystemPrompt = this.settings.customSystemPrompt ?? ''
+    const customSystemPrompt = orchestratorPlanHint
+      ? `${baseSystemPrompt}\n\n## План оркестратора\n${orchestratorPlanHint}`.trim()
+      : baseSystemPrompt
+
     const prepared = await prepareAgentRunContext(
       this.projectPath,
       history,
-      userMessage,
+      effectiveMessage,
       this.settings.model,
       taskMode === 'self-improve',
       {
@@ -148,7 +183,7 @@ export class AgentRunner {
         chatId: this.chatId,
         enableRAG: true,
         ragStoreConfig: buildVectorStoreConfig(this.settings, this.projectPath),
-        customSystemPrompt: this.settings.customSystemPrompt ?? '',
+        customSystemPrompt,
         disabledTools: this.settings.disabledTools,
         mcpServers: this.settings.mcpServers
       }
