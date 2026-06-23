@@ -1,0 +1,128 @@
+.panel {
+  margin: 0 8px 6px;
+  background: color-mix(in srgb, var(--bg-panel) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 4px;
+}
+
+.icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+
+.path {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--accent, #4a9eff);
+  background: color-mix(in srgb, var(--accent, #4a9eff) 12%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 0 2px;
+  opacity: 0.6;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.close:hover {
+  opacity: 1;
+}
+
+.body {
+  padding: 4px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-input, var(--bg-panel));
+  color: var(--text-primary, var(--text));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: monospace;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.textarea:focus {
+  border-color: var(--accent, #4a9eff);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.btn {
+  background: var(--accent, #4a9eff);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

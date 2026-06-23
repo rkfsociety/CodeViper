@@ -33,6 +33,7 @@ const CLOUD_KNOWN_MODELS: Record<string, string[]> = {
 import { AgentStatusBar } from './AgentStatusBar'
 import { TodoPanel } from './TodoPanel'
 import { AgentLearningPanel } from './AgentLearningPanel'
+import { ProjectRulesPanel } from './ProjectRulesPanel'
 import styles from './ChatPanel.module.css'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
@@ -312,6 +313,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
   const [showQuickBar, setShowQuickBar] = useState(false)
   const [showLearningPanel, setShowLearningPanel] = useState(false)
+  const [showRulesPanel, setShowRulesPanel] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const modelPickerRef = useRef<HTMLDivElement>(null)
@@ -1082,6 +1084,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
         {showLearningPanel && <AgentLearningPanel onClose={() => setShowLearningPanel(false)} />}
 
+        {showRulesPanel && projectPath && (
+          <ProjectRulesPanel projectPath={projectPath} onClose={() => setShowRulesPanel(false)} />
+        )}
+
         {showQuickBar && chatId && projectPath && (
           <QuickPromptBar
             onInsert={(text) => {
@@ -1268,6 +1274,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             </div>
 
             <div className={styles.metaRight}>
+              {/* Правила проекта */}
+              <button
+                type="button"
+                className={`${styles.metaBtn}${showRulesPanel ? ' ' + styles.metaBtnActive : ''}`}
+                title="Правила проекта (.codeviper/rules.md)"
+                onClick={() => setShowRulesPanel((v) => !v)}
+                disabled={!projectPath}
+              >
+                📋
+              </button>
+
               {/* Коллективное обучение */}
               <button
                 type="button"

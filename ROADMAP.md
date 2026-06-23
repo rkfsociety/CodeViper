@@ -190,6 +190,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
+- UI правил проекта: кнопка 📋 в нижней панели чата открывает редактор `.codeviper/rules.md`; загрузка/сохранение через существующий IPC read-file/write-file; подсказка при отсутствии файла; агент учитывает rules.md через memory.ts
 - Автопроверка после правок: после успешного `SELF_EDIT_FILE_TOOLS` при включённом `autoVerifyAfterEdit` — запуск `npm run typecheck` + `npm test` через `runCodeViperCommand`; вывод добавляется к tool_result в чате
 - Whitelist шаблонов команд: поле `commandAllowlist` в настройках; `validateCommand` проверяет allowlist до blocklist; тесты добавлены
 - Режим «Инкогнито»: тумблер в топбаре; чаты и NDJSON-логи только в RAM; после перезапуска история пуста
