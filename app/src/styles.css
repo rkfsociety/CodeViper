@@ -211,6 +211,11 @@ button {
   flex-shrink: 0;
 }
 
+.layout .panel-tree {
+  width: 260px;
+  flex-shrink: 0;
+}
+
 .layout .panel-main {
   flex: 1;
   min-width: 0;
@@ -1881,6 +1886,10 @@ button.topbar-pill.topbar-download-error {
 /* Планшеты и узкие окна — сужаем сайдбар истории */
 @media (max-width: 900px) {
   .layout .panel-history {
+    width: 220px;
+  }
+
+  .layout .panel-tree {
     width: 220px;
   }
 

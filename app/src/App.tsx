@@ -18,6 +18,7 @@ import { AgentProvider } from './contexts/AgentContext'
 import { ChatContext, type ChatContextValue } from './contexts/ChatContext'
 import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
+import { ProjectTreePanel } from './components/ProjectTreePanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
@@ -764,6 +765,16 @@ function AppContent() {
               onStoreChange={() => void refreshChatStore()}
             />
           </section>
+
+          {activeProjectPath && (
+            <section className="panel panel-tree">
+              <div className="panel-header">Файлы</div>
+              <ProjectTreePanel
+                projectPath={activeProjectPath}
+                onAskAgent={(path) => chatPanelRef.current?.insertFileMention(path)}
+              />
+            </section>
+          )}
 
           <section className="panel panel-main">
             <div className="panel-header">Агент</div>

@@ -76,6 +76,7 @@ import { formatElapsed, formatTokenCount } from '../../shared/generationMetrics'
 
 export interface ChatPanelHandle {
   insertPath: (path: string) => void
+  insertFileMention: (relativePath: string) => void
   focusInput: () => void
 }
 
@@ -841,8 +842,24 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     })
   }
 
+  function insertFileMentionPath(relativePath: string) {
+    const mention = `@${relativePath.replace(/\\/g, '/')}`
+    setInput((prev) => {
+      if (!prev.trim()) return mention
+      const needsSpace = !prev.endsWith(' ') && !prev.endsWith('\n')
+      return `${prev}${needsSpace ? ' ' : ''}${mention}`
+    })
+    requestAnimationFrame(() => {
+      chatInputRef.current?.focus()
+      const ta = chatInputRef.current?.getTextarea()
+      const len = ta?.value.length ?? 0
+      ta?.setSelectionRange(len, len)
+    })
+  }
+
   useImperativeHandle(ref, () => ({
     insertPath: (path: string) => insertPrompt(path),
+    insertFileMention: insertFileMentionPath,
     focusInput: () => chatInputRef.current?.focus()
   }))
 
