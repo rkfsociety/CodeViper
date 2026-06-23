@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { OllamaPullProgress } from '../types'
+import { formatRemaining } from '../../shared/formatDownload'
 import { pullPercent } from '../hooks/useOllamaDownloadQueue'
 
 interface Props {
@@ -16,12 +17,6 @@ interface SpeedSample {
 }
 
 const WINDOW_MS = 10_000
-
-function formatRemaining(secs: number): string {
-  if (secs < 60) return '< 1 мин'
-  if (secs < 3600) return `~${Math.ceil(secs / 60)} мин`
-  return `~${Math.ceil(secs / 3600)} ч`
-}
 
 export function OllamaDownloadStatus({ pulling, queued, progress, error, onOpenSettings }: Props) {
   const samplesRef = useRef<SpeedSample[]>([])

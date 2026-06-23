@@ -34,6 +34,7 @@ function runGit(
 const GIT_CHECK_INTERVAL_MS = 10 * 60 * 1000
 let gitTimer: ReturnType<typeof setInterval> | null = null
 let releaseChecksStarted = false
+let pendingReleaseVersion: string | null = null
 
 function sendUpdate(webContents: WebContents, info: UpdateInfo): void {
   if (!webContents.isDestroyed()) {
@@ -78,6 +79,7 @@ function startReleaseUpdateChecks(webContents: WebContents): void {
   autoUpdater.autoInstallOnAppQuit = false
 
   autoUpdater.on('update-available', (info) => {
+    pendingReleaseVersion = info.version
     sendUpdate(webContents, {
       source: 'release',
       version: info.version,
@@ -85,7 +87,21 @@ function startReleaseUpdateChecks(webContents: WebContents): void {
     })
   })
 
+  autoUpdater.on('download-progress', (progress) => {
+    if (!pendingReleaseVersion) return
+    sendUpdate(webContents, {
+      source: 'release',
+      version: pendingReleaseVersion,
+      ready: false,
+      percent: progress.percent,
+      transferred: progress.transferred,
+      total: progress.total,
+      bytesPerSecond: progress.bytesPerSecond
+    })
+  })
+
   autoUpdater.on('update-downloaded', (info) => {
+    pendingReleaseVersion = info.version
     sendUpdate(webContents, {
       source: 'release',
       version: info.version,

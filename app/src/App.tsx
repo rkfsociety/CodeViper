@@ -20,6 +20,7 @@ import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { ProjectTreePanel } from './components/ProjectTreePanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
+import { UpdateBanner } from './components/UpdateBanner'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 
@@ -709,42 +710,11 @@ function AppContent() {
         </header>
 
         {updateInfo && (
-          <div className="update-banner" role="status">
-            <span>
-              {updateInfo.source === 'release' ? (
-                updateInfo.ready ? (
-                  <>
-                    🔄 Доступна новая версия <strong>{updateInfo.version}</strong>. Скачано —
-                    перезапустите для установки.
-                  </>
-                ) : (
-                  <>
-                    🔄 Загружается версия <strong>{updateInfo.version}</strong> с GitHub Releases…
-                  </>
-                )
-              ) : (
-                <>
-                  🔄 Доступно обновление исходников:{' '}
-                  {updateInfo.commits === 1 ? '1 коммит' : `${updateInfo.commits} коммит(ов)`} на
-                  GitHub. Перезапустите для пересборки.
-                </>
-              )}
-            </span>
-            <div className="update-banner-actions">
-              <button
-                className="btn primary"
-                disabled={updateInfo.source === 'release' && !updateInfo.ready}
-                onClick={() => window.codeviper.installUpdate()}
-              >
-                {updateInfo.source === 'release' && updateInfo.ready
-                  ? 'Перезапустить и обновить'
-                  : 'Перезапустить'}
-              </button>
-              <button className="btn" onClick={() => setUpdateInfo(null)}>
-                Позже
-              </button>
-            </div>
-          </div>
+          <UpdateBanner
+            info={updateInfo}
+            onInstall={() => window.codeviper.installUpdate()}
+            onDismiss={() => setUpdateInfo(null)}
+          />
         )}
 
         <div className="layout">
