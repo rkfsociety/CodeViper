@@ -337,6 +337,14 @@ export const BenchmarkResultSchema = z.object({
   error: z.string().optional()
 })
 
+const RoadmapItemSchema = z.object({
+  num: z.number().int(),
+  size: z.enum(['S', 'M', 'L', 'XL']),
+  title: z.string(),
+  priority: z.string(),
+  chain: z.string()
+})
+
 // ─── Имена IPC-каналов ────────────────────────────────────────────────────
 
 /**
@@ -395,6 +403,7 @@ export const IPC = {
   REMOVE_MCP_SERVER: 'remove-mcp-server',
   BENCHMARK_MODEL: 'benchmark-model',
   AUTO_INDEX_PROJECT: 'auto-index-project',
+  LIST_ROADMAP_ITEMS: 'list-roadmap-items',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   SAVE_APP_STATE: 'save-app-state',
@@ -612,6 +621,10 @@ export const Contracts = {
   [IPC.AUTO_INDEX_PROJECT]: {
     args: z.tuple([z.string(), z.string(), z.string(), z.string().optional()]),
     result: z.void()
+  },
+  [IPC.LIST_ROADMAP_ITEMS]: {
+    args: z.tuple([]),
+    result: z.array(RoadmapItemSchema)
   },
   [IPC.RUN_AGENT]: {
     args: z.tuple([

@@ -391,6 +391,9 @@ const codeviper = {
       'benchmarkModel'
     ),
 
+  listRoadmapItems: () =>
+    withTimeout(ipcRenderer.invoke(IPC.LIST_ROADMAP_ITEMS), IPC_TIMEOUT_MS, 'listRoadmapItems'),
+
   autoIndexProject: (
     projectPath: string,
     ollamaUrl: string,

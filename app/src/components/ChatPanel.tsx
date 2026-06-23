@@ -43,6 +43,7 @@ import { SelfImprovePlanPanel } from './SelfImprovePlanPanel'
 import { AgentLearningPanel } from './AgentLearningPanel'
 import { ProjectRulesPanel } from './ProjectRulesPanel'
 import { SlashCommandMenu } from './SlashCommandMenu'
+import { RoadmapPickerPanel } from './RoadmapPickerPanel'
 import { matchSlashCommands, expandSlashCommand } from '../../shared/slashCommands'
 import type { SlashCommand } from '../../shared/slashCommands'
 import styles from './ChatPanel.module.css'
@@ -340,6 +341,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [todoTitle, setTodoTitle] = useState<string | undefined>(undefined)
   const [indexingProgress, setIndexingProgress] = useState<ProgressInfo | null>(null)
   const [slashMenuIndex, setSlashMenuIndex] = useState(0)
+  const [showRoadmapPanel, setShowRoadmapPanel] = useState(false)
   const setTodoItemsRef = useRef<((items: TodoItem[] | null, title?: string) => void) | undefined>(
     undefined
   )
@@ -1183,6 +1185,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           <ProjectRulesPanel projectPath={projectPath} onClose={() => setShowRulesPanel(false)} />
         )}
 
+        {showRoadmapPanel && chatId && projectPath && (
+          <RoadmapPickerPanel
+            onSelect={(prompt) => {
+              insertPrompt(prompt)
+              setShowRoadmapPanel(false)
+            }}
+            onClose={() => setShowRoadmapPanel(false)}
+          />
+        )}
+
         {showQuickBar && chatId && projectPath && (
           <QuickPromptBar
             onInsert={(text) => {
@@ -1397,6 +1409,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                 onClick={() => setShowLearningPanel((v) => !v)}
               >
                 ☁️
+              </button>
+
+              {/* Панель ROADMAP */}
+              <button
+                type="button"
+                className={`${styles.metaBtn}${showRoadmapPanel ? ' ' + styles.metaBtnActive : ''}`}
+                title="ROADMAP — выбрать задачу самоулучшения"
+                onClick={() => setShowRoadmapPanel((v) => !v)}
+                disabled={!projectPath}
+              >
+                🗺
               </button>
 
               {/* Быстрые промпты */}

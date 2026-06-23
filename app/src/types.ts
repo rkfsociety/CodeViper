@@ -512,6 +512,14 @@ export interface BenchmarkRun {
   tps: number
 }
 
+export interface RoadmapItem {
+  num: number
+  size: 'S' | 'M' | 'L' | 'XL'
+  title: string
+  priority: string
+  chain: string
+}
+
 export interface BenchmarkResult {
   model: string
   runs: BenchmarkRun[]
@@ -649,6 +657,7 @@ export interface CodeViperAPI {
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>
+  listRoadmapItems: () => Promise<RoadmapItem[]>
   benchmarkModel: (ollamaUrl: string, model: string) => Promise<BenchmarkResult>
   autoIndexProject: (
     projectPath: string,

@@ -63,6 +63,7 @@ import {
 import { createCodeViperPr } from './selfCommit'
 import { runBenchmark } from './modelBenchmark'
 import { runProjectAutoIndex } from './contextRAG'
+import { listRoadmapItems } from './roadmapParser'
 import { agentLogger } from './agentLogger'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
@@ -723,6 +724,10 @@ ipcMain.handle(IPC.REMOVE_MCP_SERVER, async (_e, ...a) => {
 ipcMain.handle(IPC.BENCHMARK_MODEL, async (_e, ...a) => {
   const [ollamaUrl, model] = parseIpcArgs(Contracts[IPC.BENCHMARK_MODEL].args, a)
   return runBenchmark(ollamaUrl, model)
+})
+
+ipcMain.handle(IPC.LIST_ROADMAP_ITEMS, async () => {
+  return listRoadmapItems()
 })
 
 ipcMain.handle(IPC.AUTO_INDEX_PROJECT, async (_e, ...a) => {
