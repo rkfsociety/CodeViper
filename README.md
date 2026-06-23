@@ -44,7 +44,7 @@ cd CodeViper/app && npm install
 - [🛠 Инструменты агента](https://github.com/rkfsociety/CodeViper/wiki/Инструменты-агента)
 - [🧠 Память и самообучение](https://github.com/rkfsociety/CodeViper/wiki/Память-и-самообучение)
 - [🏗 Архитектура](https://github.com/rkfsociety/CodeViper/wiki/Архитектура)
-- [📋 Дорожная карта](ROADMAP.md) — 67 задач в формате для самообучения (цель / файлы / действие / проверка); промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper`
+- [📋 Дорожная карта](ROADMAP.md) — 35 задач в формате для самообучения (цель / файлы / действие / проверка); промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper`
 
 Поддержка MCP-серверов: настройки → «Интеграции» → MCP; инструменты с префиксом `mcp_`, вызов `/tools/call` и отправка результата на `/tools/result`.
 
