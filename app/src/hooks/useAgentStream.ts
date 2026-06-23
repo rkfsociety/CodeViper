@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject } from 'react'
 import { makeId } from '../../shared/makeId'
 import { compactToolChatLine } from '../../shared/toolDisplay'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentContextPreview, ChatMessage, TodoItem } from '../types'
+import type { AgentContextPreview, ChatMessage, SelfImprovementPlanItem, TodoItem } from '../types'
 import type { GenerationMetrics } from '../../shared/generationMetrics'
 import type { AgentAction } from '../contexts/AgentContext'
 
@@ -23,6 +23,9 @@ export interface UseAgentStreamOptions {
   setTodoItemsRef?: MutableRefObject<
     ((items: TodoItem[] | null, title?: string) => void) | undefined
   >
+  setPlanItemsRef?: MutableRefObject<
+    ((items: SelfImprovementPlanItem[] | null) => void) | undefined
+  >
   dispatch: Dispatch<AgentAction>
 }
 
@@ -38,6 +41,7 @@ export function useAgentStream({
   setContextPreview,
   onAgentDoneRef,
   setTodoItemsRef,
+  setPlanItemsRef,
   dispatch
 }: UseAgentStreamOptions) {
   const [draft, setDraft] = useState('')
@@ -325,6 +329,9 @@ export function useAgentStream({
           content: event.content ?? '',
           timestamp: Date.now()
         })
+        if (event.planItems) {
+          setPlanItemsRef?.current?.(event.planItems)
+        }
       }
 
       if (event.type === 'todo_update') {

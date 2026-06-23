@@ -13,7 +13,14 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { makeId } from '../../shared/makeId'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, TodoItem } from '../types'
+import type {
+  AgentSettings,
+  ChatMessage,
+  OllamaModel,
+  ProgressInfo,
+  SelfImprovementPlanItem,
+  TodoItem
+} from '../types'
 import { filterToolCallingModels } from '../types'
 import { GEMINI_FREE_MODELS } from '../../shared/constants'
 
@@ -32,6 +39,7 @@ const CLOUD_KNOWN_MODELS: Record<string, string[]> = {
 }
 import { AgentStatusBar } from './AgentStatusBar'
 import { TodoPanel } from './TodoPanel'
+import { SelfImprovePlanPanel } from './SelfImprovePlanPanel'
 import { AgentLearningPanel } from './AgentLearningPanel'
 import { ProjectRulesPanel } from './ProjectRulesPanel'
 import styles from './ChatPanel.module.css'
@@ -334,6 +342,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setTodoItems(items)
     if (title !== undefined) setTodoTitle(title)
   }
+  const [planItems, setPlanItems] = useState<SelfImprovementPlanItem[] | null>(null)
+  const setPlanItemsRef = useRef<((items: SelfImprovementPlanItem[] | null) => void) | undefined>(
+    undefined
+  )
+  setPlanItemsRef.current = (items) => setPlanItems(items)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const atBottomRef = useRef(true)
@@ -453,6 +466,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setContextPreview,
     onAgentDoneRef,
     setTodoItemsRef,
+    setPlanItemsRef,
     dispatch
   })
 
@@ -619,6 +633,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setContextPreview(null)
     setTodoItems(null)
     setTodoTitle(undefined)
+    setPlanItems(null)
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1076,6 +1091,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       <div className={styles.input}>
         {busy && (
           <AgentStatusBar model={settings.model} queueSize={queueSize} progress={progress} />
+        )}
+
+        {planItems && planItems.length > 0 && (
+          <SelfImprovePlanPanel items={planItems} onClose={() => setPlanItems(null)} />
         )}
 
         {todoItems && todoItems.length > 0 && (
