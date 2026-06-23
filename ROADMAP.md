@@ -375,3 +375,4 @@ N · [S/M/L/XL] · Краткое название
 - Плагины: сканирование ~/.codeviper/plugins/*.js и *.ts; esbuild с кэшем; изоляция в worker_thread
 - UI: FileTimelinePanel, ChatHistoryPanel, поиск по настройкам, горячие клавиши, виртуализация списка сообщений
 - Ядро агента: рефакторинг на 6 модулей; параллельное выполнение инструментов; суммаризация; LRU-кэши; workers
+- Режим инкогнито: тумблер в топбаре; чаты/NDJSON-логи только в RAM; skip persist в flushCurrentChat и agentLogger

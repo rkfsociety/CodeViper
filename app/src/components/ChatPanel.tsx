@@ -75,6 +75,7 @@ interface Props {
   onOpenSettings?: () => void
   onEnqueueModel?: (modelName: string) => void
   onRefreshOllama?: () => Promise<void>
+  incognito?: boolean
 }
 
 const FILE_LIMIT = 10
@@ -283,7 +284,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onSettingsChange,
     onOpenSettings,
     onEnqueueModel,
-    onRefreshOllama
+    onRefreshOllama,
+    incognito = false
   },
   ref
 ) {
@@ -341,6 +343,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const setMessagesRef = useRef(setMessages)
   const onLearningSavedRef = useRef(onLearningSaved)
   const onActiveModelChangeRef = useRef(onActiveModelChange)
+  const incognitoRef = useRef(incognito)
+  incognitoRef.current = incognito
 
   // Координационные рефы между хуками — созданы здесь, переданы в оба.
   const dispatch = useAgentDispatch()
@@ -519,7 +523,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onPrerequisiteIssue: setPrerequisiteBlock,
     onDangerWarning: setDangerBlock,
     draftRef,
-    onInterruptedDraft: handleInterruptedDraft
+    onInterruptedDraft: handleInterruptedDraft,
+    incognitoRef
   })
 
   // ── Хук: контекст-превью (debounce 600 ms, не работает пока агент занят) ─

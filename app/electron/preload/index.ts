@@ -114,8 +114,18 @@ const codeviper = {
     projectPath: string,
     chatId: string,
     messages: ChatMessage[],
-    userMessage: string
-  ) => ipcRenderer.invoke(IPC.RUN_AGENT, settings, projectPath, chatId, messages, userMessage),
+    userMessage: string,
+    incognito?: boolean
+  ) =>
+    ipcRenderer.invoke(
+      IPC.RUN_AGENT,
+      settings,
+      projectPath,
+      chatId,
+      messages,
+      userMessage,
+      incognito
+    ),
 
   getAgentRunState: () =>
     withTimeout(ipcRenderer.invoke(IPC.GET_AGENT_RUN_STATE), IPC_TIMEOUT_MS, 'getAgentRunState'),

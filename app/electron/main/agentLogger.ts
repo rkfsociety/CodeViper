@@ -15,6 +15,11 @@ function dateStamp(): string {
 
 class AgentLogger {
   private dir: string | null = null
+  private incognito = false
+
+  setIncognito(flag: boolean): void {
+    this.incognito = flag
+  }
 
   private logsDir(): string {
     if (!this.dir) {
@@ -28,6 +33,7 @@ class AgentLogger {
   }
 
   async write(entry: AgentLogEntry): Promise<void> {
+    if (this.incognito) return
     try {
       await mkdir(this.logsDir(), { recursive: true })
       const line = tronStringify({ ts: new Date().toISOString(), ...entry }) + '\n'

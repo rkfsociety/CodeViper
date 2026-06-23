@@ -43,6 +43,8 @@ export interface UseMessageQueueOptions {
   draftRef?: MutableRefObject<string>
   /** Вызывается при обрыве стрима — передаёт partial-текст и сообщение пользователя */
   onInterruptedDraft?: (partial: string, userMessage: string) => void
+  /** Реф на флаг инкогнито — если true, агент не пишет логи и сообщения не персистируются */
+  incognitoRef?: MutableRefObject<boolean>
 }
 
 export function useMessageQueue({
@@ -60,7 +62,8 @@ export function useMessageQueue({
   onPrerequisiteIssue,
   onDangerWarning,
   draftRef,
-  onInterruptedDraft
+  onInterruptedDraft,
+  incognitoRef
 }: UseMessageQueueOptions) {
   const queueRef = useRef<Array<{ id: string; text: string }>>([])
   const agentRunningRef = useRef(false)
@@ -168,7 +171,14 @@ export function useMessageQueue({
 
       try {
         await Promise.race([
-          window.codeviper.runAgent(currentSettings, project, chat, history, text),
+          window.codeviper.runAgent(
+            currentSettings,
+            project,
+            chat,
+            history,
+            text,
+            incognitoRef?.current ?? false
+          ),
           timeoutPromise
         ])
         clearTimeout(timeoutHandle)

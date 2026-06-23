@@ -92,6 +92,12 @@ function AppContent() {
   const [settingsReady, setSettingsReady] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const [lightMode, setLightMode] = useState(false)
+  const [incognitoMode, setIncognitoMode] = useState(false)
+  const incognitoModeRef = useRef(false)
+  incognitoModeRef.current = incognitoMode
+  const [incognitoChatIds, setIncognitoChatIds] = useState(new Set<string>())
+  const incognitoChatIdsRef = useRef(new Set<string>())
+  incognitoChatIdsRef.current = incognitoChatIds
   const [showSecurityNotice, setShowSecurityNotice] = useState(false)
   const [crashRecovery, setCrashRecovery] = useState<AppState | null>(null)
   const [agentMode, setAgentMode] = useState<AgentMode>('code')
@@ -116,6 +122,7 @@ function AppContent() {
   const flushCurrentChat = useCallback(async () => {
     const chatId = activeChatIdRef.current
     if (!chatId) return
+    if (incognitoChatIdsRef.current.has(chatId)) return
     const msgs = chatMessagesRef.current.get(chatId) ?? []
     const title = deriveChatTitle(msgs)
     await window.codeviper.updateChat(chatId, {
@@ -465,6 +472,9 @@ function AppContent() {
       await flushCurrentChat()
 
       const chat = await window.codeviper.createChat(folderId, agentModeRef.current)
+      if (incognitoModeRef.current) {
+        setIncognitoChatIds((prev) => new Set(prev).add(chat.id))
+      }
       await refreshChatStore()
       lastActiveChatPerMode.current[agentModeRef.current] = chat.id
       setActiveChatId(chat.id)
@@ -655,6 +665,17 @@ function AppContent() {
               {lightMode ? '🌙' : '☀️'}
             </button>
             <button
+              className={`btn${incognitoMode ? ' active' : ''}`}
+              title={
+                incognitoMode
+                  ? 'Инкогнито включён — чаты не сохраняются'
+                  : 'Включить режим инкогнито'
+              }
+              onClick={() => setIncognitoMode((v) => !v)}
+            >
+              {incognitoMode ? '🕶️' : '👁️'}
+            </button>
+            <button
               className={`btn ${tracePanelOpen ? 'active' : ''}`}
               onClick={() => setTracePanelOpen((v) => !v)}
               title="Трассировка агента — сырой лог всех запросов к модели"
@@ -772,6 +793,7 @@ function AppContent() {
                       setMemoryRefreshKey((key) => key + 1)
                       setSkillsRefreshKey((key) => key + 1)
                     }}
+                    incognito={incognitoChatIds.has(chatId)}
                   />
                 </div>
               </ChatContext.Provider>

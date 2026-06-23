@@ -61,6 +61,7 @@ import {
   pullCollectiveSkillsFromRemote
 } from './collectiveMemorySync'
 import { createCodeViperPr } from './selfCommit'
+import { agentLogger } from './agentLogger'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
   AgentSettings,
@@ -718,13 +719,15 @@ ipcMain.handle(
     projectPath: string,
     chatId: string,
     history: ChatMessage[],
-    userMessage: string
+    userMessage: string,
+    incognito?: boolean
   ) => {
     if (agentRunStates.has(chatId)) {
       throw new Error('Агент уже выполняет задачу в этом чате. Дождитесь завершения.')
     }
 
     recordRun()
+    agentLogger.setIncognito(incognito ?? false)
 
     const abortCtrl = new AbortController()
     agentRunStates.set(chatId, { chatId })
@@ -804,6 +807,7 @@ ipcMain.handle(
         stream(chatId, { type: 'done' })
       }
     } finally {
+      agentLogger.setIncognito(false)
       stopSystemStatsPush()
       clearProgress()
       setProgressTarget(null)

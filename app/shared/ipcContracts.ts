@@ -594,7 +594,8 @@ export const Contracts = {
       z.string(),
       z.string(),
       z.array(ChatMessageSchema),
-      z.string()
+      z.string(),
+      z.boolean().optional()
     ]),
     result: z.void()
   },

@@ -532,7 +532,8 @@ export interface CodeViperAPI {
     projectPath: string,
     chatId: string,
     messages: ChatMessage[],
-    userMessage: string
+    userMessage: string,
+    incognito?: boolean
   ) => Promise<void>
   getAgentRunState: () => Promise<string[]>
   stopAgent: (chatId: string) => Promise<boolean>
