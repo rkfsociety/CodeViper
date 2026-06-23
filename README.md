@@ -22,7 +22,9 @@
 
 ## Быстрый старт
 
-**Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org), 8 ГБ RAM.
+**Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org) (для запуска из исходников), 8 ГБ RAM.
+
+**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — при запуске запросит **права администратора (UAC)**; без подтверждения мастер установки может не открыться.
 
 ```powershell
 git clone https://github.com/rkfsociety/CodeViper.git
