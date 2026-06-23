@@ -92,6 +92,7 @@ export const PersistedSettingsSchema = z.object({
   orchestratorEnabled: z.boolean().optional(),
   orchestratorMinMessageLength: z.number().optional(),
   shareCompute: z.boolean().optional(),
+  p2pConsentGiven: z.boolean().optional(),
   p2pServerUrl: z.string().optional(),
   p2pAuthToken: z.string().optional()
 })

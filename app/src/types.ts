@@ -261,6 +261,8 @@ export interface AgentSettings {
   orchestratorMinMessageLength?: number
   /** Делиться вычислительными ресурсами через P2P-сеть */
   shareCompute?: boolean
+  /** Пользователь подтвердил согласие на P2P (показывается один раз) */
+  p2pConsentGiven?: boolean
   /** URL сигнального сервера P2P */
   p2pServerUrl?: string
   /** Bearer-токен для авторизации на P2P-сервере */
