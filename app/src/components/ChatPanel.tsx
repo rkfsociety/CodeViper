@@ -335,6 +335,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [contextLoading, setContextLoading] = useState(false)
   const [todoItems, setTodoItems] = useState<TodoItem[] | null>(null)
   const [todoTitle, setTodoTitle] = useState<string | undefined>(undefined)
+  const [indexingProgress, setIndexingProgress] = useState<ProgressInfo | null>(null)
   const setTodoItemsRef = useRef<((items: TodoItem[] | null, title?: string) => void) | undefined>(
     undefined
   )
@@ -661,6 +662,25 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     }
     return window.codeviper.onProgressEvent(setProgress)
   }, [busy])
+
+  // Фоновая подписка на progress-события для автоиндексации (не зависит от busy)
+  useEffect(() => {
+    if (busy) return
+    return window.codeviper.onProgressEvent((p) => {
+      setIndexingProgress(p)
+    })
+  }, [busy])
+
+  // Автоиндексация при смене проекта
+  useEffect(() => {
+    if (!projectPath || !settings.autoIndexOnOpen || !settings.qdrantUrl || !settings.ollamaUrl)
+      return
+    setIndexingProgress({ label: 'Индексация…', percent: 0 })
+    void window.codeviper
+      .autoIndexProject(projectPath, settings.ollamaUrl, settings.qdrantUrl, settings.qdrantApiKey)
+      .catch(() => {})
+      .finally(() => setIndexingProgress(null))
+  }, [projectPath]) // eslint-disable-line react-hooks/exhaustive-deps -- намеренно только projectPath
 
   useEffect(() => {
     if (!modelPickerOpen) return
@@ -1089,8 +1109,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       )}
 
       <div className={styles.input}>
-        {busy && (
-          <AgentStatusBar model={settings.model} queueSize={queueSize} progress={progress} />
+        {(busy || indexingProgress) && (
+          <AgentStatusBar
+            model={settings.model}
+            queueSize={queueSize}
+            progress={busy ? progress : indexingProgress}
+          />
         )}
 
         {planItems && planItems.length > 0 && (

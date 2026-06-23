@@ -394,6 +394,7 @@ export const IPC = {
   ADD_MCP_SERVER: 'add-mcp-server',
   REMOVE_MCP_SERVER: 'remove-mcp-server',
   BENCHMARK_MODEL: 'benchmark-model',
+  AUTO_INDEX_PROJECT: 'auto-index-project',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   SAVE_APP_STATE: 'save-app-state',
@@ -607,6 +608,10 @@ export const Contracts = {
   [IPC.BENCHMARK_MODEL]: {
     args: z.tuple([z.string(), z.string()]),
     result: BenchmarkResultSchema
+  },
+  [IPC.AUTO_INDEX_PROJECT]: {
+    args: z.tuple([z.string(), z.string(), z.string(), z.string().optional()]),
+    result: z.void()
   },
   [IPC.RUN_AGENT]: {
     args: z.tuple([

@@ -64,6 +64,7 @@ export const PersistedSettingsSchema = z.object({
   commandAllowlist: z.array(z.string()).optional(),
   autoVerifyAfterEdit: z.boolean().optional(),
   webhookUrl: z.string().optional(),
+  autoIndexOnOpen: z.boolean().optional(),
   customSystemPrompt: z.string().optional(),
   gitlabToken: z.string().optional(),
   gitlabUrl: z.string().optional(),
@@ -195,6 +196,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.commandAllowlist?.length ? { commandAllowlist: settings.commandAllowlist } : {}),
     ...(settings.autoVerifyAfterEdit ? { autoVerifyAfterEdit: true } : {}),
     ...(settings.webhookUrl?.trim() ? { webhookUrl: settings.webhookUrl.trim() } : {}),
+    ...(settings.autoIndexOnOpen ? { autoIndexOnOpen: true } : {}),
     ...(settings.customSystemPrompt?.trim()
       ? { customSystemPrompt: settings.customSystemPrompt.trim() }
       : {}),

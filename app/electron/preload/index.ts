@@ -389,6 +389,18 @@ const codeviper = {
       ipcRenderer.invoke(IPC.BENCHMARK_MODEL, ollamaUrl, model),
       120_000,
       'benchmarkModel'
+    ),
+
+  autoIndexProject: (
+    projectPath: string,
+    ollamaUrl: string,
+    qdrantUrl: string,
+    qdrantApiKey?: string
+  ) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.AUTO_INDEX_PROJECT, projectPath, ollamaUrl, qdrantUrl, qdrantApiKey),
+      10_000,
+      'autoIndexProject'
     )
 }
 

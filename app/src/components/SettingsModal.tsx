@@ -2107,6 +2107,27 @@ export function SettingsModal({
                           <div className={`${styles.hint} ${styles.hintInline}`}>
                             API ключ нужен только для защищённых инстансов Qdrant Cloud.
                           </div>
+                          <label className={styles.toggle}>
+                            <input
+                              type="checkbox"
+                              checked={settings.autoIndexOnOpen === true}
+                              onChange={(e) =>
+                                onSettingsChange({ autoIndexOnOpen: e.target.checked || undefined })
+                              }
+                            />
+                            <span className={styles.track} aria-hidden="true">
+                              <span className={styles.thumb} />
+                            </span>
+                            <span className={styles.toggleContent}>
+                              <span className={styles.title}>
+                                Автоиндексация при открытии проекта
+                              </span>
+                              <span className={styles.desc}>
+                                При смене проекта файлы индексируются в Qdrant в фоне. Прогресс
+                                отображается в статусбаре.
+                              </span>
+                            </span>
+                          </label>
                         </>
                       )}
 

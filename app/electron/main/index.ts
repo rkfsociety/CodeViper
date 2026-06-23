@@ -62,6 +62,7 @@ import {
 } from './collectiveMemorySync'
 import { createCodeViperPr } from './selfCommit'
 import { runBenchmark } from './modelBenchmark'
+import { runProjectAutoIndex } from './contextRAG'
 import { agentLogger } from './agentLogger'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
@@ -722,6 +723,14 @@ ipcMain.handle(IPC.REMOVE_MCP_SERVER, async (_e, ...a) => {
 ipcMain.handle(IPC.BENCHMARK_MODEL, async (_e, ...a) => {
   const [ollamaUrl, model] = parseIpcArgs(Contracts[IPC.BENCHMARK_MODEL].args, a)
   return runBenchmark(ollamaUrl, model)
+})
+
+ipcMain.handle(IPC.AUTO_INDEX_PROJECT, async (_e, ...a) => {
+  const [projectPath, ollamaUrl, qdrantUrl, qdrantApiKey] = parseIpcArgs(
+    Contracts[IPC.AUTO_INDEX_PROJECT].args,
+    a
+  )
+  void runProjectAutoIndex(projectPath, ollamaUrl, qdrantUrl, qdrantApiKey)
 })
 
 ipcMain.handle(

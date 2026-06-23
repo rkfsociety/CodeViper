@@ -187,6 +187,8 @@ export interface AgentSettings {
   soundNotifications?: boolean
   /** URL для POST-уведомления при завершении прогона агента (Slack/Discord/n8n) */
   webhookUrl?: string
+  /** Автоиндексация проекта в Qdrant при смене projectPath */
+  autoIndexOnOpen?: boolean
   /** Синхронизировать с Git при запуске (stash/reset); по умолчанию true */
   gitSyncOnStartup?: boolean
   /** Стратегия git-синхронизации при запуске; по умолчанию 'stash' */
@@ -648,6 +650,12 @@ export interface CodeViperAPI {
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>
   benchmarkModel: (ollamaUrl: string, model: string) => Promise<BenchmarkResult>
+  autoIndexProject: (
+    projectPath: string,
+    ollamaUrl: string,
+    qdrantUrl: string,
+    qdrantApiKey?: string
+  ) => Promise<void>
 }
 
 declare global {
