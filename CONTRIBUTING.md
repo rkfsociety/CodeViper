@@ -196,6 +196,21 @@ npm run build
 | 5 | Если мутирует данные | `shared/actionVerification.ts` → `MUTATING_TOOLS` |
 | 6 | typecheck + build | `app/` |
 
+## Pull Request
+
+При создании PR выберите шаблон: [Compare → Open pull request](https://github.com/rkfsociety/CodeViper/compare) — **feature**, **bugfix**, **documentation**, **self-improvement** или **default**.
+
+Минимум для кода в `app/`:
+
+```powershell
+cd app
+npm run typecheck
+npm run build
+npm run test
+```
+
+Пользовательские изменения — обновите `README.md` / `docs/` в том же PR. Задача из ROADMAP — перенесите пункт в «✅ Сделано».
+
 ## Вопросы
 
 Пишите в [Discussions](https://github.com/rkfsociety/CodeViper/discussions) или создавайте [Issue](https://github.com/rkfsociety/CodeViper/issues/new/choose) — есть шаблоны: баг, предложение, вопрос, документация.
