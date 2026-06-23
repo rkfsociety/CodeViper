@@ -1,5 +1,7 @@
 # Интеграции и автоматизация
 
+> Дополнение к [вики](https://github.com/rkfsociety/CodeViper/wiki). Подробности по инструментам — [Инструменты агента](https://github.com/rkfsociety/CodeViper/wiki/Инструменты-агента).
+
 Кратко о возможностях, которые не помещаются в [README](../README.md). Назад в [README](../README.md).
 
 ## MCP

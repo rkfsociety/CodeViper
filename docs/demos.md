@@ -1,5 +1,7 @@
 # Демонстрации
 
+> GIF хранятся в репозитории (`docs/media/`). Общая документация — [вики](https://github.com/rkfsociety/CodeViper/wiki).
+
 Короткие GIF типичных сценариев CodeViper.
 
 | Поиск по коду | Самоулучшение | Ollama |

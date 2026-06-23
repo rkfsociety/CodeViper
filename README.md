@@ -18,7 +18,7 @@
 
 ---
 
-Локальный AI-агент с GUI: читает проект, правит файлы, запускает команды, git-откат, самоулучшение по [ROADMAP](ROADMAP.md). Ollama, DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter.
+Локальный AI-агент с GUI: читает проект, правит файлы, запускает команды, git-откат, самоулучшение. Ollama, DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter.
 
 ## Быстрый старт
 
@@ -29,22 +29,30 @@ git clone https://github.com/rkfsociety/CodeViper.git
 cd CodeViper/app && npm install
 ```
 
-Двойной клик на **`CodeViper.cmd`** в корне репозитория. Ошибка запуска — **`CodeViper.cmd console`** (лог в `%LOCALAPPDATA%\CodeViper\dev.log`). Установщик: `npm run dist` в `app/` (portable Node — `npm run setup-node`).
+Двойной клик на **`CodeViper.cmd`**. Ошибка — **`CodeViper.cmd console`**. Подробнее — [вики · Быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт).
 
 ## Документация
+
+### [Вики проекта](https://github.com/rkfsociety/CodeViper/wiki) — основной источник
+
+| | |
+|---|---|
+| [Быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт) | [Провайдеры моделей](https://github.com/rkfsociety/CodeViper/wiki/Провайдеры-моделей) |
+| [Инструменты агента](https://github.com/rkfsociety/CodeViper/wiki/Инструменты-агента) | [Память и самообучение](https://github.com/rkfsociety/CodeViper/wiki/Память-и-самообучение) |
+| [История чатов](https://github.com/rkfsociety/CodeViper/wiki/История-чатов) | [Архитектура](https://github.com/rkfsociety/CodeViper/wiki/Архитектура) |
+| [Разработка](https://github.com/rkfsociety/CodeViper/wiki/Разработка) | [Безопасность](https://github.com/rkfsociety/CodeViper/wiki/Безопасность) |
+
+### В репозитории
 
 | | |
 |---|---|
 | [Демонстрации (GIF)](docs/demos.md) | [Примеры запросов](docs/example-prompts.md) |
-| [Использование](docs/usage.md) | [Провайдеры моделей](docs/models.md) |
-| [Интеграции](docs/integrations.md) | [Самоулучшение](docs/self-improvement.md) |
-| [Архитектура](docs/architecture.md) | [Разработка и тесты](docs/development.md) |
-
-[Вики](https://github.com/rkfsociety/CodeViper/wiki) · [ROADMAP](ROADMAP.md) (23 задачи; промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper`)
+| [Интеграции (MCP, P2P)](docs/integrations.md) | [Индекс docs/](docs/README.md) |
+| [ROADMAP](ROADMAP.md) | промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper` |
 
 ## Участие
 
-Баги и предложения — [Issues](https://github.com/rkfsociety/CodeViper/issues). PR приветствуются.
+[Issues](https://github.com/rkfsociety/CodeViper/issues) · PR приветствуются.
 
 ## Лицензия
 
