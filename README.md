@@ -35,6 +35,15 @@ cd CodeViper/app && npm install
 
 Если при запуске появляется ошибка «npm run start завершился с кодом 1» — запустите **`CodeViper.cmd console`**: лаунчер пересоберёт `out/`, если исходники новее сборки, и покажет полный лог в окне. Подробности — в `%LOCALAPPDATA%\CodeViper\dev.log`.
 
+## Демонстрации
+
+| Поиск по коду | Самоулучшение | Ollama |
+| :---: | :---: | :---: |
+| ![Поиск по проекту](docs/media/search.gif) | ![Самоулучшение по ROADMAP](docs/media/self-improve.gif) | ![Настройка Ollama](docs/media/ollama.gif) |
+| `grep_files` → `read_file` → ответ | ROADMAP → план → коммит в `agent/self-improve` | Список моделей и скачивание |
+
+Перегенерация GIF: `cd app && npm run capture:readme-media` (исходники макетов — `docs/media/source/`).
+
 ## Примеры запросов
 
 Скопируйте промпт в чат — агент сам выберет инструменты (поиск, правка, команды, веб). В поле ввода `@` подставляет путь к файлу проекта.
@@ -102,7 +111,7 @@ cd CodeViper/app && npm install
 - [🛠 Инструменты агента](https://github.com/rkfsociety/CodeViper/wiki/Инструменты-агента)
 - [🧠 Память и самообучение](https://github.com/rkfsociety/CodeViper/wiki/Память-и-самообучение)
 - [🏗 Архитектура](https://github.com/rkfsociety/CodeViper/wiki/Архитектура)
-- [📋 Дорожная карта](ROADMAP.md) — 24 задачи в формате для самообучения (цель / файлы / действие / проверка); промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper`
+- [📋 Дорожная карта](ROADMAP.md) — 23 задачи в формате для самообучения (цель / файлы / действие / проверка); промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper`
 
 Поддержка MCP-серверов: настройки → «Интеграции» → MCP; инструменты с префиксом `mcp_`, вызов `/tools/call` и отправка результата на `/tools/result`.
 
