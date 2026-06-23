@@ -382,7 +382,14 @@ const codeviper = {
   saveAppState: (state: AppState | null) => ipcRenderer.send(IPC.SAVE_APP_STATE, state),
 
   getCrashRecovery: (): Promise<AppState | null> =>
-    withTimeout(ipcRenderer.invoke(IPC.GET_CRASH_RECOVERY), IPC_TIMEOUT_MS, 'getCrashRecovery')
+    withTimeout(ipcRenderer.invoke(IPC.GET_CRASH_RECOVERY), IPC_TIMEOUT_MS, 'getCrashRecovery'),
+
+  benchmarkModel: (ollamaUrl: string, model: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.BENCHMARK_MODEL, ollamaUrl, model),
+      120_000,
+      'benchmarkModel'
+    )
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)

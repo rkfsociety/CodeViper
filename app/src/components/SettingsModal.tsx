@@ -1,6 +1,12 @@
 import { useEffect, useState, createContext, useContext, type ReactNode } from 'react'
 import styles from './SettingsModal.module.css'
-import type { AgentSettings, GitSyncStrategy, OllamaModel, PermissionMode } from '../types'
+import type {
+  AgentSettings,
+  BenchmarkResult,
+  GitSyncStrategy,
+  OllamaModel,
+  PermissionMode
+} from '../types'
 import { GIT_SYNC_STRATEGIES, GIT_SYNC_STRATEGY_LABELS } from '../types'
 import {
   DEFAULT_COMMAND_TIMEOUT_SEC,
@@ -251,6 +257,8 @@ export function SettingsModal({
   const [mcpUrl, setMcpUrl] = useState('')
   const [mcpBusy, setMcpBusy] = useState(false)
   const [mcpError, setMcpError] = useState<string | null>(null)
+  const [benchRunning, setBenchRunning] = useState(false)
+  const [benchResult, setBenchResult] = useState<BenchmarkResult | null>(null)
 
   function toggleKeyVisible(key: string) {
     setApiKeyVisible((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -286,6 +294,27 @@ export function SettingsModal({
       setPingState('fail')
     }
     setTimeout(() => setPingState('idle'), 3000)
+  }
+
+  async function handleBenchmark() {
+    if (!settings.model || benchRunning) return
+    setBenchRunning(true)
+    setBenchResult(null)
+    try {
+      const result = await window.codeviper.benchmarkModel(settings.ollamaUrl, settings.model)
+      setBenchResult(result)
+    } catch (e) {
+      setBenchResult({
+        model: settings.model,
+        runs: [],
+        avgLatencyMs: 0,
+        avgTps: 0,
+        toolCallOk: false,
+        error: e instanceof Error ? e.message : String(e)
+      })
+    } finally {
+      setBenchRunning(false)
+    }
   }
 
   function handleProviderChange(
@@ -1684,6 +1713,98 @@ export function SettingsModal({
                         })
                       }
                     />
+                  )}
+                  {provider === 'ollama' && settings.model && (
+                    <div className={styles.section} style={{ marginTop: 12 }}>
+                      <div className={styles.sectionLabel}>Бенчмарк модели</div>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}
+                      >
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => void handleBenchmark()}
+                          disabled={benchRunning}
+                        >
+                          {benchRunning ? 'Тестирую…' : 'Запустить бенчмарк'}
+                        </button>
+                        {benchRunning && (
+                          <span style={{ fontSize: 12, opacity: 0.6 }}>3 прогона + tool call</span>
+                        )}
+                      </div>
+                      {benchResult &&
+                        (benchResult.error ? (
+                          <div style={{ color: 'var(--color-error, #e05)', fontSize: 12 }}>
+                            Ошибка: {benchResult.error}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 12 }}>
+                            <table
+                              style={{ borderCollapse: 'collapse', width: '100%', marginBottom: 6 }}
+                            >
+                              <thead>
+                                <tr style={{ opacity: 0.6 }}>
+                                  <th
+                                    style={{
+                                      textAlign: 'left',
+                                      paddingRight: 12,
+                                      fontWeight: 'normal'
+                                    }}
+                                  >
+                                    Прогон
+                                  </th>
+                                  <th
+                                    style={{
+                                      textAlign: 'right',
+                                      paddingRight: 12,
+                                      fontWeight: 'normal'
+                                    }}
+                                  >
+                                    Токены
+                                  </th>
+                                  <th
+                                    style={{
+                                      textAlign: 'right',
+                                      paddingRight: 12,
+                                      fontWeight: 'normal'
+                                    }}
+                                  >
+                                    tok/s
+                                  </th>
+                                  <th style={{ textAlign: 'right', fontWeight: 'normal' }}>
+                                    Задержка
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {benchResult.runs.map((r, i) => (
+                                  <tr key={i}>
+                                    <td style={{ paddingRight: 12 }}>#{i + 1}</td>
+                                    <td style={{ textAlign: 'right', paddingRight: 12 }}>
+                                      {r.tokens}
+                                    </td>
+                                    <td style={{ textAlign: 'right', paddingRight: 12 }}>
+                                      {r.tps}
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>{r.latencyMs} мс</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            <div style={{ display: 'flex', gap: 16, opacity: 0.8 }}>
+                              <span>
+                                Среднее: <b>{benchResult.avgTps} tok/s</b>
+                              </span>
+                              <span>
+                                Задержка: <b>{benchResult.avgLatencyMs} мс</b>
+                              </span>
+                              <span>
+                                Tool call: <b>{benchResult.toolCallOk ? '✓' : '✗'}</b>
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   )}
                 </>
               )}

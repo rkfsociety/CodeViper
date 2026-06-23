@@ -287,13 +287,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Модели и обновления
 
-**40 · M · Бенчмарк локальных моделей** — приор. Low  
-- **Цель:** UI «Проверить модель»: tok/s, latency, успех tool call на эталонном промпте  
-- **Файлы:** `app/electron/main/modelBenchmark.ts`, `SettingsModal.tsx` (вкладка Модель)  
-- **Действие:** 3 коротких прогона; таблица результатов в модалке  
-- **Проверка:** кнопка «Бенчмарк» выводит tok/s для выбранной Ollama-модели
-
-**41 · S · Каналы обновлений stable/beta** — приор. Low  
+**40 · S · Каналы обновлений stable/beta** — приор. Low  
 - **Цель:** настройка канала: stable (latest release) / beta (pre-release) в `electron-updater`  
 - **Файлы:** `updateChecker.ts`, `settings.ts`, `SettingsModal.tsx`  
 - **Действие:** `allowPrerelease` по настройке; фильтр тегов GitHub  
@@ -301,7 +295,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Интеграции и изоляция
 
-**42 · L · Песочница для run_script** — приор. Low  
+**41 · L · Песочница для run_script** — приор. Low  
 - **Цель:** опциональный запуск скриптов в Docker-контейнере с mount только `projectPath`  
 - **Файлы:** `app/electron/main/scriptSandbox.ts`, `agentHandlersProject.ts`, `settings.ts`  
 - **Действие:** `docker run --rm -v projectPath` для python/bash; fallback на локальный run  
@@ -309,25 +303,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**43 · L · Голосовой ввод и озвучка** — приор. Low  
+**42 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**44 · XL · LSP в редакторе** — приор. Low  
+**43 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла в встроенном просмотре  
 - **Файлы:** `app/electron/main/lspClient.ts`, Monaco или CodeMirror интеграция  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**45 · L · Skill marketplace** — приор. Low  
+**44 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
 - **Проверка:** импорт skill из URL появляется локально
 
-**46 · M · E2E на Linux/macOS в CI** — приор. Medium  
+**45 · M · E2E на Linux/macOS в CI** — приор. Medium  
 - **Цель:** Playwright+Electron в матрице ubuntu/macos для smoke-тестов UI  
 - **Файлы:** `.github/workflows/ci.yml`, `app/tests/e2e/`  
 - **Действие:** job `test:e2e` на linux/macos (headless); фикс путей POSIX  
@@ -337,6 +331,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
+- Бенчмарк локальных моделей: modelBenchmark.ts; 3 текстовых прогона (tok/s, latency) + tool call тест; кнопка «Запустить бенчмарк» на вкладке Модель настроек; таблица результатов; только для Ollama-провайдера
 - Webhook «агент готов»: webhookNotify.ts; POST { chatId, projectPath, summary, durationMs } после каждого прогона; поле webhookUrl в настройках; UI в разделе Уведомления; best-effort (ошибка не прерывает агента)
 - UI правил проекта: кнопка 📋 в нижней панели чата открывает редактор `.codeviper/rules.md`; загрузка/сохранение через IPC read-file/write-file; подсказка при отсутствии файла; агент учитывает rules.md через memory.ts
 - Автопроверка после правок: после успешного SELF_EDIT_FILE_TOOLS при включённом autoVerifyAfterEdit — запуск npm run typecheck + npm test через runCodeViperCommand; вывод добавляется к tool_result в чате

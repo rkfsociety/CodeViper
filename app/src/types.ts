@@ -504,6 +504,21 @@ export interface PullRequestListResult {
   error?: string
 }
 
+export interface BenchmarkRun {
+  latencyMs: number
+  tokens: number
+  tps: number
+}
+
+export interface BenchmarkResult {
+  model: string
+  runs: BenchmarkRun[]
+  avgLatencyMs: number
+  avgTps: number
+  toolCallOk: boolean
+  error?: string
+}
+
 import type { UpdateInfo } from '../shared/updateInfo'
 export type { UpdateInfo }
 
@@ -632,6 +647,7 @@ export interface CodeViperAPI {
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>
+  benchmarkModel: (ollamaUrl: string, model: string) => Promise<BenchmarkResult>
 }
 
 declare global {

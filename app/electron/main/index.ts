@@ -61,6 +61,7 @@ import {
   pullCollectiveSkillsFromRemote
 } from './collectiveMemorySync'
 import { createCodeViperPr } from './selfCommit'
+import { runBenchmark } from './modelBenchmark'
 import { agentLogger } from './agentLogger'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
@@ -716,6 +717,11 @@ ipcMain.handle(IPC.ADD_MCP_SERVER, async (_e, ...a) => {
 ipcMain.handle(IPC.REMOVE_MCP_SERVER, async (_e, ...a) => {
   const [settings, serverUrl] = parseIpcArgs(Contracts[IPC.REMOVE_MCP_SERVER].args, a)
   return removeMcpServer(settings, serverUrl)
+})
+
+ipcMain.handle(IPC.BENCHMARK_MODEL, async (_e, ...a) => {
+  const [ollamaUrl, model] = parseIpcArgs(Contracts[IPC.BENCHMARK_MODEL].args, a)
+  return runBenchmark(ollamaUrl, model)
 })
 
 ipcMain.handle(

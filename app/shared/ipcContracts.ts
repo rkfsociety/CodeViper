@@ -322,6 +322,21 @@ export const SummarizeContextResultSchema = z.object({
   truncated: z.boolean()
 })
 
+export const BenchmarkRunSchema = z.object({
+  latencyMs: z.number(),
+  tokens: z.number(),
+  tps: z.number()
+})
+
+export const BenchmarkResultSchema = z.object({
+  model: z.string(),
+  runs: z.array(BenchmarkRunSchema),
+  avgLatencyMs: z.number(),
+  avgTps: z.number(),
+  toolCallOk: z.boolean(),
+  error: z.string().optional()
+})
+
 // ─── Имена IPC-каналов ────────────────────────────────────────────────────
 
 /**
@@ -378,6 +393,7 @@ export const IPC = {
   READ_FILE_HISTORY: 'read-file-history',
   ADD_MCP_SERVER: 'add-mcp-server',
   REMOVE_MCP_SERVER: 'remove-mcp-server',
+  BENCHMARK_MODEL: 'benchmark-model',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   SAVE_APP_STATE: 'save-app-state',
@@ -587,6 +603,10 @@ export const Contracts = {
   [IPC.REMOVE_MCP_SERVER]: {
     args: z.tuple([AgentSettingsSchema, z.string().min(1)]),
     result: AgentSettingsSchema
+  },
+  [IPC.BENCHMARK_MODEL]: {
+    args: z.tuple([z.string(), z.string()]),
+    result: BenchmarkResultSchema
   },
   [IPC.RUN_AGENT]: {
     args: z.tuple([
