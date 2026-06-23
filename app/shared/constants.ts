@@ -38,6 +38,12 @@ export const SELF_IMPROVE_RUN_TIMEOUT_MS = 2 * 60 * 60 * 1000
 /** Максимальное число сообщений в очереди агента */
 export const MAX_QUEUE_SIZE = 50
 
+// ── Оркестратор (node-llama-cpp) ─────────────────────────────────────────────
+/** Максимум токенов на один вызов analyze() */
+export const ORCHESTRATOR_MAX_TOKENS = 256
+/** Температура для JSON-генерации (низкая = детерминированный вывод) */
+export const ORCHESTRATOR_TEMPERATURE = 0.1
+
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
 export const CONTEXT_PREVIEW_DEBOUNCE_MS = 1000
