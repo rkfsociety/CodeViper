@@ -75,7 +75,11 @@ export async function readCollectiveMemoryStore(): Promise<MemoryStore> {
 
 export async function readCollectiveMemoryEntries(): Promise<MemoryEntry[]> {
   const store = await readCollectiveMemoryStore()
-  return store.entries.map((entry) => ({ ...entry, scope: 'global' as const }))
+  return store.entries.map((entry) => ({
+    ...entry,
+    scope: 'global' as const,
+    source: 'collective'
+  }))
 }
 
 async function mergeIntoCollectiveFile(entries: MemoryEntry[]): Promise<number> {

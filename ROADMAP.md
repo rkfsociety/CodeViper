@@ -390,6 +390,7 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
+- MemoryPanel: локальные vs коллективные — две отдельные секции с разделением по `source: 'collective'`; бейдж 📚 для коллективных записей; обновлена `readCollectiveMemoryEntries()` в `collectiveMemorySync.ts` для отметки источника
 - Pull collective при старте: `pullCollectiveMemoryFromRemote()` в `collectiveMemorySync.ts`; вызов при `gitSyncOnStartup` в `app.whenReady()`; fetch + `git checkout origin/{branch} -- docs/collective/ViperMemory.md`; best-effort (офлайн не ошибка)
 - `AgentLearningPanel`: панель коллективного обучения — ветка, счётчик pending, кнопки «Синхронизировать» и «Создать PR»; IPC `get-collective-sync-status` и `flush-collective-memory`; кнопка ☁️ в тулбаре ChatPanel; автообновление каждые 10 с
 - NSIS git clone: установщик клонирует репо в %APPDATA%CodeVipersource с флагом --depth 1; проверка git перед установкой; обновление через git pull --ff-only при повторной установке; ярлыки на Desktop и в Start Menu Programs запускают CodeViper.cmd через cmd.exe; опция удалить исходный код при дезинсталляции; обработка ошибок (нет git, нет интернета)

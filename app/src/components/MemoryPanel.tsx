@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { useCallback, useEffect, useState } from 'react'
 import type { MemoryEntry } from '../types'
 import { Skeleton } from './Skeleton'
 import styles from './MemorySkills.module.css'
@@ -12,12 +11,36 @@ interface Props {
   refreshKey?: number
 }
 
+interface MemoryItemProps {
+  entry: MemoryEntry
+  onRemove: (id: string) => void
+}
+
 const CATEGORY_LABELS: Record<MemoryEntry['category'], string> = {
   pattern: 'паттерн',
   mistake: 'ошибка',
   preference: 'предпочтение',
   project: 'проект',
   skill: 'навык'
+}
+
+function MemoryItem({ entry, onRemove }: MemoryItemProps) {
+  const isCollective = entry.source === 'collective'
+
+  return (
+    <div className={styles.item}>
+      <div className={styles.itemHead}>
+        <span className={styles.badge}>{CATEGORY_LABELS[entry.category]}</span>
+        <span className={styles.scope}>{entry.scope}</span>
+        {isCollective && <span className={styles.sourceBadge}>📚 коллектив</span>}
+        <button className={`btn ${styles.delete}`} onClick={() => onRemove(entry.id)}>
+          ✕
+        </button>
+      </div>
+      <div className={styles.content}>{entry.content}</div>
+      {entry.tags.length > 0 && <div className={styles.tags}>{entry.tags.join(' · ')}</div>}
+    </div>
+  )
 }
 
 export function MemoryPanel({
@@ -31,14 +54,9 @@ export function MemoryPanel({
   const [loading, setLoading] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [shareResult, setShareResult] = useState<string | null>(null)
-  const listRef = useRef<HTMLDivElement>(null)
 
-  const rowVirtualizer = useVirtualizer({
-    count: entries.length,
-    getScrollElement: () => listRef.current,
-    estimateSize: () => 90,
-    overscan: 3
-  })
+  const localEntries = entries.filter((e) => e.source !== 'collective')
+  const collectiveEntries = entries.filter((e) => e.source === 'collective')
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -89,12 +107,13 @@ export function MemoryPanel({
       </label>
 
       <div className={styles.sectionTitle}>
-        Память агента {loading ? <Skeleton inline width={28} height={14} /> : `(${entries.length})`}
+        Локальная память{' '}
+        {loading ? <Skeleton inline width={28} height={14} /> : `(${localEntries.length})`}
         <button
           type="button"
           className={`btn ${styles.shareBtn}`}
           onClick={share}
-          disabled={sharing || !entries.length}
+          disabled={sharing || !localEntries.length}
           title={
             githubToken ? 'Создать Gist и скопировать ссылку' : 'Нужен GitHub Token в настройках'
           }
@@ -104,48 +123,36 @@ export function MemoryPanel({
       </div>
       {shareResult && <div className={styles.shareResult}>{shareResult}</div>}
 
-      {!entries.length && (
+      {!localEntries.length && !collectiveEntries.length && (
         <div className="empty">
           Пока пусто. Агент запоминает уроки в ViperMemory.md через remember и после задач.
         </div>
       )}
 
-      <div ref={listRef} className={styles.list}>
-        <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const entry = entries[virtualRow.index]
-            return (
-              <div
-                key={virtualRow.key}
-                ref={rowVirtualizer.measureElement}
-                data-index={virtualRow.index}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                  paddingBottom: 8
-                }}
-              >
-                <div className={styles.item}>
-                  <div className={styles.itemHead}>
-                    <span className={styles.badge}>{CATEGORY_LABELS[entry.category]}</span>
-                    <span className={styles.scope}>{entry.scope}</span>
-                    <button className={`btn ${styles.delete}`} onClick={() => remove(entry.id)}>
-                      ✕
-                    </button>
-                  </div>
-                  <div className={styles.content}>{entry.content}</div>
-                  {entry.tags.length > 0 && (
-                    <div className={styles.tags}>{entry.tags.join(' · ')}</div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+      {localEntries.length > 0 && (
+        <div className={styles.list}>
+          {localEntries.map((entry) => (
+            <div key={entry.id} style={{ paddingBottom: 8 }}>
+              <MemoryItem entry={entry} onRemove={remove} />
+            </div>
+          ))}
         </div>
-      </div>
+      )}
+
+      {collectiveEntries.length > 0 && (
+        <div>
+          <div className={styles.sectionTitle}>
+            📚 Коллективная память {collectiveEntries.length}
+          </div>
+          <div className={styles.list}>
+            {collectiveEntries.map((entry) => (
+              <div key={entry.id} style={{ paddingBottom: 8 }}>
+                <MemoryItem entry={entry} onRemove={remove} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
