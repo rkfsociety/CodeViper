@@ -54,6 +54,8 @@ import { listPullRequests } from './githubPr'
 import { readFileHistory } from './fileHistory'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
 import { startUpdateChecks, installPendingUpdate } from './updateChecker'
+import { registerShutdownHook } from './appShutdown'
+import { unloadModel } from './nodeLlama'
 import {
   getPendingCollectiveMemoryCount,
   flushCollectiveMemoryToGit,
@@ -84,6 +86,15 @@ const agentRunStates = new Map<string, { chatId: string }>()
 const activeAgentAborts = new Map<string, AbortController>()
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
 const pendingPreviews = new Map<string, (apply: boolean) => void>()
+
+registerShutdownHook(() => {
+  for (const abort of activeAgentAborts.values()) abort.abort()
+  activeAgentAborts.clear()
+})
+registerShutdownHook(() => stopSystemStatsPush())
+registerShutdownHook(async () => {
+  await unloadModel().catch(() => {})
+})
 
 // Батчинг IPC: token/thinking события накапливаем и шлём не чаще раз в 50 мс.
 // webContents.send на каждый чанк имеет накладные расходы на сериализацию и IPC.

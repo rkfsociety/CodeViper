@@ -22,7 +22,7 @@
 
 ## Автообновление
 
-Установщик (packaged): `electron-updater` + GitHub Releases, баннер с прогрессом загрузки (%, объём, скорость, ETA) и кнопкой «Перезапустить и обновить». Разработка из исходников: git fetch `app/` и перезапуск через лаунчер.
+Установщик (packaged): `electron-updater` + GitHub Releases, баннер с прогрессом загрузки (%, объём, скорость, ETA) и кнопкой «Перезапустить и обновить». Перед установкой приложение завершает воркеры и агентов; на Windows при сбое `quitAndInstall` запускается установщик из `%LOCALAPPDATA%\codeviper-updater\pending\`. Лог: `%APPDATA%\CodeViper\logs\update-*.ndjson`. Разработка из исходников: git fetch `app/` и перезапуск через лаунчер.
 
 ## Прочее
 

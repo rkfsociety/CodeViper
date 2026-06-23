@@ -1,10 +1,16 @@
 import { spawn } from 'child_process'
-import { app } from 'electron'
+import { appendFile, mkdir } from 'fs/promises'
+import { app, BrowserWindow } from 'electron'
+import { join } from 'path'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 import type { WebContents } from 'electron'
 import type { UpdateInfo } from '../../shared/updateInfo'
+import { resolveWindowsPendingInstaller } from '../../shared/updateInstall'
 import { getCodeViperSourceRoot } from './codeviperSource'
+import { runShutdownHooks } from './appShutdown'
+import { shutdownEmbeddingWorker } from './embeddingQueue'
+import { shutdownLargeFileWorker } from './largeFileQueue'
 
 function runGit(
   cwd: string,
@@ -35,6 +41,25 @@ const GIT_CHECK_INTERVAL_MS = 10 * 60 * 1000
 let gitTimer: ReturnType<typeof setInterval> | null = null
 let releaseChecksStarted = false
 let pendingReleaseVersion: string | null = null
+let updateDownloadReady = false
+let installInProgress = false
+
+async function logUpdate(message: string, extra?: Record<string, unknown>): Promise<void> {
+  try {
+    const logsDir = join(app.getPath('userData'), 'logs')
+    await mkdir(logsDir, { recursive: true })
+    const line =
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        event: 'auto-update',
+        message,
+        ...extra
+      }) + '\n'
+    await appendFile(join(logsDir, `update-${new Date().toISOString().slice(0, 10)}.ndjson`), line)
+  } catch {
+    /* ignore */
+  }
+}
 
 function sendUpdate(webContents: WebContents, info: UpdateInfo): void {
   if (!webContents.isDestroyed()) {
@@ -77,9 +102,12 @@ function startReleaseUpdateChecks(webContents: WebContents): void {
 
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = false
+  autoUpdater.autoRunAppAfterInstall = true
 
   autoUpdater.on('update-available', (info) => {
     pendingReleaseVersion = info.version
+    updateDownloadReady = false
+    void logUpdate('update-available', { version: info.version })
     sendUpdate(webContents, {
       source: 'release',
       version: info.version,
@@ -102,6 +130,8 @@ function startReleaseUpdateChecks(webContents: WebContents): void {
 
   autoUpdater.on('update-downloaded', (info) => {
     pendingReleaseVersion = info.version
+    updateDownloadReady = true
+    void logUpdate('update-downloaded', { version: info.version })
     sendUpdate(webContents, {
       source: 'release',
       version: info.version,
@@ -109,8 +139,8 @@ function startReleaseUpdateChecks(webContents: WebContents): void {
     })
   })
 
-  autoUpdater.on('error', () => {
-    /* офлайн / нет релиза — тихо */
+  autoUpdater.on('error', (err) => {
+    void logUpdate('error', { error: err instanceof Error ? err.message : String(err) })
   })
 
   setTimeout(() => {
@@ -139,11 +169,82 @@ export function stopUpdateChecks(): void {
   }
 }
 
+function runWindowsInstallerFallback(): boolean {
+  if (process.platform !== 'win32') return false
+  const localAppData = process.env.LOCALAPPDATA
+  if (!localAppData) return false
+  const installer = resolveWindowsPendingInstaller(localAppData)
+  if (!installer) return false
+
+  try {
+    const child = spawn(installer, [], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: false
+    })
+    child.unref()
+    void logUpdate('windows-installer-fallback', { installer })
+    app.exit(0)
+    return true
+  } catch (err) {
+    void logUpdate('windows-installer-fallback-failed', {
+      error: err instanceof Error ? err.message : String(err)
+    })
+    return false
+  }
+}
+
+async function prepareForInstall(): Promise<void> {
+  stopUpdateChecks()
+  shutdownEmbeddingWorker()
+  shutdownLargeFileWorker()
+  await runShutdownHooks()
+
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.removeAllListeners('close')
+    if (!win.isDestroyed()) win.destroy()
+  }
+}
+
+function launchQuitAndInstall(): void {
+  setTimeout(() => {
+    try {
+      autoUpdater.autoRunAppAfterInstall = true
+      autoUpdater.quitAndInstall(false, true)
+    } catch (err) {
+      void logUpdate('quitAndInstall-threw', {
+        error: err instanceof Error ? err.message : String(err)
+      })
+      runWindowsInstallerFallback()
+    }
+  }, 0)
+}
+
 export function installPendingUpdate(): void {
-  if (app.isPackaged) {
-    autoUpdater.quitAndInstall()
+  if (installInProgress) return
+  installInProgress = true
+
+  if (!app.isPackaged) {
+    app.relaunch()
+    app.exit(0)
     return
   }
-  app.relaunch()
-  app.exit(0)
+
+  if (!updateDownloadReady) {
+    void logUpdate('install-skipped-not-ready')
+    installInProgress = false
+    return
+  }
+
+  void (async () => {
+    await logUpdate('install-start', { version: pendingReleaseVersion })
+    await prepareForInstall()
+    launchQuitAndInstall()
+
+    // Если quitAndInstall не завершил процесс — запускаем установщик вручную (Windows).
+    setTimeout(() => {
+      void logUpdate('install-timeout-fallback')
+      runWindowsInstallerFallback()
+    }, 12_000).unref()
+  })()
 }

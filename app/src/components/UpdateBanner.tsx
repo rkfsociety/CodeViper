@@ -9,6 +9,7 @@ import styles from './UpdateBanner.module.css'
 
 interface Props {
   info: UpdateInfo
+  installing?: boolean
   onInstall: () => void
   onDismiss: () => void
 }
@@ -36,7 +37,7 @@ function releaseProgressLine(info: Extract<UpdateInfo, { source: 'release' }>): 
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-export function UpdateBanner({ info, onInstall, onDismiss }: Props) {
+export function UpdateBanner({ info, installing = false, onInstall, onDismiss }: Props) {
   const releaseProgress = info.source === 'release' ? releaseProgressLine(info) : null
   const releasePercent =
     info.source === 'release' && !info.ready && info.percent != null
@@ -83,10 +84,14 @@ export function UpdateBanner({ info, onInstall, onDismiss }: Props) {
         <button
           type="button"
           className="btn primary"
-          disabled={info.source === 'release' && !info.ready}
+          disabled={installing || (info.source === 'release' && !info.ready)}
           onClick={onInstall}
         >
-          {info.source === 'release' && info.ready ? 'Перезапустить и обновить' : 'Перезапустить'}
+          {installing
+            ? 'Устанавливаем…'
+            : info.source === 'release' && info.ready
+              ? 'Перезапустить и обновить'
+              : 'Перезапустить'}
         </button>
         <button type="button" className="btn" onClick={onDismiss}>
           Позже

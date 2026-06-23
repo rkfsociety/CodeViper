@@ -64,3 +64,10 @@ export function readLargeFileQueued(
     getWorker().postMessage({ id, type: 'read', filePath, offset, limit, defaultLimit })
   })
 }
+
+export function shutdownLargeFileWorker(): void {
+  if (!worker) return
+  void worker.terminate()
+  worker = null
+  pending.clear()
+}

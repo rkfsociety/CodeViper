@@ -177,3 +177,14 @@ export function computeEmbeddingQueued(text: string, ollamaUrl: string): Promise
     scheduleFlush()
   })
 }
+
+/** Завершить воркер перед установкой обновления — иначе NSIS видит «процесс ещё работает». */
+export function shutdownEmbeddingWorker(): void {
+  if (!worker) return
+  void worker.terminate()
+  worker = null
+  ready = false
+  pending.clear()
+  waitQueue.splice(0)
+  draining = false
+}

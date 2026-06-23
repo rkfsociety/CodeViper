@@ -91,6 +91,7 @@ function AppContent() {
 
   useEffect(() => initTraceBuffer(), [])
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [installingUpdate, setInstallingUpdate] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const [lightMode, setLightMode] = useState(false)
@@ -712,7 +713,11 @@ function AppContent() {
         {updateInfo && (
           <UpdateBanner
             info={updateInfo}
-            onInstall={() => window.codeviper.installUpdate()}
+            installing={installingUpdate}
+            onInstall={() => {
+              setInstallingUpdate(true)
+              window.codeviper.installUpdate()
+            }}
             onDismiss={() => setUpdateInfo(null)}
           />
         )}
