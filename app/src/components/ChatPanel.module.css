@@ -725,6 +725,7 @@
 .permissionModeBar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
   padding: 4px 2px;
   border-bottom: 1px solid var(--border, #30363d);

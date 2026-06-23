@@ -421,6 +421,7 @@ export interface AgentStreamPayload {
     | 'retry_429'
     | 'circuit_breaker'
     | 'collective_sync'
+    | 'run_checkpoint'
   content?: string
   /** Поля события retry_429 */
   retryWaitMs?: number
@@ -457,6 +458,8 @@ export interface AgentStreamPayload {
   collectiveSyncStatus?: 'queued' | 'syncing' | 'done' | 'error'
   collectiveSyncBranch?: string
   collectiveSyncCount?: number
+  /** Чекпоинт прогона доступен для отката (type === 'run_checkpoint') */
+  runCheckpointActive?: boolean
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {
@@ -587,6 +590,8 @@ export interface CodeViperAPI {
   ) => Promise<void>
   getAgentRunState: () => Promise<string[]>
   stopAgent: (chatId: string) => Promise<boolean>
+  getRunCheckpoint: (chatId: string) => Promise<boolean>
+  rollbackRun: (chatId: string) => Promise<{ ok: boolean; message: string }>
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],

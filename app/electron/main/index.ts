@@ -77,6 +77,7 @@ import type {
   SavedChat
 } from '../../src/types'
 import { IPC, parseIpcArgs, Contracts } from '../../shared/ipcContracts'
+import { hasRunCheckpoint, rollbackRunCheckpoint } from './runCheckpoint'
 
 let mainWindow: BrowserWindow | null = null
 const agentRunStates = new Map<string, { chatId: string }>()
@@ -594,6 +595,20 @@ ipcMain.handle('stop-agent', async (_e, chatId: string) => {
   if (!abort) return false
   abort.abort()
   return true
+})
+
+ipcMain.handle(IPC.GET_RUN_CHECKPOINT, async (_e, ...a) => {
+  const [chatId] = parseIpcArgs(Contracts[IPC.GET_RUN_CHECKPOINT].args, a)
+  return hasRunCheckpoint(chatId)
+})
+
+ipcMain.handle(IPC.ROLLBACK_RUN, async (_e, ...a) => {
+  const [chatId] = parseIpcArgs(Contracts[IPC.ROLLBACK_RUN].args, a)
+  const result = await rollbackRunCheckpoint(chatId)
+  if (result.ok) {
+    stream(chatId, { type: 'run_checkpoint', runCheckpointActive: false })
+  }
+  return result
 })
 
 ipcMain.on(IPC.AGENT_CONFIRM_RESPONSE, (_e, id: string, approved: boolean) => {

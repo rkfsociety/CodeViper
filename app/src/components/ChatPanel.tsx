@@ -60,6 +60,7 @@ import { InterruptedDraftBanner } from './InterruptedDraftBanner'
 import { QuickPromptBar } from './QuickPromptBar'
 import { WelcomePanel } from './WelcomePanel'
 import { AllToolsGroup } from './AllToolsGroup'
+import { RunRollbackButton } from './RunRollbackButton'
 
 import { useContextPreview } from '../hooks/useContextPreview'
 import { useAgentStream } from '../hooks/useAgentStream'
@@ -1362,6 +1363,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                 Bypass
               </button>
             </div>
+            <RunRollbackButton
+              chatId={chatId}
+              projectPath={projectPath}
+              disabled={busy}
+              onRollback={(message) =>
+                appendMessage({
+                  id: makeId(),
+                  role: 'assistant',
+                  content: `↩ ${message}`,
+                  timestamp: Date.now()
+                })
+              }
+            />
           </div>
         )}
 

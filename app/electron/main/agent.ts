@@ -23,6 +23,7 @@ import { ContextManager } from './agentContextManager'
 import { ToolExecutor, PARALLEL_SAFE_TOOLS } from './agentToolExecutor'
 import { SelfImprovementOrchestrator } from './agentSelfImprovementOrchestrator'
 import { toolRequiresConfirm } from '../../shared/permissions'
+import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
 
 export { parseToolArgs } from './agentToolExecutor'
 export {
@@ -91,6 +92,9 @@ export class AgentRunner {
   async run(history: ChatMessage[], userMessage: string): Promise<void> {
     this.emitter.throwIfAborted()
     this.toolExecutor.clearEditSnapshots?.()
+    if (this.chatId) clearRunCheckpoint(this.chatId)
+
+    let runCheckpointEmitted = false
 
     const runStartMs = Date.now()
     void agentLogger.write({
@@ -450,6 +454,15 @@ export class AgentRunner {
         usedTools = true
         if (toolCalls.some((call) => call.function.name === 'set_self_improvement_plan')) {
           requireToolNext = true
+        }
+
+        const willMutate = toolCalls.some((call) => MUTATING_TOOLS.has(call.function.name))
+        if (willMutate && this.chatId) {
+          const checkpointOk = await ensureRunCheckpoint(this.chatId, this.projectPath)
+          if (checkpointOk && !runCheckpointEmitted) {
+            runCheckpointEmitted = true
+            this.emitter.emit({ type: 'run_checkpoint', runCheckpointActive: true })
+          }
         }
 
         const allParallelSafe =

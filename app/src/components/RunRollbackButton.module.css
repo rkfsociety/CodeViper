@@ -1,0 +1,20 @@
+.rollbackBtn {
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle, #3d3d3d);
+  border-radius: 6px;
+  background: var(--bg-elevated, #2a2a2a);
+  color: var(--text-secondary, #c8c8c8);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rollbackBtn:hover:not(:disabled) {
+  border-color: var(--accent, #7ee787);
+  color: var(--accent, #7ee787);
+}
+
+.rollbackBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

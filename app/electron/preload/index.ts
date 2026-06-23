@@ -158,6 +158,16 @@ const codeviper = {
   stopAgent: (chatId: string) =>
     withTimeout(ipcRenderer.invoke(IPC.STOP_AGENT, chatId), IPC_TIMEOUT_MS, 'stopAgent'),
 
+  getRunCheckpoint: (chatId: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.GET_RUN_CHECKPOINT, chatId),
+      IPC_TIMEOUT_MS,
+      'getRunCheckpoint'
+    ),
+
+  rollbackRun: (chatId: string) =>
+    withTimeout(ipcRenderer.invoke(IPC.ROLLBACK_RUN, chatId), IPC_TIMEOUT_MS, 'rollbackRun'),
+
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],

@@ -390,6 +390,8 @@ export const IPC = {
   IMPORT_CHATS: 'import-chats',
   GET_AGENT_RUN_STATE: 'get-agent-run-state',
   STOP_AGENT: 'stop-agent',
+  GET_RUN_CHECKPOINT: 'get-run-checkpoint',
+  ROLLBACK_RUN: 'rollback-run',
   PREVIEW_AGENT_CONTEXT: 'preview-agent-context',
   SUMMARIZE_CONTEXT: 'summarize-context',
   LOAD_SETTINGS: 'load-settings',
@@ -598,6 +600,14 @@ export const Contracts = {
   [IPC.STOP_AGENT]: {
     args: z.tuple([z.string()]),
     result: z.boolean()
+  },
+  [IPC.GET_RUN_CHECKPOINT]: {
+    args: z.tuple([z.string()]),
+    result: z.boolean()
+  },
+  [IPC.ROLLBACK_RUN]: {
+    args: z.tuple([z.string()]),
+    result: z.object({ ok: z.boolean(), message: z.string() })
   },
   [IPC.PREVIEW_AGENT_CONTEXT]: {
     args: z.tuple([z.string(), z.array(ChatMessageSchema), z.string(), z.string()]),
