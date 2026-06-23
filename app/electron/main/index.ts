@@ -329,6 +329,15 @@ ipcMain.handle('select-project-folder', async () => {
   return result.canceled ? null : (result.filePaths[0] ?? null)
 })
 
+ipcMain.handle(IPC.SELECT_GGUF_FILE, async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    title: 'Выбрать GGUF-модель',
+    filters: [{ name: 'GGUF-модели', extensions: ['gguf'] }],
+    properties: ['openFile']
+  })
+  return result.canceled ? null : (result.filePaths[0] ?? null)
+})
+
 ipcMain.handle('select-files', async () => {
   const { stat } = await import('fs/promises')
   const result = await dialog.showOpenDialog(mainWindow!, {

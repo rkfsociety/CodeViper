@@ -253,6 +253,8 @@ export interface AgentSettings {
   mcpServers?: McpServerConfig[]
   /** Включённые плагины (имена плагинов из ~/.codeviper/plugins) */
   enabledPlugins?: string[]
+  /** Путь к GGUF-файлу для локального оркестратора (node-llama-cpp) */
+  orchestratorModelPath?: string
 }
 
 export interface McpToolDefinition {
@@ -536,6 +538,7 @@ export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   selectFolder: () => Promise<string | null>
   selectFiles: () => Promise<{ path: string; size: number }[]>
+  selectGgufFile: () => Promise<string | null>
   readAttachment: (filePath: string) => Promise<{
     ok: boolean
     isImage?: boolean

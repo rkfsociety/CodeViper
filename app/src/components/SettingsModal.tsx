@@ -1806,6 +1806,54 @@ export function SettingsModal({
                         ))}
                     </div>
                   )}
+
+                  {/* ── Оркестратор (node-llama-cpp) ── */}
+                  <div className={styles.section} style={{ marginTop: 12 }}>
+                    <div className={styles.sectionLabel}>Оркестратор (node-llama-cpp)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          flex: 1,
+                          fontSize: 12,
+                          color: 'var(--text-secondary)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          opacity: settings.orchestratorModelPath ? 1 : 0.45
+                        }}
+                        title={settings.orchestratorModelPath}
+                      >
+                        {settings.orchestratorModelPath
+                          ? settings.orchestratorModelPath.split(/[/\\]/).pop()
+                          : 'Файл не выбран'}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() =>
+                          void window.codeviper.selectGgufFile().then((path) => {
+                            if (path) onSettingsChange({ orchestratorModelPath: path })
+                          })
+                        }
+                      >
+                        Выбрать файл…
+                      </button>
+                      {settings.orchestratorModelPath && (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ opacity: 0.6 }}
+                          onClick={() => onSettingsChange({ orchestratorModelPath: '' })}
+                          title="Убрать путь"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
+                      GGUF-файл для локального предпланирования задач
+                    </div>
+                  </div>
                 </>
               )}
 

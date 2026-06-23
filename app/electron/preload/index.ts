@@ -40,6 +40,9 @@ const codeviper = {
   selectFiles: (): Promise<{ path: string; size: number }[]> =>
     withTimeout(ipcRenderer.invoke(IPC.SELECT_FILES), IPC_TIMEOUT_MS, 'selectFiles'),
 
+  selectGgufFile: (): Promise<string | null> =>
+    withTimeout(ipcRenderer.invoke(IPC.SELECT_GGUF_FILE), IPC_TIMEOUT_MS, 'selectGgufFile'),
+
   readAttachment: (
     filePath: string
   ): Promise<{

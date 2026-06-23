@@ -87,7 +87,8 @@ export const PersistedSettingsSchema = z.object({
       })
     )
     .optional(),
-  enabledPlugins: z.array(z.string()).optional()
+  enabledPlugins: z.array(z.string()).optional(),
+  orchestratorModelPath: z.string().optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -210,7 +211,10 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.sourceRootOverride?.trim()
       ? { sourceRootOverride: settings.sourceRootOverride.trim() }
       : {}),
-    ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {})
+    ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {}),
+    ...(settings.orchestratorModelPath?.trim()
+      ? { orchestratorModelPath: settings.orchestratorModelPath.trim() }
+      : {})
   }
 }
 

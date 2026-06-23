@@ -404,6 +404,7 @@ export const IPC = {
   BENCHMARK_MODEL: 'benchmark-model',
   AUTO_INDEX_PROJECT: 'auto-index-project',
   LIST_ROADMAP_ITEMS: 'list-roadmap-items',
+  SELECT_GGUF_FILE: 'select-gguf-file',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   SAVE_APP_STATE: 'save-app-state',
