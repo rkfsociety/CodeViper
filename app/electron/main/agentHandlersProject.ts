@@ -205,7 +205,8 @@ export function createProjectToolHandlers(
 
   const handlers: Partial<ToolHandlers> = {
     search_knowledge_base: async (args: any) => {
-      const { query, collection = 'knowledge_base' } = args
+      const { query } = args
+      const collection = args.collection ?? 'codeviper_project'
       const limit = Math.min(10, Math.max(1, parseInt(args.limit ?? '5', 10) || 5))
 
       if (!options?.qdrantUrl) {

@@ -5,7 +5,7 @@ import {
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
-import { prepareAgentRunContext } from './agentContext'
+import { prepareAgentRunContext, maybeAppendRagSearchHintAfterEmptyGrep } from './agentContext'
 import { buildVectorStoreConfig } from './vectorStore'
 import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
@@ -20,7 +20,7 @@ import { analyze } from './orchestratorModel'
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
 import { ContextManager } from './agentContextManager'
-import { ToolExecutor, PARALLEL_SAFE_TOOLS } from './agentToolExecutor'
+import { ToolExecutor, PARALLEL_SAFE_TOOLS, parseToolArgs } from './agentToolExecutor'
 import { SelfImprovementOrchestrator } from './agentSelfImprovementOrchestrator'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
@@ -260,6 +260,7 @@ export class AgentRunner {
     let requireToolNext = false
 
     const loopGuard = new LoopGuard(this.settings, this.ctx.modelRuntime)
+    let ragGrepNudged = false
     const taskPlanner = new TaskPlanner(
       taskMode,
       userMessage,
@@ -531,6 +532,17 @@ export class AgentRunner {
             }
             messages.push(msg)
           }
+          ragGrepNudged =
+            (await maybeAppendRagSearchHintAfterEmptyGrep(
+              messages,
+              results.map((r, i) => ({
+                toolName: r.name,
+                output: r.output,
+                args: parseToolArgs(toolCalls[i]?.function.arguments ?? {})
+              })),
+              this.settings,
+              ragGrepNudged
+            )) || ragGrepNudged
         } else {
           const batch = await this.toolExecutor.executeSequential(
             toolCalls,
@@ -543,6 +555,17 @@ export class AgentRunner {
           }
           if (batch.selfEdited) selfEdited = true
           for (const msg of batch.toolMessages) messages.push(msg)
+          ragGrepNudged =
+            (await maybeAppendRagSearchHintAfterEmptyGrep(
+              messages,
+              batch.invocations.map((inv) => ({
+                toolName: inv.name,
+                output: inv.output,
+                args: inv.args
+              })),
+              this.settings,
+              ragGrepNudged
+            )) || ragGrepNudged
           if (batch.breakLoop) continue
         }
       }

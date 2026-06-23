@@ -113,7 +113,8 @@ export async function getRecentRAGMessages(
   }))
 }
 
-const AUTO_INDEX_COLLECTION = 'codeviper_project'
+export const PROJECT_RAG_COLLECTION = 'codeviper_project'
+const AUTO_INDEX_COLLECTION = PROJECT_RAG_COLLECTION
 const AUTO_INDEX_CHUNK_LINES = 500
 const AUTO_INDEX_TEXT_EXTS = new Set([
   '.ts',

@@ -93,6 +93,7 @@ export interface SequentialBatchResult {
   mutatingToolNames: string[]
   breakLoop: boolean
   breakMessage?: string
+  invocations: Array<{ name: string; output: string; args: Record<string, string> }>
 }
 
 export class ToolExecutor {
@@ -288,8 +289,15 @@ export class ToolExecutor {
 
     const MAX_CLOUD_RESULT_CHARS = 2000
 
+    const invocations: Array<{ name: string; output: string; args: Record<string, string> }> = []
+
     for (const { call, name, output: rawOutput } of rawResults) {
       let output = rawOutput
+      invocations.push({
+        name,
+        output,
+        args: parseToolArgs(call.function.arguments ?? {})
+      })
       const toolSignature = `${name}:${JSON.stringify(call.function.arguments)}`
       const loopNudge =
         loopGuard.checkConsecutive(toolSignature, name) ?? loopGuard.checkTotal(name)
@@ -335,7 +343,7 @@ export class ToolExecutor {
       toolMessages.push(msg)
     }
 
-    return { toolMessages, selfEdited, mutatingToolNames, breakLoop, breakMessage }
+    return { toolMessages, selfEdited, mutatingToolNames, breakLoop, breakMessage, invocations }
   }
 
   async handlePreviewEdit(args: Record<string, string>): Promise<string> {

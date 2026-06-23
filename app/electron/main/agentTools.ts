@@ -18,7 +18,7 @@ const FILE_TOOLS = [
           query: { type: 'string', description: 'Поисковый запрос на естественном языке' },
           collection: {
             type: 'string',
-            description: 'Имя коллекции Qdrant (по умолчанию "knowledge_base")'
+            description: 'Имя коллекции Qdrant (по умолчанию "codeviper_project")'
           },
           limit: { type: 'string', description: 'Количество результатов 1–10 (по умолчанию 5)' }
         },

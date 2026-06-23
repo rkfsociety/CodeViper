@@ -29,6 +29,94 @@ import { searchRAGMessages } from './contextRAG'
 import type { VectorStoreConfig } from './vectorStore'
 import type { ProviderConfig } from '../../shared/modelProvider'
 import { redactMessagesForModel, redactSecrets } from '../../shared/secretRedaction'
+import { QdrantClient } from '@qdrant/js-client-rest'
+import { PROJECT_RAG_COLLECTION } from './contextRAG'
+
+/** Префикс ответа grep_files / search_in_project при отсутствии совпадений. */
+export const GREP_EMPTY_RESULT_PREFIX = 'Совпадений не найдено'
+
+export const RAG_SEARCH_TOOL_NAME = 'search_knowledge_base'
+
+const GREP_TOOL_NAMES = new Set(['grep_files', 'grep_codeviper_files', 'search_in_project'])
+
+export function isGrepToolName(toolName: string): boolean {
+  return GREP_TOOL_NAMES.has(toolName)
+}
+
+export function isEmptyGrepToolResult(
+  toolName: string,
+  output: string,
+  args?: Record<string, string>
+): boolean {
+  if (!isGrepToolName(toolName)) return false
+  if (toolName === 'search_in_project' && args?.type === 'name') return false
+  return output.startsWith(GREP_EMPTY_RESULT_PREFIX)
+}
+
+export function isRagKnowledgeSearchEnabled(settings: {
+  qdrantUrl?: string
+  disabledTools?: string[]
+}): boolean {
+  if (!settings.qdrantUrl?.trim()) return false
+  if (settings.disabledTools?.includes(RAG_SEARCH_TOOL_NAME)) return false
+  return true
+}
+
+export function buildRagSearchNudgeHint(grepQuery?: string): string {
+  const q = grepQuery?.trim()
+  return `## Подсказка: семантический поиск
+Текстовый grep не дал совпадений${q ? ` по запросу «${q}»` : ''}. Проект проиндексирован в Qdrant — вызови ${RAG_SEARCH_TOOL_NAME} с тем же или уточнённым запросом (collection: ${PROJECT_RAG_COLLECTION}).`
+}
+
+export function appendSystemHint(messages: OllamaMessage[], hint: string): boolean {
+  const marker = '## Подсказка: семантический поиск'
+  const idx = messages.findIndex((m) => m.role === 'system')
+  if (idx < 0) return false
+  const current = messages[idx].content
+  if (current.includes(marker)) return false
+  messages[idx] = { role: 'system', content: `${current}\n\n${hint}` }
+  return true
+}
+
+export async function isProjectIndexedInQdrant(
+  qdrantUrl: string,
+  qdrantApiKey?: string,
+  collection = PROJECT_RAG_COLLECTION
+): Promise<boolean> {
+  try {
+    const client = new QdrantClient({
+      url: qdrantUrl,
+      ...(qdrantApiKey ? { apiKey: qdrantApiKey } : {})
+    })
+    const info = await client.getCollection(collection)
+    return (info.points_count ?? 0) > 0
+  } catch {
+    return false
+  }
+}
+
+export interface RagGrepNudgeInput {
+  toolName: string
+  output: string
+  args?: Record<string, string>
+}
+
+export async function maybeAppendRagSearchHintAfterEmptyGrep(
+  messages: OllamaMessage[],
+  toolResults: RagGrepNudgeInput[],
+  settings: { qdrantUrl?: string; qdrantApiKey?: string; disabledTools?: string[] },
+  alreadyNudged: boolean
+): Promise<boolean> {
+  if (alreadyNudged || !isRagKnowledgeSearchEnabled(settings)) return false
+
+  const emptyGrep = toolResults.find((r) => isEmptyGrepToolResult(r.toolName, r.output, r.args))
+  if (!emptyGrep) return false
+
+  const indexed = await isProjectIndexedInQdrant(settings.qdrantUrl!, settings.qdrantApiKey)
+  if (!indexed) return false
+
+  return appendSystemHint(messages, buildRagSearchNudgeHint(emptyGrep.args?.query))
+}
 
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
