@@ -1,0 +1,86 @@
+export interface SlashCommand {
+  trigger: string
+  description: string
+  hasArg?: boolean
+  argHint?: string
+  expand: (arg?: string) => string
+}
+
+export const SLASH_COMMANDS: SlashCommand[] = [
+  {
+    trigger: 'test',
+    description: 'Запустить тесты и исправить упавшие',
+    expand: () => 'Запусти npm run test. Если есть упавшие тесты — найди причину и исправь каждый.'
+  },
+  {
+    trigger: 'typecheck',
+    description: 'Проверить типы и исправить ошибки TS',
+    expand: () => 'Запусти npm run typecheck. Исправь все ошибки TypeScript.'
+  },
+  {
+    trigger: 'commit',
+    description: 'Сделать git commit текущих изменений',
+    expand: () =>
+      'Сделай git commit с понятным сообщением для текущих несохранённых изменений. Если нечего коммитить — скажи об этом.'
+  },
+  {
+    trigger: 'review',
+    description: 'Code review — найти баги и предложить улучшения',
+    expand: () =>
+      'Проведи code review: найди баги, неочевидные ошибки, нарушения стиля. Предложи конкретные улучшения с кратким объяснением каждого.'
+  },
+  {
+    trigger: 'fix',
+    description: 'Найти и исправить ошибки',
+    expand: () => 'Найди и исправь ошибки в коде.'
+  },
+  {
+    trigger: 'explain',
+    description: 'Объяснить как работает код',
+    expand: () => 'Объясни как работает этот код — кратко, по существу.'
+  },
+  {
+    trigger: 'refactor',
+    description: 'Отрефакторить — улучшить читаемость',
+    expand: () => 'Отрефактори код: улучши читаемость и структуру без изменения поведения.'
+  },
+  {
+    trigger: 'roadmap',
+    description: 'Выполнить пункт ROADMAP',
+    hasArg: true,
+    argHint: 'N',
+    expand: (arg?: string) => {
+      const n = arg?.trim()
+      return n
+        ? `Выполни пункт ${n} из ROADMAP.md — самоулучшение CodeViper.`
+        : `Выполни следующий пункт из ROADMAP.md — самоулучшение CodeViper.`
+    }
+  }
+]
+
+/** Разобрать /trigger [arg] из строки ввода. */
+export function parseSlashInput(text: string): { trigger: string; arg: string } | null {
+  if (!text.startsWith('/')) return null
+  const m = text.match(/^\/(\S*)(?:\s+(.*))?$/)
+  if (!m) return null
+  return { trigger: m[1].toLowerCase(), arg: (m[2] ?? '').trim() }
+}
+
+/** Найти команды, чьё trigger начинается с введённого текста. */
+export function matchSlashCommands(text: string): SlashCommand[] {
+  if (!text.startsWith('/')) return []
+  const parsed = parseSlashInput(text)
+  if (!parsed) return []
+  // Если уже введён аргумент у команды с hasArg — не менять список (продолжаем показывать)
+  return SLASH_COMMANDS.filter((c) => c.trigger.startsWith(parsed.trigger))
+}
+
+/** Раскрыть команду, если ввод — слэш-команда. Иначе вернуть исходный текст. */
+export function expandSlashCommand(text: string): string {
+  if (!text.startsWith('/')) return text
+  const parsed = parseSlashInput(text)
+  if (!parsed) return text
+  const cmd = SLASH_COMMANDS.find((c) => c.trigger === parsed.trigger)
+  if (!cmd) return text
+  return cmd.expand(parsed.arg || undefined)
+}

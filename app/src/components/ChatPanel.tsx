@@ -42,6 +42,9 @@ import { TodoPanel } from './TodoPanel'
 import { SelfImprovePlanPanel } from './SelfImprovePlanPanel'
 import { AgentLearningPanel } from './AgentLearningPanel'
 import { ProjectRulesPanel } from './ProjectRulesPanel'
+import { SlashCommandMenu } from './SlashCommandMenu'
+import { matchSlashCommands, expandSlashCommand } from '../../shared/slashCommands'
+import type { SlashCommand } from '../../shared/slashCommands'
 import styles from './ChatPanel.module.css'
 import { AgentContextModal } from './AgentContextModal'
 import { AgentPrerequisitesBanner } from './AgentPrerequisitesBanner'
@@ -336,6 +339,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [todoItems, setTodoItems] = useState<TodoItem[] | null>(null)
   const [todoTitle, setTodoTitle] = useState<string | undefined>(undefined)
   const [indexingProgress, setIndexingProgress] = useState<ProgressInfo | null>(null)
+  const [slashMenuIndex, setSlashMenuIndex] = useState(0)
   const setTodoItemsRef = useRef<((items: TodoItem[] | null, title?: string) => void) | undefined>(
     undefined
   )
@@ -820,7 +824,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }))
 
   async function send() {
-    const text = input.trim()
+    const raw = input.trim()
+    const text = expandSlashCommand(raw)
     if (!text || !projectPath || !chatId) return
 
     // Читаем содержимое вложенных файлов
@@ -865,7 +870,47 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     await submitMessage(userMessage.id, fullText)
   }
 
+  function handleSlashSelect(cmd: SlashCommand) {
+    if (cmd.hasArg) {
+      const prefix = `/${cmd.trigger} `
+      setInput(prefix)
+      requestAnimationFrame(() => {
+        inputRef.current?.setSelectionRange(prefix.length, prefix.length)
+        inputRef.current?.focus()
+      })
+    } else {
+      setInput(cmd.expand())
+      inputRef.current?.focus()
+    }
+  }
+
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Навигация по slash-меню
+    const menuOpen = slashMatches.length > 0 && inputFocused
+    if (menuOpen) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSlashMenuIndex((i) => Math.min(i + 1, slashMatches.length - 1))
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSlashMenuIndex((i) => Math.max(i - 1, 0))
+        return
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault()
+        const cmd = slashMatches[slashMenuIndex]
+        if (cmd) handleSlashSelect(cmd)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setInput(input.replace(/^\/\S*/, ''))
+        return
+      }
+    }
+
     if (e.key !== 'Enter') return
 
     if (e.shiftKey || e.ctrlKey) {
@@ -884,6 +929,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   const projectLocked = messages.length > 0
+
+  const slashMatches = useMemo(() => matchSlashCommands(input), [input])
+
+  // Сбрасывать выделение при изменении списка команд
+  useEffect(() => {
+    setSlashMenuIndex(0)
+  }, [slashMatches.length])
 
   // Мемоизируем тяжёлые вычисления — не пересчитываются на каждый ре-рендер
   const displayItems = useMemo(
@@ -1185,78 +1237,87 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           </div>
         )}
 
-        <div
-          className={`${styles.inputBox}${inputFocused ? ' ' + styles.inputBoxFocused : ''}${isDragOver ? ' ' + styles.inputBoxDragOver : ''}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {isDragOver && (
-            <div className={styles.dragOverlay} aria-hidden="true">
-              Отпустите файл(ы)
-            </div>
+        <div style={{ position: 'relative' }}>
+          {slashMatches.length > 0 && inputFocused && (
+            <SlashCommandMenu
+              commands={slashMatches}
+              selectedIndex={slashMenuIndex}
+              onSelect={handleSlashSelect}
+            />
           )}
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-            onPaste={handlePaste}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            placeholder="Напиши задачу… (/ — быстрые промпты)"
-            disabled={!chatId}
-            rows={3}
-          />
-
-          {/* Кнопки внутри поля — прикрепить/стоп/отправить */}
-          <div className={styles.inputActions}>
-            <button
-              type="button"
-              className={styles.attachBtn}
-              onClick={() => {
-                void window.codeviper.selectFiles().then((entries) => {
-                  if (!entries.length) return
-                  setDroppedFiles((prev) => {
-                    const existingPaths = new Set(prev.map((x) => x.path))
-                    const fresh = entries
-                      .filter((e) => !existingPaths.has(e.path))
-                      .map((e) => ({
-                        name: e.path.split(/[\\/]/).pop() ?? e.path,
-                        path: e.path,
-                        size: e.size
-                      }))
-                    const slots = FILE_LIMIT - prev.length - clipboardImages.length
-                    return [...prev, ...fresh.slice(0, Math.max(0, slots))]
-                  })
-                  inputRef.current?.focus()
-                })
-              }}
+          <div
+            className={`${styles.inputBox}${inputFocused ? ' ' + styles.inputBoxFocused : ''}${isDragOver ? ' ' + styles.inputBoxDragOver : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {isDragOver && (
+              <div className={styles.dragOverlay} aria-hidden="true">
+                Отпустите файл(ы)
+              </div>
+            )}
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleInputKeyDown}
+              onPaste={handlePaste}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              placeholder="Напиши задачу… (/ — быстрые промпты)"
               disabled={!chatId}
-              title="Прикрепить файл(ы)"
-              aria-label="Прикрепить файл"
-            >
-              +
-            </button>
-            {(agentRunning || queueSize > 0) && (
+              rows={3}
+            />
+
+            {/* Кнопки внутри поля — прикрепить/стоп/отправить */}
+            <div className={styles.inputActions}>
               <button
                 type="button"
-                className={`${styles.stopBtn}`}
-                onClick={() => void stopAgent()}
-                title="Остановить агента"
+                className={styles.attachBtn}
+                onClick={() => {
+                  void window.codeviper.selectFiles().then((entries) => {
+                    if (!entries.length) return
+                    setDroppedFiles((prev) => {
+                      const existingPaths = new Set(prev.map((x) => x.path))
+                      const fresh = entries
+                        .filter((e) => !existingPaths.has(e.path))
+                        .map((e) => ({
+                          name: e.path.split(/[\\/]/).pop() ?? e.path,
+                          path: e.path,
+                          size: e.size
+                        }))
+                      const slots = FILE_LIMIT - prev.length - clipboardImages.length
+                      return [...prev, ...fresh.slice(0, Math.max(0, slots))]
+                    })
+                    inputRef.current?.focus()
+                  })
+                }}
+                disabled={!chatId}
+                title="Прикрепить файл(ы)"
+                aria-label="Прикрепить файл"
               >
-                ■ Стоп{queueSize > 0 ? ` (${queueSize})` : ''}
+                +
               </button>
-            )}
-            <button
-              type="button"
-              className={styles.sendBtn}
-              onClick={() => void send()}
-              disabled={!settings.model || !chatId || !projectPath || !input.trim()}
-              title={agentRunning ? 'В очередь' : 'Отправить (Enter)'}
-            >
-              ↑
-            </button>
+              {(agentRunning || queueSize > 0) && (
+                <button
+                  type="button"
+                  className={`${styles.stopBtn}`}
+                  onClick={() => void stopAgent()}
+                  title="Остановить агента"
+                >
+                  ■ Стоп{queueSize > 0 ? ` (${queueSize})` : ''}
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.sendBtn}
+                onClick={() => void send()}
+                disabled={!settings.model || !chatId || !projectPath || !input.trim()}
+                title={agentRunning ? 'В очередь' : 'Отправить (Enter)'}
+              >
+                ↑
+              </button>
+            </div>
           </div>
         </div>
 
