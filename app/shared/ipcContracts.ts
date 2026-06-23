@@ -434,6 +434,7 @@ export const IPC = {
   DELETE_GGUF_FILE: 'delete-gguf-file',
   REGISTER_P2P_NODE: 'register-p2p-node',
   GET_P2P_CREDITS: 'get-p2p-credits',
+  SHOW_AGENT_DONE_NOTIFICATION: 'show-agent-done-notification',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   CANCEL_GGUF_DOWNLOAD: 'cancel-gguf-download',
@@ -746,6 +747,15 @@ export const Contracts = {
       balance: z.number(),
       message: z.string().optional()
     })
+  },
+  [IPC.SHOW_AGENT_DONE_NOTIFICATION]: {
+    args: z.tuple([
+      z.object({
+        title: z.string(),
+        body: z.string()
+      })
+    ]),
+    result: z.boolean()
   }
 } as const
 

@@ -9,7 +9,7 @@ import type { ProgressInfo } from '../types'
 import { useAgentState } from '../contexts/AgentContext'
 import type { RunStats } from '../../shared/generationMetrics'
 
-export type AgentPhase = 'thinking' | 'writing' | 'tool'
+export type AgentPhase = 'thinking' | 'writing' | 'tool' | 'idle'
 
 function formatModelLabel(model: string): string {
   const name = model.trim()
@@ -44,6 +44,7 @@ export function agentStatusLabel(
   const statsHint = formatLiveStats(runStats, generationMetrics)
 
   if (phase === 'writing') return `Пишу ответ…${statsHint}${queueHint}`
+  if (phase === 'idle') return `Готов${statsHint}${queueHint}`
   if (phase === 'tool') {
     const label = toolName ? TOOL_LABELS[toolName] : undefined
     return `${label ?? (toolName ? `Запускаю ${toolName}` : 'Работаю с инструментом…')}${statsHint}${queueHint}`

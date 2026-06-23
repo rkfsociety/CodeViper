@@ -175,6 +175,13 @@ const codeviper = {
       'getProjectTree'
     ),
 
+  showAgentDoneNotification: (payload: { title: string; body: string }) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.SHOW_AGENT_DONE_NOTIFICATION, payload),
+      IPC_TIMEOUT_MS,
+      'showAgentDoneNotification'
+    ),
+
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],

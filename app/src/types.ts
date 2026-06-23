@@ -599,6 +599,7 @@ export interface CodeViperAPI {
   getRunCheckpoint: (chatId: string) => Promise<boolean>
   rollbackRun: (chatId: string) => Promise<{ ok: boolean; message: string }>
   getProjectTree: (projectPath: string, maxDepth?: number) => Promise<FileNode[]>
+  showAgentDoneNotification: (payload: { title: string; body: string }) => Promise<boolean>
   previewAgentContext: (
     projectPath: string,
     messages: ChatMessage[],

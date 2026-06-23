@@ -6,6 +6,11 @@ import { sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentContextPreview, ChatMessage, SelfImprovementPlanItem, TodoItem } from '../types'
 import type { GenerationMetrics } from '../../shared/generationMetrics'
 import type { AgentAction } from '../contexts/AgentContext'
+import {
+  formatAgentDoneNotificationBody,
+  playAgentDoneSound,
+  shouldShowAgentDoneToast
+} from '../../shared/agentNotifications'
 
 export type { RunStats } from '../../shared/generationMetrics'
 
@@ -19,7 +24,9 @@ export interface UseAgentStreamOptions {
   appendMessage: (message: ChatMessage) => void
   upsertMessage: (message: ChatMessage) => void
   setContextPreview: (preview: AgentContextPreview | null) => void
-  onAgentDoneRef?: MutableRefObject<(() => void) | undefined>
+  notificationsEnabledRef?: MutableRefObject<boolean>
+  isVisibleChatRef?: MutableRefObject<boolean>
+  chatTitleRef?: MutableRefObject<string>
   setTodoItemsRef?: MutableRefObject<
     ((items: TodoItem[] | null, title?: string) => void) | undefined
   >
@@ -39,7 +46,9 @@ export function useAgentStream({
   appendMessage,
   upsertMessage,
   setContextPreview,
-  onAgentDoneRef,
+  notificationsEnabledRef,
+  isVisibleChatRef,
+  chatTitleRef,
   setTodoItemsRef,
   setPlanItemsRef,
   dispatch
@@ -444,13 +453,26 @@ export function useAgentStream({
         draftRef.current = ''
         draftThinkingRef.current = ''
         draftMessageIdRef.current = null
-        dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
+        dispatchRef.current({ type: 'SET_PHASE', phase: 'idle' })
         dispatchRef.current({ type: 'SET_SUMMARIZING', value: false })
         dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
         dispatchRef.current({ type: 'SET_RETRY_429', value: null })
         genStartRef.current = null
         runActiveRef.current = false
-        onAgentDoneRef?.current?.()
+
+        if (notificationsEnabledRef?.current) {
+          playAgentDoneSound()
+          const isBackground = isVisibleChatRef?.current === false
+          const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
+          if (shouldShowAgentDoneToast(isBackground, hidden)) {
+            const body = formatAgentDoneNotificationBody(chatTitleRef?.current ?? '')
+            void window.codeviper.showAgentDoneNotification({
+              title: 'CodeViper',
+              body
+            })
+          }
+        }
+
         void processNextQueuedRunRef.current()
       }
     })

@@ -785,6 +785,7 @@ function AppContent() {
                 >
                   <ChatPanel
                     ref={chatId === activeChatId ? chatPanelRef : undefined}
+                    isVisible={chatId === activeChatId}
                     settings={{
                       ...settings,
                       // В режиме Chat включаем clarifyMode — агент уточняет прежде чем действовать

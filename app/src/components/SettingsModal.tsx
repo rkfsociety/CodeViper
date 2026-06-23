@@ -2204,9 +2204,9 @@ export function SettingsModal({
                             <span className={styles.thumb} />
                           </span>
                           <span className={styles.toggleContent}>
-                            <span className={styles.title}>Звуковые уведомления</span>
+                            <span className={styles.title}>Уведомления при завершении</span>
                             <span className={styles.desc}>
-                              Короткий сигнал при завершении задачи агента
+                              Звук и системный toast, если чат в фоне или окно свёрнуто
                             </span>
                           </span>
                         </label>

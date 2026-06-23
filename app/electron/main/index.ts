@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification } from 'electron'
 import { existsSync } from 'fs'
 import { appendFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
@@ -245,6 +245,10 @@ app.commandLine.appendSwitch('disable-gpu-process-crash-limit')
 app.commandLine.appendSwitch('in-process-gpu')
 
 app.whenReady().then(async () => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.codeviper.app')
+  }
+
   // Устанавливаем React DevTools для отладки дерева компонентов
   try {
     const { default: installExtension, REACT_DEVELOPER_TOOLS } =
@@ -614,6 +618,23 @@ ipcMain.handle(IPC.ROLLBACK_RUN, async (_e, ...a) => {
 ipcMain.handle(IPC.GET_PROJECT_TREE, async (_e, ...a) => {
   const [projectPath, maxDepth] = parseIpcArgs(Contracts[IPC.GET_PROJECT_TREE].args, a)
   return buildFileTree(projectPath, 0, maxDepth ?? 8)
+})
+
+ipcMain.handle(IPC.SHOW_AGENT_DONE_NOTIFICATION, async (_e, ...a) => {
+  const [payload] = parseIpcArgs(Contracts[IPC.SHOW_AGENT_DONE_NOTIFICATION].args, a)
+  if (!Notification.isSupported()) return false
+  const notification = new Notification({
+    title: payload.title,
+    body: payload.body,
+    silent: true
+  })
+  notification.on('click', () => {
+    const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed())
+    win?.show()
+    win?.focus()
+  })
+  notification.show()
+  return true
 })
 
 ipcMain.on(IPC.AGENT_CONFIRM_RESPONSE, (_e, id: string, approved: boolean) => {

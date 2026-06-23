@@ -92,6 +92,7 @@ interface Props {
   onEnqueueModel?: (modelName: string) => void
   onRefreshOllama?: () => Promise<void>
   incognito?: boolean
+  isVisible?: boolean
 }
 
 const FILE_LIMIT = 10
@@ -301,7 +302,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onOpenSettings,
     onEnqueueModel,
     onRefreshOllama,
-    incognito = false
+    incognito = false,
+    isVisible = true
   },
   ref
 ) {
@@ -309,6 +311,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     messages,
     setMessages,
     activeChatId: chatId,
+    activeChat,
     activeProjectPath: projectPath,
     interruptedDraft,
     refreshChatStore: onInterruptedDraftChange
@@ -379,26 +382,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
   const doneRunIdRef = useRef(-1)
-  const onAgentDoneRef = useRef<(() => void) | undefined>(undefined)
+  const notificationsEnabledRef = useRef(false)
+  const isVisibleChatRef = useRef(isVisible)
+  const chatTitleRef = useRef('')
 
-  onAgentDoneRef.current = settings.soundNotifications
-    ? () => {
-        try {
-          const ctx = new AudioContext()
-          const osc = ctx.createOscillator()
-          const gain = ctx.createGain()
-          osc.connect(gain)
-          gain.connect(ctx.destination)
-          osc.frequency.value = 880
-          gain.gain.setValueAtTime(0.25, ctx.currentTime)
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
-          osc.start(ctx.currentTime)
-          osc.stop(ctx.currentTime + 0.4)
-        } catch {
-          // AudioContext может быть недоступен
-        }
-      }
-    : undefined
+  isVisibleChatRef.current = isVisible
+  notificationsEnabledRef.current = settings.soundNotifications === true
+  chatTitleRef.current = activeChat?.title?.trim() || 'Чат'
 
   messagesRef.current = messages
   chatIdRef.current = chatId
@@ -475,7 +465,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     appendMessage,
     upsertMessage,
     setContextPreview,
-    onAgentDoneRef,
+    notificationsEnabledRef,
+    isVisibleChatRef,
+    chatTitleRef,
     setTodoItemsRef,
     setPlanItemsRef,
     dispatch
