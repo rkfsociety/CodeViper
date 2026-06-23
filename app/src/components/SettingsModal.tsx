@@ -1854,6 +1854,24 @@ export function SettingsModal({
                           </span>
                         </span>
                       </label>
+
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <div className={styles.sectionLabel}>Webhook «агент готов»</div>
+                        <input
+                          type="url"
+                          className={styles.searchInput}
+                          placeholder="https://hooks.slack.com/… или n8n/discord"
+                          value={settings.webhookUrl ?? ''}
+                          onChange={(e) =>
+                            onSettingsChange({ webhookUrl: e.target.value || undefined })
+                          }
+                          spellCheck={false}
+                        />
+                        <div className={styles.hint}>
+                          POST <code>{'{ chatId, projectPath, summary, durationMs }'}</code> при
+                          завершении прогона
+                        </div>
+                      </div>
                     </div>
                   </SettingItem>
                 </>

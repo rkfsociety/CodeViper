@@ -185,6 +185,8 @@ export interface AgentSettings {
   readonlyMode?: boolean
   /** Звуковое уведомление при завершении задачи агента */
   soundNotifications?: boolean
+  /** URL для POST-уведомления при завершении прогона агента (Slack/Discord/n8n) */
+  webhookUrl?: string
   /** Синхронизировать с Git при запуске (stash/reset); по умолчанию true */
   gitSyncOnStartup?: boolean
   /** Стратегия git-синхронизации при запуске; по умолчанию 'stash' */

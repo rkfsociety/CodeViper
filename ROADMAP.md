@@ -301,13 +301,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Интеграции и изоляция
 
-**42 · M · Webhook «агент готов»** — приор. Low  
-- **Цель:** POST на Slack/Discord/n8n URL при завершении прогона (опционально)  
-- **Файлы:** `app/electron/main/webhookNotify.ts`, `settings.ts` (`webhookUrl`), `agent.ts`  
-- **Действие:** fetch POST с `{ chatId, summary, projectPath }`  
-- **Проверка:** mock-сервер получает payload после idle
-
-**43 · L · Песочница для run_script** — приор. Low  
+**42 · L · Песочница для run_script** — приор. Low  
 - **Цель:** опциональный запуск скриптов в Docker-контейнере с mount только `projectPath`  
 - **Файлы:** `app/electron/main/scriptSandbox.ts`, `agentHandlersProject.ts`, `settings.ts`  
 - **Действие:** `docker run --rm -v projectPath` для python/bash; fallback на локальный run  
@@ -315,25 +309,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**44 · L · Голосовой ввод и озвучка** — приор. Low  
+**43 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**45 · XL · LSP в редакторе** — приор. Low  
+**44 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла в встроенном просмотре  
 - **Файлы:** `app/electron/main/lspClient.ts`, Monaco или CodeMirror интеграция  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**46 · L · Skill marketplace** — приор. Low  
+**45 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
 - **Проверка:** импорт skill из URL появляется локально
 
-**47 · M · E2E на Linux/macOS в CI** — приор. Medium  
+**46 · M · E2E на Linux/macOS в CI** — приор. Medium  
 - **Цель:** Playwright+Electron в матрице ubuntu/macos для smoke-тестов UI  
 - **Файлы:** `.github/workflows/ci.yml`, `app/tests/e2e/`  
 - **Действие:** job `test:e2e` на linux/macos (headless); фикс путей POSIX  
@@ -343,6 +337,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
+- Webhook «агент готов»: webhookNotify.ts; POST { chatId, projectPath, summary, durationMs } после каждого прогона; поле webhookUrl в настройках; UI в разделе Уведомления; best-effort (ошибка не прерывает агента)
 - UI правил проекта: кнопка 📋 в нижней панели чата открывает редактор `.codeviper/rules.md`; загрузка/сохранение через IPC read-file/write-file; подсказка при отсутствии файла; агент учитывает rules.md через memory.ts
 - Автопроверка после правок: после успешного SELF_EDIT_FILE_TOOLS при включённом autoVerifyAfterEdit — запуск npm run typecheck + npm test через runCodeViperCommand; вывод добавляется к tool_result в чате
 - SHA-256 при pull Ollama: `verifyOllamaModelDigest()` в `agentOllamaApi.ts` сравнивает digest из `/api/show` с последним завершённым digest из pull-стрима; при несовпадении — `deleteOllamaModel()` + ошибка; 5 тестов в `ollamaSha256.test.ts` (несовпадение, совпадение, нет поля digest, сеть недоступна, сообщение содержит оба хеша)

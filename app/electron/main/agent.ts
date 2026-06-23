@@ -14,6 +14,7 @@ import { CircuitBreakerOpenError } from './modelRuntime'
 import { ensureSelfImproveBranch } from './selfCommit'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
+import { notifyWebhook } from './webhookNotify'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
@@ -513,6 +514,20 @@ export class AgentRunner {
             content: error instanceof Error ? error.message : String(error)
           })
         }
+      }
+
+      if (this.settings.webhookUrl) {
+        const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
+        const summary =
+          typeof lastAssistant?.content === 'string'
+            ? lastAssistant.content.slice(0, 500)
+            : userMessage.slice(0, 200)
+        void notifyWebhook(this.settings.webhookUrl, {
+          chatId: this.chatId ?? '',
+          projectPath: this.projectPath,
+          summary,
+          durationMs: Date.now() - runStartMs
+        })
       }
     }
   }
