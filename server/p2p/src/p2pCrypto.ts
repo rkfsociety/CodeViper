@@ -1,14 +1,6 @@
 /**
- * Дубликат app/shared/p2pCrypto.ts — держать в синхронизации.
+ * Дубликат app/shared/p2pCrypto.ts — держать в синхронизации (только лог relay).
  */
-import {
-  createCipheriv,
-  createDecipheriv,
-  diffieHellman,
-  generateKeyPairSync,
-  hkdfSync,
-  randomBytes
-} from 'node:crypto'
 
 export const P2P_HKDF_INFO = 'codeviper-p2p-prompt-v1'
 

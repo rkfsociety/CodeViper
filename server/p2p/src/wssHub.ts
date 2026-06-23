@@ -23,6 +23,11 @@ export function registerNodeSocket(nodeId: string, socket: P2pNodeSocket): void 
   })
 }
 
+export function isNodeOnline(nodeId: string): boolean {
+  const socket = nodeSockets.get(nodeId)
+  return socket != null && socket.readyState === 1
+}
+
 export function deliverEncryptedTask(
   targetNodeId: string,
   message: string

@@ -6,6 +6,7 @@ import type { NodeRegistry, P2PNode } from './nodes.js'
 import type { AuthManager } from './auth.js'
 import { formatEncryptedTaskRelayLog } from './p2pCrypto.js'
 import { deliverEncryptedTask, registerNodeSocket } from './wssHub.js'
+import { routeTaskForModel } from './router.js'
 
 const RegisterBody = z.object({
   endpoint: z.string().url(),
@@ -18,13 +19,20 @@ const RegisterBody = z.object({
 
 const RelayTaskBody = z.object({
   taskId: z.string().min(1),
-  targetNodeId: z.string().min(1),
+  targetNodeId: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
   payload: z.object({
     ephemeralPublicKey: z.string().min(1),
     ciphertext: z.string().min(1),
     iv: z.string().min(1),
     authTag: z.string().min(1)
   })
+}).refine((b) => Boolean(b.targetNodeId?.trim() || b.model?.trim()), {
+  message: 'targetNodeId or model is required'
+})
+
+const RouteTaskBody = z.object({
+  model: z.string().min(1)
 })
 
 const EmailBody = z.object({
@@ -161,29 +169,62 @@ export async function registerRoutes(
     }
   )
 
+  // ── Protected: POST /tasks/route — выбор свободного узла по модели ─────────
+  app.post<{ Body: unknown }>('/tasks/route', { preHandler: authHook }, async (req, reply) => {
+    const parsed = RouteTaskBody.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ ok: false, error: parsed.error.flatten() })
+    }
+
+    const result = await routeTaskForModel(registry, parsed.data.model)
+    if (!result.ok) {
+      return reply.send({ fallback: true, reason: result.reason })
+    }
+
+    const { node } = result
+    return reply.send({
+      ok: true,
+      node: {
+        id: node.id,
+        endpoint: node.endpoint,
+        model: node.model,
+        ...(node.publicKey ? { publicKey: node.publicKey } : {})
+      }
+    })
+  })
+
   // ── Protected: POST /tasks/relay (только шифротекст, без plaintext в логах) ─
   app.post<{ Body: unknown }>('/tasks/relay', { preHandler: authHook }, async (req, reply) => {
     const parsed = RelayTaskBody.safeParse(req.body)
     if (!parsed.success) {
       return reply.status(400).send({ ok: false, error: parsed.error.flatten() })
     }
-    const { taskId, targetNodeId, payload } = parsed.data
+    const { taskId, payload, targetNodeId, model } = parsed.data
 
-    const target = await registry.get(targetNodeId)
+    let resolvedNodeId = targetNodeId?.trim() ?? ''
+    if (!resolvedNodeId && model) {
+      const routed = await routeTaskForModel(registry, model)
+      if (!routed.ok) {
+        return reply.send({ fallback: true, reason: routed.reason })
+      }
+      resolvedNodeId = routed.node.id
+    }
+
+    const target = await registry.get(resolvedNodeId)
     if (!target) {
       return reply.status(404).send({ ok: false, error: 'target node not found' })
     }
 
-    const logLine = formatEncryptedTaskRelayLog({ taskId, targetNodeId, payload })
+    const logLine = formatEncryptedTaskRelayLog({ taskId, targetNodeId: resolvedNodeId, payload })
     req.log.info(logLine)
 
     const wire = JSON.stringify({ type: 'task', taskId, payload })
-    const delivery = deliverEncryptedTask(targetNodeId, wire)
+    const delivery = deliverEncryptedTask(resolvedNodeId, wire)
     if (!delivery.delivered) {
       return reply.status(503).send({ ok: false, error: delivery.reason ?? 'delivery failed' })
     }
 
-    return reply.send({ ok: true, taskId, targetNodeId })
+    return reply.send({ ok: true, taskId, targetNodeId: resolvedNodeId })
   })
 
   // ── WSS: подписка узла на входящие задачи ────────────────────────────────

@@ -22,6 +22,11 @@ interface MemEntry {
 
 const memStore = new Map<string, MemEntry>()
 
+/** Сброс in-memory реестра (только unit/integration-тесты). */
+export function resetNodeRegistryMemStoreForTests(): void {
+  memStore.clear()
+}
+
 function memSet(id: string, node: P2PNode, ttlSec: number): void {
   memStore.set(id, { node, expiresAt: Date.now() + ttlSec * 1000 })
 }
