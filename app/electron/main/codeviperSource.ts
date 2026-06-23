@@ -40,10 +40,17 @@ export function getCodeViperSourceRoot(): string {
     return resolve(sourceRootOverride)
   }
 
+  let appPath: string | null = null
+  try {
+    appPath = app.getAppPath()
+  } catch {
+    /* тесты — app не инициализирован */
+  }
+
   const candidates = [
     join(process.cwd(), 'app'),
     process.cwd(),
-    join(app.getAppPath()),
+    ...(appPath ? [join(appPath)] : []),
     join(__dirname, '../..')
   ]
 
