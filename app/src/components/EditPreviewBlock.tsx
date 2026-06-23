@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DiffPreviewModal } from './DiffPreviewModal'
 import styles from './EditPreviewBlock.module.css'
 
 interface Props {
@@ -12,8 +13,6 @@ interface Props {
 
 export function EditPreviewBlock({ messageId, previewId, path, diff, status, onRespond }: Props) {
   const [expanded, setExpanded] = useState(true)
-
-  const lines = diff.split('\n')
 
   return (
     <div className={`${styles.block} ${styles[status]}`}>
@@ -30,28 +29,7 @@ export function EditPreviewBlock({ messageId, previewId, path, diff, status, onR
         <span className={styles.toggle}>{expanded ? '▾' : '▸'}</span>
       </div>
 
-      {expanded && (
-        <div className={styles.diffWrap}>
-          <pre className={styles.diff}>
-            {lines.map((line, i) => {
-              const cls =
-                line.startsWith('+') && !line.startsWith('+++')
-                  ? styles.added
-                  : line.startsWith('-') && !line.startsWith('---')
-                    ? styles.removed
-                    : line.startsWith('@@')
-                      ? styles.hunk
-                      : ''
-              return (
-                <span key={i} className={cls}>
-                  {line}
-                  {'\n'}
-                </span>
-              )
-            })}
-          </pre>
-        </div>
-      )}
+      {expanded && <DiffPreviewModal diff={diff} path={path} />}
 
       {status === 'pending' && (
         <div className={styles.actions}>

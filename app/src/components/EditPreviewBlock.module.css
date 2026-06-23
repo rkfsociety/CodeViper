@@ -54,48 +54,6 @@
   flex-shrink: 0;
 }
 
-.diffWrap {
-  max-height: 420px;
-  overflow: auto;
-  background: var(--bg-primary, #0d1117);
-}
-
-.diff {
-  margin: 0;
-  padding: 8px 0;
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre;
-  color: var(--text-primary, #c9d1d9);
-}
-
-.added {
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
-  display: block;
-  padding: 0 12px;
-}
-
-.removed {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
-  display: block;
-  padding: 0 12px;
-}
-
-.hunk {
-  color: #58a6ff;
-  display: block;
-  padding: 0 12px;
-  background: rgba(88, 166, 255, 0.06);
-}
-
-.diff span:not(.added):not(.removed):not(.hunk) {
-  display: block;
-  padding: 0 12px;
-}
-
 .actions {
   display: flex;
   gap: 8px;
