@@ -7,6 +7,9 @@ import type {
   ModelPlacement
 } from '../../../shared/modelProvider'
 
+/** Ephemeral prompt cache — system + tools кэшируются между шагами ReAct (−90% стоимости чтения). */
+const CACHE_CONTROL_EPHEMERAL: Anthropic.CacheControlEphemeral = { type: 'ephemeral' }
+
 export class ClaudeProvider implements ModelProvider {
   private client: Anthropic
 
@@ -49,8 +52,8 @@ export class ClaudeProvider implements ModelProvider {
       .join('\n')
       .trim()
 
-    // Преобразование инструментов из стандартного формата в Claude format
-    const tools = options.tools?.map((tool) => {
+    // Преобразование инструментов; cache_control на последнем tool кэширует весь каталог ~70 tools
+    const tools = options.tools?.map((tool, index, toolsList) => {
       const inputSchema = (tool.input_schema as Record<string, unknown>) || {
         type: 'object' as const,
         properties: {}
@@ -59,10 +62,12 @@ export class ClaudeProvider implements ModelProvider {
       if (!('type' in inputSchema)) {
         inputSchema.type = 'object'
       }
+      const isLastTool = index === toolsList.length - 1
       return {
         name: tool.name,
         description: tool.description || '',
-        input_schema: inputSchema as Anthropic.Tool['input_schema']
+        input_schema: inputSchema as Anthropic.Tool['input_schema'],
+        ...(isLastTool && { cache_control: CACHE_CONTROL_EPHEMERAL })
       }
     })
 
@@ -71,7 +76,15 @@ export class ClaudeProvider implements ModelProvider {
       max_tokens: options.max_tokens || 4096,
       ...(options.temperature !== undefined && { temperature: options.temperature }),
       ...(options.top_p !== undefined && { top_p: options.top_p }),
-      ...(systemPrompt && { system: systemPrompt }),
+      ...(systemPrompt && {
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt,
+            cache_control: CACHE_CONTROL_EPHEMERAL
+          }
+        ]
+      }),
       ...(tools && tools.length > 0 && { tools }),
       stream: true,
       messages
@@ -117,8 +130,7 @@ export class ClaudeProvider implements ModelProvider {
             }
           }
         } else if (event.type === 'message_start') {
-          // Просто информационное событие о начале сообщения
-          // Может использоваться для логирования
+          // usage.cache_read_input_tokens > 0 на 2-й итерации ReAct — признак prompt cache hit
         } else if (event.type === 'message_delta') {
           // Финальное событие с usage и stop_reason
           if (event.delta.stop_reason) {
