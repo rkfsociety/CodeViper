@@ -76,6 +76,38 @@ const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_symbol',
+      description:
+        'Найти объявление символа (функция, класс, переменная, интерфейс) по AST в ts/js/py. Возвращает path:line:col.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Имя символа' },
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' }
+        },
+        required: ['name']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_references',
+      description:
+        'Найти все вхождения символа по AST/лексеру в ts/js/py. Возвращает path:line:col для каждой ссылки.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Имя символа' },
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' }
+        },
+        required: ['name']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_in_project',
       description:
         'Универсальный поиск: type="content" — ищет текст/regex внутри файлов (как grep); type="name" — ищет файлы по имени/glob (как find). Используй этот инструмент, когда не уверен, что именно нужно.',
@@ -1443,6 +1475,8 @@ export interface ToolArgs {
   list_directory: { path?: string; max_depth?: string }
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
+  find_symbol: { name: string; path?: string }
+  find_references: { name: string; path?: string }
   search_in_project: { query: string; type: 'content' | 'name'; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
   read_multiple_files: { paths: string[] }

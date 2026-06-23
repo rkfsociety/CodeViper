@@ -26,6 +26,7 @@ import {
   isInsideProject
 } from './services'
 import { formatGrepResults, formatFindResults, MAX_WALK_FILES } from './fileSearch'
+import { findSymbolDeclarations, findSymbolReferences, formatSymbolResults } from './symbolIndex'
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { gitStatus, gitDiff, gitLog } from './gitTools'
 import { parseToolBool } from '../../shared/fileEdit'
@@ -284,6 +285,34 @@ export function createProjectToolHandlers(
             emitProgress(`Поиск файлов: ${args.pattern}`, scanPercent(scanned))
         })
         return formatFindResults(projectPath, args.pattern, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_symbol: async (args: any) => {
+      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      try {
+        emitProgress(`Поиск символа: ${args.name}`, 0)
+        const result = await findSymbolDeclarations(projectPath, args.name, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) => emitProgress(`Поиск символа: ${args.name}`, scanPercent(scanned))
+        })
+        return formatSymbolResults(projectPath, args.name, result, 'declaration')
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_references: async (args: any) => {
+      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      try {
+        emitProgress(`Поиск ссылок: ${args.name}`, 0)
+        const result = await findSymbolReferences(projectPath, args.name, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) => emitProgress(`Поиск ссылок: ${args.name}`, scanPercent(scanned))
+        })
+        return formatSymbolResults(projectPath, args.name, result, 'reference')
       } finally {
         clearProgress()
       }

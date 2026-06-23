@@ -30,6 +30,8 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'file_search_summary',
   'grep_files',
   'find_files',
+  'find_symbol',
+  'find_references',
   'list_directory',
   'read_codeviper_file',
   'grep_codeviper_files',
