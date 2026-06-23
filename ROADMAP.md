@@ -25,15 +25,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## 📋 В планах
 
-> Нумерация сквозная. Сложность: S / M / L / XL. Приоритет указан в конце пункта.
-
-### 🔗 P2P-вычисления
-
-> Пункты 5–6 — код сервера в репозитории (`server/p2p/`); деплой VPS — вручную пользователем.
-
-### 🔗 Коллективное обучение и UI агента
-
-> База в коде: ветка `agent/self-improve`, `docs/collective/ViperMemory.md`, чип ☁️.
+> Нумерация сквозная **1…16**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
 
 ### ⚡ Независимые задачи
 
@@ -51,7 +43,7 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** создание чата из шаблона; опционально `disabledTools` preset  
 - **Проверка:** новый чат из шаблона содержит системное сообщение-инструкцию
 
-### 🔗 Коллективное обучение — продолжение
+### 🔗 Коллективное обучение
 
 **3 · M · Авто-PR collective** — приор. Medium  
 - **Цель:** после успешного push collective — опционально `create_codeviper_pr` без ручной кнопки  
@@ -151,8 +143,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
-- CONTRIBUTING.md: диаграмма ReAct (mermaid), таблица ключевых модулей, пошаговый гайд добавления инструмента
-**P2P-вычисления**
+**P2P-вычисления** (`server/p2p/` — деплой VPS вручную; см. `docs/integrations.md`)
 - Кредиты P2P в UI — `credits.ts` на сервере; `GET /credits/balance`; ±N при relay; IPC `get-p2p-credits`; чип в `AgentStatusBar`
 - Маршрутизация задач на сервере — `router.ts`, `POST /tasks/route`; свободный онлайн-узел с моделью (мин. CPU), иначе `{ fallback: true }`; интеграционный тест с 2 mock-узлами
 - TLS + шифрование промптов — HTTPS/WSS на сигнальном сервере (`TLS_KEY_PATH`/`TLS_CERT_PATH`); ECDH X25519 + AES-256-GCM (`app/shared/p2pCrypto.ts`); relay `/tasks/relay` и WSS `/nodes/ws` без plaintext в логах
@@ -170,7 +161,7 @@ N · [S/M/L/XL] · Краткое название
 - UI секция «Оркестратор» — тумблер, `minMessageLength`, кнопка удалить модель
 - Интеграция в AgentRunner — `analyze()` перед запуском, чип «Планирую…», план в системный промпт
 
-**Коллективное обучение**
+**Коллективное обучение** (ветка `agent/self-improve`, `docs/collective/ViperMemory.md`, чип ☁️ в статус-баре)
 - `AgentLearningPanel` — синхронизация pending-записей, кнопка «Создать PR», автообновление
 - Collective ViperMemory + ViperSkills — pull при старте, фильтр дублей/коротких записей
 - MemoryPanel — раздельные секции локальных и коллективных записей, бейдж 📚
@@ -198,6 +189,8 @@ N · [S/M/L/XL] · Краткое название
 - Маскирование секретов: `secretRedaction.ts` — логи, контекст провайдера, collective memory
 
 **UI и настройки**
+- Иконка в системном трее — `tray.ts`, сворачивание в трей при закрытии окна, tooltip при работе агента
+- Прогресс автообновления — `UpdateBanner`: %, объём, скорость, ETA; надёжный `quitAndInstall` на Windows
 - Уведомление «агент закончил»: системный toast + звук при `soundNotifications`; фаза `idle` после busy
 - Side-by-side diff: `DiffPreviewModal` — переключатель unified / side-by-side, подсветка синтаксиса в `preview_edit`
 - Дерево файлов проекта: `ProjectTreePanel` — IPC `get-project-tree`, клик открывает файл, ПКМ «Спросить агента» вставляет `@path`
@@ -213,6 +206,8 @@ N · [S/M/L/XL] · Краткое название
 - Рефакторинг агента на 6 модулей; параллельное выполнение инструментов; LRU-кэши
 
 **Документация**
+- CONTRIBUTING.md: диаграмма ReAct (mermaid), таблица ключевых модулей, пошаговый гайд добавления инструмента
+- Шаблоны GitHub Issues (баг, идея, вопрос, docs) и Pull Request (feature, bugfix, self-improvement)
 - TypeDoc + GitHub Pages — `npm run docs` (shared API из JSDoc), workflow `.github/workflows/docs.yml`, публикация на GitHub Pages
 - README «Примеры запросов» — 7 готовых диалогов (поиск, правка, самоулучшение, веб, git)
 - Скринкасты для README — GIF в `docs/media/` (поиск, самоулучшение, Ollama); `npm run capture:readme-media`
