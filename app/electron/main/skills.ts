@@ -6,6 +6,7 @@ import { makeId } from '../../shared/makeId'
 import { BUILTIN_SKILL_IDS, isBuiltinSkill } from '../../shared/builtinSkills'
 import { formatAppliedSkillsBlock, scoreSkill, shouldApplySkill } from '../../shared/skillMatching'
 import type { AgentSkill, MemoryScope, SkillsStore } from '../../src/types'
+import { readCollectiveSkills } from './collectiveMemorySync'
 
 export const SKILLS_FILENAME = 'ViperSkills.md'
 const LEGACY_SKILLS_FILENAME = 'skills.json'
@@ -181,8 +182,9 @@ export async function listSkills(projectPath: string): Promise<AgentSkill[]> {
   const project = projectPath
     ? await loadStore(projectSkillsPath(projectPath), legacyProjectSkillsPath(projectPath))
     : emptyStore()
+  const collective = await readCollectiveSkills()
 
-  return [...global.skills, ...project.skills].sort((a, b) =>
+  return [...collective, ...global.skills, ...project.skills].sort((a, b) =>
     b.updatedAt.localeCompare(a.updatedAt)
   )
 }

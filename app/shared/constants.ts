@@ -86,3 +86,5 @@ export const MCP_MANIFEST_TIMEOUT_MS = 15_000
 // ── Коллективная память ───────────────────────────────────────────────────────
 /** Общие знания агента в репозитории CodeViper (синхронизация через git) */
 export const COLLECTIVE_MEMORY_REPO_PATH = 'docs/collective/ViperMemory.md'
+/** Коллективные навыки в репозитории CodeViper */
+export const COLLECTIVE_SKILLS_REPO_PATH = 'docs/collective/ViperSkills.md'

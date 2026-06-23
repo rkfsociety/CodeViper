@@ -2,10 +2,15 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { spawn } from 'child_process'
-import { COLLECTIVE_MEMORY_REPO_PATH, MIN_COLLECTIVE_ENTRY_LENGTH } from '../../shared/constants'
+import {
+  COLLECTIVE_MEMORY_REPO_PATH,
+  COLLECTIVE_SKILLS_REPO_PATH,
+  MIN_COLLECTIVE_ENTRY_LENGTH
+} from '../../shared/constants'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
-import type { MemoryEntry, MemoryStore } from '../../src/types'
+import type { AgentSkill, MemoryEntry, MemoryStore, SkillsStore } from '../../src/types'
 import { parseMemoryMarkdown, renderMemoryMarkdown } from './memory'
+import { parseSkillsMarkdown } from './skills'
 import { commitAndPushRepoPaths, getRepoRoot } from './selfCommit'
 import { getCodeViperSourceRoot } from './codeviperSource'
 
@@ -246,4 +251,71 @@ export async function flushCollectiveMemoryToGit(
     rejectedCount: rejected.length,
     rejectionReasons: reasons.length > 0 ? reasons : undefined
   }
+}
+
+// ── Коллективные навыки ─────────────────────────────────────────────────────
+
+async function getCollectiveSkillsFilePath(): Promise<string | null> {
+  const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
+  if (!repoRoot) return null
+  return join(repoRoot, COLLECTIVE_SKILLS_REPO_PATH)
+}
+
+function emptySkillsStore(): SkillsStore {
+  return { version: 1, skills: [] }
+}
+
+export async function readCollectiveSkillsStore(): Promise<SkillsStore> {
+  const filePath = await getCollectiveSkillsFilePath()
+  if (!filePath || !existsSync(filePath)) return emptySkillsStore()
+
+  try {
+    const raw = await readFile(filePath, 'utf8')
+    return parseSkillsMarkdown(raw)
+  } catch {
+    return emptySkillsStore()
+  }
+}
+
+export async function readCollectiveSkills(): Promise<AgentSkill[]> {
+  const store = await readCollectiveSkillsStore()
+  return store.skills.map((skill) => ({
+    ...skill,
+    scope: 'global' as const,
+    source: 'collective'
+  }))
+}
+
+export async function pullCollectiveSkillsFromRemote(
+  configuredBranch?: string
+): Promise<{ ok: boolean; message: string }> {
+  const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
+  if (!repoRoot) return { ok: false, message: 'не git-репозиторий — pull пропущен' }
+
+  const branch = resolveSelfImproveBranch(configuredBranch)
+
+  const fetchResult = await runGitCmd(repoRoot, ['fetch', 'origin', branch])
+  if (fetchResult.code !== 0) {
+    return {
+      ok: false,
+      message: `git fetch не удался: ${(fetchResult.stderr || fetchResult.stdout).trim()}`
+    }
+  }
+
+  const checkoutResult = await runGitCmd(repoRoot, [
+    'checkout',
+    `origin/${branch}`,
+    '--',
+    COLLECTIVE_SKILLS_REPO_PATH
+  ])
+
+  if (checkoutResult.code !== 0) {
+    const stderr = (checkoutResult.stderr || checkoutResult.stdout).trim()
+    if (/unknown revision|pathspec|did not match/i.test(stderr)) {
+      return { ok: true, message: `ветка ${branch} ещё не создана на remote — pull пропущен` }
+    }
+    return { ok: false, message: `checkout remote файла не удался: ${stderr}` }
+  }
+
+  return { ok: true, message: `коллективные навыки обновлены из ветки ${branch}` }
 }

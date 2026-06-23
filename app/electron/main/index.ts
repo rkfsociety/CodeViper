@@ -57,7 +57,8 @@ import { startUpdateChecks, installPendingUpdate } from './updateChecker'
 import {
   getPendingCollectiveMemoryCount,
   flushCollectiveMemoryToGit,
-  pullCollectiveMemoryFromRemote
+  pullCollectiveMemoryFromRemote,
+  pullCollectiveSkillsFromRemote
 } from './collectiveMemorySync'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
@@ -254,6 +255,9 @@ app.whenReady().then(async () => {
 
   if (settings.gitSyncOnStartup) {
     pullCollectiveMemoryFromRemote(settings.selfImproveBranch).catch(() => {
+      // pull — best-effort, офлайн или ветка не создана — не критично
+    })
+    pullCollectiveSkillsFromRemote(settings.selfImproveBranch).catch(() => {
       // pull — best-effort, офлайн или ветка не создана — не критично
     })
   }

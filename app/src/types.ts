@@ -304,6 +304,7 @@ export interface AgentSkill {
   createdAt: string
   updatedAt: string
   useCount: number
+  source?: string
 }
 
 export interface SkillsStore {
