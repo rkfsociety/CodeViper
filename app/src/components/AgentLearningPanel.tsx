@@ -63,13 +63,20 @@ export const AgentLearningPanel = memo(function AgentLearningPanel({
     setLoading(true)
     setMessage(null)
     try {
-      // Используем существующий инструмент создания PR через IPC агента
-      // Формируем промпт, который агент выполнит через create_codeviper_pr
-      setMessage('Для создания PR используйте команду агенту: «Создай PR с коллективными знаниями»')
+      const result = await window.codeviper.createCodeViperPr('Коллективные знания')
+      setMessage(`✓ ${result}`)
+      void loadStatus()
+    } catch (e) {
+      const err = e instanceof Error ? e.message : String(e)
+      if (err.includes('already exists')) {
+        setMessage('ℹ PR с коллективными знаниями уже создан')
+      } else {
+        setMessage(`✗ Ошибка: ${err}`)
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadStatus])
 
   if (!status) return null
 

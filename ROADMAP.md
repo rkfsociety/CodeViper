@@ -390,6 +390,7 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
+- Кнопка PR из панели коллективного обучения: IPC обработчик `create-codeviper-pr` в index.ts; AgentLearningPanel вызывает `window.codeviper.createCodeViperPr()` с заголовком «Коллективные знания»; обработка ошибок (уже существует, не git-репозиторий, gh не установлен); контракт в types.ts
 - Collective ViperSkills: синхронизация коллективных навыков в `docs/collective/ViperSkills.md`; `readCollectiveSkills()` подгружает навыки из remote; `pullCollectiveSkillsFromRemote()` при старте если `gitSyncOnStartup`; коллективные навыки объединены с локальными в `list_skills`; добавлено поле `source: 'collective'` в AgentSkill для отслеживания источника
 - Фильтр перед push collective: `filterEntriesBeforePush()` отклоняет пустые, короткие (<20 символов) и дублирующие записи; лог отклонённых в результат синхронизации; AgentLearningPanel показывает `rejectedCount` и `rejectionReasons` в UI; константа `MIN_COLLECTIVE_ENTRY_LENGTH` в constants.ts; тест на отклонение пустых строк
 - MemoryPanel: локальные vs коллективные — две отдельные секции с разделением по `source: 'collective'`; бейдж 📚 для коллективных записей; обновлена `readCollectiveMemoryEntries()` в `collectiveMemorySync.ts` для отметки источника

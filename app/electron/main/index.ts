@@ -60,6 +60,7 @@ import {
   pullCollectiveMemoryFromRemote,
   pullCollectiveSkillsFromRemote
 } from './collectiveMemorySync'
+import { createCodeViperPr } from './selfCommit'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
   AgentSettings,
@@ -620,6 +621,12 @@ ipcMain.handle('create-issue', async (_e, title: string, body?: string, labels?:
 )
 
 ipcMain.handle('create-pr', async (_e, title?: string, body?: string) => createPr(title, body))
+
+ipcMain.handle('create-codeviper-pr', async (_e, title?: string, body?: string) => {
+  const result = await createCodeViperPr(title, body)
+  if (!result.ok) throw new Error(result.message)
+  return result.message
+})
 
 ipcMain.handle('list-issues', async () => listIssues())
 

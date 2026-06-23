@@ -602,6 +602,7 @@ export interface CodeViperAPI {
   listPullRequests: () => Promise<PullRequestListResult>
   createIssue: (title: string, body?: string, labels?: string) => Promise<string>
   createPr: (title?: string, body?: string) => Promise<string>
+  createCodeViperPr: (title?: string, body?: string) => Promise<string>
   listIssues: () => Promise<string>
   openIssue: (number: string) => Promise<string>
   triggerGithubWorkflow: (workflowId: string, ref?: string, fields?: string) => Promise<string>
