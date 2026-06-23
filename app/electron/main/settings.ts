@@ -94,7 +94,9 @@ export const PersistedSettingsSchema = z.object({
   shareCompute: z.boolean().optional(),
   p2pConsentGiven: z.boolean().optional(),
   p2pServerUrl: z.string().optional(),
-  p2pAuthToken: z.string().optional()
+  p2pAuthToken: z.string().optional(),
+  p2pNodePrivateKey: z.string().optional(),
+  p2pNodePublicKey: z.string().optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -228,7 +230,13 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.shareCompute === true ? { shareCompute: true } : {}),
     ...(settings.p2pConsentGiven === true ? { p2pConsentGiven: true } : {}),
     ...(settings.p2pServerUrl?.trim() ? { p2pServerUrl: settings.p2pServerUrl.trim() } : {}),
-    ...(settings.p2pAuthToken?.trim() ? { p2pAuthToken: settings.p2pAuthToken.trim() } : {})
+    ...(settings.p2pAuthToken?.trim() ? { p2pAuthToken: settings.p2pAuthToken.trim() } : {}),
+    ...(settings.p2pNodePrivateKey?.trim()
+      ? { p2pNodePrivateKey: settings.p2pNodePrivateKey.trim() }
+      : {}),
+    ...(settings.p2pNodePublicKey?.trim()
+      ? { p2pNodePublicKey: settings.p2pNodePublicKey.trim() }
+      : {})
   }
 }
 

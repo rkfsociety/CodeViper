@@ -359,6 +359,12 @@ export function SettingsModal({
     setP2pStatus(null)
     try {
       const result = await window.codeviper.registerP2pNode(settings)
+      if (result.ok && result.nodeKeys) {
+        onSettingsChange({
+          p2pNodePrivateKey: result.nodeKeys.privateKey,
+          p2pNodePublicKey: result.nodeKeys.publicKey
+        })
+      }
       setP2pStatus({ ok: result.ok, message: result.message })
     } catch (e) {
       setP2pStatus({ ok: false, message: e instanceof Error ? e.message : String(e) })

@@ -4,6 +4,8 @@ export interface P2PNode {
   id: string
   endpoint: string
   model: string
+  /** X25519 public key (SPKI DER, base64) для ECDH-шифрования промптов */
+  publicKey?: string
   gpuMemMb?: number
   cpuPct?: number
   registeredAt: number

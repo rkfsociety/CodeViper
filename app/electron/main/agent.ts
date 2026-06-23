@@ -27,6 +27,7 @@ import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
 import {
   reserveIncomingP2pTask,
   releaseP2pTaskSlot,
+  resolveP2pTaskPrompt,
   type P2pAcceptResult,
   type P2pIncomingTask
 } from './p2pClient'
@@ -59,6 +60,12 @@ export async function runIncomingP2pTask(
   const accept = await reserveIncomingP2pTask(settings, task)
   if (!accept.accepted) return accept
 
+  const prompt = resolveP2pTaskPrompt(task, settings)
+  if (!prompt.trim()) {
+    releaseP2pTaskSlot()
+    return { accepted: false, paused: false, message: 'пустой промпт P2P-задачи' }
+  }
+
   try {
     const runner = new AgentRunner(
       settings,
@@ -70,7 +77,7 @@ export async function runIncomingP2pTask(
       undefined,
       `p2p-${task.id}`
     )
-    await runner.run([], task.prompt)
+    await runner.run([], prompt)
     return { accepted: true, paused: false, message: 'задача выполнена' }
   } finally {
     releaseP2pTaskSlot()

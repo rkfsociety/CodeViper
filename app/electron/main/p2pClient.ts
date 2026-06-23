@@ -1,16 +1,32 @@
+import WebSocket from 'ws'
+import { randomUUID } from 'node:crypto'
 import type { AgentSettings } from '../../src/types'
 import { P2P_MAX_CONCURRENT_TASKS, P2P_QUEUE_WAIT_TIMEOUT_MS } from '../../shared/constants'
+import {
+  decryptP2pPrompt,
+  encryptP2pPrompt,
+  generateP2pNodeKeys,
+  toP2pWssSubscribeUrl,
+  toSecureP2pUrl,
+  type P2pEncryptedPayload,
+  type P2pNodeKeys
+} from '../../shared/p2pCrypto'
 import { getP2pLoadPauseReason } from './systemStats'
+
+export type { P2pEncryptedPayload, P2pNodeKeys }
 
 export interface P2PRegisterResult {
   ok: boolean
   id?: string
   message: string
+  /** Новая пара ключей — сохранить в настройках при первой регистрации */
+  nodeKeys?: P2pNodeKeys
 }
 
 export interface P2pIncomingTask {
   id: string
-  prompt: string
+  prompt?: string
+  encrypted?: P2pEncryptedPayload
 }
 
 export interface P2pAcceptResult {
@@ -59,6 +75,118 @@ export function getP2pTaskQueueStats(): { active: number; queued: number } {
   return { active: activeP2pTaskCount, queued: p2pTaskWaitQueue.length }
 }
 
+export function ensureP2pNodeKeys(settings: AgentSettings): {
+  keys: P2pNodeKeys
+  generated: boolean
+} {
+  const privateKey = settings.p2pNodePrivateKey?.trim()
+  const publicKey = settings.p2pNodePublicKey?.trim()
+  if (privateKey && publicKey) {
+    return { keys: { privateKey, publicKey }, generated: false }
+  }
+  const keys = generateP2pNodeKeys()
+  return { keys, generated: true }
+}
+
+/** Расшифровать промпт входящей задачи (ECDH + AES-GCM). */
+export function resolveP2pTaskPrompt(task: P2pIncomingTask, settings: AgentSettings): string {
+  if (task.encrypted) {
+    const privateKey = settings.p2pNodePrivateKey?.trim()
+    if (!privateKey) {
+      throw new Error('p2pNodePrivateKey не задан — невозможно расшифровать P2P-задачу')
+    }
+    return decryptP2pPrompt(task.encrypted, privateKey)
+  }
+  return task.prompt ?? ''
+}
+
+/** Зашифровать промпт для узла-получателя по его публичному ключу. */
+export function encryptPromptForP2pNode(
+  prompt: string,
+  recipientPublicKeyB64: string
+): P2pEncryptedPayload {
+  return encryptP2pPrompt(prompt, recipientPublicKeyB64)
+}
+
+/**
+ * Отправить зашифрованную задачу через сигнальный сервер (HTTPS/TLS).
+ * Сервер ретранслирует только ciphertext по WSS.
+ */
+export async function relayEncryptedP2pTask(
+  settings: AgentSettings,
+  targetNodeId: string,
+  recipientPublicKeyB64: string,
+  prompt: string,
+  taskId?: string
+): Promise<{ ok: boolean; message: string; taskId: string }> {
+  const url = settings.p2pServerUrl?.trim()
+  if (!url) return { ok: false, message: 'p2pServerUrl не задан', taskId: taskId ?? '' }
+  if (!settings.p2pAuthToken?.trim()) {
+    return { ok: false, message: 'p2pAuthToken не задан', taskId: taskId ?? '' }
+  }
+
+  const id = taskId ?? randomUUID()
+  const payload = encryptP2pPrompt(prompt, recipientPublicKeyB64)
+  const secureUrl = `${toSecureP2pUrl(url)}/tasks/relay`
+
+  try {
+    const res = await fetch(secureUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${settings.p2pAuthToken.trim()}`
+      },
+      body: JSON.stringify({ taskId: id, targetNodeId, payload }),
+      signal: AbortSignal.timeout(15_000)
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      return { ok: false, message: `relay ${res.status}: ${text.slice(0, 200)}`, taskId: id }
+    }
+
+    return { ok: true, message: 'задача передана (шифротекст)', taskId: id }
+  } catch (e) {
+    return { ok: false, message: `ошибка relay: ${(e as Error).message}`, taskId: id }
+  }
+}
+
+export type P2pWssTaskHandler = (task: P2pIncomingTask) => void
+
+/**
+ * Подписка узла на входящие P2P-задачи по WSS (TLS при https:// сервере).
+ * В сообщениях только зашифрованное тело — расшифровка на стороне узла.
+ */
+export function subscribeP2pTaskWss(
+  settings: AgentSettings,
+  nodeId: string,
+  onTask: P2pWssTaskHandler
+): WebSocket | null {
+  const baseUrl = settings.p2pServerUrl?.trim()
+  const token = settings.p2pAuthToken?.trim()
+  if (!baseUrl || !token || !nodeId) return null
+
+  const wssUrl = toP2pWssSubscribeUrl(baseUrl, nodeId, token)
+  const socket = new WebSocket(wssUrl, { rejectUnauthorized: true })
+
+  socket.on('message', (data) => {
+    try {
+      const msg = JSON.parse(String(data)) as {
+        type?: string
+        taskId?: string
+        payload?: P2pEncryptedPayload
+      }
+      if (msg.type === 'task' && msg.taskId && msg.payload) {
+        onTask({ id: msg.taskId, encrypted: msg.payload })
+      }
+    } catch {
+      /* ignore malformed frames */
+    }
+  })
+
+  return socket
+}
+
 /**
  * Занять слот для входящей P2P-задачи.
  * До {@link P2P_MAX_CONCURRENT_TASKS} задач параллельно; остальные ждут в очереди до 60 с.
@@ -99,10 +227,6 @@ export function releaseP2pTaskSlot(): void {
   activeP2pTaskCount = Math.max(0, activeP2pTaskCount - 1)
 }
 
-/**
- * Проверяет, можно ли принять входящую P2P-задачу (нагрузка CPU/GPU).
- * Вызывается перед запуском инференса на этом узле.
- */
 export async function tryAcceptIncomingP2pTask(
   settings: AgentSettings,
   _task: P2pIncomingTask
@@ -127,9 +251,6 @@ export async function tryAcceptIncomingP2pTask(
   return { accepted: true, paused: false, message: 'можно принять задачу' }
 }
 
-/**
- * Резерв слота + проверки перед выполнением P2P-задачи.
- */
 export async function reserveIncomingP2pTask(
   settings: AgentSettings,
   task: P2pIncomingTask
@@ -150,10 +271,6 @@ export async function reserveIncomingP2pTask(
   return { accepted: true, paused: false, message: 'слот зарезервирован' }
 }
 
-/**
- * Регистрирует этот узел на P2P сигнальном сервере.
- * Вызывается при включении тумблера «Поделиться мощностью».
- */
 export async function registerNode(settings: AgentSettings): Promise<P2PRegisterResult> {
   const url = settings.p2pServerUrl?.trim()
   if (!url) return { ok: false, message: 'p2pServerUrl не задан в настройках' }
@@ -165,10 +282,16 @@ export async function registerNode(settings: AgentSettings): Promise<P2PRegister
 
   if (!model) return { ok: false, message: 'модель не выбрана в настройках' }
 
-  const body = JSON.stringify({ endpoint, model })
+  const { keys, generated } = ensureP2pNodeKeys(settings)
+  const secureUrl = `${toSecureP2pUrl(url)}/nodes/register`
+  const body = JSON.stringify({
+    endpoint: toSecureP2pUrl(endpoint),
+    model,
+    publicKey: keys.publicKey
+  })
 
   try {
-    const res = await fetch(`${url}/nodes/register`, {
+    const res = await fetch(secureUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -184,7 +307,12 @@ export async function registerNode(settings: AgentSettings): Promise<P2PRegister
     }
 
     const data = (await res.json()) as { ok: boolean; id?: string }
-    return { ok: true, id: data.id, message: 'узел зарегистрирован' }
+    return {
+      ok: true,
+      id: data.id,
+      message: 'узел зарегистрирован',
+      ...(generated ? { nodeKeys: keys } : {})
+    }
   } catch (e) {
     return { ok: false, message: `ошибка сети: ${(e as Error).message}` }
   }

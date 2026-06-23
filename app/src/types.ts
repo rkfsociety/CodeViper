@@ -267,6 +267,10 @@ export interface AgentSettings {
   p2pServerUrl?: string
   /** Bearer-токен для авторизации на P2P-сервере */
   p2pAuthToken?: string
+  /** X25519 private key узла (PKCS8 DER, base64) для расшифровки P2P-промптов */
+  p2pNodePrivateKey?: string
+  /** X25519 public key узла (SPKI DER, base64) */
+  p2pNodePublicKey?: string
 }
 
 export interface McpToolDefinition {
@@ -694,7 +698,12 @@ export interface CodeViperAPI {
   ) => Promise<void>
   registerP2pNode: (
     settings: AgentSettings
-  ) => Promise<{ ok: boolean; id?: string; message: string }>
+  ) => Promise<{
+    ok: boolean
+    id?: string
+    message: string
+    nodeKeys?: { publicKey: string; privateKey: string }
+  }>
 }
 
 declare global {

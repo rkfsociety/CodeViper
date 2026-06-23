@@ -1,15 +1,30 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import websocket from '@fastify/websocket'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import type { NodeRegistry, P2PNode } from './nodes.js'
 import type { AuthManager } from './auth.js'
+import { formatEncryptedTaskRelayLog } from './p2pCrypto.js'
+import { deliverEncryptedTask, registerNodeSocket } from './wssHub.js'
 
 const RegisterBody = z.object({
   endpoint: z.string().url(),
   model: z.string().min(1),
+  publicKey: z.string().min(1).optional(),
   gpuMemMb: z.number().int().positive().optional(),
   cpuPct: z.number().min(0).max(100).optional(),
   ttlSec: z.number().int().min(10).max(3600).optional()
+})
+
+const RelayTaskBody = z.object({
+  taskId: z.string().min(1),
+  targetNodeId: z.string().min(1),
+  payload: z.object({
+    ephemeralPublicKey: z.string().min(1),
+    ciphertext: z.string().min(1),
+    iv: z.string().min(1),
+    authTag: z.string().min(1)
+  })
 })
 
 const EmailBody = z.object({
@@ -55,6 +70,7 @@ export async function registerRoutes(
   auth: AuthManager
 ): Promise<void> {
   const authHook = requireAuth(auth)
+  await app.register(websocket)
 
   // ── Auth: email register ──────────────────────────────────────────────────
   app.post<{ Body: unknown }>('/auth/register', async (req, reply) => {
@@ -118,12 +134,13 @@ export async function registerRoutes(
     if (!parsed.success) {
       return reply.status(400).send({ ok: false, error: parsed.error.flatten() })
     }
-    const { endpoint, model, gpuMemMb, cpuPct, ttlSec } = parsed.data
+    const { endpoint, model, publicKey, gpuMemMb, cpuPct, ttlSec } = parsed.data
 
     const node: P2PNode = {
       id: randomUUID(),
       endpoint,
       model,
+      ...(publicKey !== undefined && { publicKey }),
       ...(gpuMemMb !== undefined && { gpuMemMb }),
       ...(cpuPct !== undefined && { cpuPct }),
       registeredAt: Date.now()
@@ -141,6 +158,56 @@ export async function registerRoutes(
       const { model } = req.query
       const nodes = await registry.list(model)
       return reply.send({ ok: true, count: nodes.length, nodes })
+    }
+  )
+
+  // ── Protected: POST /tasks/relay (только шифротекст, без plaintext в логах) ─
+  app.post<{ Body: unknown }>('/tasks/relay', { preHandler: authHook }, async (req, reply) => {
+    const parsed = RelayTaskBody.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ ok: false, error: parsed.error.flatten() })
+    }
+    const { taskId, targetNodeId, payload } = parsed.data
+
+    const target = await registry.get(targetNodeId)
+    if (!target) {
+      return reply.status(404).send({ ok: false, error: 'target node not found' })
+    }
+
+    const logLine = formatEncryptedTaskRelayLog({ taskId, targetNodeId, payload })
+    req.log.info(logLine)
+
+    const wire = JSON.stringify({ type: 'task', taskId, payload })
+    const delivery = deliverEncryptedTask(targetNodeId, wire)
+    if (!delivery.delivered) {
+      return reply.status(503).send({ ok: false, error: delivery.reason ?? 'delivery failed' })
+    }
+
+    return reply.send({ ok: true, taskId, targetNodeId })
+  })
+
+  // ── WSS: подписка узла на входящие задачи ────────────────────────────────
+  app.get(
+    '/nodes/ws',
+    { websocket: true },
+    (socket, req) => {
+      const query = req.query as { nodeId?: string; token?: string }
+      const nodeId = query.nodeId?.trim()
+      const token = query.token?.trim()
+
+      if (!nodeId || !token) {
+        socket.close(1008, 'nodeId and token required')
+        return
+      }
+
+      const payload = auth.verifyToken(token)
+      if (!payload) {
+        socket.close(1008, 'invalid token')
+        return
+      }
+
+      registerNodeSocket(nodeId, socket)
+      socket.send(JSON.stringify({ type: 'subscribed', nodeId }))
     }
   )
 
