@@ -18,6 +18,7 @@ import type { SelfImprovementItem } from '../../shared/selfImprovement'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { agentLogger } from './agentLogger'
 import { createUnifiedDiff } from './diffUtil'
+import { getCodeViperSourceRoot, runCodeViperCommand } from './codeviperSource'
 import type { OllamaMessage } from './agentContext'
 import type { LoopGuard } from './agentLoopGuard'
 
@@ -221,6 +222,34 @@ export class ToolExecutor {
     return Promise.all(parsed.map(({ id, name, args }) => this.runOneTool(step, name, args, id)))
   }
 
+  private async runAutoVerify(): Promise<string> {
+    const root = getCodeViperSourceRoot()
+    const { readFile } = await import('fs/promises')
+    const { join } = await import('path')
+    let scripts: Record<string, string> = {}
+    try {
+      const raw = await readFile(join(root, 'package.json'), 'utf-8')
+      scripts = (JSON.parse(raw) as { scripts?: Record<string, string> }).scripts ?? {}
+    } catch {
+      return ''
+    }
+
+    const parts: string[] = []
+    if ('typecheck' in scripts) {
+      const r = await runCodeViperCommand('npm run typecheck')
+      const out = (r.stdout + (r.stderr ? '\n' + r.stderr : '')).trim()
+      parts.push(`[typecheck]\n${out || '(нет вывода)'}`)
+    }
+    if ('test' in scripts) {
+      const r = await runCodeViperCommand('npm test')
+      const out = (r.stdout + (r.stderr ? '\n' + r.stderr : '')).trim()
+      parts.push(`[test]\n${out || '(нет вывода)'}`)
+    }
+
+    if (!parts.length) return ''
+    return '\n\n--- Автопроверка ---\n' + parts.join('\n\n')
+  }
+
   async executeSequential(
     toolCalls: ToolCallInput[],
     step: number,
@@ -259,7 +288,8 @@ export class ToolExecutor {
 
     const MAX_CLOUD_RESULT_CHARS = 2000
 
-    for (const { call, name, output } of rawResults) {
+    for (const { call, name, output: rawOutput } of rawResults) {
+      let output = rawOutput
       const toolSignature = `${name}:${JSON.stringify(call.function.arguments)}`
       const loopNudge =
         loopGuard.checkConsecutive(toolSignature, name) ?? loopGuard.checkTotal(name)
@@ -277,7 +307,13 @@ export class ToolExecutor {
       ) {
         /* handled below */
       }
-      if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) selfEdited = true
+      if (SELF_EDIT_FILE_TOOLS.has(name) && !output.startsWith('Ошибка:')) {
+        selfEdited = true
+        if (this.settings.autoVerifyAfterEdit) {
+          const verifyOut = await this.runAutoVerify()
+          if (verifyOut) output += verifyOut
+        }
+      }
       // MUTATING_TOOLS check done by caller via mutatingToolNames
       mutatingToolNames.push(name)
 

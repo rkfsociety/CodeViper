@@ -137,6 +137,8 @@ export interface AgentSettings {
   deepReasoning?: boolean
   /** Автоматически коммитить и пушить самоправки агента (правки исходников CodeViper) */
   autoPushSelfEdits?: boolean
+  /** После успешной правки файлов CodeViper — запустить typecheck и/или test */
+  autoVerifyAfterEdit?: boolean
   /** Ветка git для самоулучшения (по умолчанию agent/self-improve) */
   selfImproveBranch?: string
   /** Синхронизировать глобальные знания в docs/collective/ViperMemory.md на GitHub */

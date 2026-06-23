@@ -1439,6 +1439,27 @@ export function SettingsModal({
                         </span>
                       </label>
 
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.autoVerifyAfterEdit === true}
+                          onChange={(e) =>
+                            onSettingsChange({ autoVerifyAfterEdit: e.target.checked || undefined })
+                          }
+                        />
+                        <span className={styles.track} aria-hidden="true">
+                          <span className={styles.thumb} />
+                        </span>
+                        <span className={styles.toggleContent}>
+                          <span className={styles.title}>Автопроверка после правки</span>
+                          <span className={styles.desc}>
+                            После каждой успешной правки исходников CodeViper — запускать{' '}
+                            <code>npm run typecheck</code> и <code>npm test</code>; результат
+                            появляется как tool_result в чате
+                          </span>
+                        </span>
+                      </label>
+
                       <div style={{ marginTop: '0.75rem' }}>
                         <div className={styles.sectionLabel}>Ветка самоулучшения</div>
                         <input
