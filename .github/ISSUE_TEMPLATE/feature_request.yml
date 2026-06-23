@@ -1,17 +1,18 @@
 name: Предложение
-description: Идея для новой функции или улучшения
+description: Новая функция или улучшение существующего
+title: "[Идея]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Перед отправкой проверьте [ROADMAP.md](../blob/master/ROADMAP.md) — возможно, идея уже запланирована.
+        Перед отправкой загляните в [ROADMAP.md](https://github.com/rkfsociety/CodeViper/blob/master/ROADMAP.md) — возможно, идея уже в планах.
 
   - type: textarea
     id: problem
     attributes:
       label: Какую проблему решает эта функция?
-      placeholder: "Например: приходится вручную копировать путь к файлу, было бы удобнее кликнуть по нему в чате"
+      placeholder: "Приходится вручную копировать путь к файлу — удобнее кликнуть по имени в чате"
     validations:
       required: true
 
@@ -19,7 +20,31 @@ body:
     id: solution
     attributes:
       label: Какое решение вы предлагаете?
-      placeholder: "Например: сделать имена файлов в сообщениях агента кликабельными — открывать в редакторе по умолчанию"
+      placeholder: "Сделать @-упоминания файлов кликабельными с превью по клику"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы (если есть)
+      placeholder: "Достаточно контекстного меню ПКМ без превью"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Область
+      options:
+        - UI / UX
+        - Инструменты агента
+        - Провайдеры и модели
+        - Память / навыки / коллектив
+        - Установка / дистрибутив
+        - P2P / интеграции (MCP, GitHub, …)
+        - Документация
+        - Другое
     validations:
       required: true
 
@@ -33,3 +58,11 @@ body:
         - Без этого сложно работать
     validations:
       required: true
+
+  - type: checkboxes
+    id: roadmap
+    attributes:
+      label: ROADMAP
+      options:
+        - label: Готов помочь реализацией (PR / тестирование)
+          required: false

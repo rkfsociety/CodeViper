@@ -1,0 +1,41 @@
+name: Документация
+description: Опечатка, неточность или пробел в README / вики / docs
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо! Укажите ссылку на страницу и что именно исправить или дополнить.
+
+  - type: input
+    id: page
+    attributes:
+      label: Страница
+      placeholder: "README.md, docs/integrations.md, вики «Провайдеры моделей», …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: В чём проблема или что добавить
+      placeholder: "В README указан Node 16+, но в package.json нужен 18+. Команда npm run setup-node не упомянута."
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Предлагаемая правка (если знаете)
+      placeholder: "Заменить на Node.js 18+ и добавить строку про portable Node в dist"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Участие
+      options:
+        - label: Могу отправить PR с правкой
+          required: false

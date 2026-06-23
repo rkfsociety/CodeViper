@@ -198,4 +198,4 @@ npm run build
 
 ## Вопросы
 
-Пишите в [Discussions](https://github.com/rkfsociety/CodeViper/discussions) или создавайте [Issue](https://github.com/rkfsociety/CodeViper/issues).
+Пишите в [Discussions](https://github.com/rkfsociety/CodeViper/discussions) или создавайте [Issue](https://github.com/rkfsociety/CodeViper/issues/new/choose) — есть шаблоны: баг, предложение, вопрос, документация.

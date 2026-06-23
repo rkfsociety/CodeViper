@@ -1,0 +1,39 @@
+name: Вопрос
+description: Как пользоваться, настроить провайдер, Ollama и т.д.
+title: "[Вопрос]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Для общих обсуждений без бага или фичи удобнее [Discussions](https://github.com/rkfsociety/CodeViper/discussions).
+
+        Документация: [вики](https://github.com/rkfsociety/CodeViper/wiki) · [быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт) · [интеграции](https://github.com/rkfsociety/CodeViper/blob/master/docs/integrations.md)
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Ваш вопрос
+      placeholder: "Как подключить Gemini API? Какая минимальная модель Ollama для агента?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Что уже пробовали
+      placeholder: "Читал README, ставил Ollama 0.5, модель llama3.2:3b — агент не вызывает инструменты"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install_type
+    attributes:
+      label: Как запущен CodeViper
+      options:
+        - Установщик (.exe)
+        - CodeViper.cmd из репозитория
+        - npm run dev
+        - Ещё не запускал — только изучаю
+    validations:
+      required: true

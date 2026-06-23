@@ -1,18 +1,21 @@
 name: Баг
-description: Что-то работает не так
+description: Ошибка, сбой или некорректное поведение
+title: "[Баг]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Спасибо, что сообщаете о проблеме! Заполните поля ниже — это поможет быстрее разобраться.
+        Спасибо за отчёт! Чем подробнее описание и шаги воспроизведения — тем быстрее починим.
+
+        **Логи:** `%APPDATA%\CodeViper\logs\` (установщик) или консоль `CodeViper.cmd console` (из исходников).
 
   - type: textarea
     id: description
     attributes:
       label: Что происходит
-      description: Опишите проблему. Что ожидалось и что случилось на самом деле?
-      placeholder: "Например: агент завис при попытке отредактировать файл больше 1000 строк"
+      description: Что ожидалось и что случилось на самом деле?
+      placeholder: "Агент завис при редактировании файла >500 КБ; окно не реагирует на Отмена"
     validations:
       required: true
 
@@ -21,11 +24,49 @@ body:
     attributes:
       label: Шаги для воспроизведения
       placeholder: |
-        1. Открыть проект ...
-        2. Написать в чат ...
-        3. Увидеть ошибку ...
+        1. Открыть проект …
+        2. Выбрать модель …
+        3. Отправить промпт …
+        4. Увидеть ошибку …
     validations:
       required: true
+
+  - type: dropdown
+    id: install_type
+    attributes:
+      label: Как запущен CodeViper
+      options:
+        - Установщик (.exe) с GitHub Releases
+        - CodeViper.cmd из клонированного репозитория
+        - npm run dev (разработка)
+        - Не знаю
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Провайдер модели
+      options:
+        - Ollama (локально)
+        - DeepSeek
+        - OpenAI
+        - OpenRouter
+        - Gemini
+        - Anthropic (Claude)
+        - Groq
+        - Together AI
+        - Несколько / другое
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Модель
+      placeholder: "qwen2.5-coder:7b, gpt-4o, gemini-2.5-flash, …"
+    validations:
+      required: false
 
   - type: textarea
     id: environment
@@ -33,16 +74,27 @@ body:
       label: Окружение
       value: |
         - ОС: Windows 11
-        - Провайдер: Ollama / DeepSeek / OpenAI / OpenRouter
-        - Модель:
-        - Версия CodeViper (из заголовка окна или git log):
+        - Версия CodeViper: (заголовок окна или `git log -1 --oneline`)
+        - RAM / GPU (если релевантно):
     validations:
       required: true
+
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Затронутые области
+      options:
+        - label: UI / интерфейс
+        - label: Агент / инструменты
+        - label: Провайдер / модель
+        - label: Установка / обновление
+        - label: Git / самоулучшение
+        - label: P2P / интеграции
 
   - type: textarea
     id: logs
     attributes:
-      label: Логи / скриншоты
-      description: Запустите `CodeViper.cmd console` и прикрепите вывод консоли, если есть ошибки. Скриншоты тоже приветствуются.
+      label: Логи, текст ошибки, скриншоты
+      description: Вставьте фрагмент лога или прикрепите скриншот. Для установщика — `update-*.ndjson` при проблемах с автообновлением.
     validations:
       required: false
