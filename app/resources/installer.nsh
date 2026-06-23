@@ -35,15 +35,14 @@
     ${EndIf}
   ${EndIf}
 
-  ; Ярлык на рабочем столе и в Start Menu — запускает CodeViper.cmd через cmd.exe скрыто
-  ; Кавычки: /c ""путь"" — cmd.exe снимает внешние кавычки, выполняет внутренние
+  ; Ярлык на рабочем столе и в Start Menu — запускает установленный CodeViper.exe
   DetailPrint "Создаём ярлык на рабочем столе..."
-  CreateShortcut "$DESKTOP\CodeViper.lnk" "$SYSDIR\cmd.exe" '/c $\"$\"$APPDATA\CodeViper\source\CodeViper.cmd$\"$\"' "$INSTDIR\CodeViper.exe" 0 SW_SHOWMINIMIZED "" "CodeViper — локальный AI-агент"
+  CreateShortcut "$DESKTOP\CodeViper.lnk" "$INSTDIR\CodeViper.exe" "" "$INSTDIR\CodeViper.exe" 0 SW_SHOWNORMAL "" "CodeViper — локальный AI-агент"
 
   ; Ярлык в Start Menu Programs
   DetailPrint "Создаём ярлык в меню Пуск..."
   CreateDirectory "$SMPROGRAMS\CodeViper"
-  CreateShortcut "$SMPROGRAMS\CodeViper\CodeViper.lnk" "$SYSDIR\cmd.exe" '/c $\"$\"$APPDATA\CodeViper\source\CodeViper.cmd$\"$\"' "$INSTDIR\CodeViper.exe" 0 SW_SHOWMINIMIZED "" "CodeViper — локальный AI-агент"
+  CreateShortcut "$SMPROGRAMS\CodeViper\CodeViper.lnk" "$INSTDIR\CodeViper.exe" "" "$INSTDIR\CodeViper.exe" 0 SW_SHOWNORMAL "" "CodeViper — локальный AI-агент"
   CreateShortcut "$SMPROGRAMS\CodeViper\Удалить.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0 SW_SHOWNORMAL
 
 !macroend

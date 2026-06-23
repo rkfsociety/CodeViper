@@ -1,6 +1,16 @@
-import si from 'systeminformation'
 import type { WebContents } from 'electron'
 import { P2P_PAUSE_CPU_THRESHOLD, P2P_PAUSE_GPU_THRESHOLD } from '../../shared/constants'
+
+type SystemInformation = typeof import('systeminformation')
+
+let siPromise: Promise<SystemInformation> | null = null
+
+function loadSystemInformation(): Promise<SystemInformation> {
+  if (!siPromise) {
+    siPromise = import('systeminformation')
+  }
+  return siPromise
+}
 
 export interface SystemStats {
   cpu: number
@@ -15,6 +25,7 @@ export interface SystemCapabilities {
 /** Получить информацию о возможностях системы (RAM, GPU VRAM) */
 export async function getSystemCapabilities(): Promise<SystemCapabilities> {
   try {
+    const si = await loadSystemInformation()
     const [mem, graphics] = await Promise.all([si.mem(), si.graphics()])
     const ramGB = Math.round((mem.total / (1024 * 1024 * 1024)) * 10) / 10
 
@@ -32,6 +43,7 @@ export async function getSystemCapabilities(): Promise<SystemCapabilities> {
 
 /** Текущая загрузка CPU/GPU (проценты, округлённые). */
 export async function getSystemStats(): Promise<SystemStats> {
+  const si = await loadSystemInformation()
   const [cpuLoad, graphics] = await Promise.all([si.currentLoad(), si.graphics()])
   const cpu = Math.round(cpuLoad.currentLoad)
   const rawGpu = graphics.controllers[0]?.utilizationGpu

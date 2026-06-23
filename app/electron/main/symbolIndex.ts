@@ -1,7 +1,18 @@
 import { readFile, readdir, stat } from 'fs/promises'
 import { extname, join, relative, resolve } from 'path'
-import ts from 'typescript'
+import { createRequire } from 'module'
+import type * as Ts from 'typescript'
 import { MAX_WALK_FILES } from './fileSearch'
+
+const nodeRequire = createRequire(import.meta.url)
+let typescriptModule: typeof import('typescript') | undefined
+
+function getTs(): typeof import('typescript') {
+  if (!typescriptModule) {
+    typescriptModule = nodeRequire('typescript') as typeof import('typescript')
+  }
+  return typescriptModule
+}
 
 const IGNORED_DIRS = new Set([
   'node_modules',
@@ -46,7 +57,8 @@ export interface SymbolSearchResult {
   filesScanned: number
 }
 
-function scriptKindForExt(ext: string): ts.ScriptKind {
+function scriptKindForExt(ext: string): Ts.ScriptKind {
+  const ts = getTs()
   switch (ext) {
     case '.tsx':
       return ts.ScriptKind.TSX
@@ -61,7 +73,7 @@ function scriptKindForExt(ext: string): ts.ScriptKind {
   }
 }
 
-function positionOf(sourceFile: ts.SourceFile, node: ts.Node): { line: number; column: number } {
+function positionOf(sourceFile: Ts.SourceFile, node: Ts.Node): { line: number; column: number } {
   const pos = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile, false))
   return { line: pos.line + 1, column: pos.character + 1 }
 }
@@ -69,8 +81,8 @@ function positionOf(sourceFile: ts.SourceFile, node: ts.Node): { line: number; c
 function pushDeclaration(
   out: SymbolLocation[],
   filePath: string,
-  nameNode: ts.Identifier,
-  sourceFile: ts.SourceFile,
+  nameNode: Ts.Identifier,
+  sourceFile: Ts.SourceFile,
   kind: SymbolKind,
   symbolName: string
 ): void {
@@ -85,12 +97,13 @@ function pushDeclaration(
 }
 
 function collectTsDeclarations(
-  sourceFile: ts.SourceFile,
+  sourceFile: Ts.SourceFile,
   symbolName: string,
   filePath: string,
   out: SymbolLocation[]
 ): void {
-  function visit(node: ts.Node): void {
+  const ts = getTs()
+  function visit(node: Ts.Node): void {
     if (ts.isFunctionDeclaration(node) && node.name?.text === symbolName) {
       pushDeclaration(out, filePath, node.name, sourceFile, 'function', symbolName)
     } else if (ts.isClassDeclaration(node) && node.name?.text === symbolName) {
@@ -135,12 +148,13 @@ function collectTsDeclarations(
 }
 
 function collectTsReferences(
-  sourceFile: ts.SourceFile,
+  sourceFile: Ts.SourceFile,
   symbolName: string,
   filePath: string,
   out: SymbolLocation[]
 ): void {
-  function visit(node: ts.Node): void {
+  const ts = getTs()
+  function visit(node: Ts.Node): void {
     if (ts.isIdentifier(node) && node.text === symbolName) {
       const pos = positionOf(sourceFile, node)
       out.push({
@@ -283,6 +297,7 @@ async function indexFile(
   const out: SymbolLocation[] = []
 
   if (TS_JS_EXTENSIONS.has(ext)) {
+    const ts = getTs()
     const sourceFile = ts.createSourceFile(
       filePath,
       content,

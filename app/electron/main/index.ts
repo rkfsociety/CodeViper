@@ -203,6 +203,10 @@ async function createWindow(): Promise<void> {
     }
   })
 
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+  })
+
   if (windowState.isMaximized) {
     mainWindow.maximize()
   }
@@ -267,18 +271,13 @@ function stream(chatId: string, event: AgentStreamPayload): void {
   mainWindow?.webContents.send('agent-stream', payload)
 }
 
-// Флаги устойчивости GPU: снижают вероятность краша при смене DPI/монитора.
-// --disable-gpu-process-crash-limit: не отключать GPU после серии крашей (дефолт — 3 краша/мин).
-// --in-process-gpu: GPU работает в процессе рендерера; нет отдельного процесса, которому не с чего упасть.
-app.commandLine.appendSwitch('disable-gpu-process-crash-limit')
-app.commandLine.appendSwitch('in-process-gpu')
+// Флаги устойчивости GPU — только в dev; в packaged in-process-gpu ломает окно на части систем.
+if (!app.isPackaged) {
+  app.commandLine.appendSwitch('disable-gpu-process-crash-limit')
+  app.commandLine.appendSwitch('in-process-gpu')
+}
 
-app.whenReady().then(async () => {
-  if (process.platform === 'win32') {
-    app.setAppUserModelId('com.codeviper.app')
-  }
-
-  // Устанавливаем React DevTools для отладки дерева компонентов
+async function installReactDevTools(): Promise<void> {
   try {
     const { default: installExtension, REACT_DEVELOPER_TOOLS } =
       await import('electron-devtools-installer')
@@ -287,6 +286,12 @@ app.whenReady().then(async () => {
     })
   } catch {
     // DevTools недоступны (нет сети или уже установлены) — не критично
+  }
+}
+
+app.whenReady().then(async () => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.codeviper.app')
   }
 
   const settings = await loadSettings()
@@ -304,8 +309,15 @@ app.whenReady().then(async () => {
     })
   }
 
-  await ensureDefaultSkills()
   await createWindow()
+
+  void ensureDefaultSkills().catch((err) => {
+    console.warn('[startup] ensureDefaultSkills:', err instanceof Error ? err.message : String(err))
+  })
+
+  if (!app.isPackaged) {
+    void installReactDevTools()
+  }
 
   if (mainWindow) startUpdateChecks(mainWindow.webContents)
 

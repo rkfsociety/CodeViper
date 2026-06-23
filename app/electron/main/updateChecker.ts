@@ -2,8 +2,7 @@ import { spawn } from 'child_process'
 import { appendFile, mkdir } from 'fs/promises'
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import pkg from 'electron-updater'
-const { autoUpdater } = pkg
+import type { AppUpdater } from 'electron-updater'
 import type { WebContents } from 'electron'
 import type { UpdateInfo } from '../../shared/updateInfo'
 import { resolveWindowsPendingInstaller } from '../../shared/updateInstall'
@@ -11,6 +10,15 @@ import { getCodeViperSourceRoot } from './codeviperSource'
 import { runShutdownHooks } from './appShutdown'
 import { shutdownEmbeddingWorker } from './embeddingQueue'
 import { shutdownLargeFileWorker } from './largeFileQueue'
+
+let autoUpdaterPromise: Promise<AppUpdater> | null = null
+
+async function getAutoUpdater(): Promise<AppUpdater> {
+  if (!autoUpdaterPromise) {
+    autoUpdaterPromise = import('electron-updater').then((pkg) => pkg.default.autoUpdater)
+  }
+  return autoUpdaterPromise
+}
 
 function runGit(
   cwd: string,
@@ -96,10 +104,11 @@ async function checkGitSourceUpdate(webContents: WebContents): Promise<void> {
   sendUpdate(webContents, { source: 'git', commits })
 }
 
-function startReleaseUpdateChecks(webContents: WebContents): void {
+async function startReleaseUpdateChecks(webContents: WebContents): Promise<void> {
   if (releaseChecksStarted) return
   releaseChecksStarted = true
 
+  const autoUpdater = await getAutoUpdater()
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.autoRunAppAfterInstall = true
@@ -150,7 +159,7 @@ function startReleaseUpdateChecks(webContents: WebContents): void {
 
 export function startUpdateChecks(webContents: WebContents): void {
   if (app.isPackaged) {
-    startReleaseUpdateChecks(webContents)
+    void startReleaseUpdateChecks(webContents)
     return
   }
 
@@ -208,15 +217,18 @@ async function prepareForInstall(): Promise<void> {
 
 function launchQuitAndInstall(): void {
   setTimeout(() => {
-    try {
-      autoUpdater.autoRunAppAfterInstall = true
-      autoUpdater.quitAndInstall(false, true)
-    } catch (err) {
-      void logUpdate('quitAndInstall-threw', {
-        error: err instanceof Error ? err.message : String(err)
-      })
-      runWindowsInstallerFallback()
-    }
+    void (async () => {
+      try {
+        const autoUpdater = await getAutoUpdater()
+        autoUpdater.autoRunAppAfterInstall = true
+        autoUpdater.quitAndInstall(false, true)
+      } catch (err) {
+        void logUpdate('quitAndInstall-threw', {
+          error: err instanceof Error ? err.message : String(err)
+        })
+        runWindowsInstallerFallback()
+      }
+    })()
   }, 0)
 }
 

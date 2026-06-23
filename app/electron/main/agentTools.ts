@@ -3,8 +3,17 @@ import { buildMcpAgentTools } from './mcpTools'
 import { loadPlugins } from './pluginLoader'
 // ============================================================================
 
-// Загрузить плагины при инициализации модуля
-const PLUGIN_TOOLS = loadPlugins().flatMap((plugin) => plugin.tools)
+let cachedPluginTools: Array<{
+  type: 'function'
+  function: { name: string; description: string; parameters: Record<string, unknown> }
+}> | null = null
+
+function getPluginTools() {
+  if (!cachedPluginTools) {
+    cachedPluginTools = loadPlugins().flatMap((plugin) => plugin.tools)
+  }
+  return cachedPluginTools
+}
 const FILE_TOOLS = [
   {
     type: 'function',
@@ -1388,8 +1397,7 @@ export const AGENT_TOOLS = [
   ...CODEVIPER_TOOLS,
   ...OLLAMA_TOOLS,
   ...INDEXING_TOOLS,
-  ...WEB_TOOLS,
-  ...PLUGIN_TOOLS
+  ...WEB_TOOLS
 ] as const
 
 // Кэш преобразованных схем для провайдеров (ключ = JSON хеш)
@@ -1434,7 +1442,7 @@ export function getAgentTools(
   const mcpTools = buildMcpAgentTools(mcpServers).filter(
     (tool) => !disabled || !disabled.has(tool.function.name)
   )
-  const allTools = [...filtered, ...mcpTools]
+  const allTools = [...filtered, ...getPluginTools(), ...mcpTools]
 
   // Кэш по режиму, отключённым инструментам и MCP-серверам
   const disabledKey = disabled ? [...disabled].sort().join(',') : ''
@@ -1458,9 +1466,10 @@ const SELF_IMPROVE_ONLY_TOOLS = new Set<string>([
 ])
 
 export function formatAgentToolsSummary(selfImproveMode = true): string {
+  const pluginTools = getPluginTools()
   const tools = selfImproveMode
-    ? AGENT_TOOLS
-    : AGENT_TOOLS.filter((t) => !SELF_IMPROVE_ONLY_TOOLS.has(t.function.name))
+    ? [...AGENT_TOOLS, ...pluginTools]
+    : [...AGENT_TOOLS, ...pluginTools].filter((t) => !SELF_IMPROVE_ONLY_TOOLS.has(t.function.name))
   return tools
     .map((tool) => `- **${tool.function.name}** — ${tool.function.description}`)
     .join('\n')
@@ -1606,7 +1615,6 @@ export interface ToolArgs {
 
 // Гарантия на этапе компиляции: все инструменты имеют типы аргументов
 type MissingToolArgs = Exclude<ToolName, keyof ToolArgs>
-// @ts-expect-error TS parameter type mismatch
 const _toolArgsComplete: MissingToolArgs extends never ? true : MissingToolArgs = true
 void _toolArgsComplete
 
