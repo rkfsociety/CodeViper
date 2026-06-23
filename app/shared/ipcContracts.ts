@@ -410,6 +410,7 @@ export const IPC = {
   SELECT_GGUF_FILE: 'select-gguf-file',
   DOWNLOAD_GGUF: 'download-gguf',
   DELETE_GGUF_FILE: 'delete-gguf-file',
+  REGISTER_P2P_NODE: 'register-p2p-node',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   CANCEL_GGUF_DOWNLOAD: 'cancel-gguf-download',
@@ -698,6 +699,10 @@ export const Contracts = {
   },
   [IPC.FLUSH_COLLECTIVE_MEMORY]: {
     args: z.tuple([z.string()])
+  },
+  [IPC.REGISTER_P2P_NODE]: {
+    args: z.tuple([AgentSettingsSchema]),
+    result: z.object({ ok: z.boolean(), id: z.string().optional(), message: z.string() })
   }
 } as const
 

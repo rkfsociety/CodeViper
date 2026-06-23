@@ -262,6 +262,8 @@ export function SettingsModal({
   const [ggufDownloading, setGgufDownloading] = useState(false)
   const [ggufDownloadPct, setGgufDownloadPct] = useState(0)
   const [ggufDownloadLabel, setGgufDownloadLabel] = useState('')
+  const [p2pRegistering, setP2pRegistering] = useState(false)
+  const [p2pStatus, setP2pStatus] = useState<{ ok: boolean; message: string } | null>(null)
 
   function toggleKeyVisible(key: string) {
     setApiKeyVisible((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -346,6 +348,20 @@ export function SettingsModal({
       })
     } finally {
       setBenchRunning(false)
+    }
+  }
+
+  async function handleRegisterP2p() {
+    if (p2pRegistering) return
+    setP2pRegistering(true)
+    setP2pStatus(null)
+    try {
+      const result = await window.codeviper.registerP2pNode(settings)
+      setP2pStatus({ ok: result.ok, message: result.message })
+    } catch (e) {
+      setP2pStatus({ ok: false, message: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setP2pRegistering(false)
     }
   }
 
@@ -2446,6 +2462,70 @@ export function SettingsModal({
                           linear.app/settings/api
                         </a>
                       </div>
+                    </div>
+                  </SettingItem>
+
+                  {/* ── P2P: поделиться мощностью ── */}
+                  <SettingItem
+                    tab="integrations"
+                    label="P2P: поделиться мощностью"
+                    desc="p2p share compute node сеть мощность ресурсы поделиться узел"
+                  >
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Поделиться мощностью (P2P)</div>
+                      <label className={styles.toggleRow}>
+                        <span>Регистрировать этот узел в P2P-сети</span>
+                        <input
+                          type="checkbox"
+                          checked={settings.shareCompute ?? false}
+                          onChange={(e) => onSettingsChange({ shareCompute: e.target.checked })}
+                        />
+                      </label>
+                      <div className={`${styles.hint} ${styles.hintInline}`}>
+                        Ваша модель и эндпоинт Ollama будут доступны другим участникам сети.
+                      </div>
+                      <label>
+                        URL сигнального сервера
+                        <input
+                          className={styles.input}
+                          placeholder="http://localhost:4242"
+                          value={settings.p2pServerUrl ?? ''}
+                          onChange={(e) => onSettingsChange({ p2pServerUrl: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        Bearer-токен
+                        <input
+                          className={styles.input}
+                          type="password"
+                          placeholder="Токен из /auth/login"
+                          value={settings.p2pAuthToken ?? ''}
+                          onChange={(e) => onSettingsChange({ p2pAuthToken: e.target.value })}
+                        />
+                      </label>
+                      <div className={styles.row} style={{ marginTop: 8 }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => void handleRegisterP2p()}
+                          disabled={
+                            p2pRegistering || !settings.p2pServerUrl || !settings.p2pAuthToken
+                          }
+                        >
+                          {p2pRegistering ? 'Регистрация…' : 'Зарегистрировать узел'}
+                        </button>
+                      </div>
+                      {p2pStatus && (
+                        <div
+                          className={`${styles.hint} ${styles.hintInline}`}
+                          style={{
+                            color: p2pStatus.ok ? 'var(--color-success)' : 'var(--color-error)'
+                          }}
+                        >
+                          {p2pStatus.ok ? '✓ ' : '✗ '}
+                          {p2pStatus.message}
+                        </div>
+                      )}
                     </div>
                   </SettingItem>
 

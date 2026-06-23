@@ -65,6 +65,7 @@ import { runBenchmark } from './modelBenchmark'
 import { runProjectAutoIndex } from './contextRAG'
 import { listRoadmapItems } from './roadmapParser'
 import { downloadDefaultGguf, cancelGgufDownload } from './orchestratorModel'
+import { registerNode } from './p2pClient'
 import { agentLogger } from './agentLogger'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type {
@@ -756,6 +757,11 @@ ipcMain.handle(IPC.BENCHMARK_MODEL, async (_e, ...a) => {
 
 ipcMain.handle(IPC.LIST_ROADMAP_ITEMS, async () => {
   return listRoadmapItems()
+})
+
+ipcMain.handle(IPC.REGISTER_P2P_NODE, async (_e, ...a) => {
+  const [settings] = parseIpcArgs(Contracts[IPC.REGISTER_P2P_NODE].args, a)
+  return registerNode(settings)
 })
 
 ipcMain.handle(IPC.AUTO_INDEX_PROJECT, async (_e, ...a) => {

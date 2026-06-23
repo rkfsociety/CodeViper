@@ -90,7 +90,10 @@ export const PersistedSettingsSchema = z.object({
   enabledPlugins: z.array(z.string()).optional(),
   orchestratorModelPath: z.string().optional(),
   orchestratorEnabled: z.boolean().optional(),
-  orchestratorMinMessageLength: z.number().optional()
+  orchestratorMinMessageLength: z.number().optional(),
+  shareCompute: z.boolean().optional(),
+  p2pServerUrl: z.string().optional(),
+  p2pAuthToken: z.string().optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>

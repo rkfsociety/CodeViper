@@ -259,6 +259,12 @@ export interface AgentSettings {
   orchestratorEnabled?: boolean
   /** Минимальная длина сообщения для запуска оркестратора (символы) */
   orchestratorMinMessageLength?: number
+  /** Делиться вычислительными ресурсами через P2P-сеть */
+  shareCompute?: boolean
+  /** URL сигнального сервера P2P */
+  p2pServerUrl?: string
+  /** Bearer-токен для авторизации на P2P-сервере */
+  p2pAuthToken?: string
 }
 
 export interface McpToolDefinition {
@@ -678,6 +684,9 @@ export interface CodeViperAPI {
     qdrantUrl: string,
     qdrantApiKey?: string
   ) => Promise<void>
+  registerP2pNode: (
+    settings: AgentSettings
+  ) => Promise<{ ok: boolean; id?: string; message: string }>
 }
 
 declare global {

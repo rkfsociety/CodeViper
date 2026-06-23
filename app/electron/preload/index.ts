@@ -429,7 +429,10 @@ const codeviper = {
       ipcRenderer.invoke(IPC.AUTO_INDEX_PROJECT, projectPath, ollamaUrl, qdrantUrl, qdrantApiKey),
       10_000,
       'autoIndexProject'
-    )
+    ),
+
+  registerP2pNode: (settings: import('../../src/types').AgentSettings) =>
+    withTimeout(ipcRenderer.invoke(IPC.REGISTER_P2P_NODE, settings), 15_000, 'registerP2pNode')
 }
 
 contextBridge.exposeInMainWorld('codeviper', codeviper)
