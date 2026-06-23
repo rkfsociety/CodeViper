@@ -88,7 +88,9 @@ export const PersistedSettingsSchema = z.object({
     )
     .optional(),
   enabledPlugins: z.array(z.string()).optional(),
-  orchestratorModelPath: z.string().optional()
+  orchestratorModelPath: z.string().optional(),
+  orchestratorEnabled: z.boolean().optional(),
+  orchestratorMinMessageLength: z.number().optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -214,6 +216,10 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {}),
     ...(settings.orchestratorModelPath?.trim()
       ? { orchestratorModelPath: settings.orchestratorModelPath.trim() }
+      : {}),
+    ...(settings.orchestratorEnabled === true ? { orchestratorEnabled: true } : {}),
+    ...(settings.orchestratorMinMessageLength !== undefined
+      ? { orchestratorMinMessageLength: settings.orchestratorMinMessageLength }
       : {})
   }
 }

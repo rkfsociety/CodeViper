@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron'
 import { existsSync } from 'fs'
-import { appendFile, mkdir } from 'fs/promises'
+import { appendFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import {
   AgentRunner,
@@ -351,6 +351,10 @@ ipcMain.handle(IPC.DOWNLOAD_GGUF, async () => {
 
 ipcMain.on(IPC.CANCEL_GGUF_DOWNLOAD, () => {
   cancelGgufDownload()
+})
+
+ipcMain.handle(IPC.DELETE_GGUF_FILE, async (_e, filePath: string) => {
+  await unlink(filePath)
 })
 
 ipcMain.handle('select-files', async () => {

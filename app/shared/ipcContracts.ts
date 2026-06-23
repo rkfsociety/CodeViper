@@ -179,7 +179,10 @@ export const AgentSettingsSchema = z.object({
         )
       })
     )
-    .optional()
+    .optional(),
+  orchestratorModelPath: z.string().optional(),
+  orchestratorEnabled: z.boolean().optional(),
+  orchestratorMinMessageLength: z.number().optional()
 })
 
 export const MemoryEntrySchema = z.object({
@@ -406,6 +409,7 @@ export const IPC = {
   LIST_ROADMAP_ITEMS: 'list-roadmap-items',
   SELECT_GGUF_FILE: 'select-gguf-file',
   DOWNLOAD_GGUF: 'download-gguf',
+  DELETE_GGUF_FILE: 'delete-gguf-file',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   CANCEL_GGUF_DOWNLOAD: 'cancel-gguf-download',
@@ -629,6 +633,10 @@ export const Contracts = {
   [IPC.LIST_ROADMAP_ITEMS]: {
     args: z.tuple([]),
     result: z.array(RoadmapItemSchema)
+  },
+  [IPC.DELETE_GGUF_FILE]: {
+    args: z.tuple([z.string()]),
+    result: z.void()
   },
   [IPC.RUN_AGENT]: {
     args: z.tuple([

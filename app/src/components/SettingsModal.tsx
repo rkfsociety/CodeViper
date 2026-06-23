@@ -1842,7 +1842,20 @@ export function SettingsModal({
                   {/* ── Оркестратор (node-llama-cpp) ── */}
                   <div className={styles.section} style={{ marginTop: 12 }}>
                     <div className={styles.sectionLabel}>Оркестратор (node-llama-cpp)</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+                    <label className={styles.toggle}>
+                      <input
+                        type="checkbox"
+                        checked={settings.orchestratorEnabled === true}
+                        onChange={(e) =>
+                          onSettingsChange({ orchestratorEnabled: e.target.checked })
+                        }
+                      />
+                      <span className={styles.track} aria-hidden="true"></span>
+                      <span className={styles.label}>Включить оркестратор</span>
+                    </label>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                       <span
                         style={{
                           flex: 1,
@@ -1874,16 +1887,46 @@ export function SettingsModal({
                         <button
                           type="button"
                           className="btn btn-sm"
-                          style={{ opacity: 0.6 }}
-                          onClick={() => onSettingsChange({ orchestratorModelPath: '' })}
-                          title="Убрать путь"
+                          style={{ opacity: 0.6, color: 'var(--red, #e05555)' }}
+                          onClick={() => {
+                            const path = settings.orchestratorModelPath!
+                            void window.codeviper
+                              .deleteGgufFile(path)
+                              .catch(() => undefined)
+                              .then(() => onSettingsChange({ orchestratorModelPath: '' }))
+                          }}
+                          title="Удалить файл модели с диска"
                         >
-                          ✕
+                          Удалить модель
                         </button>
                       )}
                     </div>
                     <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
                       GGUF-файл для локального предпланирования задач
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
+                        Мин. длина сообщения
+                      </span>
+                      <input
+                        type="number"
+                        min={10}
+                        max={500}
+                        step={10}
+                        value={settings.orchestratorMinMessageLength ?? 80}
+                        onChange={(e) =>
+                          onSettingsChange({
+                            orchestratorMinMessageLength: Math.max(
+                              10,
+                              parseInt(e.target.value, 10) || 80
+                            )
+                          })
+                        }
+                        style={{ width: 64 }}
+                        className="input input-sm"
+                      />
+                      <span style={{ fontSize: 11, opacity: 0.55 }}>символов</span>
                     </div>
 
                     {ggufDownloading ? (

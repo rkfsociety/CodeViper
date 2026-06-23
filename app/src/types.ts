@@ -255,6 +255,10 @@ export interface AgentSettings {
   enabledPlugins?: string[]
   /** Путь к GGUF-файлу для локального оркестратора (node-llama-cpp) */
   orchestratorModelPath?: string
+  /** Включить оркестратор для предпланирования задач */
+  orchestratorEnabled?: boolean
+  /** Минимальная длина сообщения для запуска оркестратора (символы) */
+  orchestratorMinMessageLength?: number
 }
 
 export interface McpToolDefinition {
@@ -541,6 +545,7 @@ export interface CodeViperAPI {
   selectGgufFile: () => Promise<string | null>
   downloadGguf: () => Promise<string>
   cancelGgufDownload: () => void
+  deleteGgufFile: (filePath: string) => Promise<void>
   onGgufDownloadProgress: (
     cb: (progress: { downloaded: number; total: number } | null) => void
   ) => () => void

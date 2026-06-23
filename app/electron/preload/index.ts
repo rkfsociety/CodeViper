@@ -50,6 +50,13 @@ const codeviper = {
     ipcRenderer.send(IPC.CANCEL_GGUF_DOWNLOAD)
   },
 
+  deleteGgufFile: (filePath: string): Promise<void> =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.DELETE_GGUF_FILE, filePath),
+      IPC_TIMEOUT_MS,
+      'deleteGgufFile'
+    ),
+
   onGgufDownloadProgress: (
     cb: (progress: { downloaded: number; total: number } | null) => void
   ) => {
