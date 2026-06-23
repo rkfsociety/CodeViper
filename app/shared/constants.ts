@@ -99,3 +99,9 @@ export const MCP_MANIFEST_TIMEOUT_MS = 15_000
 export const COLLECTIVE_MEMORY_REPO_PATH = 'docs/collective/ViperMemory.md'
 /** Коллективные навыки в репозитории CodeViper */
 export const COLLECTIVE_SKILLS_REPO_PATH = 'docs/collective/ViperSkills.md'
+
+// ── P2P-вычисления ───────────────────────────────────────────────────────────
+/** CPU выше порога → входящие P2P-задачи на паузе */
+export const P2P_PAUSE_CPU_THRESHOLD = 15
+/** GPU выше порога → входящие P2P-задачи на паузе */
+export const P2P_PAUSE_GPU_THRESHOLD = 20

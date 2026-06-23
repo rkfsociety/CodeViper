@@ -1,5 +1,6 @@
 import si from 'systeminformation'
 import type { WebContents } from 'electron'
+import { P2P_PAUSE_CPU_THRESHOLD, P2P_PAUSE_GPU_THRESHOLD } from '../../shared/constants'
 
 export interface SystemStats {
   cpu: number
@@ -29,10 +30,8 @@ export async function getSystemCapabilities(): Promise<SystemCapabilities> {
   }
 }
 
-let timer: ReturnType<typeof setInterval> | null = null
-let target: WebContents | null = null
-
-async function collect(): Promise<SystemStats> {
+/** Текущая загрузка CPU/GPU (проценты, округлённые). */
+export async function getSystemStats(): Promise<SystemStats> {
   const [cpuLoad, graphics] = await Promise.all([si.currentLoad(), si.graphics()])
   const cpu = Math.round(cpuLoad.currentLoad)
   const rawGpu = graphics.controllers[0]?.utilizationGpu
@@ -40,10 +39,36 @@ async function collect(): Promise<SystemStats> {
   return { cpu, gpu }
 }
 
+/** Причина паузы P2P по уже собранным метрикам; null — можно принимать задачи. */
+export function getP2pPauseReason(stats: SystemStats): string | null {
+  const reasons: string[] = []
+  if (stats.cpu > P2P_PAUSE_CPU_THRESHOLD) {
+    reasons.push(`CPU ${stats.cpu}% (лимит ${P2P_PAUSE_CPU_THRESHOLD}%)`)
+  }
+  if (stats.gpu != null && stats.gpu > P2P_PAUSE_GPU_THRESHOLD) {
+    reasons.push(`GPU ${stats.gpu}% (лимит ${P2P_PAUSE_GPU_THRESHOLD}%)`)
+  }
+  return reasons.length > 0 ? reasons.join('; ') : null
+}
+
+/** true, если входящие P2P-задачи нужно ставить на паузу. */
+export function isP2pPausedDueToLoad(stats: SystemStats): boolean {
+  return getP2pPauseReason(stats) !== null
+}
+
+/** Проверить текущую нагрузку; вернуть причину паузы или null. */
+export async function getP2pLoadPauseReason(): Promise<string | null> {
+  const stats = await getSystemStats()
+  return getP2pPauseReason(stats)
+}
+
+let timer: ReturnType<typeof setInterval> | null = null
+let target: WebContents | null = null
+
 export function startSystemStatsPush(webContents: WebContents): void {
   if (timer) return
   target = webContents
-  void collect().then((stats) => {
+  void getSystemStats().then((stats) => {
     if (target && !target.isDestroyed()) target.send('system-stats', stats)
   })
   timer = setInterval(() => {
@@ -51,7 +76,7 @@ export function startSystemStatsPush(webContents: WebContents): void {
       stopSystemStatsPush()
       return
     }
-    void collect()
+    void getSystemStats()
       .then((stats) => {
         if (target && !target.isDestroyed()) target.send('system-stats', stats)
       })

@@ -1,9 +1,49 @@
 import type { AgentSettings } from '../../src/types'
+import { getP2pLoadPauseReason } from './systemStats'
 
 export interface P2PRegisterResult {
   ok: boolean
   id?: string
   message: string
+}
+
+export interface P2pIncomingTask {
+  id: string
+  prompt: string
+}
+
+export interface P2pAcceptResult {
+  accepted: boolean
+  paused: boolean
+  message: string
+}
+
+/**
+ * Проверяет, можно ли принять входящую P2P-задачу (нагрузка CPU/GPU).
+ * Вызывается перед запуском инференса на этом узле.
+ */
+export async function tryAcceptIncomingP2pTask(
+  settings: AgentSettings,
+  _task: P2pIncomingTask
+): Promise<P2pAcceptResult> {
+  if (!settings.shareCompute) {
+    return {
+      accepted: false,
+      paused: false,
+      message: 'Режим «Поделиться мощностью» выключен'
+    }
+  }
+
+  const pauseReason = await getP2pLoadPauseReason()
+  if (pauseReason) {
+    return {
+      accepted: false,
+      paused: true,
+      message: `P2P на паузе: ${pauseReason}`
+    }
+  }
+
+  return { accepted: true, paused: false, message: 'можно принять задачу' }
 }
 
 /**
