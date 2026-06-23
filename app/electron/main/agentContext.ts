@@ -28,6 +28,7 @@ import { compressContextMessages } from './contextSummarizer'
 import { searchRAGMessages } from './contextRAG'
 import type { VectorStoreConfig } from './vectorStore'
 import type { ProviderConfig } from '../../shared/modelProvider'
+import { redactMessagesForModel, redactSecrets } from '../../shared/secretRedaction'
 
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -239,7 +240,7 @@ function mapHistoryMessageToOllama(
         output = `${output.slice(0, maxToolChars)}\n… (обрезано)`
       }
 
-      return { role: 'tool', content: `Инструмент ${name}:\n${output}` }
+      return { role: 'tool', content: `Инструмент ${name}:\n${redactSecrets(output)}` }
     }
     case 'system':
       return { role: 'system', content: message.content }
@@ -523,10 +524,12 @@ export async function prepareAgentRunContext(
     selfImproveMode,
     options
   )
-  const messages: OllamaMessage[] = preview.messages.map((item) => ({
-    role: item.role,
-    content: item.content
-  }))
+  const messages: OllamaMessage[] = redactMessagesForModel(
+    preview.messages.map((item) => ({
+      role: item.role,
+      content: item.content
+    }))
+  )
 
   return { messages, preview }
 }

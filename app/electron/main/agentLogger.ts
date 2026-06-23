@@ -2,6 +2,7 @@ import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
 import { tronStringify } from '../lib/tron'
+import { redactSecretsDeep } from '../../shared/secretRedaction'
 
 export interface AgentLogEntry {
   ts?: string
@@ -36,7 +37,8 @@ class AgentLogger {
     if (this.incognito) return
     try {
       await mkdir(this.logsDir(), { recursive: true })
-      const line = tronStringify({ ts: new Date().toISOString(), ...entry }) + '\n'
+      const line =
+        tronStringify(redactSecretsDeep({ ts: new Date().toISOString(), ...entry })) + '\n'
       await appendFile(this.filePath(), line, 'utf8')
     } catch {
       // логирование необязательно — не прерываем работу агента

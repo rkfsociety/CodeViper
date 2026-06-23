@@ -13,6 +13,7 @@ import { parseMemoryMarkdown, renderMemoryMarkdown } from './memory'
 import { parseSkillsMarkdown } from './skills'
 import { commitAndPushRepoPaths, getRepoRoot } from './selfCommit'
 import { getCodeViperSourceRoot } from './codeviperSource'
+import { redactSecrets } from '../../shared/secretRedaction'
 
 function runGitCmd(
   cwd: string,
@@ -41,7 +42,7 @@ export function queueCollectiveMemoryEntry(entry: MemoryEntry): boolean {
     (item) => item.content.toLowerCase() === entry.content.toLowerCase()
   )
   if (duplicate) return false
-  pendingEntries.push({ ...entry })
+  pendingEntries.push({ ...entry, content: redactSecrets(entry.content) })
   return true
 }
 
@@ -110,6 +111,7 @@ async function mergeIntoCollectiveFile(entries: MemoryEntry[]): Promise<number> 
     store.entries.unshift({
       ...entry,
       scope: 'global',
+      content: redactSecrets(entry.content),
       id: entry.id,
       createdAt: entry.createdAt,
       lastUsedAt: entry.lastUsedAt,

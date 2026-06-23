@@ -3,6 +3,7 @@ import {
   estimateMessageChars,
   MIN_RECENT_CONTEXT_MESSAGES
 } from '../../shared/contextLimits'
+import { redactMessagesForModel } from '../../shared/secretRedaction'
 import type { OllamaMessage } from './agentContext'
 import { ModelRuntime } from './modelRuntime'
 import type { ProviderConfig } from '../../shared/modelProvider'
@@ -44,7 +45,9 @@ async function summarizeWithProvider(
 ): Promise<string> {
   if (!messages.length) return ''
 
-  const transcript = messages
+  const safeMessages = redactMessagesForModel(messages)
+
+  const transcript = safeMessages
     .map((message) => `### ${message.role}\n${message.content}`)
     .join('\n\n')
     .slice(0, 60_000)
@@ -52,10 +55,10 @@ async function summarizeWithProvider(
   let summaryContent = ''
   for await (const chunk of provider.chat({
     model: summarizeModel,
-    messages: [
+    messages: redactMessagesForModel([
       { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
       { role: 'user', content: `Суммаризируй диалог:\n\n${transcript}` }
-    ],
+    ]),
     temperature: 0.2,
     signal
   })) {

@@ -16,6 +16,7 @@ import {
   OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
 import type { ResponseEmitter } from './agentResponseEmitter'
+import { redactMessagesForModel } from '../../shared/secretRedaction'
 
 const OLLAMA_KEEP_ALIVE = '5m'
 
@@ -243,12 +244,14 @@ export class ContextManager {
       ? filterMessagesForCloud(messages)
       : messages.filter((msg) => msg.role !== 'tool')
 
-    const chatMessages = filteredMessages.map((msg) => ({
-      role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
-      content: msg.content,
-      ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
-      ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
-    }))
+    const chatMessages = redactMessagesForModel(
+      filteredMessages.map((msg) => ({
+        role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
+        content: msg.content,
+        ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
+        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
+      }))
+    )
 
     const mcpToolNames = getMcpAgentToolNames(this.settings.mcpServers)
     const toolsForProvider = this.settings.chatMode
