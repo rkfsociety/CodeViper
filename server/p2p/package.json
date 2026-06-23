@@ -11,11 +11,15 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "fastify": "^5.3.3",
     "ioredis": "^5.6.1",
+    "jsonwebtoken": "^9.0.3",
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.15.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"

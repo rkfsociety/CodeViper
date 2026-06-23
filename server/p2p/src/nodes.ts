@@ -74,6 +74,10 @@ export class NodeRegistry {
     return this.mode
   }
 
+  get redisClient(): InstanceType<typeof Redis> | null {
+    return this.redis
+  }
+
   async register(node: P2PNode, ttlSec: number): Promise<void> {
     const json = JSON.stringify(node)
     if (this.redis) {

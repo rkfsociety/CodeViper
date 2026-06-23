@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import { NodeRegistry } from './nodes.js'
+import { AuthManager } from './auth.js'
 import { registerRoutes } from './routes.js'
 
 const PORT = parseInt(process.env.PORT ?? '4242', 10)
@@ -10,7 +11,8 @@ const registry = new NodeRegistry()
 
 async function main(): Promise<void> {
   await registry.connect(REDIS_URL)
-  await registerRoutes(app, registry)
+  const auth = new AuthManager(registry.redisClient)
+  await registerRoutes(app, registry, auth)
 
   try {
     await app.listen({ port: PORT, host: '0.0.0.0' })
