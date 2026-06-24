@@ -104,7 +104,8 @@ export class AgentRunner {
     confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
     _summarizeModel?: string,
     previewFn?: (previewId: string) => Promise<boolean>,
-    private readonly chatId?: string
+    private readonly chatId?: string,
+    hunkSelectionFn?: (previewId: string) => number[] | undefined
   ) {
     this.settings = settings
     this.emitter = new ResponseEmitter(emit, signal)
@@ -117,14 +118,15 @@ export class AgentRunner {
       signal,
       confirm,
       previewFn,
+      hunkSelectionFn,
       this.selfImprovementPlan,
       (items) => this.selfImproveOrchestrator.emitPlan(items)
     )
 
     // Нужно зарегистрировать preview_edit/preview_patch через ссылку на методы ToolExecutor.
     this.toolExecutor.overrideHandlers({
-      preview_edit: (args: any) => this.toolExecutor.handlePreviewEdit(args),
-      preview_patch: (args: any) => this.toolExecutor.handlePreviewPatch(args)
+      preview_edit: (args: Record<string, string>) => this.toolExecutor.handlePreviewEdit(args),
+      preview_patch: (args: Record<string, string>) => this.toolExecutor.handlePreviewPatch(args)
     })
 
     this.selfImproveOrchestrator = new SelfImprovementOrchestrator(

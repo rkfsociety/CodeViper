@@ -94,6 +94,7 @@ const agentRunStates = new Map<string, { chatId: string }>()
 const activeAgentAborts = new Map<string, AbortController>()
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
 const pendingPreviews = new Map<string, (apply: boolean) => void>()
+const pendingHunkSelections = new Map<string, number[]>()
 
 registerShutdownHook(() => {
   for (const abort of activeAgentAborts.values()) abort.abort()
@@ -715,6 +716,10 @@ ipcMain.on(IPC.AGENT_PREVIEW_RESPONSE, (_e, id: string, apply: boolean) => {
   }
 })
 
+ipcMain.on(IPC.AGENT_PREVIEW_HUNK_SELECTION, (_e, id: string, selectedIndices: number[]) => {
+  pendingHunkSelections.set(id, selectedIndices)
+})
+
 function makePreviewFn(signal: AbortSignal): (previewId: string) => Promise<boolean> {
   return (previewId) =>
     new Promise<boolean>((resolve) => {
@@ -968,7 +973,12 @@ ipcMain.handle(
         makeConfirmFn(abortCtrl.signal),
         summarizeModel,
         makePreviewFn(abortCtrl.signal),
-        chatId
+        chatId,
+        (previewId) => {
+          const sel = pendingHunkSelections.get(previewId)
+          pendingHunkSelections.delete(previewId)
+          return sel
+        }
       )
 
       await runner.run(history, userMessage)

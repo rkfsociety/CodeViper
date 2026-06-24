@@ -14,6 +14,11 @@ interface Props {
 export function EditPreviewBlock({ messageId, previewId, path, diff, status, onRespond }: Props) {
   const [expanded, setExpanded] = useState(true)
 
+  function handleApplyPartial(selectedHunkIndices: number[]) {
+    window.codeviper.respondAgentPreviewHunkSelection(previewId, selectedHunkIndices)
+    onRespond(messageId, previewId, true)
+  }
+
   return (
     <div className={`${styles.block} ${styles[status]}`}>
       <div className={styles.header} onClick={() => setExpanded((v) => !v)}>
@@ -29,7 +34,13 @@ export function EditPreviewBlock({ messageId, previewId, path, diff, status, onR
         <span className={styles.toggle}>{expanded ? '▾' : '▸'}</span>
       </div>
 
-      {expanded && <DiffPreviewModal diff={diff} path={path} />}
+      {expanded && (
+        <DiffPreviewModal
+          diff={diff}
+          path={path}
+          onApplyPartial={status === 'pending' ? handleApplyPartial : undefined}
+        />
+      )}
 
       {status === 'pending' && (
         <div className={styles.actions}>
@@ -38,7 +49,7 @@ export function EditPreviewBlock({ messageId, previewId, path, diff, status, onR
             className={`btn ${styles.applyBtn}`}
             onClick={() => onRespond(messageId, previewId, true)}
           >
-            ✅ Применить
+            ✅ Применить всё
           </button>
           <button
             type="button"

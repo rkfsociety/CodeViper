@@ -686,6 +686,7 @@ export interface CodeViperAPI {
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
   respondAgentPreview: (id: string, apply: boolean) => void
+  respondAgentPreviewHunkSelection: (id: string, selectedIndices: number[]) => void
   shareAsGist: (
     token: string,
     projectPath: string,

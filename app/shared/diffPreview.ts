@@ -200,6 +200,88 @@ function reconstructDiffSidesFromRows(rows: SideBySideRow[]): { oldText: string;
   return { oldText: oldLines.join('\n'), newText: newLines.join('\n') }
 }
 
+// ── Hunk-level operations ─────────────────────────────────────────────────────
+
+export interface DiffHunk {
+  header: string
+  lines: string[]
+  /** Номер ханка (0-based) */
+  index: number
+}
+
+/** Разбивает unified diff на массив ханков. Мета-строки (--- / +++) не включаются. */
+export function parseDiffHunks(diff: string): DiffHunk[] {
+  const hunks: DiffHunk[] = []
+  let current: DiffHunk | null = null
+
+  for (const line of diff.split('\n')) {
+    if (line.startsWith('---') || line.startsWith('+++')) continue
+    if (line.startsWith('@@')) {
+      if (current) hunks.push(current)
+      current = { header: line, lines: [], index: hunks.length }
+    } else if (current) {
+      current.lines.push(line)
+    }
+  }
+  if (current) hunks.push(current)
+  return hunks
+}
+
+/**
+ * Применяет только выбранные ханки к `originalContent`.
+ * Невыбранные ханки пропускаются — соответствующие строки оригинала остаются без изменений.
+ */
+export function applySelectedHunks(
+  originalContent: string,
+  diff: string,
+  selectedIndices: number[]
+): string {
+  const selected = new Set(selectedIndices)
+  const hunks = parseDiffHunks(diff)
+  const origLines = originalContent.split('\n')
+  const result: string[] = []
+
+  // Последняя строка оригинала, которую мы уже включили в result (1-based)
+  let lastOrigLine = 0
+
+  for (const hunk of hunks) {
+    // Парсим заголовок: @@ -oldStart,oldCount +newStart,newCount @@
+    const m = hunk.header.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/)
+    if (!m) continue
+    const oldStart = parseInt(m[1]) // 1-based
+    const oldCount = m[2] !== undefined ? parseInt(m[2]) : 1
+
+    if (selected.has(hunk.index)) {
+      // Включаем строки оригинала до начала ханка
+      for (let i = lastOrigLine; i < oldStart - 1; i++) {
+        result.push(origLines[i] ?? '')
+      }
+      lastOrigLine = oldStart - 1 + oldCount
+
+      // Применяем ханк: контекст и добавленные строки попадают в результат; удалённые — нет
+      for (const line of hunk.lines) {
+        if (!line) continue
+        const prefix = line[0]
+        if (prefix === ' ' || prefix === '+') result.push(line.slice(1))
+      }
+    }
+    // Невыбранный ханк: пропускаем — origLines до следующего ханка будут добавлены позже
+  }
+
+  // Остаток оригинала после последнего ханка
+  for (let i = lastOrigLine; i < origLines.length; i++) {
+    result.push(origLines[i] ?? '')
+  }
+
+  // Убираем trailing newline артефакт — diff обычно заканчивается на '\n'
+  if (result.length > 0 && result[result.length - 1] === '') {
+    // сохраняем trailing newline как в оригинале
+    if (!originalContent.endsWith('\n')) result.pop()
+  }
+
+  return result.join('\n')
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }

@@ -351,6 +351,9 @@ const codeviper = {
   respondAgentPreview: (id: string, apply: boolean) =>
     ipcRenderer.send(IPC.AGENT_PREVIEW_RESPONSE, id, apply),
 
+  respondAgentPreviewHunkSelection: (id: string, selectedIndices: number[]) =>
+    ipcRenderer.send(IPC.AGENT_PREVIEW_HUNK_SELECTION, id, selectedIndices),
+
   shareAsGist: (token: string, projectPath: string, what: 'memory' | 'skills' | 'both') =>
     withTimeout(
       ipcRenderer.invoke(IPC.SHARE_AS_GIST, token, projectPath, what),

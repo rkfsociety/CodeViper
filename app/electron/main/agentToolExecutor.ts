@@ -19,6 +19,7 @@ import type { SelfImprovementItem } from '../../shared/selfImprovement'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { agentLogger } from './agentLogger'
 import { createUnifiedDiff } from './diffUtil'
+import { applySelectedHunks } from '../../shared/diffPreview'
 import { getCodeViperSourceRoot, runCodeViperCommand } from './codeviperSource'
 import type { OllamaMessage } from './agentContext'
 import type { LoopGuard } from './agentLoopGuard'
@@ -111,6 +112,7 @@ export class ToolExecutor {
     private readonly signal?: AbortSignal,
     private readonly confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
     private readonly previewFn?: (previewId: string) => Promise<boolean>,
+    private readonly hunkSelectionFn?: (previewId: string) => number[] | undefined,
     private readonly selfImprovementPlan?: SelfImprovementPlanStore,
     private readonly onEmitPlan?: (items: SelfImprovementItem[]) => void
   ) {}
@@ -419,7 +421,10 @@ export class ToolExecutor {
     this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
     const apply = await this.previewFn(previewId)
     if (!apply) return `❌ Правки отменены пользователем: ${filePath}`
-    await safeWriteFile(this.projectPath, filePath, newContent)
+    const selectedHunks = this.hunkSelectionFn?.(previewId)
+    const contentToWrite =
+      selectedHunks != null ? applySelectedHunks(oldContent, diff, selectedHunks) : newContent
+    await safeWriteFile(this.projectPath, filePath, contentToWrite)
     return `✅ Правки применены: ${filePath}`
   }
 
@@ -456,7 +461,10 @@ export class ToolExecutor {
     this.emit({ type: 'preview', previewId, previewPath: filePath, previewDiff: diff })
     const apply = await this.previewFn(previewId)
     if (!apply) return `❌ Правки отменены пользователем: ${filePath}`
-    await safeWriteFile(this.projectPath, filePath, newContent)
+    const selectedHunks = this.hunkSelectionFn?.(previewId)
+    const contentToWrite =
+      selectedHunks != null ? applySelectedHunks(oldContent, diff, selectedHunks) : newContent
+    await safeWriteFile(this.projectPath, filePath, contentToWrite)
     return `✅ Правки применены: ${filePath}`
   }
 }
