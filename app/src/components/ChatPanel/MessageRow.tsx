@@ -1,0 +1,119 @@
+import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
+import type { ChatMessage } from '../../types'
+import { MessageCopyButton } from '../MessageCopyButton'
+import { ThinkingBlock } from '../ThinkingBlock'
+import { messageCopyText, visibleAssistantContent } from './helpers'
+
+const MessageBody = lazy(() => import('../MessageBody').then((m) => ({ default: m.MessageBody })))
+
+export const MessageRow = memo(function MessageRow({
+  message,
+  pinned,
+  busy,
+  isStreaming,
+  onPin,
+  onRetry,
+  onEdit,
+  onFileTimeline,
+  onSaveAsSkill
+}: {
+  message: ChatMessage
+  pinned: boolean
+  busy: boolean
+  isStreaming?: boolean
+  onPin: (id: string) => void
+  onRetry: (message: ChatMessage) => void
+  onEdit: (message: ChatMessage) => void
+  onFileTimeline?: (path: string) => void
+  onSaveAsSkill?: (content: string) => void
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [menuOpen])
+
+  return (
+    <div className={`message ${message.role}${pinned ? ' pinned' : ''}`}>
+      <div className="message-menu" ref={menuRef}>
+        <button
+          type="button"
+          className="btn message-menu-trigger"
+          title="Действия"
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          ···
+        </button>
+        {menuOpen && (
+          <div className="message-menu-dropdown" onClick={() => setMenuOpen(false)}>
+            <MessageCopyButton text={messageCopyText(message)} asMenuItem />
+            {!busy && (
+              <button type="button" className="message-menu-item" onClick={() => onPin(message.id)}>
+                {pinned ? '📌 Открепить' : '📌 Закрепить'}
+              </button>
+            )}
+            {!busy && message.role === 'user' && (
+              <>
+                <button
+                  type="button"
+                  className="message-menu-item"
+                  onClick={() => onRetry(message)}
+                >
+                  ↺ Повторить
+                </button>
+                <button type="button" className="message-menu-item" onClick={() => onEdit(message)}>
+                  ✎ Изменить
+                </button>
+              </>
+            )}
+            {!busy && message.role === 'assistant' && onSaveAsSkill && (
+              <button
+                type="button"
+                className="message-menu-item"
+                onClick={() => onSaveAsSkill(visibleAssistantContent(message.content))}
+              >
+                🎓 Сохранить как навык
+              </button>
+            )}
+            {message.role === 'assistant' && message.durationMs != null && (
+              <span className="message-menu-meta">⏱ {(message.durationMs / 1000).toFixed(1)}s</span>
+            )}
+          </div>
+        )}
+      </div>
+      {message.role === 'assistant' && message.thinking && (
+        <ThinkingBlock content={message.thinking} live={isStreaming} />
+      )}
+      {message.images && message.images.length > 0 && (
+        <div className="message-images">
+          {message.images.map((img) => (
+            <img
+              key={img.name}
+              src={img.dataUrl}
+              alt={img.name}
+              className="message-image-thumb"
+              title={img.name}
+            />
+          ))}
+        </div>
+      )}
+      <Suspense fallback={null}>
+        <MessageBody
+          role={message.role}
+          content={
+            message.role === 'assistant'
+              ? visibleAssistantContent(message.content)
+              : message.content
+          }
+          onFileTimeline={onFileTimeline}
+        />
+      </Suspense>
+    </div>
+  )
+})
