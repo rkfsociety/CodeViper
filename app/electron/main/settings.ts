@@ -267,9 +267,12 @@ function encryptApiKey(plaintext: string): string {
   try {
     const buffer = safeStorage.encryptString(plaintext)
     return buffer.toString('base64')
-  } catch {
-    // Если шифрование не удаётся, сохранить в открытом виде (пользователь нужен)
-    return plaintext
+  } catch (err) {
+    console.error(
+      '[settings] КРИТИЧЕСКАЯ ОШИБКА: шифрование API-ключа не удалось — ключ сброшен',
+      err
+    )
+    return ''
   }
 }
 
