@@ -65,17 +65,12 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
 - **Проверка:** импорт skill из URL появляется локально
 
-**5 · M · E2E на Linux/macOS в CI** — приор. Medium  
-- **Цель:** Playwright+Electron в матрице ubuntu/macos для smoke-тестов UI  
-- **Файлы:** `.github/workflows/ci.yml`, `app/tests/e2e/`  
-- **Действие:** job `test:e2e` на linux/macos (headless); фикс путей POSIX  
-- **Проверка:** CI green на трёх ОС для e2e smoke
-
 ### ⚡ Идеи (декомпозиция по запросу)
 
 ---
 
 ## ✅ Сделано
+- E2E на Linux/macOS в CI: матрица `ubuntu-latest`/`macos-latest` в отдельном job `e2e`; `--no-sandbox` для Linux CI; `CODEVIPER_E2E=1` пропускает git-sync при старте; xvfb только на Linux
 
 - Авто-цикл «тесты → почини»: инструмент `run_tests` — авто-определение runner (vitest/jest/pytest/cargo/go) по файлам проекта; парсинг passed/failed/skipped и имён упавших тестов; сырой вывод первые 120 строк; агент сам переиспользует инструмент после правок; `run_tests` в `PARALLEL_SAFE_TOOLS`
 - Песочница для run_script: `scriptSandbox.ts` — `docker run --rm --network none --memory 512m -v projectPath:/workspace`; `isDockerAvailable()` ping; fallback на локальный запуск при недоступности Docker; `scriptSandboxEnabled` в `AgentSettings` + Zod-схема + normalizer; тумблер «Песочница для скриптов» в SettingsModal (вкладка Безопасность)

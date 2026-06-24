@@ -7,7 +7,11 @@ const MAIN_PATH = path.resolve(__dirname, '../out/main/index.js')
 
 export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
-    args: [MAIN_PATH],
+    args: [
+      MAIN_PATH,
+      // Обязательно на Linux CI: нет user namespace sandbox без root
+      ...(process.env.CI ? ['--no-sandbox', '--disable-setuid-sandbox'] : [])
+    ],
     env: {
       ...process.env,
       // Отключить git-sync при запуске чтобы тест не ждал сеть

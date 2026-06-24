@@ -42,11 +42,44 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install Playwright (Electron не требует браузеров)
+  e2e:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright + Electron deps
         run: npx playwright install --with-deps chromium
 
-      - name: E2E tests (headless via xvfb)
+      - name: E2E tests (Linux — xvfb headless)
+        if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm run test:e2e
         env:
           CI: true
           DISPLAY: ':99'
+
+      - name: E2E tests (macOS)
+        if: runner.os == 'macOS'
+        run: npm run test:e2e
+        env:
+          CI: true

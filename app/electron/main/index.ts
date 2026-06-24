@@ -301,7 +301,7 @@ app.whenReady().then(async () => {
     setSourceRootOverride(settings.sourceRootOverride)
   }
 
-  if (settings.gitSyncOnStartup) {
+  if (settings.gitSyncOnStartup && !process.env.CODEVIPER_E2E) {
     pullCollectiveMemoryFromRemote(settings.selfImproveBranch).catch(() => {
       // pull — best-effort, офлайн или ветка не создана — не критично
     })
