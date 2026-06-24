@@ -70,17 +70,24 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
-- E2E на Linux/macOS в CI: матрица `ubuntu-latest`/`macos-latest` в отдельном job `e2e`; `--no-sandbox` для Linux CI; `CODEVIPER_E2E=1` пропускает git-sync при старте; xvfb только на Linux
 
-- Авто-цикл «тесты → почини»: инструмент `run_tests` — авто-определение runner (vitest/jest/pytest/cargo/go) по файлам проекта; парсинг passed/failed/skipped и имён упавших тестов; сырой вывод первые 120 строк; агент сам переиспользует инструмент после правок; `run_tests` в `PARALLEL_SAFE_TOOLS`
-- Песочница для run_script: `scriptSandbox.ts` — `docker run --rm --network none --memory 512m -v projectPath:/workspace`; `isDockerAvailable()` ping; fallback на локальный запуск при недоступности Docker; `scriptSandboxEnabled` в `AgentSettings` + Zod-схема + normalizer; тумблер «Песочница для скриптов» в SettingsModal (вкладка Безопасность)
-- Каналы обновлений stable/beta: поле `updateChannel: 'stable' | 'beta'` в `AgentSettings` + Zod-схема; `autoUpdater.allowPrerelease` по настройке; `startUpdateChecks` принимает `allowPrerelease`; тумблер «Beta-версии» в SettingsModal (вкладка Модели)
-- Счётчик стоимости облачных запросов: `MODEL_PRICING` в `shared/constants.ts` (Claude, OpenAI, Gemini); накопление input/output/cache tokens в `ContextManager`; `estimatedCostUsd` в `GenerationMetrics`; чип `~$X.XXX` в `AgentStatusBar` после облачного прогона; `formatCostUsd()` + hint в `formatGenerationMetricsHint`
-- Editor subagent в цикле: инструмент `delegate_to_editor` — основной агент делегирует задачу субагенту-редактору (роль `editor`, до 20 шагов, полный набор файловых инструментов); защита от повторного делегирования одинаковой задачи; чип «Редактирую…» в AgentStatusBar; `'editing'` событие в AgentStreamPayload
-- Explorer субагент: `runSubagent(explorer)` запускается при `explorerEnabled` + сложной задаче; сводка добавляется в системный промпт; чип «Разведываю…» в AgentStatusBar; тумблер в SettingsModal; тип `'exploring'` в AgentStreamPayload
-- Контракт субагента: `shared/subagent.ts` (SubagentRole, EXPLORER_ALLOWED_TOOLS, EDITOR_ALLOWED_TOOLS, resolveAllowedTools, resolveMaxSteps); `subagentRunner.ts` (runSubagent — мини-прогон с urезанным tool set); 12 unit-тестов
-- Экспорт урока в skill: кнопка «🎓 Сохранить как навык» в меню `···` ответа агента; диалог с полем имени; IPC `create-skill`; skill появляется в `list_skills`
-- Рейтинг знаний collective: upvote/downvote (▲/▼) в MemoryPanel для коллективных записей; оценки хранятся локально в `collective-scores.json`; записи с рейтингом ≤ −2 скрываются в UI и не попадают в push; рейтинг −1 затемняет запись
+**CI и качество**
+- E2E на Linux/macOS: матрица `ubuntu-latest`/`macos-latest`, отдельный job `e2e`; `--no-sandbox` на Linux; `CODEVIPER_E2E=1` пропускает git-sync
+- Авто-цикл «тесты → почини»: `run_tests` — авто-определение runner, парсинг падений, агент сам переиспользует инструмент
+- Песочница `run_script`: Docker `--network none --memory 512m`, fallback на локальный запуск
+- Счётчик стоимости облачных запросов: `MODEL_PRICING`, `estimatedCostUsd`, чип `~$X.XXX` в AgentStatusBar
+
+**Субагенты**
+- Контракт субагента: `shared/subagent.ts`, `subagentRunner.ts`, 12 unit-тестов
+- Explorer: автоматический запуск при сложной задаче, сводка в системный промпт, чип «Разведываю…»
+- Editor: `delegate_to_editor`, до 20 шагов, защита от повторного делегирования, чип «Редактирую…»
+
+**Обучение и знания**
+- Рейтинг коллективных знаний: upvote/downvote в MemoryPanel; ≤ −2 → скрыть и не пушить
+- Экспорт урока в навык: кнопка «🎓 Сохранить как навык» в меню ответа агента
+
+**Каналы обновлений**
+- `updateChannel: 'stable' | 'beta'`; тумблер «Beta-версии» в настройках
 
 **P2P-вычисления** (`server/p2p/` — деплой VPS вручную; см. `docs/integrations.md`)
 - Кредиты P2P в UI — `credits.ts` на сервере; `GET /credits/balance`; ±N при relay; IPC `get-p2p-credits`; чип в `AgentStatusBar`
@@ -144,13 +151,12 @@ N · [S/M/L/XL] · Краткое название
 - Плагины: `~/.codeviper/plugins/`, esbuild + worker_thread изоляция
 - Рефакторинг агента на 6 модулей; параллельное выполнение инструментов; LRU-кэши
 
+**UI и настройки**
+- Шаблоны чатов: 3 шаблона (Рефакторинг, Новый модуль, Code review), кнопка «▾» в ChatHistoryPanel
+- Авто-PR collective: тумблер «Авто-PR после sync»; после push → `createCodeViperPr()`; «уже существует» не ошибка
+
 **Документация**
 - CONTRIBUTING.md: диаграмма ReAct (mermaid), таблица ключевых модулей, пошаговый гайд добавления инструмента
 - Шаблоны GitHub Issues (баг, идея, вопрос, docs) и Pull Request (feature, bugfix, self-improvement)
-- TypeDoc + GitHub Pages — `npm run docs` (shared API из JSDoc), workflow `.github/workflows/docs.yml`, публикация на GitHub Pages
-- README «Примеры запросов» — 7 готовых диалогов (поиск, правка, самоулучшение, веб, git)
-- Скринкасты для README — GIF в `docs/media/` (поиск, самоулучшение, Ollama); `npm run capture:readme-media`
-
-- Шаблоны чатов: chatTemplates.ts (3 шаблона: Рефакторинг, Новый модуль, Code review); кнопка «▾» в тулбаре ChatHistoryPanel открывает меню шаблонов; createChatFromTemplate в App.tsx инжектирует системное сообщение-инструкцию в historию нового чата
-
-- Авто-PR collective: autoCollectivePr в settings/types/ipcContracts; flushCollectiveMemoryToGit принимает флаг; после успешного push — createCodeViperPr(); «уже существует» не ошибка; тумблер «Авто-PR после sync» в SettingsModal
+- TypeDoc + GitHub Pages — `npm run docs`, workflow `.github/workflows/docs.yml`
+- README «Примеры запросов» — 7 готовых диалогов; GIF в `docs/media/`
