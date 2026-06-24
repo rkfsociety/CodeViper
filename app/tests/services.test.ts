@@ -55,6 +55,19 @@ describe('validateCommand', () => {
     }
   })
 
+  it('блокирует hex/unicode/url-обфусцированные команды', () => {
+    // \x20 = пробел → декодируется в "rm -rf /"
+    expect(validateCommand('rm\\x20-rf /')).not.toBeNull()
+    // \x72\x6d = "rm" → "rm -rf /"
+    expect(validateCommand('\\x72\\x6d -rf /')).not.toBeNull()
+    // unicode: rm = "rm"
+    expect(validateCommand('\\u0072\\u006d -rf /')).not.toBeNull()
+    // URL-кодирование: rm%20-rf → "rm -rf"
+    expect(validateCommand('rm%20-rf%20/')).not.toBeNull()
+    // смешанная обфускация
+    expect(validateCommand('\\x72\\x6d\\x20-rf /')).not.toBeNull()
+  })
+
   it('allowlist разрешает команды из extraBlocklist', () => {
     const blocklist = ['npm publish']
     const allowlist = ['npm publish']

@@ -52,6 +52,20 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /\bnet\s+localgroup\b/i
 ]
 
+// Раскодирует \xNN, \uNNNN и %NN перед проверкой блок-листа,
+// чтобы обфусцированные команды вроде rm\x20-rf не проходили фильтр.
+function normalizeCommand(cmd: string): string {
+  let s = cmd
+  s = s.replace(/\\x([0-9a-fA-F]{2})/gi, (_, h: string) => String.fromCharCode(parseInt(h, 16)))
+  s = s.replace(/\\u([0-9a-fA-F]{4})/gi, (_, h: string) => String.fromCharCode(parseInt(h, 16)))
+  try {
+    s = decodeURIComponent(s)
+  } catch {
+    // malformed URI sequence — оставляем как есть
+  }
+  return s
+}
+
 export function validateCommand(
   command: string,
   extraBlocklist?: string[],
@@ -61,20 +75,23 @@ export function validateCommand(
   if (!trimmed) return 'Пустая команда'
   if (trimmed.length > MAX_COMMAND_LEN) return 'Команда слишком длинная'
 
+  // Нормализуем перед обеими проверками, чтобы обфускация не обходила фильтр
+  const normalized = normalizeCommand(trimmed)
+
   // Allowlist проверяется первой: совпадение полностью разрешает команду.
   if (extraAllowlist) {
     for (const raw of extraAllowlist) {
       const pat = raw.trim()
       if (!pat) continue
       try {
-        if (new RegExp(pat, 'i').test(trimmed)) return null
+        if (new RegExp(pat, 'i').test(normalized)) return null
       } catch {
-        if (trimmed.toLowerCase().includes(pat.toLowerCase())) return null
+        if (normalized.toLowerCase().includes(pat.toLowerCase())) return null
       }
     }
   }
 
-  if (BLOCKED_PATTERNS.some((pattern) => pattern.test(trimmed))) {
+  if (BLOCKED_PATTERNS.some((pattern) => pattern.test(normalized))) {
     return 'Команда заблокирована из соображений безопасности'
   }
   if (extraBlocklist) {
@@ -82,10 +99,10 @@ export function validateCommand(
       const pat = raw.trim()
       if (!pat) continue
       try {
-        if (new RegExp(pat, 'i').test(trimmed))
+        if (new RegExp(pat, 'i').test(normalized))
           return `Команда заблокирована пользовательским правилом: ${pat}`
       } catch {
-        if (trimmed.toLowerCase().includes(pat.toLowerCase()))
+        if (normalized.toLowerCase().includes(pat.toLowerCase()))
           return `Команда заблокирована пользовательским правилом: ${pat}`
       }
     }
@@ -384,14 +401,15 @@ export async function safeCreateFile(
   const dir = dirname(absPath)
   assertPathInsideProject(projectPath, dir, 'папка')
 
+  let fileExists = false
   try {
     await access(absPath, constants.F_OK)
-    throw new Error('Файл уже существует — используйте edit_file или write_file')
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('уже существует')) throw error
-    const code = (error as NodeJS.ErrnoException).code
-    if (code !== 'ENOENT') throw error
+    fileExists = true
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code
+    if (code !== 'ENOENT') throw err
   }
+  if (fileExists) throw new Error('Файл уже существует — используйте edit_file или write_file')
 
   await mkdir(dir, { recursive: true })
   await writeFile(absPath, content, 'utf-8')
