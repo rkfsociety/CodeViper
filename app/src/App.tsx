@@ -318,7 +318,7 @@ function AppContent() {
         setSettings(saved)
         setSettingsReady(true)
         // Показать предупреждение о дефолтах безопасности при первом запуске
-        if (!tronStorage.getItem('cv-security-notice-seen')) {
+        if (!window.codeviper.isE2e && !tronStorage.getItem('cv-security-notice-seen')) {
           setShowSecurityNotice(true)
           tronStorage.setItem('cv-security-notice-seen', true)
         }

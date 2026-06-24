@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, session, Notification } from 'electron'
 import { appendFile, mkdir, unlink } from 'fs/promises'
+import { mkdirSync } from 'fs'
+import { tmpdir } from 'os'
 import { join } from 'path'
 import {
   AgentRunner,
@@ -88,6 +90,12 @@ import type {
 } from '../../src/types'
 import { IPC, parseIpcArgs, Contracts } from '../../shared/ipcContracts'
 import { hasRunCheckpoint, rollbackRunCheckpoint } from './runCheckpoint'
+
+if (process.env.CODEVIPER_E2E === '1') {
+  const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
+  mkdirSync(e2eUserData, { recursive: true })
+  app.setPath('userData', e2eUserData)
+}
 
 let mainWindow: BrowserWindow | null = null
 const agentRunStates = new Map<string, { chatId: string }>()
@@ -367,6 +375,7 @@ ipcMain.on(IPC.SAVE_APP_STATE, (_e, state: AppState | null) => {
 // Рендерер при старте проверяет наличие краш-файла.
 // После прочтения удаляем — чтобы следующий запуск был чистым.
 ipcMain.handle(IPC.GET_CRASH_RECOVERY, async () => {
+  if (process.env.CODEVIPER_E2E) return null
   const state = await readAppState()
   if (state) await clearAppState()
   return state

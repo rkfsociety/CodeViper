@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { launchApp, closeApp } from './helpers'
+import { launchApp, closeApp, ensureActiveChat } from './helpers'
 
 test.describe('Чат', () => {
   test('панель агента и поле ввода присутствуют', async () => {
@@ -26,7 +26,7 @@ test.describe('Чат', () => {
   test('пикер модели виден и содержит текст', async () => {
     const { app, page } = await launchApp()
     try {
-      await page.locator('button', { hasText: '+ Чат' }).click()
+      await ensureActiveChat(page)
       const picker = page.locator('[data-testid="model-picker-btn"]')
       await expect(picker).toBeVisible({ timeout: 10_000 })
     } finally {
@@ -37,8 +37,8 @@ test.describe('Чат', () => {
   test('поле ввода сообщения существует', async () => {
     const { app, page } = await launchApp()
     try {
-      // ChatPanel рендерит textarea или input для ввода
-      const input = page.locator('textarea, input[type="text"]').first()
+      await ensureActiveChat(page)
+      const input = page.locator('textarea').first()
       await expect(input).toBeVisible({ timeout: 10_000 })
     } finally {
       await closeApp(app)
@@ -48,7 +48,7 @@ test.describe('Чат', () => {
   test('ввод текста в поле сообщения работает', async () => {
     const { app, page } = await launchApp()
     try {
-      await page.locator('button', { hasText: '+ Чат' }).click()
+      await ensureActiveChat(page)
       const input = page.locator('textarea').first()
       await expect(input).toBeVisible({ timeout: 10_000 })
       await expect(input).toBeEnabled({ timeout: 5_000 })

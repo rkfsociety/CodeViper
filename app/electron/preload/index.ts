@@ -27,6 +27,8 @@ function ensureAgentStreamBridge(): void {
 }
 
 const codeviper = {
+  isE2e: process.env.CODEVIPER_E2E === '1',
+
   selectProjectFolder: (): Promise<string | null> =>
     withTimeout(
       ipcRenderer.invoke(IPC.SELECT_PROJECT_FOLDER),

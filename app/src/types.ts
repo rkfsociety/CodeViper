@@ -579,6 +579,8 @@ import type { UpdateInfo } from '../shared/updateInfo'
 export type { UpdateInfo }
 
 export interface CodeViperAPI {
+  /** true при запуске Playwright e2e (CODEVIPER_E2E=1) */
+  isE2e: boolean
   selectProjectFolder: () => Promise<string | null>
   selectFolder: () => Promise<string | null>
   selectFiles: () => Promise<{ path: string; size: number }[]>
