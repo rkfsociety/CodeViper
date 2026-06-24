@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('systeminformation', () => ({
-  default: {
-    currentLoad: vi.fn(),
-    graphics: vi.fn()
-  }
-}))
+// systemStats.ts использует динамический import('systeminformation') и обращается
+// к si.currentLoad / si.graphics как к именованным экспортам модуля — мок обязан
+// выставлять их и на верхнем уровне, и на default-экспорте (для статического import si).
+vi.mock('systeminformation', () => {
+  const currentLoad = vi.fn()
+  const graphics = vi.fn()
+  return { default: { currentLoad, graphics }, currentLoad, graphics }
+})
 
 import si from 'systeminformation'
 import {
