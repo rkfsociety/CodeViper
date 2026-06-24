@@ -213,4 +213,15 @@ npm run test
 
 ## Вопросы
 
-Пишите в [Discussions](https://github.com/rkfsociety/CodeViper/discussions) или создавайте [Issue](https://github.com/rkfsociety/CodeViper/issues/new/choose) — есть шаблоны: баг, предложение, вопрос, документация.
+[Discussions](https://github.com/rkfsociety/CodeViper/discussions) — основной канал для общения:
+
+| Категория | Когда использовать |
+|-----------|-------------------|
+| [Q&A](https://github.com/rkfsociety/CodeViper/discussions/categories/q-a) | Установка, настройка, ошибки, «как сделать» |
+| [Ideas](https://github.com/rkfsociety/CodeViper/discussions/categories/ideas) | Предложения функций |
+| [General](https://github.com/rkfsociety/CodeViper/discussions/categories/general) | Общий чат |
+| [Show and tell](https://github.com/rkfsociety/CodeViper/discussions/categories/show-and-tell) | Демо и скриншоты |
+
+Закреплённое [«Правила и куда писать»](https://github.com/rkfsociety/CodeViper/discussions/18) — краткая шпаргалка.
+
+Формальный трек — [Issue](https://github.com/rkfsociety/CodeViper/issues/new/choose): баг, предложение, вопрос, документация. Текст приветствия: `.github/discussions/welcome.md`; повторная публикация: `node scripts/setup-discussions.js`.

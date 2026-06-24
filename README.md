@@ -54,7 +54,7 @@ cd CodeViper/app && npm install
 
 ## Участие
 
-[Issues](https://github.com/rkfsociety/CodeViper/issues) · [CONTRIBUTING.md](CONTRIBUTING.md) (ReAct, новый инструмент) · PR приветствуются.
+[Discussions](https://github.com/rkfsociety/CodeViper/discussions) (вопросы, идеи) · [Issues](https://github.com/rkfsociety/CodeViper/issues) · [CONTRIBUTING.md](CONTRIBUTING.md) · PR приветствуются.
 
 ## Лицензия
 

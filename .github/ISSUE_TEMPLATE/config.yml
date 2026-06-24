@@ -3,9 +3,12 @@ contact_links:
   - name: Вики CodeViper
     url: https://github.com/rkfsociety/CodeViper/wiki
     about: Быстрый старт, провайдеры, инструменты агента
-  - name: Discussions
-    url: https://github.com/rkfsociety/CodeViper/discussions
-    about: Общие вопросы и идеи без формального Issue
+  - name: Discussions · Q&A
+    url: https://github.com/rkfsociety/CodeViper/discussions/categories/q-a
+    about: Вопросы по установке и настройке — без формального Issue
+  - name: Discussions · Ideas
+    url: https://github.com/rkfsociety/CodeViper/discussions/categories/ideas
+    about: Предложения новых возможностей
   - name: ROADMAP
     url: https://github.com/rkfsociety/CodeViper/blob/master/ROADMAP.md
     about: Планы развития и самоулучшение

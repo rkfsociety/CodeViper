@@ -6,7 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Для общих обсуждений без бага или фичи удобнее [Discussions](https://github.com/rkfsociety/CodeViper/discussions).
+        Для общих вопросов без бага или фичи — [Q&A в Discussions](https://github.com/rkfsociety/CodeViper/discussions/categories/q-a).
+        Шпаргалка по категориям: [Правила и куда писать](https://github.com/rkfsociety/CodeViper/discussions/18).
 
         Документация: [вики](https://github.com/rkfsociety/CodeViper/wiki) · [быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт) · [интеграции](https://github.com/rkfsociety/CodeViper/blob/master/docs/integrations.md)
 
