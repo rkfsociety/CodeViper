@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/rkfsociety/CodeViper/releases"><img src="https://img.shields.io/github/v/release/rkfsociety/CodeViper?style=flat-square&color=7EE787&label=релиз" alt="Release" /></a>
   <img src="https://img.shields.io/badge/платформа-Windows-0078D4?style=flat-square" alt="Windows" />
-  <img src="https://img.shields.io/badge/Electron-36-47848F?style=flat-square" alt="Electron" />
+  <img src="https://img.shields.io/badge/Electron-42-47848F?style=flat-square" alt="Electron" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/лицензия-MIT-A371F7?style=flat-square" alt="MIT" /></a>
 </p>
 
@@ -24,7 +24,7 @@
 
 **Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org) (для запуска из исходников), 8 ГБ RAM.
 
-**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — ярлыки запускают `CodeViper.exe`; при установке запросит **права администратора (UAC)**. Если окно не появляется после обновления с 0.2.1 — установите **0.2.2+** или временно переименуйте `%USERPROFILE%\.codeviper\plugins`.
+**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — ярлыки запускают `CodeViper.exe`; при установке запросит **права администратора (UAC)**. Если окно не появляется после обновления с 0.2.1 — установите **0.3.0+** или временно переименуйте `%USERPROFILE%\.codeviper\plugins`.
 
 ```powershell
 git clone https://github.com/rkfsociety/CodeViper.git

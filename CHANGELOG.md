@@ -1,5 +1,60 @@
 ### [0.1.1] — 2026-06-22
 
+## [0.3.0] — 2026-06-24
+
+### Новые возможности
+- feat(trace): экспорт трейса агента в JSON для post-mortem анализа
+- feat(collective): семантический dedup коллективной памяти
+- feat(ui): cherry-pick ханков в DiffPreviewModal — чекбоксы на каждый hunk, частичное применение
+- feat(agent): fallback на Ollama при circuit breaker open — диалог переключения провайдера
+- feat(agent): per-step таймаут 120 с — зависший LLM-запрос прерывается с сообщением об ошибке
+- feat: E2E на Linux/macOS в CI — матрица e2e job, --no-sandbox, CODEVIPER_E2E пропускает git-sync
+- feat: счётчик стоимости облачных запросов — MODEL_PRICING, estimatedCostUsd, чип в AgentStatusBar
+- feat: run_tests — авто-детект runner, парсинг падений, авто-цикл тесты→правки
+- feat: песочница run_script — Docker sandbox, scriptSandboxEnabled, тумблер в SettingsModal
+- feat: каналы обновлений stable/beta — updateChannel, allowPrerelease, тумблер в SettingsModal
+- feat: editor subagent — delegate_to_editor, чип «Редактирую…», anti-loop guard
+- feat: explorer субагент — разведка проекта перед сложными задачами, чип «Разведываю…»
+- feat: контракт субагента — SubagentRole, runSubagent, 12 unit-тестов
+- feat: экспорт урока в навык — кнопка «Сохранить как навык» в меню ответа агента
+- feat: рейтинг знаний collective — upvote/downvote, фильтр push по рейтингу
+- feat: авто-PR collective — autoCollectivePr, createCodeViperPr после push, дедуп «уже открыт»
+- feat: шаблоны чатов — Рефакторинг / Новый модуль / Code review, системное сообщение-инструкция
+### Исправления
+- fix(collective): mutex при параллельном push коллективной памяти
+- fix(e2e): CI-флаги только на Linux, kill при зависшем closeApp
+- fix(e2e): стабильные тесты — изолированный userData и закрытие модалок
+- fix(ci): e2e на ubuntu — DISPLAY от xvfb-run, ozone x11
+- fix: typecheck ChatPanel и стабильный e2e в CI
+- fix(security): нормализация обфускации в validateCommand + errno в safeCreateFile
+- fix(security): encryptApiKey возвращает '' при ошибке шифрования
+- fix(e2e): запуск Electron в headless CI
+- fix(agent): логировать ошибки субагентов (оркестратор, explorer) в catch-блоках
+- fix(test): мок systeminformation — добавить именованные экспорты для динамического import()
+### Прочее
+- docs: настроить GitHub Discussions — правила, категории, скрипт синхронизации
+- refactor(ui): разбить ChatPanel на подкомпоненты по визуальным зонам
+- docs(roadmap): перенести разбивку agentTools.ts в Сделано
+- refactor: разбить agentTools.ts на модули (core/integrations/mcp/index)
+- docs(roadmap): перенести пункты 5-6 (безопасность) в Сделано
+- chore(deps-dev): Bump @types/bcryptjs from 2.4.6 to 3.0.0 in /server/p2p (#12)
+- chore(deps): Bump zod from 3.25.76 to 4.4.3 in /server/p2p (#11)
+- chore(deps-dev): Bump @types/node from 22.20.0 to 26.0.0 in /server/p2p (#10)
+- chore(deps): Bump actions/deploy-pages from 4 to 5 (#9)
+- chore(deps): Bump actions/cache from 4 to 6 (#8)
+- chore(deps): Bump actions/upload-pages-artifact from 3 to 5 (#7)
+- chore(deps): Bump actions/setup-node from 4 to 6 (#6)
+- chore(deps): Bump actions/checkout from 4 to 7 (#5)
+- chore: legacy-peer-deps=true для совместимости typedoc с TypeScript 6
+- chore(deps): electron 36→42, electron-vite 3→5, vite 6→7
+- chore(ts): обновление TypeScript 5 → 6 (v6.0.3)
+- ci: автоматический nightly-релиз каждый день в 00:00 UTC с удалением предыдущих
+- chore(deps): обновить @vitejs/plugin-react до v5 (совместимость с vite 8 / electron-vite 5)
+- chore: добавить SECURITY.md и dependabot.yml
+- docs(roadmap): добавить 11 пунктов из анализа кода — безопасность, надёжность, UX, техдолг
+- docs(roadmap): убрать пустые категории без задач
+- docs(roadmap): суммаризировать раздел 'Сделано' — тематические группы
+
 ## [0.2.2] — 2026-06-23
 
 ### Исправления
