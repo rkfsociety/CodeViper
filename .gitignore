@@ -7,6 +7,8 @@ app/dist-electron
 app/.vitest-tmp
 app/.pending-restart
 app/docs-api
+app/test-results/
+app/playwright-report/
 CodeViper.exe
 CodeViper-Setup.exe
 CodeViper-new.exe

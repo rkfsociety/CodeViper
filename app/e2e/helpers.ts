@@ -13,8 +13,9 @@ const CI_ELECTRON_FLAGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
   '--disable-gpu',
-  '--disable-dev-shm-usage', // предотвращает OOM в /dev/shm на Linux CI
-  '--disable-software-rasterizer'
+  '--disable-dev-shm-usage',
+  '--disable-software-rasterizer',
+  '--ozone-platform=x11'
 ]
 
 export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
@@ -26,7 +27,6 @@ export async function launchApp(): Promise<{ app: ElectronApplication; page: Pag
       ...process.env,
       CODEVIPER_E2E: '1',
       NODE_ENV: 'test',
-      DISPLAY: process.env.DISPLAY ?? ':99',
       ELECTRON_ENABLE_LOGGING: process.env.CI ? '1' : ''
     }
   })
