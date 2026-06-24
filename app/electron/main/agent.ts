@@ -1,5 +1,6 @@
 import type { AgentSettings, AgentStreamPayload, ChatMessage } from '../../src/types'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
+import { AGENT_STEP_TIMEOUT_MS } from '../../shared/constants'
 import {
   MUTATING_TOOLS,
   TOOL_VERIFICATION_FAILED_MESSAGE,
@@ -349,9 +350,23 @@ export class AgentRunner {
 
         let response
         try {
-          response = await this.ctx.chat(messages, this.settings.model, taskPlanner.isSelfImprove, {
-            requireTool: requireToolNext
-          })
+          const stepTimeout = new Promise<never>((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Шаг агента не завершился за ${AGENT_STEP_TIMEOUT_MS / 1000} с — запрос к модели прерван`
+                  )
+                ),
+              AGENT_STEP_TIMEOUT_MS
+            )
+          )
+          response = await Promise.race([
+            this.ctx.chat(messages, this.settings.model, taskPlanner.isSelfImprove, {
+              requireTool: requireToolNext
+            }),
+            stepTimeout
+          ])
         } catch (error) {
           if (isAbortError(error)) {
             this.emitter.handleAbort()
