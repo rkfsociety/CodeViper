@@ -55,6 +55,82 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
 - **Проверка:** импорт skill из URL появляется локально
 
+### 🔗 Безопасность
+
+**5 · S · Безопасный fallback в encryptApiKey** — приор. High
+- **Цель:** при ошибке шифрования API-ключ не попадает в настройки в открытом виде
+- **Файлы:** `app/electron/main/settings.ts`
+- **Действие:** в catch-блоке `encryptApiKey()` вернуть пустую строку и залогировать критическую ошибку вместо `return plaintext`
+- **Проверка:** `npm run typecheck`; unit-тест: mock `safeStorage.encryptString` throws → результат `''`, в лог попадает `ERROR`
+
+**6 · S · Усиление validateCommand против обфускации** — приор. High
+- **Цель:** fallback на `.includes()` при сбое RegExp не пропускает закодированные команды
+- **Файлы:** `app/electron/main/services.ts`
+- **Действие:** нормализовать строку (unescape hex/unicode) перед обеими проверками; сравнивать `errno` вместо текста ошибки в `safeCreateFile()`
+- **Проверка:** `npm run typecheck`; unit-тест: `validateCommand('rm\\x20-rf /')` возвращает `null`
+
+### 🔗 Надёжность агентного цикла
+
+**7 · S · Логирование ошибок в catch-блоках агента** — приор. High
+- **Цель:** ошибки оркестратора и explorer-субагента не теряются молча
+- **Файлы:** `app/electron/main/agent.ts`
+- **Действие:** в оба catch-блока (строки ~207 и ~251) добавить `console.error` с текстом ошибки и emit события с полем `error` для отображения в UI
+- **Проверка:** `npm run typecheck`; в dev-режиме искусственно бросить ошибку → сообщение видно в консоли и в трейсе
+
+**8 · M · Per-step таймаут в агентном цикле** — приор. High
+- **Цель:** зависший LLM-запрос не блокирует агента вечно; пользователь видит сообщение об истечении шага
+- **Файлы:** `app/electron/main/agent.ts`, `app/shared/constants.ts`
+- **Действие:** добавить константу `AGENT_STEP_TIMEOUT_MS = 120_000`; обернуть каждый шаг LLM-цикла в `Promise.race([step(), timeout()])` с понятным сообщением об ошибке
+- **Проверка:** `npm run typecheck`; mock провайдера с задержкой > 120 с → агент завершается с ошибкой таймаута через ~120 с
+
+### 🔗 UX / Управление изменениями
+
+**9 · M · Fallback на Ollama при circuit open** — приор. High
+- **Цель:** если облачный провайдер недоступен (circuit breaker open), агент предлагает переключиться на локальную Ollama вместо остановки
+- **Файлы:** `app/electron/main/modelRuntime.ts`, `app/electron/main/agent.ts`
+- **Действие:** при `CircuitBreakerOpenError` проверить доступность Ollama (`ping()`), если успешно — emit событие с предложением переключиться и ждать ответа пользователя через IPC
+- **Проверка:** mock circuit open + Ollama ping OK → в UI появляется предложение fallback
+
+**10 · M · Cherry-pick hunks в DiffPreviewModal** — приор. Medium
+- **Цель:** перед применением правок пользователь может выбрать отдельные куски diff (как `git add -p`)
+- **Файлы:** `app/src/components/DiffPreviewModal.tsx`, IPC `apply-partial-diff`
+- **Действие:** разбить diff на hunks; добавить чекбокс на каждый; кнопка «Применить выбранное» отправляет только отмеченные hunks
+- **Проверка:** в UI открыть DiffPreviewModal, снять чекбокс с одного hunk → он не применяется
+
+### ⚡ Независимые задачи (из анализа кода)
+
+**11 · M · Семантический dedup в коллективной памяти** — приор. Medium
+- **Цель:** дубликаты в collective memory определяются по смыслу (cosine similarity), а не точному тексту
+- **Файлы:** `app/electron/main/collectiveMemorySync.ts`, `app/electron/main/embeddingQueue.ts`
+- **Действие:** при добавлении записи проверять cosine similarity с существующими через уже имеющуюся embedding queue; если > 0.95 — пропускать как дубль
+- **Проверка:** `npm run typecheck`; unit-тест: две семантически близкие записи → в память попадает одна
+
+**12 · S · Mutex при синхронизации коллективной памяти** — приор. Medium
+- **Цель:** два параллельных push в GitHub не затирают друг друга
+- **Файлы:** `app/electron/main/collectiveMemorySync.ts`
+- **Действие:** добавить async-mutex (или `AsyncLock`) вокруг операции push; повторная попытка при конфликте merge
+- **Проверка:** `npm run typecheck`; unit-тест: два concurrent push → оба результата сохранены
+
+**13 · S · Экспорт трейса агента в JSON** — приор. Low
+- **Цель:** трейс выполнения можно сохранить на диск для post-mortem анализа
+- **Файлы:** `app/src/components/TracePanel.tsx`, `app/electron/main/index.ts`, новый IPC `export-trace`
+- **Действие:** кнопка «Экспортировать» в TracePanel → IPC с данными трейса → запись в `<projectPath>/.codeviper/traces/<timestamp>.json`
+- **Проверка:** нажать кнопку → файл появляется в папке проекта с полным содержимым трейса
+
+### 🔗 Технический долг
+
+**14 · L · Разбить agentTools.ts на модули** — приор. Low
+- **Цель:** файл 61 KB с 60+ инструментами разделён на читаемые модули; новые инструменты легче добавлять
+- **Файлы:** `app/electron/main/agentTools.ts` → `agentTools/core.ts`, `agentTools/integrations.ts`, `agentTools/mcp.ts`, `agentTools/index.ts`
+- **Действие:** split по группам (fs/shell, git/github, memory/skills, mcp); реэкспорт из `index.ts`; все импорты `agentTools` обновить
+- **Проверка:** `npm run typecheck && npm run build`; `npm test`
+
+**15 · L · Разбить ChatPanel.tsx на подкомпоненты** — приор. Low
+- **Цель:** файл 70 KB разделён; каждый компонент < 300 строк; легче тестировать и дополнять
+- **Файлы:** `app/src/components/ChatPanel.tsx` → `ChatPanel/`, `ChatPanel/ChatMessages.tsx`, `ChatPanel/ChatInput.tsx`, `ChatPanel/ChatStatusBar.tsx`
+- **Действие:** выделить по визуальным зонам; сохранить все пропсы и контексты без изменения поведения
+- **Проверка:** `npm run typecheck && npm run build`; приложение запускается, UI не сломан
+
 ### ⚡ Идеи (декомпозиция по запросу)
 
 ---
