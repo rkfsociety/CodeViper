@@ -22,7 +22,7 @@ interface Props {
   pinnedDisplayItems: DisplayItem[]
   pinnedMessageIds: Set<string>
   scrollRef: React.RefObject<HTMLDivElement | null>
-  virtualizer: Virtualizer<HTMLDivElement, HTMLDivElement>
+  virtualizer: Virtualizer<HTMLDivElement, Element>
   busy: boolean
   draftMessageIdRef: React.RefObject<string | null>
   runStats: { tokens: number; elapsedSec: number } | null

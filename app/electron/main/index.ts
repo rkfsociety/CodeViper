@@ -298,6 +298,9 @@ app.whenReady().then(async () => {
 
   const settings = await loadSettings()
   applyTraySettings(settings)
+  if (process.env.CODEVIPER_E2E) {
+    minimizeToTrayEnabled = false
+  }
   if (settings.sourceRootOverride) {
     setSourceRootOverride(settings.sourceRootOverride)
   }
