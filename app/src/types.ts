@@ -442,6 +442,7 @@ export interface AgentStreamPayload {
     | 'circuit_breaker'
     | 'collective_sync'
     | 'run_checkpoint'
+    | 'ollama_fallback_offer'
   content?: string
   /** Поля события retry_429 */
   retryWaitMs?: number
@@ -488,6 +489,8 @@ export interface AgentStreamPayload {
   runCheckpointActive?: boolean
   /** Ошибка субагента (orchestrator / explorer) — не критичная, агент продолжает */
   error?: string
+  /** URL Ollama для предложения fallback при circuit breaker open (type === 'ollama_fallback_offer') */
+  ollamaFallbackUrl?: string
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {

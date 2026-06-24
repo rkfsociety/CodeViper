@@ -71,13 +71,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 UX / Управление изменениями
 
-**7 · M · Fallback на Ollama при circuit open** — приор. High
-- **Цель:** если облачный провайдер недоступен (circuit breaker open), агент предлагает переключиться на локальную Ollama вместо остановки
-- **Файлы:** `app/electron/main/modelRuntime.ts`, `app/electron/main/agent.ts`
-- **Действие:** при `CircuitBreakerOpenError` проверить доступность Ollama (`ping()`), если успешно — emit событие с предложением переключиться и ждать ответа пользователя через IPC
-- **Проверка:** mock circuit open + Ollama ping OK → в UI появляется предложение fallback
-
-**8 · M · Cherry-pick hunks в DiffPreviewModal** — приор. Medium
+**7 · M · Cherry-pick hunks в DiffPreviewModal** — приор. Medium
 - **Цель:** перед применением правок пользователь может выбрать отдельные куски diff (как `git add -p`)
 - **Файлы:** `app/src/components/DiffPreviewModal.tsx`, IPC `apply-partial-diff`
 - **Действие:** разбить diff на hunks; добавить чекбокс на каждый; кнопка «Применить выбранное» отправляет только отмеченные hunks
@@ -85,19 +79,19 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Независимые задачи (из анализа кода)
 
-**9 · M · Семантический dedup в коллективной памяти** — приор. Medium
+**8 · M · Семантический dedup в коллективной памяти** — приор. Medium
 - **Цель:** дубликаты в collective memory определяются по смыслу (cosine similarity), а не точному тексту
 - **Файлы:** `app/electron/main/collectiveMemorySync.ts`, `app/electron/main/embeddingQueue.ts`
 - **Действие:** при добавлении записи проверять cosine similarity с существующими через уже имеющуюся embedding queue; если > 0.95 — пропускать как дубль
 - **Проверка:** `npm run typecheck`; unit-тест: две семантически близкие записи → в память попадает одна
 
-**10 · S · Mutex при синхронизации коллективной памяти** — приор. Medium
+**9 · S · Mutex при синхронизации коллективной памяти** — приор. Medium
 - **Цель:** два параллельных push в GitHub не затирают друг друга
 - **Файлы:** `app/electron/main/collectiveMemorySync.ts`
 - **Действие:** добавить async-mutex (или `AsyncLock`) вокруг операции push; повторная попытка при конфликте merge
 - **Проверка:** `npm run typecheck`; unit-тест: два concurrent push → оба результата сохранены
 
-**11 · S · Экспорт трейса агента в JSON** — приор. Low
+**10 · S · Экспорт трейса агента в JSON** — приор. Low
 - **Цель:** трейс выполнения можно сохранить на диск для post-mortem анализа
 - **Файлы:** `app/src/components/TracePanel.tsx`, `app/electron/main/index.ts`, новый IPC `export-trace`
 - **Действие:** кнопка «Экспортировать» в TracePanel → IPC с данными трейса → запись в `<projectPath>/.codeviper/traces/<timestamp>.json`
@@ -105,13 +99,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Технический долг
 
-**12 · L · Разбить agentTools.ts на модули** — приор. Low
+**11 · L · Разбить agentTools.ts на модули** — приор. Low
 - **Цель:** файл 61 KB с 60+ инструментами разделён на читаемые модули; новые инструменты легче добавлять
 - **Файлы:** `app/electron/main/agentTools.ts` → `agentTools/core.ts`, `agentTools/integrations.ts`, `agentTools/mcp.ts`, `agentTools/index.ts`
 - **Действие:** split по группам (fs/shell, git/github, memory/skills, mcp); реэкспорт из `index.ts`; все импорты `agentTools` обновить
 - **Проверка:** `npm run typecheck && npm run build`; `npm test`
 
-**13 · L · Разбить ChatPanel.tsx на подкомпоненты** — приор. Low
+**12 · L · Разбить ChatPanel.tsx на подкомпоненты** — приор. Low
 - **Цель:** файл 70 KB разделён; каждый компонент < 300 строк; легче тестировать и дополнять
 - **Файлы:** `app/src/components/ChatPanel.tsx` → `ChatPanel/`, `ChatPanel/ChatMessages.tsx`, `ChatPanel/ChatInput.tsx`, `ChatPanel/ChatStatusBar.tsx`
 - **Действие:** выделить по визуальным зонам; сохранить все пропсы и контексты без изменения поведения
@@ -124,6 +118,7 @@ N · [S/M/L/XL] · Краткое название
 ## ✅ Сделано
 
 **Надёжность агентного цикла**
+- Fallback на Ollama при circuit open: `pingOllama()` при `CircuitBreakerOpenError`; событие `ollama_fallback_offer` → диалог в App.tsx → переключение `modelProvider: 'ollama'`
 - Per-step таймаут: `AGENT_STEP_TIMEOUT_MS = 120_000`; `Promise.race([ctx.chat(...), stepTimeout])` — зависший LLM-запрос прерывается с понятным сообщением
 - Логирование ошибок субагентов: `catch (err)` → `console.error` + `error` в emit для оркестратора и explorer; поле `error?` в `AgentStreamPayload`
 

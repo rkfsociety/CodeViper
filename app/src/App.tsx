@@ -95,6 +95,7 @@ function AppContent() {
   const [installingUpdate, setInstallingUpdate] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
+  const [ollamaFallbackUrl, setOllamaFallbackUrl] = useState<string | null>(null)
   const [lightMode, setLightMode] = useState(false)
   const [incognitoMode, setIncognitoMode] = useState(false)
   const incognitoModeRef = useRef(false)
@@ -809,6 +810,7 @@ function AppContent() {
                       setMemoryRefreshKey((key) => key + 1)
                       setSkillsRefreshKey((key) => key + 1)
                     }}
+                    onOllamaFallbackOffer={(url) => setOllamaFallbackUrl(url)}
                     incognito={incognitoChatIds.has(chatId)}
                   />
                 </div>
@@ -914,6 +916,24 @@ function AppContent() {
           confirmLabel="Выполнить"
           onConfirm={() => resolveConfirm(true)}
           onCancel={() => resolveConfirm(false)}
+        />
+
+        <ConfirmDialog
+          open={!!ollamaFallbackUrl}
+          title="Переключиться на локальную Ollama?"
+          message={`Облачный провайдер временно недоступен (слишком много ошибок подряд).\n\nОбнаружена локальная Ollama: ${ollamaFallbackUrl ?? ''}\n\nПереключить модель на Ollama и продолжить?`}
+          confirmLabel="Переключить"
+          onConfirm={() => {
+            if (ollamaFallbackUrl) {
+              setSettings((prev) => ({
+                ...prev,
+                modelProvider: 'ollama',
+                ollamaUrl: ollamaFallbackUrl
+              }))
+            }
+            setOllamaFallbackUrl(null)
+          }}
+          onCancel={() => setOllamaFallbackUrl(null)}
         />
 
         <CrashRecoveryDialog

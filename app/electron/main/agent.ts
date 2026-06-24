@@ -43,6 +43,7 @@ export {
   deleteOllamaModel,
   type OllamaPullProgress
 } from './agentOllamaApi'
+import { pingOllama } from './agentOllamaApi'
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
@@ -380,6 +381,15 @@ export class AgentRunner {
               circuitBreakerState: 'open',
               circuitBreakerOpenUntilMs: error.openUntilMs
             })
+            // Если облачный провайдер недоступен — проверить Ollama и предложить fallback
+            const ollamaUrl = this.settings.ollamaUrl || 'http://127.0.0.1:11434'
+            const ollamaAvailable =
+              this.ctx.providerConfig.type !== 'ollama' && (await pingOllama(ollamaUrl))
+            if (ollamaAvailable) {
+              this.emitter.emit({ type: 'ollama_fallback_offer', ollamaFallbackUrl: ollamaUrl })
+              this.emitter.emit({ type: 'done' })
+              return
+            }
             this.emitter.emit({
               type: 'error',
               content: `⚡ Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`

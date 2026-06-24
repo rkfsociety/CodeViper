@@ -83,6 +83,7 @@ export interface ChatPanelHandle {
 interface Props {
   settings: AgentSettings
   onLearningSaved?: () => void
+  onOllamaFallbackOffer?: (ollamaUrl: string) => void
   onPickProject: () => void
   models?: OllamaModel[]
   onModelChange?: (model: string, auto: boolean) => void
@@ -305,6 +306,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   {
     settings,
     onLearningSaved,
+    onOllamaFallbackOffer,
     onPickProject,
     models = [],
     onModelChange,
@@ -389,6 +391,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const setMessagesRef = useRef(setMessages)
   const onLearningSavedRef = useRef(onLearningSaved)
   const onActiveModelChangeRef = useRef(onActiveModelChange)
+  const onOllamaFallbackOfferRef = useRef(onOllamaFallbackOffer)
+  onOllamaFallbackOfferRef.current = onOllamaFallbackOffer
   const incognitoRef = useRef(incognito)
   incognitoRef.current = incognito
 
@@ -478,6 +482,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     doneRunIdRef,
     onLearningSavedRef,
     onActiveModelChangeRef,
+    onOllamaFallbackOfferRef,
     processNextQueuedRunRef,
     appendMessage,
     upsertMessage,

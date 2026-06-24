@@ -20,6 +20,7 @@ export interface UseAgentStreamOptions {
   doneRunIdRef: MutableRefObject<number>
   onLearningSavedRef: MutableRefObject<(() => void) | undefined>
   onActiveModelChangeRef: MutableRefObject<((model: string) => void) | undefined>
+  onOllamaFallbackOfferRef?: MutableRefObject<((ollamaUrl: string) => void) | undefined>
   processNextQueuedRunRef: MutableRefObject<() => Promise<void>>
   appendMessage: (message: ChatMessage) => void
   upsertMessage: (message: ChatMessage) => void
@@ -42,6 +43,7 @@ export function useAgentStream({
   doneRunIdRef,
   onLearningSavedRef,
   onActiveModelChangeRef,
+  onOllamaFallbackOfferRef,
   processNextQueuedRunRef,
   appendMessage,
   upsertMessage,
@@ -423,6 +425,10 @@ export function useAgentStream({
           state: event.circuitBreakerState ?? null,
           openUntilMs: event.circuitBreakerOpenUntilMs
         })
+      }
+
+      if (event.type === 'ollama_fallback_offer' && event.ollamaFallbackUrl) {
+        onOllamaFallbackOfferRef?.current?.(event.ollamaFallbackUrl)
       }
 
       if (event.type === 'retry_429') {
