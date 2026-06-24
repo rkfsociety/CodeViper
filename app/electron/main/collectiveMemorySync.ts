@@ -5,6 +5,7 @@ import { spawn } from 'child_process'
 import {
   COLLECTIVE_MEMORY_REPO_PATH,
   COLLECTIVE_SKILLS_REPO_PATH,
+  COLLECTIVE_MEMORY_SEMANTIC_DEDUP_THRESHOLD,
   MIN_COLLECTIVE_ENTRY_LENGTH
 } from '../../shared/constants'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
@@ -15,6 +16,8 @@ import { commitAndPushRepoPaths, createCodeViperPr, getRepoRoot } from './selfCo
 import { loadScores, COLLECTIVE_SCORE_HIDE_THRESHOLD } from './collectiveScores'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { redactSecrets } from '../../shared/secretRedaction'
+import { maxSemanticSimilarity } from './embeddingQueue'
+import { loadSettings } from './settings'
 
 function runGitCmd(
   cwd: string,
@@ -33,6 +36,78 @@ function runGitCmd(
     child.on('close', (code) => resolve({ code: code ?? 1, stdout, stderr }))
     child.on('error', (error) => resolve({ code: 1, stdout: '', stderr: error.message }))
   })
+}
+
+async function isSemanticDuplicate(
+  content: string,
+  existingContents: string[],
+  ollamaUrl: string
+): Promise<boolean> {
+  const normalized = content.trim().toLowerCase()
+  if (existingContents.some((item) => item.trim().toLowerCase() === normalized)) return true
+  if (!existingContents.length) return false
+
+  const similarity = await maxSemanticSimilarity(content.trim(), existingContents, ollamaUrl)
+  return similarity !== null && similarity > COLLECTIVE_MEMORY_SEMANTIC_DEDUP_THRESHOLD
+}
+
+/** Слияние записей в store с семантическим dedup (для merge и unit-тестов). */
+export async function mergeEntriesWithSemanticDedup(
+  store: MemoryStore,
+  entries: MemoryEntry[],
+  ollamaUrl: string
+): Promise<{ store: MemoryStore; added: number }> {
+  let added = 0
+  const existingContents = store.entries.map((item) => item.content)
+
+  for (const entry of entries) {
+    const content = redactSecrets(entry.content)
+    if (await isSemanticDuplicate(content, existingContents, ollamaUrl)) {
+      const duplicate = store.entries.find(
+        (item) => item.content.trim().toLowerCase() === content.trim().toLowerCase()
+      )
+      if (duplicate) {
+        duplicate.useCount += 1
+        duplicate.lastUsedAt = new Date().toISOString()
+        continue
+      }
+      const semanticMatch = await findSemanticMatchEntry(store.entries, content, ollamaUrl)
+      if (semanticMatch) {
+        semanticMatch.useCount += 1
+        semanticMatch.lastUsedAt = new Date().toISOString()
+        continue
+      }
+      continue
+    }
+
+    store.entries.unshift({
+      ...entry,
+      scope: 'global',
+      content,
+      id: entry.id,
+      createdAt: entry.createdAt,
+      lastUsedAt: entry.lastUsedAt,
+      useCount: entry.useCount
+    })
+    existingContents.unshift(content)
+    added += 1
+  }
+
+  return { store, added }
+}
+
+async function findSemanticMatchEntry(
+  entries: MemoryEntry[],
+  content: string,
+  ollamaUrl: string
+): Promise<MemoryEntry | undefined> {
+  for (const item of entries) {
+    const similarity = await maxSemanticSimilarity(content.trim(), [item.content], ollamaUrl)
+    if (similarity !== null && similarity > COLLECTIVE_MEMORY_SEMANTIC_DEDUP_THRESHOLD) {
+      return item
+    }
+  }
+  return undefined
 }
 
 const pendingEntries: MemoryEntry[] = []
@@ -98,31 +173,12 @@ async function mergeIntoCollectiveFile(entries: MemoryEntry[]): Promise<number> 
   const store = existsSync(filePath)
     ? parseMemoryMarkdown(await readFile(filePath, 'utf8'))
     : emptyStore()
-  let added = 0
 
-  for (const entry of entries) {
-    const duplicate = store.entries.find(
-      (item) => item.content.toLowerCase() === entry.content.toLowerCase()
-    )
-    if (duplicate) {
-      duplicate.useCount += 1
-      duplicate.lastUsedAt = new Date().toISOString()
-      continue
-    }
-    store.entries.unshift({
-      ...entry,
-      scope: 'global',
-      content: redactSecrets(entry.content),
-      id: entry.id,
-      createdAt: entry.createdAt,
-      lastUsedAt: entry.lastUsedAt,
-      useCount: entry.useCount
-    })
-    added += 1
-  }
+  const { ollamaUrl } = await loadSettings()
+  const { store: merged, added } = await mergeEntriesWithSemanticDedup(store, entries, ollamaUrl)
 
   await mkdir(dirname(filePath), { recursive: true })
-  await writeFile(filePath, renderMemoryMarkdown(store), 'utf8')
+  await writeFile(filePath, renderMemoryMarkdown(merged), 'utf8')
   return added
 }
 
@@ -178,8 +234,10 @@ export async function filterEntriesBeforePush(entries: MemoryEntry[]): Promise<F
   const valid: MemoryEntry[] = []
   const rejected: Array<{ reason: string }> = []
   const remoteStore = await readCollectiveMemoryStore()
-  const remoteContents = new Set(remoteStore.entries.map((e) => e.content.toLowerCase()))
+  const remoteContents = remoteStore.entries.map((e) => e.content)
+  const acceptedContents = [...remoteContents]
   const scores = await loadScores()
+  const { ollamaUrl } = await loadSettings()
 
   for (const entry of entries) {
     const score = scores[entry.id] ?? 0
@@ -204,12 +262,18 @@ export async function filterEntriesBeforePush(entries: MemoryEntry[]): Promise<F
       continue
     }
 
-    if (remoteContents.has(trimmed.toLowerCase())) {
+    if (acceptedContents.some((c) => c.trim().toLowerCase() === trimmed.toLowerCase())) {
       rejected.push({ reason: `дубль в remote: "${trimmed.substring(0, 30)}"` })
       continue
     }
 
+    if (await isSemanticDuplicate(trimmed, acceptedContents, ollamaUrl)) {
+      rejected.push({ reason: `семантический дубль: "${trimmed.substring(0, 30)}"` })
+      continue
+    }
+
     valid.push(entry)
+    acceptedContents.push(trimmed)
   }
 
   return { valid, rejected }
