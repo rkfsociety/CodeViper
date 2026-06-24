@@ -215,7 +215,8 @@ export const MemoryEntrySchema = z.object({
   source: z.string().optional(),
   createdAt: z.string(),
   lastUsedAt: z.string(),
-  useCount: z.number()
+  useCount: z.number(),
+  score: z.number().optional()
 })
 
 export const AgentSkillSchema = z.object({
@@ -434,6 +435,7 @@ export const IPC = {
   SELECT_GGUF_FILE: 'select-gguf-file',
   DOWNLOAD_GGUF: 'download-gguf',
   DELETE_GGUF_FILE: 'delete-gguf-file',
+  VOTE_MEMORY: 'vote-memory',
   REGISTER_P2P_NODE: 'register-p2p-node',
   GET_P2P_CREDITS: 'get-p2p-credits',
   SHOW_AGENT_DONE_NOTIFICATION: 'show-agent-done-notification',
@@ -676,6 +678,10 @@ export const Contracts = {
   [IPC.DELETE_GGUF_FILE]: {
     args: z.tuple([z.string()]),
     result: z.void()
+  },
+  [IPC.VOTE_MEMORY]: {
+    args: z.tuple([z.string(), z.union([z.literal(1), z.literal(-1)])]),
+    result: z.number()
   },
   [IPC.RUN_AGENT]: {
     args: z.tuple([

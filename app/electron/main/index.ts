@@ -22,6 +22,7 @@ import {
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from './services'
 import { setSourceRootOverride } from './codeviperSource'
 import { deleteMemory, listMemories } from './memory'
+import { voteEntry } from './collectiveScores'
 import { deleteSkill, listSkills } from './skills'
 import { ensureDefaultSkills } from './defaultSkills'
 import { getPluginsDirectory } from './pluginLoader'
@@ -550,6 +551,10 @@ ipcMain.handle('list-memories', async (_e, projectPath: string) => listMemories(
 
 ipcMain.handle('delete-memory', async (_e, projectPath: string, id: string) =>
   deleteMemory(projectPath, id)
+)
+
+ipcMain.handle(IPC.VOTE_MEMORY, async (_e, entryId: string, delta: 1 | -1) =>
+  voteEntry(entryId, delta)
 )
 
 ipcMain.handle('list-skills', async (_e, projectPath: string) => listSkills(projectPath))

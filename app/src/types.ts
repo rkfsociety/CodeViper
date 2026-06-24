@@ -317,6 +317,8 @@ export interface MemoryEntry {
   createdAt: string
   lastUsedAt: string
   useCount: number
+  /** Рейтинг коллективной записи (upvote/downvote); отсутствует для локальных */
+  score?: number
 }
 
 export interface MemoryStore {
@@ -632,6 +634,7 @@ export interface CodeViperAPI {
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>
   deleteMemory: (projectPath: string, id: string) => Promise<boolean>
+  voteMemory: (entryId: string, delta: 1 | -1) => Promise<number>
   listSkills: (projectPath: string) => Promise<AgentSkill[]>
   deleteSkill: (projectPath: string, id: string) => Promise<boolean>
   getChatStore: () => Promise<ChatStore>

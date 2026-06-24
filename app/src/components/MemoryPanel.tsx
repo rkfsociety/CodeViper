@@ -14,6 +14,7 @@ interface Props {
 interface MemoryItemProps {
   entry: MemoryEntry
   onRemove: (id: string) => void
+  onVote?: (id: string, delta: 1 | -1) => void
 }
 
 const CATEGORY_LABELS: Record<MemoryEntry['category'], string> = {
@@ -24,15 +25,40 @@ const CATEGORY_LABELS: Record<MemoryEntry['category'], string> = {
   skill: 'навык'
 }
 
-function MemoryItem({ entry, onRemove }: MemoryItemProps) {
+function MemoryItem({ entry, onRemove, onVote }: MemoryItemProps) {
   const isCollective = entry.source === 'collective'
+  const score = entry.score ?? 0
+  const dimmed = isCollective && score < 0
 
   return (
-    <div className={styles.item}>
+    <div className={styles.item} style={dimmed ? { opacity: 0.5 } : undefined}>
       <div className={styles.itemHead}>
         <span className={styles.badge}>{CATEGORY_LABELS[entry.category]}</span>
         <span className={styles.scope}>{entry.scope}</span>
         {isCollective && <span className={styles.sourceBadge}>📚 коллектив</span>}
+        {isCollective && onVote && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              style={{ padding: '0 4px', fontSize: 11, lineHeight: 1 }}
+              title="Полезная запись"
+              onClick={() => onVote(entry.id, 1)}
+            >
+              ▲
+            </button>
+            <span style={{ fontSize: 11, minWidth: 16, textAlign: 'center' }}>{score}</span>
+            <button
+              type="button"
+              className="btn btn-sm"
+              style={{ padding: '0 4px', fontSize: 11, lineHeight: 1 }}
+              title="Бесполезная запись"
+              onClick={() => onVote(entry.id, -1)}
+            >
+              ▼
+            </button>
+          </span>
+        )}
         <button className={`btn ${styles.delete}`} onClick={() => onRemove(entry.id)}>
           ✕
         </button>
@@ -75,6 +101,15 @@ export function MemoryPanel({
   async function remove(id: string) {
     await window.codeviper.deleteMemory(projectPath, id)
     await refresh()
+  }
+
+  async function vote(id: string, delta: 1 | -1) {
+    const newScore = await window.codeviper.voteMemory(id, delta)
+    setEntries((prev) =>
+      prev
+        .map((e) => (e.id === id ? { ...e, score: newScore } : e))
+        .filter((e) => e.source !== 'collective' || (e.score ?? 0) > -2)
+    )
   }
 
   async function share() {
@@ -147,7 +182,7 @@ export function MemoryPanel({
           <div className={styles.list}>
             {collectiveEntries.map((entry) => (
               <div key={entry.id} style={{ paddingBottom: 8 }}>
-                <MemoryItem entry={entry} onRemove={remove} />
+                <MemoryItem entry={entry} onRemove={remove} onVote={vote} />
               </div>
             ))}
           </div>

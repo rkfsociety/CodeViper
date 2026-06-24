@@ -7,6 +7,7 @@ import { backupCorruptFile } from './fsUtil'
 import type { MemoryCategory, MemoryEntry, MemoryScope, MemoryStore } from '../../src/types'
 import { upsertEmbedding, removeEmbedding, semanticSearch } from './embeddings'
 import { readCollectiveMemoryEntries } from './collectiveMemorySync'
+import { loadScores, COLLECTIVE_SCORE_HIDE_THRESHOLD } from './collectiveScores'
 
 export const MEMORY_FILENAME = 'ViperMemory.md'
 const LEGACY_MEMORY_FILENAME = 'memory.json'
@@ -252,7 +253,11 @@ export async function listMemories(
   const s = storages ?? defaultStorages(projectPath)
   const global = await s.global.read()
   const project = projectPath ? await s.project.read() : emptyStore()
-  const collective = await readCollectiveMemoryEntries()
+  const rawCollective = await readCollectiveMemoryEntries()
+  const scores = await loadScores()
+  const collective = rawCollective
+    .map((e) => ({ ...e, score: scores[e.id] ?? 0 }))
+    .filter((e) => e.score > COLLECTIVE_SCORE_HIDE_THRESHOLD)
 
   const merged = [...global.entries, ...collective, ...project.entries]
   const seen = new Set<string>()

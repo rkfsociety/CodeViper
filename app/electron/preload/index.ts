@@ -253,6 +253,9 @@ const codeviper = {
       'deleteMemory'
     ),
 
+  voteMemory: (entryId: string, delta: 1 | -1) =>
+    withTimeout(ipcRenderer.invoke(IPC.VOTE_MEMORY, entryId, delta), IPC_TIMEOUT_MS, 'voteMemory'),
+
   listSkills: (projectPath: string) =>
     withTimeout(ipcRenderer.invoke(IPC.LIST_SKILLS, projectPath), IPC_TIMEOUT_MS, 'listSkills'),
 

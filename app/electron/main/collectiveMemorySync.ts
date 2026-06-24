@@ -12,6 +12,7 @@ import type { AgentSkill, MemoryEntry, MemoryStore, SkillsStore } from '../../sr
 import { parseMemoryMarkdown, renderMemoryMarkdown } from './memory'
 import { parseSkillsMarkdown } from './skills'
 import { commitAndPushRepoPaths, createCodeViperPr, getRepoRoot } from './selfCommit'
+import { loadScores, COLLECTIVE_SCORE_HIDE_THRESHOLD } from './collectiveScores'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { redactSecrets } from '../../shared/secretRedaction'
 
@@ -178,8 +179,17 @@ export async function filterEntriesBeforePush(entries: MemoryEntry[]): Promise<F
   const rejected: Array<{ reason: string }> = []
   const remoteStore = await readCollectiveMemoryStore()
   const remoteContents = new Set(remoteStore.entries.map((e) => e.content.toLowerCase()))
+  const scores = await loadScores()
 
   for (const entry of entries) {
+    const score = scores[entry.id] ?? 0
+    if (score <= COLLECTIVE_SCORE_HIDE_THRESHOLD) {
+      rejected.push({
+        reason: `низкий рейтинг (${score}): "${entry.content.substring(0, 30)}"`
+      })
+      continue
+    }
+
     const trimmed = entry.content.trim()
 
     if (!trimmed) {
