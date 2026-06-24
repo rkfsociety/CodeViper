@@ -7,6 +7,7 @@ import type { OllamaMessage } from './agentContext'
 import { compressContextMessages } from './contextSummarizer'
 import { agentLogger } from './agentLogger'
 import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
+import { findModelPricing, estimateRequestCost } from '../../shared/constants'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
   DEEPSEEK_API_BASE_URL,
@@ -92,6 +93,10 @@ export class ContextManager {
   readonly summarizeModelResolved: string
   readonly modelRuntime: ModelRuntime
   sessionTokens = 0
+  sessionInputTokens = 0
+  sessionOutputTokens = 0
+  sessionCacheReadTokens = 0
+  sessionCostUsd = 0
 
   constructor(
     private readonly settings: AgentSettings,
@@ -313,6 +318,21 @@ export class ContextManager {
         }
       }
       if (chunk.total_tokens != null) this.sessionTokens += chunk.total_tokens
+      if (chunk.input_tokens != null) this.sessionInputTokens += chunk.input_tokens
+      if (chunk.output_tokens != null) this.sessionOutputTokens += chunk.output_tokens
+      if (chunk.cache_read_tokens != null) this.sessionCacheReadTokens += chunk.cache_read_tokens
+      // Накапливаем стоимость если есть раздельные токены
+      if (chunk.input_tokens != null || chunk.output_tokens != null) {
+        const pricing = findModelPricing(model)
+        if (pricing) {
+          this.sessionCostUsd += estimateRequestCost(
+            pricing,
+            chunk.input_tokens ?? 0,
+            chunk.output_tokens ?? 0,
+            chunk.cache_read_tokens ?? 0
+          )
+        }
+      }
     }
 
     const ollamaMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
@@ -325,7 +345,11 @@ export class ContextManager {
           evalCount: 0,
           evalDurationSec: 0,
           tokensPerSec: 0,
-          sessionTokens: this.sessionTokens
+          sessionTokens: this.sessionTokens,
+          sessionInputTokens: this.sessionInputTokens || undefined,
+          sessionOutputTokens: this.sessionOutputTokens || undefined,
+          sessionCacheReadTokens: this.sessionCacheReadTokens || undefined,
+          estimatedCostUsd: this.sessionCostUsd > 0 ? this.sessionCostUsd : undefined
         }
       })
     }

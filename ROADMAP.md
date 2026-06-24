@@ -73,12 +73,6 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Идеи (декомпозиция по запросу)
 
-**6 · M · Счётчик стоимости облачных запросов** — приор. Medium  
-- **Цель:** отображение $ и токенов по провайдеру в UI (сейчас `generationMetrics` считает tok/s, но не стоимость)  
-- **Файлы:** `app/electron/main/generationMetrics.ts`, `app/src/components/AgentStatusBar.tsx`, `shared/constants.ts` (тарифы)  
-- **Действие:** накопление input/output/cache tokens × тариф модели; чип в статус-баре  
-- **Проверка:** после облачного прогона в UI видна оценка стоимости сессии
-
 ---
 
 ## ✅ Сделано
@@ -86,6 +80,7 @@ N · [S/M/L/XL] · Краткое название
 - Авто-цикл «тесты → почини»: инструмент `run_tests` — авто-определение runner (vitest/jest/pytest/cargo/go) по файлам проекта; парсинг passed/failed/skipped и имён упавших тестов; сырой вывод первые 120 строк; агент сам переиспользует инструмент после правок; `run_tests` в `PARALLEL_SAFE_TOOLS`
 - Песочница для run_script: `scriptSandbox.ts` — `docker run --rm --network none --memory 512m -v projectPath:/workspace`; `isDockerAvailable()` ping; fallback на локальный запуск при недоступности Docker; `scriptSandboxEnabled` в `AgentSettings` + Zod-схема + normalizer; тумблер «Песочница для скриптов» в SettingsModal (вкладка Безопасность)
 - Каналы обновлений stable/beta: поле `updateChannel: 'stable' | 'beta'` в `AgentSettings` + Zod-схема; `autoUpdater.allowPrerelease` по настройке; `startUpdateChecks` принимает `allowPrerelease`; тумблер «Beta-версии» в SettingsModal (вкладка Модели)
+- Счётчик стоимости облачных запросов: `MODEL_PRICING` в `shared/constants.ts` (Claude, OpenAI, Gemini); накопление input/output/cache tokens в `ContextManager`; `estimatedCostUsd` в `GenerationMetrics`; чип `~$X.XXX` в `AgentStatusBar` после облачного прогона; `formatCostUsd()` + hint в `formatGenerationMetricsHint`
 - Editor subagent в цикле: инструмент `delegate_to_editor` — основной агент делегирует задачу субагенту-редактору (роль `editor`, до 20 шагов, полный набор файловых инструментов); защита от повторного делегирования одинаковой задачи; чип «Редактирую…» в AgentStatusBar; `'editing'` событие в AgentStreamPayload
 - Explorer субагент: `runSubagent(explorer)` запускается при `explorerEnabled` + сложной задаче; сводка добавляется в системный промпт; чип «Разведываю…» в AgentStatusBar; тумблер в SettingsModal; тип `'exploring'` в AgentStreamPayload
 - Контракт субагента: `shared/subagent.ts` (SubagentRole, EXPLORER_ALLOWED_TOOLS, EDITOR_ALLOWED_TOOLS, resolveAllowedTools, resolveMaxSteps); `subagentRunner.ts` (runSubagent — мини-прогон с urезанным tool set); 12 unit-тестов

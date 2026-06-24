@@ -3,7 +3,8 @@ import { TOOL_LABELS } from '../../shared/toolDisplay'
 import {
   formatGenerationMetricsHint,
   formatElapsed,
-  formatTokenCount
+  formatTokenCount,
+  formatCostUsd
 } from '../../shared/generationMetrics'
 import type { ProgressInfo } from '../types'
 import { useAgentState } from '../contexts/AgentContext'
@@ -155,6 +156,16 @@ export function AgentStatusBar({
             Редактирую…
           </span>
         )}
+        {generationMetrics?.estimatedCostUsd != null &&
+          generationMetrics.estimatedCostUsd > 0 &&
+          agentPhase === 'idle' && (
+            <span
+              className="agent-collective-sync-chip"
+              title={`Оценка стоимости сессии: входные ${generationMetrics.sessionInputTokens ?? '?'} tok · выходные ${generationMetrics.sessionOutputTokens ?? '?'} tok · кэш ${generationMetrics.sessionCacheReadTokens ?? 0} tok`}
+            >
+              ~{formatCostUsd(generationMetrics.estimatedCostUsd)}
+            </span>
+          )}
         {(collectiveSyncStatus === 'queued' || collectiveSyncStatus === 'syncing') && (
           <span className="agent-collective-sync-chip" title="Синхронизация знаний на GitHub">
             ☁️ Память → {collectiveSyncBranch}

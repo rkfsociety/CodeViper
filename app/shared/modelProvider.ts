@@ -48,6 +48,12 @@ export interface ChatChunk {
   model?: string
   /** Общее число токенов (для облачных провайдеров — из usage.total_tokens) */
   total_tokens?: number
+  /** Входные токены (Claude, OpenAI — разделённо для точного расчёта стоимости) */
+  input_tokens?: number
+  /** Выходные токены */
+  output_tokens?: number
+  /** Токены, прочитанные из prompt cache (Claude) */
+  cache_read_tokens?: number
   /** Нативные tool calls из streaming (cloud-провайдеры). */
   tool_calls?: OpenAIToolCall[]
 }

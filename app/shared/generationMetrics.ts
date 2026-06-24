@@ -6,6 +6,14 @@ export interface GenerationMetrics {
   totalTokens?: number
   /** Накопленные токены за всю сессию (только для облачных провайдеров) */
   sessionTokens?: number
+  /** Накопленные входные токены за сессию (Claude/OpenAI) */
+  sessionInputTokens?: number
+  /** Накопленные выходные токены за сессию */
+  sessionOutputTokens?: number
+  /** Накопленные кэш-токены (Claude prompt cache) */
+  sessionCacheReadTokens?: number
+  /** Оценочная стоимость сессии в USD */
+  estimatedCostUsd?: number
 }
 
 /** Метрики из финального чанка Ollama (`eval_count`, `eval_duration` в наносекундах). */
@@ -51,16 +59,31 @@ export function formatElapsed(sec: number): string {
   return rm > 0 ? `${h}h ${rm}m` : `${h}h`
 }
 
+export function formatCostUsd(usd: number): string {
+  if (usd < 0.001) return `<$0.001`
+  if (usd < 0.01) return `$${usd.toFixed(4)}`
+  if (usd < 1) return `$${usd.toFixed(3)}`
+  return `$${usd.toFixed(2)}`
+}
+
 export function formatGenerationMetricsHint(metrics: GenerationMetrics): string {
   // Облачный провайдер: нет eval-метрик Ollama, только счётчик токенов
   if (metrics.evalDurationSec === 0 || metrics.tokensPerSec === 0) {
     const tok = metrics.sessionTokens ?? metrics.totalTokens
-    return tok != null ? `${formatTokenCount(tok)} tok` : ''
+    const parts: string[] = []
+    if (tok != null) parts.push(`${formatTokenCount(tok)} tok`)
+    if (metrics.estimatedCostUsd != null && metrics.estimatedCostUsd > 0) {
+      parts.push(`~${formatCostUsd(metrics.estimatedCostUsd)}`)
+    }
+    return parts.join(' · ')
   }
   if (metrics.totalTokens != null) {
     const parts = [`${metrics.totalTokens} tok`]
     if (metrics.sessionTokens != null) {
       parts.push(`сессия: ${formatTokenCount(metrics.sessionTokens)} tok`)
+    }
+    if (metrics.estimatedCostUsd != null && metrics.estimatedCostUsd > 0) {
+      parts.push(`~${formatCostUsd(metrics.estimatedCostUsd)}`)
     }
     return parts.join(' · ')
   }

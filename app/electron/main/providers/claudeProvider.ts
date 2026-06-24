@@ -135,10 +135,12 @@ export class ClaudeProvider implements ModelProvider {
           // Финальное событие с usage и stop_reason
           if (event.delta.stop_reason) {
             const chunks = Object.values(toolUseAccumulator)
-            const totalTokens =
-              event.usage && event.usage.input_tokens && event.usage.output_tokens
-                ? event.usage.input_tokens + event.usage.output_tokens
-                : undefined
+            const inputTokens = event.usage?.input_tokens ?? 0
+            const outputTokens = event.usage?.output_tokens ?? 0
+            const cacheReadTokens =
+              (event.usage as unknown as Record<string, number> | undefined)
+                ?.cache_read_input_tokens ?? 0
+            const totalTokens = inputTokens && outputTokens ? inputTokens + outputTokens : undefined
 
             if (chunks.length > 0 && event.delta.stop_reason === 'tool_use') {
               yield {
@@ -153,14 +155,20 @@ export class ClaudeProvider implements ModelProvider {
                 })),
                 stop_reason: event.delta.stop_reason,
                 model: options.model || this.modelName,
-                total_tokens: totalTokens
+                total_tokens: totalTokens,
+                input_tokens: inputTokens || undefined,
+                output_tokens: outputTokens || undefined,
+                cache_read_tokens: cacheReadTokens || undefined
               }
             } else if (totalTokens) {
               yield {
                 content: '',
                 stop_reason: event.delta.stop_reason,
                 model: options.model || this.modelName,
-                total_tokens: totalTokens
+                total_tokens: totalTokens,
+                input_tokens: inputTokens || undefined,
+                output_tokens: outputTokens || undefined,
+                cache_read_tokens: cacheReadTokens || undefined
               }
             }
           }

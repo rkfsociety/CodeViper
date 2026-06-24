@@ -115,3 +115,76 @@ export const P2P_TASK_CREDIT_COST = 10
 export const P2P_TASK_CREDIT_REWARD = 10
 /** Стартовый баланс нового пользователя на сигнальном сервере */
 export const P2P_INITIAL_CREDITS = 100
+
+// ── Тарифы облачных провайдеров ($ за 1M токенов) ────────────────────────────
+/**
+ * Прайс-лист моделей для оценки стоимости.
+ * input — входные токены, output — выходные, cacheRead — кэш-чтение (Claude).
+ * Источник: официальные страницы ценообразования провайдеров (актуально на 2025-06).
+ */
+export interface ModelPricing {
+  input: number
+  output: number
+  cacheRead?: number
+}
+
+export const MODEL_PRICING: Record<string, ModelPricing> = {
+  // ── Anthropic Claude ────────────────────────────────────────────────────────
+  'claude-opus-4-8': { input: 15.0, output: 75.0, cacheRead: 1.5 },
+  'claude-opus-4': { input: 15.0, output: 75.0, cacheRead: 1.5 },
+  'claude-sonnet-4-6': { input: 3.0, output: 15.0, cacheRead: 0.3 },
+  'claude-sonnet-4-5': { input: 3.0, output: 15.0, cacheRead: 0.3 },
+  'claude-sonnet-3-7': { input: 3.0, output: 15.0, cacheRead: 0.3 },
+  'claude-haiku-4-5': { input: 0.8, output: 4.0, cacheRead: 0.08 },
+  'claude-haiku-3-5': { input: 0.8, output: 4.0, cacheRead: 0.08 },
+  'claude-3-5-sonnet': { input: 3.0, output: 15.0, cacheRead: 0.3 },
+  'claude-3-5-haiku': { input: 0.8, output: 4.0, cacheRead: 0.08 },
+  'claude-3-opus': { input: 15.0, output: 75.0, cacheRead: 1.5 },
+  // ── OpenAI ──────────────────────────────────────────────────────────────────
+  'gpt-4o': { input: 2.5, output: 10.0 },
+  'gpt-4o-mini': { input: 0.15, output: 0.6 },
+  'gpt-4.1': { input: 2.0, output: 8.0 },
+  'gpt-4.1-mini': { input: 0.4, output: 1.6 },
+  'gpt-4.1-nano': { input: 0.1, output: 0.4 },
+  o3: { input: 2.0, output: 8.0 },
+  'o4-mini': { input: 1.1, output: 4.4 },
+  // ── Google Gemini ───────────────────────────────────────────────────────────
+  'gemini-2.5-pro': { input: 1.25, output: 10.0 },
+  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
+  'gemini-2.0-flash': { input: 0.1, output: 0.4 },
+  'gemini-1.5-pro': { input: 1.25, output: 5.0 },
+  'gemini-1.5-flash': { input: 0.075, output: 0.3 }
+}
+
+/**
+ * Найти тариф по имени модели (нечёткое совпадение по подстроке).
+ * Возвращает null если модель не найдена (Ollama и др. локальные).
+ */
+export function findModelPricing(model: string): ModelPricing | null {
+  const key = model.toLowerCase()
+  // Точное совпадение
+  if (MODEL_PRICING[key]) return MODEL_PRICING[key]!
+  // Поиск по подстроке (например "claude-sonnet-4-6-20251022" → "claude-sonnet-4-6")
+  for (const [name, pricing] of Object.entries(MODEL_PRICING)) {
+    if (key.includes(name) || name.includes(key)) return pricing
+  }
+  return null
+}
+
+/**
+ * Оценить стоимость запроса в USD.
+ * Все счётчики — абсолютные числа токенов (не в тысячах).
+ */
+export function estimateRequestCost(
+  pricing: ModelPricing,
+  inputTokens: number,
+  outputTokens: number,
+  cacheReadTokens = 0
+): number {
+  return (
+    (inputTokens * pricing.input +
+      outputTokens * pricing.output +
+      cacheReadTokens * (pricing.cacheRead ?? 0)) /
+    1_000_000
+  )
+}
