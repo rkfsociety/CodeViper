@@ -2,10 +2,12 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { spawn } from 'child_process'
+import { Mutex } from 'async-mutex'
 import {
   COLLECTIVE_MEMORY_REPO_PATH,
   COLLECTIVE_SKILLS_REPO_PATH,
   COLLECTIVE_MEMORY_SEMANTIC_DEDUP_THRESHOLD,
+  COLLECTIVE_MEMORY_PUSH_RETRY_MAX,
   MIN_COLLECTIVE_ENTRY_LENGTH
 } from '../../shared/constants'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
@@ -111,6 +113,20 @@ async function findSemanticMatchEntry(
 }
 
 const pendingEntries: MemoryEntry[] = []
+
+/** Сериализует merge+push коллективной памяти — параллельные flush не затирают друг друга. */
+const collectiveMemoryPushMutex = new Mutex()
+
+export function isPushConflictMessage(message: string): boolean {
+  const lower = message.toLowerCase()
+  return (
+    lower.includes('non-fast-forward') ||
+    lower.includes('rejected') ||
+    lower.includes('failed to push') ||
+    lower.includes('rebase') ||
+    lower.includes('конфликт')
+  )
+}
 
 export function queueCollectiveMemoryEntry(entry: MemoryEntry): boolean {
   if (entry.scope !== 'global') return false
@@ -307,34 +323,54 @@ export async function flushCollectiveMemoryToGit(
     }
   }
 
-  const added = await mergeIntoCollectiveFile(valid)
-  const branch = resolveSelfImproveBranch(configuredBranch)
-  const commitSummary =
-    added > 0 ? `${summary} (+${added} знаний)` : `${summary} (обновление существующих знаний)`
-
-  const result = await commitAndPushRepoPaths(
-    commitSummary,
-    [COLLECTIVE_MEMORY_REPO_PATH],
-    configuredBranch
-  )
-
   const reasons = rejected.map((r) => r.reason)
 
-  let prMessage: string | undefined
-  if (result.ok && autoCollectivePr) {
-    const prTitle = `Коллективные знания: ${commitSummary}`
-    const pr = await createCodeViperPr(prTitle)
-    prMessage = pr.message
-  }
+  return collectiveMemoryPushMutex.runExclusive(async () => {
+    let added = 0
+    let result: Awaited<ReturnType<typeof commitAndPushRepoPaths>> = {
+      ok: false,
+      message: 'push не выполнялся'
+    }
+    const branch = resolveSelfImproveBranch(configuredBranch)
 
-  return {
-    ok: result.ok,
-    message: prMessage ? `${result.message} | PR: ${prMessage}` : result.message,
-    branch: result.branch ?? branch,
-    syncedCount: added > 0 ? added : valid.length,
-    rejectedCount: rejected.length,
-    rejectionReasons: reasons.length > 0 ? reasons : undefined
-  }
+    for (let attempt = 1; attempt <= COLLECTIVE_MEMORY_PUSH_RETRY_MAX; attempt++) {
+      added = await mergeIntoCollectiveFile(valid)
+      const commitSummary =
+        added > 0 ? `${summary} (+${added} знаний)` : `${summary} (обновление существующих знаний)`
+
+      result = await commitAndPushRepoPaths(
+        commitSummary,
+        [COLLECTIVE_MEMORY_REPO_PATH],
+        configuredBranch
+      )
+
+      if (result.ok) break
+
+      const canRetry =
+        attempt < COLLECTIVE_MEMORY_PUSH_RETRY_MAX && isPushConflictMessage(result.message)
+      if (!canRetry) break
+
+      await pullCollectiveMemoryFromRemote(configuredBranch)
+    }
+
+    let prMessage: string | undefined
+    if (result.ok && autoCollectivePr) {
+      const commitSummary =
+        added > 0 ? `${summary} (+${added} знаний)` : `${summary} (обновление существующих знаний)`
+      const prTitle = `Коллективные знания: ${commitSummary}`
+      const pr = await createCodeViperPr(prTitle)
+      prMessage = pr.message
+    }
+
+    return {
+      ok: result.ok,
+      message: prMessage ? `${result.message} | PR: ${prMessage}` : result.message,
+      branch: result.branch ?? branch,
+      syncedCount: added > 0 ? added : valid.length,
+      rejectedCount: rejected.length,
+      rejectionReasons: reasons.length > 0 ? reasons : undefined
+    }
+  })
 }
 
 // ── Коллективные навыки ─────────────────────────────────────────────────────

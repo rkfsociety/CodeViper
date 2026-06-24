@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { MemoryEntry } from '../src/types'
 import {
   getPendingCollectiveMemoryCount,
+  isPushConflictMessage,
   mergeEntriesWithSemanticDedup,
   queueCollectiveMemoryEntry
 } from '../electron/main/collectiveMemorySync'
@@ -152,17 +153,11 @@ describe('filterEntriesBeforePush', () => {
 
 describe('pushWithRebaseOnConflict', () => {
   it('детектирует non-fast-forward ошибки по ключевым словам', () => {
-    // Тест проверяет логику определения non-fast-forward конфликтов
-    // Функция pushWithRebaseOnConflict в selfCommit.ts ищет эти строки в stderr/stdout:
     const errors = ['non-fast-forward', 'rejected', 'failed to push']
 
     for (const keyword of errors) {
-      const errorOutput = `git push failed: ${keyword} error`.toLowerCase()
-      const isNonFastForward =
-        errorOutput.includes('non-fast-forward') ||
-        errorOutput.includes('rejected') ||
-        errorOutput.includes('failed to push')
-      expect(isNonFastForward).toBe(true)
+      const errorOutput = `git push failed: ${keyword} error`
+      expect(isPushConflictMessage(errorOutput)).toBe(true)
     }
   })
 
@@ -170,12 +165,8 @@ describe('pushWithRebaseOnConflict', () => {
     const otherErrors = ['authentication failed', 'permission denied', 'fatal: bad config']
 
     for (const err of otherErrors) {
-      const errorOutput = `git error: ${err}`.toLowerCase()
-      const isNonFastForward =
-        errorOutput.includes('non-fast-forward') ||
-        errorOutput.includes('rejected') ||
-        errorOutput.includes('failed to push')
-      expect(isNonFastForward).toBe(false)
+      const errorOutput = `git error: ${err}`
+      expect(isPushConflictMessage(errorOutput)).toBe(false)
     }
   })
 })
