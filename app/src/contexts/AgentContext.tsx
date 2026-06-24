@@ -14,6 +14,7 @@ export interface AgentState {
   orchestrating: boolean
   orchestratingPlan: string | null
   exploring: boolean
+  editing: boolean
   retry429: { waitMs: number; attempt: number } | null
   circuitBreakerState: CircuitBreakerState | null
   circuitBreakerOpenUntilMs: number | null
@@ -31,6 +32,7 @@ export type AgentAction =
   | { type: 'SET_STATS'; stats: RunStats | null }
   | { type: 'SET_ORCHESTRATING'; active: boolean; plan?: string | null }
   | { type: 'SET_EXPLORING'; active: boolean }
+  | { type: 'SET_EDITING'; active: boolean }
   | { type: 'SET_RETRY_429'; value: { waitMs: number; attempt: number } | null }
   | {
       type: 'SET_CIRCUIT_BREAKER'
@@ -56,6 +58,7 @@ const initialState: AgentState = {
   orchestrating: false,
   orchestratingPlan: null,
   exploring: false,
+  editing: false,
   retry429: null,
   circuitBreakerState: null,
   circuitBreakerOpenUntilMs: null,
@@ -89,6 +92,8 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
       }
     case 'SET_EXPLORING':
       return { ...state, exploring: action.active }
+    case 'SET_EDITING':
+      return { ...state, editing: action.active }
     case 'SET_RETRY_429':
       return { ...state, retry429: action.value }
     case 'SET_CIRCUIT_BREAKER':

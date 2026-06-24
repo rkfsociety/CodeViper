@@ -1382,6 +1382,32 @@ const INDEXING_TOOLS = [
   }
 ] as const
 
+const SUBAGENT_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'delegate_to_editor',
+      description:
+        'Делегирует конкретную задачу редактирования субагенту-редактору (editor). Субагент имеет полный доступ к файловым инструментам (edit_file, write_file, run_command и др.) и выполняет задачу автономно, возвращая итог. Используй для атомарных шагов плана: «исправь X в файле Y», «добавь функцию Z», «рефактори модуль M». Не делегируй несколько несвязанных задач за один вызов.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task: {
+            type: 'string',
+            description:
+              'Конкретная задача на русском языке. Максимально подробно: что нужно сделать, в каких файлах, какой результат ожидается.'
+          },
+          context: {
+            type: 'string',
+            description: 'Дополнительный контекст: уже известные факты о структуре, зависимости.'
+          }
+        },
+        required: ['task']
+      }
+    }
+  }
+] as const
+
 // Все инструменты в одном массиве для обратной совместимости
 export const AGENT_TOOLS = [
   ...FILE_TOOLS,
@@ -1397,7 +1423,8 @@ export const AGENT_TOOLS = [
   ...CODEVIPER_TOOLS,
   ...OLLAMA_TOOLS,
   ...INDEXING_TOOLS,
-  ...WEB_TOOLS
+  ...WEB_TOOLS,
+  ...SUBAGENT_TOOLS
 ] as const
 
 // Кэш преобразованных схем для провайдеров (ключ = JSON хеш)
@@ -1610,6 +1637,10 @@ export interface ToolArgs {
   web_search: {
     query: string
     max_results?: number
+  }
+  delegate_to_editor: {
+    task: string
+    context?: string
   }
 }
 

@@ -25,7 +25,8 @@ export const MUTATING_TOOLS = new Set([
   'create_codeviper_pr',
   'index_project',
   'create_jira_issue',
-  'create_linear_issue'
+  'create_linear_issue',
+  'delegate_to_editor'
 ])
 
 const MUTATION_TASK_PATTERNS: RegExp[] = [

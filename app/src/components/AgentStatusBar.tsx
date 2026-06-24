@@ -80,6 +80,7 @@ export function AgentStatusBar({
     orchestrating,
     orchestratingPlan,
     exploring,
+    editing,
     retry429,
     circuitBreakerState,
     circuitBreakerOpenUntilMs,
@@ -147,6 +148,11 @@ export function AgentStatusBar({
         {exploring && (
           <span className="agent-orchestrating-chip" title="Субагент-разведчик анализирует проект">
             Разведываю…
+          </span>
+        )}
+        {editing && (
+          <span className="agent-orchestrating-chip" title="Субагент-редактор выполняет задачу">
+            Редактирую…
           </span>
         )}
         {(collectiveSyncStatus === 'queued' || collectiveSyncStatus === 'syncing') && (

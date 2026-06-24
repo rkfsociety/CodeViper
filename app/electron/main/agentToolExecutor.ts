@@ -13,6 +13,7 @@ import { createModelToolHandlers } from './agentHandlersModels'
 import { createTodoToolHandlers } from './agentHandlersTodo'
 import { createMcpToolHandlers, notifyMcpToolResult } from './mcpTools'
 import { createWebToolHandlers } from './agentHandlersWeb'
+import { runSubagent } from './subagentRunner'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import type { SelfImprovementItem } from '../../shared/selfImprovement'
 import { toolRequiresConfirm } from '../../shared/permissions'
@@ -145,10 +146,46 @@ export class ToolExecutor {
       ...createTodoToolHandlers(this.emit),
       ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
       ...createWebToolHandlers(),
-      ...createMcpToolHandlers(this.settings.mcpServers)
+      ...createMcpToolHandlers(this.settings.mcpServers),
+      ...this.createSubagentToolHandlers()
       // Эти два обработчика регистрируются в AgentRunner через overrideHandlers().
     } as ToolHandlers
     return this.toolHandlers
+  }
+
+  /** Хендлеры для субагент-инструментов (delegate_to_editor). */
+  private createSubagentToolHandlers(): Partial<ToolHandlers> {
+    // Защита от делегирования одинаковой задачи дважды подряд
+    const recentTasks = new Set<string>()
+    return {
+      delegate_to_editor: async ({ task, context }) => {
+        if (!this.projectPath) return 'Ошибка: путь к проекту не задан'
+        const taskKey = task.slice(0, 200)
+        if (recentTasks.has(taskKey)) {
+          return '[delegate_to_editor] Задача уже была делегирована и выполнена. Используй результат из предыдущего вызова.'
+        }
+        this.emit({ type: 'editing', editing: true })
+        try {
+          const fullTask = context ? `${task}\n\nКонтекст: ${context}` : task
+          const result = await runSubagent(this.settings, {
+            role: 'editor',
+            task: fullTask,
+            projectPath: this.projectPath,
+            signal: this.signal
+          })
+          recentTasks.add(taskKey)
+          // Очищаем старые задачи чтобы не накапливать бесконечно
+          if (recentTasks.size > 20) {
+            const first = recentTasks.values().next().value
+            if (first !== undefined) recentTasks.delete(first)
+          }
+          const status = result.completed ? 'завершена' : 'прервана по лимиту шагов'
+          return `[Редактор: ${status}, шагов: ${result.steps}, инструменты: ${result.toolsUsed.join(', ') || 'нет'}]\n\n${result.output}`
+        } finally {
+          this.emit({ type: 'editing', editing: false })
+        }
+      }
+    }
   }
 
   /** Позволяет AgentRunner добавить preview_edit и preview_patch после создания. */

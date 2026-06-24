@@ -433,6 +433,7 @@ export interface AgentStreamPayload {
     | 'trace'
     | 'orchestrating'
     | 'exploring'
+    | 'editing'
     | 'retry_429'
     | 'circuit_breaker'
     | 'collective_sync'
@@ -469,6 +470,8 @@ export interface AgentStreamPayload {
   exploring?: boolean
   /** Сводка от explorer-субагента — добавляется в системный промпт */
   explorerSummary?: string
+  /** Субагент-редактор выполняет задачу (type === 'editing') */
+  editing?: boolean
   /** Состояние circuit breaker (type === 'circuit_breaker') */
   circuitBreakerState?: CircuitBreakerState
   /** Момент когда circuit breaker перейдёт из open в half-open (Date.now() + 30 000) */
