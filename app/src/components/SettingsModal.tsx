@@ -1608,6 +1608,26 @@ export function SettingsModal({
                         <label className={styles.toggle}>
                           <input
                             type="checkbox"
+                            checked={settings.autoCollectivePr === true}
+                            onChange={(e) =>
+                              onSettingsChange({ autoCollectivePr: e.target.checked })
+                            }
+                          />
+                          <span className={styles.track} aria-hidden="true">
+                            <span className={styles.thumb} />
+                          </span>
+                          <span className={styles.toggleContent}>
+                            <span className={styles.title}>Авто-PR после sync</span>
+                            <span className={styles.desc}>
+                              После успешного push коллективной памяти автоматически создаёт PR.
+                              Если PR уже открыт — сообщит об этом без ошибки.
+                            </span>
+                          </span>
+                        </label>
+
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
                             checked={settings.gitSyncOnStartup !== false}
                             onChange={(e) =>
                               onSettingsChange({ gitSyncOnStartup: e.target.checked })

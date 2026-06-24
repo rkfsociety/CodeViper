@@ -202,7 +202,8 @@ export const AgentSettingsSchema = z.object({
     .optional(),
   orchestratorModelPath: z.string().optional(),
   orchestratorEnabled: z.boolean().optional(),
-  orchestratorMinMessageLength: z.number().optional()
+  orchestratorMinMessageLength: z.number().optional(),
+  autoCollectivePr: z.boolean().optional()
 })
 
 export const MemoryEntrySchema = z.object({

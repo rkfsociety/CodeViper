@@ -11,7 +11,7 @@ import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import type { AgentSkill, MemoryEntry, MemoryStore, SkillsStore } from '../../src/types'
 import { parseMemoryMarkdown, renderMemoryMarkdown } from './memory'
 import { parseSkillsMarkdown } from './skills'
-import { commitAndPushRepoPaths, getRepoRoot } from './selfCommit'
+import { commitAndPushRepoPaths, createCodeViperPr, getRepoRoot } from './selfCommit'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { redactSecrets } from '../../shared/secretRedaction'
 
@@ -207,7 +207,8 @@ export async function filterEntriesBeforePush(entries: MemoryEntry[]): Promise<F
 
 export async function flushCollectiveMemoryToGit(
   summary: string,
-  configuredBranch?: string
+  configuredBranch?: string,
+  autoCollectivePr?: boolean
 ): Promise<CollectiveMemorySyncResult> {
   const entries = drainPendingEntries()
   if (!entries.length) {
@@ -245,9 +246,16 @@ export async function flushCollectiveMemoryToGit(
 
   const reasons = rejected.map((r) => r.reason)
 
+  let prMessage: string | undefined
+  if (result.ok && autoCollectivePr) {
+    const prTitle = `Коллективные знания: ${commitSummary}`
+    const pr = await createCodeViperPr(prTitle)
+    prMessage = pr.message
+  }
+
   return {
     ok: result.ok,
-    message: result.message,
+    message: prMessage ? `${result.message} | PR: ${prMessage}` : result.message,
     branch: result.branch ?? branch,
     syncedCount: added > 0 ? added : valid.length,
     rejectedCount: rejected.length,

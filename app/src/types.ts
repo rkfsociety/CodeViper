@@ -143,6 +143,8 @@ export interface AgentSettings {
   selfImproveBranch?: string
   /** Синхронизировать глобальные знания в docs/collective/ViperMemory.md на GitHub */
   syncCollectiveMemory?: boolean
+  /** Автоматически создавать PR после успешного push коллективной памяти */
+  autoCollectivePr?: boolean
   /** Модель для суммаризации контекста; пусто — авто (самая лёгкая установленная) */
   summarizeModel?: string
   /** Провайдер моделей: ollama (локально), deepseek, openai и т.д. */

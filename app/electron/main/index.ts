@@ -815,7 +815,7 @@ ipcMain.handle(IPC.GET_COLLECTIVE_SYNC_STATUS, async (_e, ...a) => {
 ipcMain.handle(IPC.FLUSH_COLLECTIVE_MEMORY, async (_e, ...a) => {
   const [summary] = parseIpcArgs(Contracts[IPC.FLUSH_COLLECTIVE_MEMORY].args, a)
   const settings = await loadSettings()
-  return flushCollectiveMemoryToGit(summary, settings.selfImproveBranch)
+  return flushCollectiveMemoryToGit(summary, settings.selfImproveBranch, settings.autoCollectivePr)
 })
 
 ipcMain.handle(IPC.SAVE_SETTINGS, async (_e, ...a) => {
