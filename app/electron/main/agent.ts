@@ -204,9 +204,9 @@ export class AgentRunner {
           orchestrating: false,
           content: result.plan || undefined
         })
-      } catch {
-        // оркестратор не критичен — продолжаем без плана
-        this.emitter.emit({ type: 'orchestrating', orchestrating: false })
+      } catch (err) {
+        console.error('[AgentRunner] orchestrator error:', err)
+        this.emitter.emit({ type: 'orchestrating', orchestrating: false, error: String(err) })
       }
     }
 
@@ -248,9 +248,9 @@ export class AgentRunner {
           } else {
             this.emitter.emit({ type: 'exploring', exploring: false })
           }
-        } catch {
-          // explorer не критичен — продолжаем без сводки
-          this.emitter.emit({ type: 'exploring', exploring: false })
+        } catch (err) {
+          console.error('[AgentRunner] explorer error:', err)
+          this.emitter.emit({ type: 'exploring', exploring: false, error: String(err) })
         }
       }
     }

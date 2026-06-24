@@ -486,6 +486,8 @@ export interface AgentStreamPayload {
   collectiveSyncCount?: number
   /** Чекпоинт прогона доступен для отката (type === 'run_checkpoint') */
   runCheckpointActive?: boolean
+  /** Ошибка субагента (orchestrator / explorer) — не критичная, агент продолжает */
+  error?: string
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {
