@@ -861,7 +861,7 @@ function AppContent() {
           {tracePanelOpen && (
             <section className="panel panel-trace">
               <Suspense fallback={null}>
-                <TracePanel chatId={activeChatId} />
+                <TracePanel chatId={activeChatId} projectPath={activeProjectPath} />
               </Suspense>
             </section>
           )}

@@ -93,6 +93,13 @@ export const ImportResultSchema = z.object({
   skipped: z.number()
 })
 
+export const AgentTraceEventSchema = z.object({
+  ts: z.number(),
+  kind: z.enum(['run_start', 'llm_request', 'llm_response', 'tool_call', 'tool_result', 'run_end']),
+  label: z.string(),
+  data: z.record(z.string(), z.unknown())
+})
+
 export const FileNodeSchema: z.ZodType<{
   name: string
   path: string
@@ -411,6 +418,7 @@ export const IPC = {
   MOVE_CHAT_TO_FOLDER: 'move-chat-to-folder',
   EXPORT_CHATS: 'export-chats',
   IMPORT_CHATS: 'import-chats',
+  EXPORT_TRACE: 'export-trace',
   GET_AGENT_RUN_STATE: 'get-agent-run-state',
   STOP_AGENT: 'stop-agent',
   GET_RUN_CHECKPOINT: 'get-run-checkpoint',
@@ -632,6 +640,14 @@ export const Contracts = {
   [IPC.IMPORT_CHATS]: {
     args: z.tuple([z.array(SavedChatSchema)]),
     result: ImportResultSchema
+  },
+  [IPC.EXPORT_TRACE]: {
+    args: z.tuple([z.string(), z.string(), z.array(AgentTraceEventSchema)]),
+    result: z.object({
+      ok: z.boolean(),
+      path: z.string().optional(),
+      error: z.string().optional()
+    })
   },
   [IPC.GET_AGENT_RUN_STATE]: {
     args: z.tuple([]),

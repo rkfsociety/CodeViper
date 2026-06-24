@@ -341,6 +341,13 @@ const codeviper = {
   importChats: (chats: unknown[]) =>
     withTimeout(ipcRenderer.invoke(IPC.IMPORT_CHATS, chats), IPC_TIMEOUT_MS * 3, 'importChats'),
 
+  exportTrace: (projectPath: string, chatId: string, events: unknown[]) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.EXPORT_TRACE, projectPath, chatId, events),
+      IPC_TIMEOUT_MS,
+      'exportTrace'
+    ),
+
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => {
     const handler = (_: unknown, request: AgentConfirmRequest) => callback(request)
     ipcRenderer.on(IPC.AGENT_CONFIRM, handler)

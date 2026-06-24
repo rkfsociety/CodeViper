@@ -685,6 +685,11 @@ export interface CodeViperAPI {
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
   exportChats: () => Promise<ChatStore>
   importChats: (chats: SavedChat[]) => Promise<ImportResult>
+  exportTrace: (
+    projectPath: string,
+    chatId: string,
+    events: AgentTraceEvent[]
+  ) => Promise<{ ok: boolean; path?: string; error?: string }>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
   respondAgentPreview: (id: string, apply: boolean) => void

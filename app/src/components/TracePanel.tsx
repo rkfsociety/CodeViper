@@ -5,6 +5,7 @@ import styles from './TracePanel.module.css'
 
 interface Props {
   chatId: string | null
+  projectPath: string
 }
 
 const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
@@ -16,11 +17,12 @@ const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
   run_end: '#4ec9b0'
 }
 
-export function TracePanel({ chatId }: Props) {
+export function TracePanel({ chatId, projectPath }: Props) {
   const [events, setEvents] = useState<AgentTraceEvent[]>(() =>
     chatId ? getTraceEvents(chatId) : []
   )
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [exporting, setExporting] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
 
@@ -56,20 +58,47 @@ export function TracePanel({ chatId }: Props) {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}.${d.getMilliseconds().toString().padStart(3, '0')}`
   }
 
+  async function handleExport() {
+    if (!chatId || events.length === 0 || !projectPath || exporting) return
+    setExporting(true)
+    try {
+      const result = await window.codeviper.exportTrace(projectPath, chatId, events)
+      if (result.ok && result.path) {
+        window.codeviper.showItemInFolder(result.path)
+      }
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const canExport = Boolean(chatId && projectPath && events.length > 0 && !exporting)
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
         <span>Трассировка агента</span>
         <div className={styles.headerActions}>
           {events.length > 0 && (
-            <button
-              className={styles.clearBtn}
-              onClick={() => {
-                if (chatId) clearTraceEvents(chatId)
-              }}
-            >
-              Очистить
-            </button>
+            <>
+              <button
+                className={styles.exportBtn}
+                onClick={() => void handleExport()}
+                disabled={!canExport}
+                title={
+                  projectPath ? 'Сохранить в .codeviper/traces/' : 'Сначала выберите папку проекта'
+                }
+              >
+                {exporting ? 'Сохранение…' : 'Экспортировать'}
+              </button>
+              <button
+                className={styles.clearBtn}
+                onClick={() => {
+                  if (chatId) clearTraceEvents(chatId)
+                }}
+              >
+                Очистить
+              </button>
+            </>
           )}
           <span className={styles.count}>{events.length} событий</span>
         </div>
