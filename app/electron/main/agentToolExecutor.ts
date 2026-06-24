@@ -54,6 +54,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'preview_ollama_modelfile',
   'web_fetch',
   'web_search',
+  'run_tests',
   'list_gitlab_mrs',
   'get_gitlab_pipeline'
 ])

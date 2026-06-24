@@ -507,6 +507,29 @@ const FILE_TOOLS = [
         required: ['path']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'run_tests',
+      description:
+        'Запустить тесты проекта и вернуть структурированный результат: сколько прошло/упало, имена упавших тестов, стек ошибок. Авто-определяет runner (vitest/jest/pytest/cargo/go) по файлам проекта. Используй после правок, чтобы убедиться, что тесты проходят. При падениях — исправь код и вызови снова.',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: {
+            type: 'string',
+            description:
+              'Переопределить команду запуска (например, "npx vitest run src/foo.test.ts"). Если не указано — авто-определение по проекту.'
+          },
+          path: {
+            type: 'string',
+            description: 'Подпапка для запуска тестов (относительно корня проекта)'
+          }
+        },
+        required: []
+      }
+    }
   }
 ] as const
 
@@ -1641,6 +1664,10 @@ export interface ToolArgs {
   delegate_to_editor: {
     task: string
     context?: string
+  }
+  run_tests: {
+    command?: string
+    path?: string
   }
 }
 

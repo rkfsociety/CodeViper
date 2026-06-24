@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { readFile, readdir, stat, writeFile, unlink } from 'fs/promises'
+import { readFile, readdir, stat, writeFile, unlink, access } from 'fs/promises'
 import { runScriptInSandbox, isDockerAvailable } from './scriptSandbox'
 import { tmpdir } from 'os'
 import { extname, join, relative, resolve } from 'path'
@@ -83,6 +83,127 @@ function formatRuffOutput(filePath: string, stdout: string): string {
       )
       .join('\n\n')
   )
+}
+
+/**
+ * Парсит вывод тест-раннера и возвращает структурированный текст:
+ * итоги (passed/failed/skipped), список упавших тестов с контекстом ошибки.
+ */
+function parseTestOutput(
+  command: string,
+  stdout: string,
+  stderr: string,
+  exitCode: number
+): string {
+  const combined = (stdout + '\n' + stderr).trim()
+  const lines = combined.split('\n')
+
+  // Базовые счётчики — пробуем извлечь из общих шаблонов
+  let passed = 0
+  let failed = 0
+  let skipped = 0
+
+  // vitest/jest: "Tests  3 failed | 12 passed (15)" или "✓ 12 | ✗ 3"
+  // pytest:     "3 failed, 12 passed, 1 skipped"
+  // cargo:      "test result: FAILED. 3 passed; 2 failed"
+  // go test:    "FAIL\t..." / "ok\t..."
+  for (const line of lines) {
+    // cargo / rust style
+    const cargo = line.match(/(\d+) passed.*?(\d+) failed/)
+    if (cargo) {
+      passed = parseInt(cargo[1])
+      failed = parseInt(cargo[2])
+      continue
+    }
+    // pytest style
+    const pytest = line.match(/(\d+) failed.*?(\d+) passed/)
+    if (pytest) {
+      failed = parseInt(pytest[1])
+      passed = parseInt(pytest[2])
+      continue
+    }
+    const pytestPassed = line.match(/(\d+) passed/)
+    if (pytestPassed && passed === 0) passed = parseInt(pytestPassed[1])
+    const pytestFailed = line.match(/(\d+) failed/)
+    if (pytestFailed && failed === 0) failed = parseInt(pytestFailed[1])
+    const pytestSkipped = line.match(/(\d+) (?:skipped|pending)/)
+    if (pytestSkipped && skipped === 0) skipped = parseInt(pytestSkipped[1])
+    // vitest/jest numeric summary line "X passed, Y failed"
+    const jestLine = line.match(/(\d+)\s+passed/)
+    if (jestLine && passed === 0) passed = parseInt(jestLine[1])
+    const jestFail = line.match(/(\d+)\s+failed/)
+    if (jestFail && failed === 0) failed = parseInt(jestFail[1])
+  }
+
+  // Имена упавших тестов — различные форматы
+  const failedTests: string[] = []
+  let inFailBlock = false
+  let blockLines: string[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!
+    // vitest/jest: "● TestName" или "FAIL src/foo.test.ts"
+    // pytest: "FAILED test_file.py::test_name"
+    // cargo: "test tests::my_test ... FAILED"
+    // go: "--- FAIL: TestName (0.00s)"
+    if (
+      /^●/.test(line) ||
+      /^FAILED\s+\S+::\S+/.test(line) ||
+      /\btest\b.*\.\.\. FAILED/.test(line) ||
+      /^--- FAIL:/.test(line) ||
+      /^\s*× /.test(line) ||
+      /^\s*✕ /.test(line) ||
+      /^\s*✗ /.test(line)
+    ) {
+      const name = line
+        .replace(/^●\s*/, '')
+        .replace(/^FAILED\s+/, '')
+        .replace(/\s*\.\.\. FAILED.*$/, '')
+        .replace(/^--- FAIL:\s*/, '')
+        .replace(/\s+\(\d+\.\d+s\)$/, '')
+        .replace(/^\s*[×✕✗]\s*/, '')
+        .trim()
+      if (name && !failedTests.includes(name)) failedTests.push(name)
+      inFailBlock = true
+      blockLines = [line]
+    } else if (inFailBlock) {
+      if (line.trim() === '' && blockLines.length > 3) {
+        inFailBlock = false
+        blockLines = []
+      } else {
+        blockLines.push(line)
+      }
+    }
+  }
+
+  // Строим итоговый ответ
+  const status = exitCode === 0 ? '✅ Все тесты прошли' : '❌ Есть падения'
+  const parts: string[] = []
+  parts.push(`${status} (exit ${exitCode})`)
+  parts.push(`Команда: ${command}`)
+
+  if (passed > 0 || failed > 0 || skipped > 0) {
+    const counters: string[] = []
+    if (passed > 0) counters.push(`passed: ${passed}`)
+    if (failed > 0) counters.push(`failed: ${failed}`)
+    if (skipped > 0) counters.push(`skipped: ${skipped}`)
+    parts.push(counters.join(' · '))
+  }
+
+  if (failedTests.length > 0) {
+    parts.push(`\nУпавшие тесты (${failedTests.length}):`)
+    for (const t of failedTests.slice(0, 20)) parts.push(`  • ${t}`)
+    if (failedTests.length > 20) parts.push(`  … и ещё ${failedTests.length - 20}`)
+  }
+
+  // Добавляем сырой вывод (первые 120 строк) чтобы агент видел контекст ошибок
+  if (lines.length > 0) {
+    const rawPreview = lines.slice(0, 120).join('\n').trim()
+    if (rawPreview) parts.push(`\n--- Вывод ---\n${rawPreview}`)
+    if (lines.length > 120) parts.push(`[… ещё ${lines.length - 120} строк обрезано]`)
+  }
+
+  return parts.join('\n')
 }
 
 function formatLinterOutput(
@@ -834,6 +955,72 @@ export function createProjectToolHandlers(
           options?.commandAllowlist
         )
         return formatLinterOutput(linter, args.path, result.stdout, result.stderr, result.exitCode)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    run_tests: async (args: any) => {
+      const testCwd = args.path ? resolve(projectPath, args.path) : projectPath
+      if (args.path) assertInsideProject(args.path, 'папка тестов')
+
+      let command: string
+      if (args.command) {
+        command = args.command
+      } else {
+        // Авто-определение runner по файлам проекта
+        const exists = async (rel: string) => {
+          try {
+            await access(join(testCwd, rel))
+            return true
+          } catch {
+            return false
+          }
+        }
+        if (await exists('Cargo.toml')) {
+          command = 'cargo test 2>&1'
+        } else if (await exists('go.mod')) {
+          command = 'go test ./... 2>&1'
+        } else if (
+          (await exists('pytest.ini')) ||
+          (await exists('setup.py')) ||
+          (await exists('pyproject.toml'))
+        ) {
+          command = 'python -m pytest --tb=short -q 2>&1'
+        } else if (await exists('package.json')) {
+          // Предпочитаем vitest → jest → npm test
+          let pkg: { scripts?: Record<string, string> } = {}
+          try {
+            pkg = JSON.parse(await readFile(join(testCwd, 'package.json'), 'utf8')) as typeof pkg
+          } catch {
+            /* ignore */
+          }
+          const scripts = pkg.scripts ?? {}
+          if (scripts.test?.includes('vitest')) {
+            command = 'npx vitest run --reporter=verbose 2>&1'
+          } else if (scripts.test?.includes('jest')) {
+            command = 'npx jest --no-coverage 2>&1'
+          } else if (scripts.test) {
+            command = 'npm test -- --passWithNoTests 2>&1'
+          } else {
+            command = 'npx vitest run 2>&1'
+          }
+        } else {
+          return 'Не удалось определить тест-раннер: нет package.json, Cargo.toml, go.mod, pytest.ini. Укажи команду через параметр command.'
+        }
+      }
+
+      try {
+        emitProgress('Запуск тестов…', null)
+        const result = await runCommand(
+          testCwd,
+          command,
+          commandTimeoutMs,
+          options?.commandBlocklist,
+          undefined,
+          options?.commandAllowlist
+        )
+        return parseTestOutput(command, result.stdout, result.stderr, result.exitCode ?? 1)
       } finally {
         clearProgress()
       }

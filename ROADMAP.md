@@ -73,13 +73,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Идеи (декомпозиция по запросу)
 
-**6 · L · Авто-цикл «тесты → почини»** — приор. Medium  
-- **Цель:** для проектов пользователя — `run_tests` → парс падений → итерация правок (сейчас автопроверка только после self-edit)  
-- **Файлы:** `app/electron/main/agentTools.ts`, `agentHandlersProject.ts`, `agent.ts`  
-- **Действие:** инструмент `run_tests`; эвристика повторного прогона при failed tests  
-- **Проверка:** сломанный unit-тест → агент чинит и перезапускает до green
-
-**7 · M · Счётчик стоимости облачных запросов** — приор. Medium  
+**6 · M · Счётчик стоимости облачных запросов** — приор. Medium  
 - **Цель:** отображение $ и токенов по провайдеру в UI (сейчас `generationMetrics` считает tok/s, но не стоимость)  
 - **Файлы:** `app/electron/main/generationMetrics.ts`, `app/src/components/AgentStatusBar.tsx`, `shared/constants.ts` (тарифы)  
 - **Действие:** накопление input/output/cache tokens × тариф модели; чип в статус-баре  
@@ -89,6 +83,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
+- Авто-цикл «тесты → почини»: инструмент `run_tests` — авто-определение runner (vitest/jest/pytest/cargo/go) по файлам проекта; парсинг passed/failed/skipped и имён упавших тестов; сырой вывод первые 120 строк; агент сам переиспользует инструмент после правок; `run_tests` в `PARALLEL_SAFE_TOOLS`
 - Песочница для run_script: `scriptSandbox.ts` — `docker run --rm --network none --memory 512m -v projectPath:/workspace`; `isDockerAvailable()` ping; fallback на локальный запуск при недоступности Docker; `scriptSandboxEnabled` в `AgentSettings` + Zod-схема + normalizer; тумблер «Песочница для скриптов» в SettingsModal (вкладка Безопасность)
 - Каналы обновлений stable/beta: поле `updateChannel: 'stable' | 'beta'` в `AgentSettings` + Zod-схема; `autoUpdater.allowPrerelease` по настройке; `startUpdateChecks` принимает `allowPrerelease`; тумблер «Beta-версии» в SettingsModal (вкладка Модели)
 - Editor subagent в цикле: инструмент `delegate_to_editor` — основной агент делегирует задачу субагенту-редактору (роль `editor`, до 20 шагов, полный набор файловых инструментов); защита от повторного делегирования одинаковой задачи; чип «Редактирую…» в AgentStatusBar; `'editing'` событие в AgentStreamPayload

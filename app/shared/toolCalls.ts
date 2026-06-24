@@ -93,7 +93,9 @@ export const AGENT_TOOL_NAMES = [
   'web_fetch',
   'web_search',
   // Субагент-редактор
-  'delegate_to_editor'
+  'delegate_to_editor',
+  // Тесты
+  'run_tests'
 ] as const
 
 const TOOL_NAME_SET = new Set<string>(AGENT_TOOL_NAMES)
