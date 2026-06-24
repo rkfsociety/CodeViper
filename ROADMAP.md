@@ -79,13 +79,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Технический долг
 
-**8 · L · Разбить agentTools.ts на модули** — приор. Low
-- **Цель:** файл 61 KB с 60+ инструментами разделён на читаемые модули; новые инструменты легче добавлять
-- **Файлы:** `app/electron/main/agentTools.ts` → `agentTools/core.ts`, `agentTools/integrations.ts`, `agentTools/mcp.ts`, `agentTools/index.ts`
-- **Действие:** split по группам (fs/shell, git/github, memory/skills, mcp); реэкспорт из `index.ts`; все импорты `agentTools` обновить
-- **Проверка:** `npm run typecheck && npm run build`; `npm test`
-
-**9 · L · Разбить ChatPanel.tsx на подкомпоненты** — приор. Low
+**8 · L · Разбить ChatPanel.tsx на подкомпоненты** — приор. Low
 - **Цель:** файл 70 KB разделён; каждый компонент < 300 строк; легче тестировать и дополнять
 - **Файлы:** `app/src/components/ChatPanel.tsx` → `ChatPanel/`, `ChatPanel/ChatMessages.tsx`, `ChatPanel/ChatInput.tsx`, `ChatPanel/ChatStatusBar.tsx`
 - **Действие:** выделить по визуальным зонам; сохранить все пропсы и контексты без изменения поведения
@@ -96,6 +90,9 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
+
+**Архитектура**
+- Разбивка agentTools.ts на модули: `core.ts` (файловые/git/package), `integrations.ts` (GitHub/GitLab/Jira/Linear/Web/Memory/Skills/Todo), `mcp.ts` (CodeViper/Ollama/индексация/субагенты), `index.ts` (сборка + ToolArgs + ToolHandlers + getAgentTools)
 
 **UX**
 - Cherry-pick hunks в DiffPreviewModal: `parseDiffHunks` + `applySelectedHunks` в `shared/diffPreview.ts`; чекбоксы ханков в `DiffPreviewModal`; кнопка «Применить выбранное»; IPC `AGENT_PREVIEW_HUNK_SELECTION`; `hunkSelectionFn` в `ToolExecutor`
