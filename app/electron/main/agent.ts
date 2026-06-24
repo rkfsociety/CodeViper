@@ -16,6 +16,7 @@ import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
+import { runSubagent } from './subagentRunner'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
@@ -180,6 +181,7 @@ export class AgentRunner {
 
     let effectiveMessage = userMessage
     let orchestratorPlanHint = ''
+    let orchestratorIsComplex = false
 
     const minLen = this.settings.orchestratorMinMessageLength ?? 30
     if (
@@ -190,6 +192,7 @@ export class AgentRunner {
       this.emitter.emit({ type: 'orchestrating', orchestrating: true })
       try {
         const result = await analyze(userMessage, this.settings.orchestratorModelPath)
+        orchestratorIsComplex = result.isComplex
         if (result.isComplex && result.rephrased) {
           effectiveMessage = result.rephrased
         }
@@ -207,9 +210,58 @@ export class AgentRunner {
       }
     }
 
+    // ── Explorer субагент: разведка проекта перед сложными задачами ──────────
+    let explorerSummary = ''
+    if (
+      this.settings.explorerEnabled &&
+      this.projectPath &&
+      taskMode !== 'self-improve' &&
+      this.settings.chatMode !== true
+    ) {
+      // Сложность: либо оркестратор сказал isComplex, либо эвристика
+      const complexByHeuristic =
+        !this.settings.orchestratorEnabled &&
+        userMessage.length > 120 &&
+        /\b(найди|рефактор|перепиши|исправ|добав|удал|переимену|архитектур|зависимост|модул|всех|все файл)\b/i.test(
+          userMessage
+        )
+      const shouldExplore = orchestratorIsComplex || complexByHeuristic
+
+      if (shouldExplore) {
+        this.emitter.emit({ type: 'exploring', exploring: true })
+        try {
+          const explorerResult = await runSubagent(this.settings, {
+            role: 'explorer',
+            task: `Изучи структуру проекта применительно к задаче:\n\n${userMessage}\n\nВерни краткую сводку: какие файлы релевантны, какие модули задействованы, ключевые зависимости.`,
+            projectPath: this.projectPath,
+            maxSteps: 8,
+            signal: this.emitter.abortSignal
+          })
+          if (explorerResult.output && !explorerResult.output.startsWith('[Субагент достиг')) {
+            explorerSummary = explorerResult.output
+            this.emitter.emit({
+              type: 'exploring',
+              exploring: false,
+              explorerSummary,
+              content: `🔍 Разведка завершена (${explorerResult.steps} шагов, инструменты: ${explorerResult.toolsUsed.join(', ') || 'нет'})`
+            })
+          } else {
+            this.emitter.emit({ type: 'exploring', exploring: false })
+          }
+        } catch {
+          // explorer не критичен — продолжаем без сводки
+          this.emitter.emit({ type: 'exploring', exploring: false })
+        }
+      }
+    }
+
     const baseSystemPrompt = this.settings.customSystemPrompt ?? ''
-    const customSystemPrompt = orchestratorPlanHint
-      ? `${baseSystemPrompt}\n\n## План оркестратора\n${orchestratorPlanHint}`.trim()
+    const hintParts: string[] = []
+    if (orchestratorPlanHint) hintParts.push(`## План оркестратора\n${orchestratorPlanHint}`)
+    if (explorerSummary)
+      hintParts.push(`## Разведка проекта (субагент-explorer)\n${explorerSummary}`)
+    const customSystemPrompt = hintParts.length
+      ? `${baseSystemPrompt}\n\n${hintParts.join('\n\n')}`.trim()
       : baseSystemPrompt
 
     const prepared = await prepareAgentRunContext(

@@ -79,6 +79,7 @@ export function AgentStatusBar({
     runStats,
     orchestrating,
     orchestratingPlan,
+    exploring,
     retry429,
     circuitBreakerState,
     circuitBreakerOpenUntilMs,
@@ -142,6 +143,11 @@ export function AgentStatusBar({
           >
             Планирую{orchestratingPlan ? (planExpanded ? ' ▾' : ' ▸') : '…'}
           </button>
+        )}
+        {exploring && (
+          <span className="agent-orchestrating-chip" title="Субагент-разведчик анализирует проект">
+            Разведываю…
+          </span>
         )}
         {(collectiveSyncStatus === 'queued' || collectiveSyncStatus === 'syncing') && (
           <span className="agent-collective-sync-chip" title="Синхронизация знаний на GitHub">

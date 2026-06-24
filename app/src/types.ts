@@ -263,6 +263,8 @@ export interface AgentSettings {
   orchestratorEnabled?: boolean
   /** Минимальная длина сообщения для запуска оркестратора (символы) */
   orchestratorMinMessageLength?: number
+  /** Запускать субагент-разведчик перед основным прогоном при сложных задачах */
+  explorerEnabled?: boolean
   /** Делиться вычислительными ресурсами через P2P-сеть */
   shareCompute?: boolean
   /** Пользователь подтвердил согласие на P2P (показывается один раз) */
@@ -430,6 +432,7 @@ export interface AgentStreamPayload {
     | 'preview'
     | 'trace'
     | 'orchestrating'
+    | 'exploring'
     | 'retry_429'
     | 'circuit_breaker'
     | 'collective_sync'
@@ -462,6 +465,10 @@ export interface AgentStreamPayload {
   traceEvent?: AgentTraceEvent
   /** Агент строит план действий (type === 'orchestrating') */
   orchestrating?: boolean
+  /** Субагент-разведчик анализирует проект (type === 'exploring') */
+  exploring?: boolean
+  /** Сводка от explorer-субагента — добавляется в системный промпт */
+  explorerSummary?: string
   /** Состояние circuit breaker (type === 'circuit_breaker') */
   circuitBreakerState?: CircuitBreakerState
   /** Момент когда circuit breaker перейдёт из open в half-open (Date.now() + 30 000) */

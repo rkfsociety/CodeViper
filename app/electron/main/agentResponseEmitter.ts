@@ -6,6 +6,10 @@ export class ResponseEmitter {
     private readonly signal?: AbortSignal
   ) {}
 
+  get abortSignal(): AbortSignal | undefined {
+    return this.signal
+  }
+
   throwIfAborted(): void {
     if (this.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
   }

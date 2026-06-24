@@ -2059,6 +2059,23 @@ export function SettingsModal({
                         )
                       )}
                     </div>
+
+                    {/* ── Explorer субагент ── */}
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Explorer субагент</div>
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.explorerEnabled === true}
+                          onChange={(e) => onSettingsChange({ explorerEnabled: e.target.checked })}
+                        />
+                        Разведка перед сложными задачами
+                      </label>
+                      <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
+                        При сложном запросе субагент-разведчик изучит проект и добавит сводку в
+                        контекст. Замедляет старт, улучшает качество ответа.
+                      </div>
+                    </div>
                   </>
                 )}
 

@@ -41,13 +41,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Subagents
 
-**2 · L · Explorer subagent** — приор. Medium  
-- **Цель:** read-only субагент (grep, read, list) для разведки перед основным прогоном  
-- **Файлы:** `subagentRunner.ts`, `agent.ts`  
-- **Действие:** `spawn_explorer` при сложном запросе; сводка в системный промпт  
-- **Проверка:** сложный запрос → сначала explorer, затем edit с контекстом сводки
-
-**3 · L · Editor subagent в цикле** — приор. Low  
+**2 · L · Editor subagent в цикле** — приор. Low  
 - **Цель:** субагент с mutating tools выполняет план, основной агент только координирует  
 - **Файлы:** `agent.ts`, `subagentRunner.ts`  
 - **Действие:** делегирование шагов плана editor-роли  
@@ -55,7 +49,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Модели и обновления
 
-**4 · S · Каналы обновлений stable/beta** — приор. Low  
+**3 · S · Каналы обновлений stable/beta** — приор. Low  
 - **Цель:** настройка канала: stable (latest release) / beta (pre-release) в `electron-updater`  
 - **Файлы:** `updateChecker.ts`, `settings.ts`, `SettingsModal.tsx`  
 - **Действие:** `allowPrerelease` по настройке; фильтр тегов GitHub  
@@ -63,7 +57,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Интеграции и изоляция
 
-**5 · L · Песочница для run_script** — приор. Medium  
+**4 · L · Песочница для run_script** — приор. Medium  
 - **Цель:** опциональный запуск скриптов в Docker-контейнере с mount только `projectPath`  
 - **Файлы:** `app/electron/main/scriptSandbox.ts`, `agentHandlersProject.ts`, `settings.ts`  
 - **Действие:** `docker run --rm -v projectPath` для python/bash; fallback на локальный run  
@@ -71,25 +65,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**6 · L · Голосовой ввод и озвучка** — приор. Low  
+**5 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**7 · XL · LSP в редакторе** — приор. Low  
+**6 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла в встроенном просмотре  
 - **Файлы:** `app/electron/main/lspClient.ts`, Monaco или CodeMirror интеграция  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**8 · L · Skill marketplace** — приор. Low  
+**7 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
 - **Проверка:** импорт skill из URL появляется локально
 
-**9 · M · E2E на Linux/macOS в CI** — приор. Medium  
+**8 · M · E2E на Linux/macOS в CI** — приор. Medium  
 - **Цель:** Playwright+Electron в матрице ubuntu/macos для smoke-тестов UI  
 - **Файлы:** `.github/workflows/ci.yml`, `app/tests/e2e/`  
 - **Действие:** job `test:e2e` на linux/macos (headless); фикс путей POSIX  
@@ -97,13 +91,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Идеи (декомпозиция по запросу)
 
-**10 · L · Авто-цикл «тесты → почини»** — приор. Medium  
+**9 · L · Авто-цикл «тесты → почини»** — приор. Medium  
 - **Цель:** для проектов пользователя — `run_tests` → парс падений → итерация правок (сейчас автопроверка только после self-edit)  
 - **Файлы:** `app/electron/main/agentTools.ts`, `agentHandlersProject.ts`, `agent.ts`  
 - **Действие:** инструмент `run_tests`; эвристика повторного прогона при failed tests  
 - **Проверка:** сломанный unit-тест → агент чинит и перезапускает до green
 
-**11 · M · Счётчик стоимости облачных запросов** — приор. Medium  
+**10 · M · Счётчик стоимости облачных запросов** — приор. Medium  
 - **Цель:** отображение $ и токенов по провайдеру в UI (сейчас `generationMetrics` считает tok/s, но не стоимость)  
 - **Файлы:** `app/electron/main/generationMetrics.ts`, `app/src/components/AgentStatusBar.tsx`, `shared/constants.ts` (тарифы)  
 - **Действие:** накопление input/output/cache tokens × тариф модели; чип в статус-баре  
@@ -113,6 +107,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
+- Explorer субагент: `runSubagent(explorer)` запускается при `explorerEnabled` + сложной задаче; сводка добавляется в системный промпт; чип «Разведываю…» в AgentStatusBar; тумблер в SettingsModal; тип `'exploring'` в AgentStreamPayload
 - Контракт субагента: `shared/subagent.ts` (SubagentRole, EXPLORER_ALLOWED_TOOLS, EDITOR_ALLOWED_TOOLS, resolveAllowedTools, resolveMaxSteps); `subagentRunner.ts` (runSubagent — мини-прогон с urезанным tool set); 12 unit-тестов
 - Экспорт урока в skill: кнопка «🎓 Сохранить как навык» в меню `···` ответа агента; диалог с полем имени; IPC `create-skill`; skill появляется в `list_skills`
 - Рейтинг знаний collective: upvote/downvote (▲/▼) в MemoryPanel для коллективных записей; оценки хранятся локально в `collective-scores.json`; записи с рейтингом ≤ −2 скрываются в UI и не попадают в push; рейтинг −1 затемняет запись

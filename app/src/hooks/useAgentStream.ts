@@ -369,6 +369,10 @@ export function useAgentStream({
         })
       }
 
+      if (event.type === 'exploring') {
+        dispatchRef.current({ type: 'SET_EXPLORING', active: event.exploring !== false })
+      }
+
       if (event.type === 'generation_metrics' && event.generationMetrics) {
         const m = event.generationMetrics as GenerationMetrics
         dispatchRef.current({ type: 'SET_METRICS', metrics: m })
