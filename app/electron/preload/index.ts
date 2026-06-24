@@ -259,6 +259,16 @@ const codeviper = {
   listSkills: (projectPath: string) =>
     withTimeout(ipcRenderer.invoke(IPC.LIST_SKILLS, projectPath), IPC_TIMEOUT_MS, 'listSkills'),
 
+  createSkill: (
+    projectPath: string,
+    input: { name: string; description: string; instructions: string; triggers?: string[] }
+  ) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.CREATE_SKILL, projectPath, input),
+      IPC_TIMEOUT_MS,
+      'createSkill'
+    ),
+
   deleteSkill: (projectPath: string, id: string) =>
     withTimeout(
       ipcRenderer.invoke(IPC.DELETE_SKILL, projectPath, id),

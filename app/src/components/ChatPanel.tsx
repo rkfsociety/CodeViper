@@ -197,7 +197,8 @@ const MessageRow = memo(function MessageRow({
   onPin,
   onRetry,
   onEdit,
-  onFileTimeline
+  onFileTimeline,
+  onSaveAsSkill
 }: {
   message: ChatMessage
   pinned: boolean
@@ -207,6 +208,7 @@ const MessageRow = memo(function MessageRow({
   onRetry: (message: ChatMessage) => void
   onEdit: (message: ChatMessage) => void
   onFileTimeline?: (path: string) => void
+  onSaveAsSkill?: (content: string) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -252,6 +254,15 @@ const MessageRow = memo(function MessageRow({
                   ✎ Изменить
                 </button>
               </>
+            )}
+            {!busy && message.role === 'assistant' && onSaveAsSkill && (
+              <button
+                type="button"
+                className="message-menu-item"
+                onClick={() => onSaveAsSkill(visibleAssistantContent(message.content))}
+              >
+                🎓 Сохранить как навык
+              </button>
             )}
             {message.role === 'assistant' && message.durationMs != null && (
               <span className="message-menu-meta">⏱ {(message.durationMs / 1000).toFixed(1)}s</span>
@@ -343,6 +354,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     import('../types').AgentContextPreview | null
   >(null)
   const [contextLoading, setContextLoading] = useState(false)
+  const [saveSkillDialog, setSaveSkillDialog] = useState<{
+    content: string
+    name: string
+    saving: boolean
+    result: string | null
+  } | null>(null)
   const [todoItems, setTodoItems] = useState<TodoItem[] | null>(null)
   const [todoTitle, setTodoTitle] = useState<string | undefined>(undefined)
   const [indexingProgress, setIndexingProgress] = useState<ProgressInfo | null>(null)
@@ -815,6 +832,35 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     })
   }
 
+  const handleSaveAsSkill = useCallback((content: string) => {
+    setSaveSkillDialog({ content, name: '', saving: false, result: null })
+  }, [])
+
+  async function doSaveSkill() {
+    if (!saveSkillDialog) return
+    const name = saveSkillDialog.name.trim()
+    if (!name) return
+    setSaveSkillDialog((d) => d && { ...d, saving: true, result: null })
+    try {
+      await window.codeviper.createSkill(projectPath ?? '', {
+        name,
+        description: name,
+        instructions: saveSkillDialog.content
+      })
+      setSaveSkillDialog((d) => d && { ...d, saving: false, result: `✓ Навык «${name}» сохранён` })
+      setTimeout(() => setSaveSkillDialog(null), 1500)
+    } catch (e) {
+      setSaveSkillDialog(
+        (d) =>
+          d && {
+            ...d,
+            saving: false,
+            result: `✕ ${e instanceof Error ? e.message : String(e)}`
+          }
+      )
+    }
+  }
+
   const togglePinMessage = useCallback((id: string) => {
     setPinnedMessageIds((prev) => {
       const next = new Set(prev)
@@ -1155,6 +1201,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
                     onRetry={retryUserMessage}
                     onEdit={editUserMessage}
                     onFileTimeline={setFileTimelinePath}
+                    onSaveAsSkill={handleSaveAsSkill}
                   />
                 )
               }
@@ -1698,6 +1745,50 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
             onClose={() => setFileTimelinePath(null)}
           />
         </Suspense>
+      )}
+
+      {saveSkillDialog && (
+        <div className="modal-overlay" onClick={() => setSaveSkillDialog(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">🎓 Сохранить как навык</div>
+            <label className="modal-label">
+              Название навыка
+              <input
+                className="modal-input"
+                autoFocus
+                value={saveSkillDialog.name}
+                onChange={(e) =>
+                  setSaveSkillDialog((d) => d && { ...d, name: e.target.value, result: null })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && saveSkillDialog.name.trim()) void doSaveSkill()
+                  if (e.key === 'Escape') setSaveSkillDialog(null)
+                }}
+                placeholder="например: форматирование TypeScript"
+              />
+            </label>
+            {saveSkillDialog.result && (
+              <div
+                className={saveSkillDialog.result.startsWith('✓') ? 'modal-success' : 'modal-error'}
+              >
+                {saveSkillDialog.result}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!saveSkillDialog.name.trim() || saveSkillDialog.saving}
+                onClick={() => void doSaveSkill()}
+              >
+                {saveSkillDialog.saving ? 'Сохраняю…' : 'Сохранить'}
+              </button>
+              <button type="button" className="btn" onClick={() => setSaveSkillDialog(null)}>
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

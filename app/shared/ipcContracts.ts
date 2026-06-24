@@ -396,6 +396,7 @@ export const IPC = {
   LIST_MEMORIES: 'list-memories',
   DELETE_MEMORY: 'delete-memory',
   LIST_SKILLS: 'list-skills',
+  CREATE_SKILL: 'create-skill',
   DELETE_SKILL: 'delete-skill',
   SHARE_AS_GIST: 'share-as-gist',
   GET_CHAT_STORE: 'get-chat-store',
@@ -548,6 +549,18 @@ export const Contracts = {
   [IPC.LIST_SKILLS]: {
     args: z.tuple([z.string()]),
     result: z.array(AgentSkillSchema)
+  },
+  [IPC.CREATE_SKILL]: {
+    args: z.tuple([
+      z.string(),
+      z.object({
+        name: z.string(),
+        description: z.string(),
+        instructions: z.string(),
+        triggers: z.array(z.string()).optional()
+      })
+    ]),
+    result: AgentSkillSchema
   },
   [IPC.DELETE_SKILL]: {
     args: z.tuple([z.string(), z.string()]),

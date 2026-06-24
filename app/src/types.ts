@@ -636,6 +636,10 @@ export interface CodeViperAPI {
   deleteMemory: (projectPath: string, id: string) => Promise<boolean>
   voteMemory: (entryId: string, delta: 1 | -1) => Promise<number>
   listSkills: (projectPath: string) => Promise<AgentSkill[]>
+  createSkill: (
+    projectPath: string,
+    input: { name: string; description: string; instructions: string; triggers?: string[] }
+  ) => Promise<AgentSkill>
   deleteSkill: (projectPath: string, id: string) => Promise<boolean>
   getChatStore: () => Promise<ChatStore>
   createChat: (folderId?: string | null, mode?: 'chat' | 'code') => Promise<SavedChat>
