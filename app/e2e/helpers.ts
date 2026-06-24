@@ -9,7 +9,7 @@ const ELECTRON_PATH = require('electron') as string
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const MAIN_PATH = path.resolve(__dirname, '../out/main/index.js')
 
-const CI_ELECTRON_FLAGS = [
+const CI_LINUX_ELECTRON_FLAGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
   '--disable-gpu',
@@ -18,12 +18,18 @@ const CI_ELECTRON_FLAGS = [
   '--ozone-platform=x11'
 ]
 
+function ciElectronFlags(): string[] {
+  if (!process.env.CI) return []
+  // Linux CI (xvfb): ozone x11. На Windows/macOS эти флаги ломают запуск.
+  return process.platform === 'linux' ? CI_LINUX_ELECTRON_FLAGS : []
+}
+
 const MODAL_DISMISS_TIMEOUT_MS = 20_000
 
 export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
     executablePath: ELECTRON_PATH,
-    args: [MAIN_PATH, ...(process.env.CI ? CI_ELECTRON_FLAGS : [])],
+    args: [MAIN_PATH, ...ciElectronFlags()],
     timeout: 60_000,
     env: {
       ...process.env,
@@ -101,9 +107,17 @@ export async function closeApp(app: ElectronApplication): Promise<void> {
   } catch {
     // процесс уже завершился
   }
-  try {
-    await app.close()
-  } catch {
-    // ignore
+
+  const closed = await Promise.race([
+    app.close().then(() => true),
+    new Promise<false>((resolve) => setTimeout(() => resolve(false), 10_000))
+  ])
+
+  if (!closed) {
+    try {
+      await app.kill()
+    } catch {
+      // ignore
+    }
   }
 }
