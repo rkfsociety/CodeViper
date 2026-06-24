@@ -1484,6 +1484,27 @@ export function SettingsModal({
                             </span>
                           </span>
                         </label>
+
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
+                            checked={settings.scriptSandboxEnabled === true}
+                            onChange={(e) =>
+                              onSettingsChange({ scriptSandboxEnabled: e.target.checked })
+                            }
+                          />
+                          <span className={styles.track} aria-hidden="true">
+                            <span className={styles.thumb} />
+                          </span>
+                          <span className={styles.toggleContent}>
+                            <span className={styles.title}>Песочница для скриптов</span>
+                            <span className={styles.desc}>
+                              Запускать run_script в Docker-контейнере: без сети, mount только
+                              projectPath. Требует Docker Desktop. Fallback на локальный запуск при
+                              недоступности Docker.
+                            </span>
+                          </span>
+                        </label>
                       </div>
                     </SettingItem>
 

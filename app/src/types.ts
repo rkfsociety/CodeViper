@@ -267,6 +267,8 @@ export interface AgentSettings {
   explorerEnabled?: boolean
   /** Канал обновлений: 'stable' — только релизы, 'beta' — включая pre-release */
   updateChannel?: 'stable' | 'beta'
+  /** Запускать run_script в Docker-контейнере (--network none, mount только projectPath) */
+  scriptSandboxEnabled?: boolean
   /** Делиться вычислительными ресурсами через P2P-сеть */
   shareCompute?: boolean
   /** Пользователь подтвердил согласие на P2P (показывается один раз) */

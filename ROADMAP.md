@@ -45,33 +45,27 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Интеграции и изоляция
 
-**2 · L · Песочница для run_script** — приор. Medium  
-- **Цель:** опциональный запуск скриптов в Docker-контейнере с mount только `projectPath`  
-- **Файлы:** `app/electron/main/scriptSandbox.ts`, `agentHandlersProject.ts`, `settings.ts`  
-- **Действие:** `docker run --rm -v projectPath` для python/bash; fallback на локальный run  
-- **Проверка:** скрипт не может писать вне projectPath в sandbox-режиме
-
 ### 🔗 Далёкое будущее
 
-**3 · L · Голосовой ввод и озвучка** — приор. Low  
+**2 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**4 · XL · LSP в редакторе** — приор. Low  
+**3 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла в встроенном просмотре  
 - **Файлы:** `app/electron/main/lspClient.ts`, Monaco или CodeMirror интеграция  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**5 · L · Skill marketplace** — приор. Low  
+**4 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
 - **Проверка:** импорт skill из URL появляется локально
 
-**6 · M · E2E на Linux/macOS в CI** — приор. Medium  
+**5 · M · E2E на Linux/macOS в CI** — приор. Medium  
 - **Цель:** Playwright+Electron в матрице ubuntu/macos для smoke-тестов UI  
 - **Файлы:** `.github/workflows/ci.yml`, `app/tests/e2e/`  
 - **Действие:** job `test:e2e` на linux/macos (headless); фикс путей POSIX  
@@ -79,13 +73,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Идеи (декомпозиция по запросу)
 
-**7 · L · Авто-цикл «тесты → почини»** — приор. Medium  
+**6 · L · Авто-цикл «тесты → почини»** — приор. Medium  
 - **Цель:** для проектов пользователя — `run_tests` → парс падений → итерация правок (сейчас автопроверка только после self-edit)  
 - **Файлы:** `app/electron/main/agentTools.ts`, `agentHandlersProject.ts`, `agent.ts`  
 - **Действие:** инструмент `run_tests`; эвристика повторного прогона при failed tests  
 - **Проверка:** сломанный unit-тест → агент чинит и перезапускает до green
 
-**8 · M · Счётчик стоимости облачных запросов** — приор. Medium  
+**7 · M · Счётчик стоимости облачных запросов** — приор. Medium  
 - **Цель:** отображение $ и токенов по провайдеру в UI (сейчас `generationMetrics` считает tok/s, но не стоимость)  
 - **Файлы:** `app/electron/main/generationMetrics.ts`, `app/src/components/AgentStatusBar.tsx`, `shared/constants.ts` (тарифы)  
 - **Действие:** накопление input/output/cache tokens × тариф модели; чип в статус-баре  
@@ -95,6 +89,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
+- Песочница для run_script: `scriptSandbox.ts` — `docker run --rm --network none --memory 512m -v projectPath:/workspace`; `isDockerAvailable()` ping; fallback на локальный запуск при недоступности Docker; `scriptSandboxEnabled` в `AgentSettings` + Zod-схема + normalizer; тумблер «Песочница для скриптов» в SettingsModal (вкладка Безопасность)
 - Каналы обновлений stable/beta: поле `updateChannel: 'stable' | 'beta'` в `AgentSettings` + Zod-схема; `autoUpdater.allowPrerelease` по настройке; `startUpdateChecks` принимает `allowPrerelease`; тумблер «Beta-версии» в SettingsModal (вкладка Модели)
 - Editor subagent в цикле: инструмент `delegate_to_editor` — основной агент делегирует задачу субагенту-редактору (роль `editor`, до 20 шагов, полный набор файловых инструментов); защита от повторного делегирования одинаковой задачи; чип «Редактирую…» в AgentStatusBar; `'editing'` событие в AgentStreamPayload
 - Explorer субагент: `runSubagent(explorer)` запускается при `explorerEnabled` + сложной задаче; сводка добавляется в системный промпт; чип «Разведываю…» в AgentStatusBar; тумблер в SettingsModal; тип `'exploring'` в AgentStreamPayload

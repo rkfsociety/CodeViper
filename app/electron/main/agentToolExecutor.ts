@@ -125,7 +125,8 @@ export class ToolExecutor {
         qdrantUrl: this.settings.qdrantUrl,
         qdrantApiKey: this.settings.qdrantApiKey,
         commandBlocklist: this.settings.commandBlocklist,
-        commandAllowlist: this.settings.commandAllowlist
+        commandAllowlist: this.settings.commandAllowlist,
+        sandboxEnabled: this.settings.scriptSandboxEnabled === true
       }
     )
     this.clearEditSnapshots = projectResult.clearEditSnapshots

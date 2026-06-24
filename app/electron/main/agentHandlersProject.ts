@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import { readFile, readdir, stat, writeFile, unlink } from 'fs/promises'
+import { runScriptInSandbox, isDockerAvailable } from './scriptSandbox'
 import { tmpdir } from 'os'
 import { extname, join, relative, resolve } from 'path'
 import { QdrantClient } from '@qdrant/js-client-rest'
@@ -113,6 +114,7 @@ interface ProjectToolOptions {
   qdrantApiKey?: string
   commandBlocklist?: string[]
   commandAllowlist?: string[]
+  sandboxEnabled?: boolean
 }
 
 export function createProjectToolHandlers(
@@ -740,16 +742,50 @@ export function createProjectToolHandlers(
     run_script: guardWrite(async (args: any) => {
       const scriptCwd = args.cwd ? resolve(projectPath, args.cwd) : projectPath
       if (args.cwd) assertInsideProject(args.cwd, 'рабочая папка')
-      const ext =
-        args.interpreter === 'python' ? '.py' : args.interpreter === 'powershell' ? '.ps1' : '.sh'
+      const interpreter: 'python' | 'bash' | 'powershell' =
+        args.interpreter === 'python'
+          ? 'python'
+          : args.interpreter === 'powershell'
+            ? 'powershell'
+            : 'bash'
+
+      // ── Sandbox-режим: запуск в Docker ──────────────────────────────────────
+      if (options?.sandboxEnabled) {
+        emitProgress(`Запуск ${interpreter} (sandbox)...`, null)
+        try {
+          const dockerOk = await isDockerAvailable()
+          if (!dockerOk) {
+            clearProgress()
+            return '[Sandbox] Docker недоступен. Установи Docker Desktop и запусти его, или отключи опцию «Песочница» в настройках.'
+          }
+          const result = await runScriptInSandbox(
+            args.script,
+            interpreter,
+            projectPath,
+            commandTimeoutMs ?? 120_000
+          )
+          clearProgress()
+          const lines: string[] = []
+          if (result.stdout) lines.push(result.stdout.trimEnd())
+          if (result.stderr) lines.push(`[stderr]\n${result.stderr.trimEnd()}`)
+          if (result.exitCode !== 0) lines.push(`[exit ${result.exitCode}]`)
+          return lines.join('\n') || '[пустой вывод]'
+        } catch (err) {
+          clearProgress()
+          return `[Sandbox] Ошибка запуска Docker: ${err instanceof Error ? err.message : String(err)}`
+        }
+      }
+
+      // ── Локальный запуск (fallback) ─────────────────────────────────────────
+      const ext = interpreter === 'python' ? '.py' : interpreter === 'powershell' ? '.ps1' : '.sh'
       const tmpPath = join(tmpdir(), `cv-script-${Date.now()}${ext}`)
       await writeFile(tmpPath, args.script, 'utf8')
       try {
-        emitProgress(`Запуск ${args.interpreter}...`, null)
+        emitProgress(`Запуск ${interpreter}...`, null)
         let command: string
-        if (args.interpreter === 'python') {
+        if (interpreter === 'python') {
           command = process.platform === 'win32' ? `python "${tmpPath}"` : `python3 "${tmpPath}"`
-        } else if (args.interpreter === 'powershell') {
+        } else if (interpreter === 'powershell') {
           command =
             process.platform === 'win32'
               ? `powershell -NoProfile -ExecutionPolicy Bypass -File "${tmpPath}"`
