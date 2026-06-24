@@ -18,6 +18,7 @@ import { AgentProvider } from './contexts/AgentContext'
 import { ChatContext, type ChatContextValue } from './contexts/ChatContext'
 import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
+import { CHAT_TEMPLATES } from '../shared/chatTemplates'
 import { ProjectTreePanel } from './components/ProjectTreePanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { UpdateBanner } from './components/UpdateBanner'
@@ -490,6 +491,33 @@ function AppContent() {
     [flushCurrentChat, refreshChatStore]
   )
 
+  const createChatFromTemplate = useCallback(
+    async (templateId: string, folderId: string | null = null) => {
+      await flushCurrentChat()
+
+      const tpl = CHAT_TEMPLATES.find((t) => t.id === templateId)
+      const chat = await window.codeviper.createChat(folderId, agentModeRef.current)
+      if (incognitoModeRef.current) {
+        setIncognitoChatIds((prev) => new Set(prev).add(chat.id))
+      }
+      await refreshChatStore()
+      lastActiveChatPerMode.current[agentModeRef.current] = chat.id
+      setActiveChatId(chat.id)
+      setChatMessages((prev) => {
+        const next = new Map(prev)
+        const systemMsg: ChatMessage = {
+          id: `tpl-${chat.id}`,
+          role: 'system',
+          content: tpl ? tpl.prompt : '',
+          timestamp: Date.now()
+        }
+        next.set(chat.id, tpl ? [systemMsg] : [])
+        return next
+      })
+    },
+    [flushCurrentChat, refreshChatStore]
+  )
+
   const handleModeChange = useCallback(
     async (newMode: AgentMode) => {
       lastActiveChatPerMode.current[agentModeRef.current] = activeChatIdRef.current
@@ -730,6 +758,7 @@ function AppContent() {
               onModeChange={handleModeChange}
               onSelectChat={selectChat}
               onCreateChat={createChat}
+              onCreateChatFromTemplate={createChatFromTemplate}
               onCreateFolder={createFolder}
               onDeleteChat={deleteChat}
               onRenameChat={renameChat}

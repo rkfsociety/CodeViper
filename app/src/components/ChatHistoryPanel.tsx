@@ -6,6 +6,7 @@ import { ConfirmDialog } from './ConfirmDialog'
 import styles from './ChatHistoryPanel.module.css'
 import { useChatContext } from '../contexts/ChatContext'
 import { useChatBusy } from '../contexts/QueueContext'
+import { CHAT_TEMPLATES } from '../../shared/chatTemplates'
 
 export type AgentMode = 'chat' | 'code'
 
@@ -14,6 +15,7 @@ interface Props {
   onModeChange: (mode: AgentMode) => void
   onSelectChat: (id: string) => void
   onCreateChat: (folderId?: string | null) => void
+  onCreateChatFromTemplate?: (templateId: string, folderId?: string | null) => void
   onCreateFolder: (name: string) => void
   onDeleteChat: (id: string) => void
   onDeleteFolder: (id: string) => void
@@ -115,6 +117,7 @@ export function ChatHistoryPanel({
   onModeChange,
   onSelectChat,
   onCreateChat,
+  onCreateChatFromTemplate,
   onCreateFolder,
   onDeleteChat,
   onDeleteFolder,
@@ -136,6 +139,7 @@ export function ChatHistoryPanel({
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
   const [ioMenuOpen, setIoMenuOpen] = useState(false)
   const [ioStatus, setIoStatus] = useState<string | null>(null)
+  const [templateMenuOpen, setTemplateMenuOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -573,6 +577,33 @@ export function ChatHistoryPanel({
         <button className="btn primary" onClick={() => onCreateChat(null)}>
           + Чат
         </button>
+        {onCreateChatFromTemplate && (
+          <div className={styles.ioMenuWrap}>
+            <button
+              className="btn"
+              title="Создать чат из шаблона"
+              onClick={() => setTemplateMenuOpen((v) => !v)}
+            >
+              ▾
+            </button>
+            {templateMenuOpen && (
+              <div className={styles.ioMenu} role="menu">
+                {CHAT_TEMPLATES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    role="menuitem"
+                    onClick={() => {
+                      setTemplateMenuOpen(false)
+                      onCreateChatFromTemplate(tpl.id, null)
+                    }}
+                  >
+                    {tpl.icon} {tpl.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <button
           className="btn"
           onClick={() => setPrompt({ kind: 'create-folder', defaultValue: 'Новая папка' })}
