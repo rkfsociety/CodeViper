@@ -320,7 +320,7 @@ app.whenReady().then(async () => {
     void installReactDevTools()
   }
 
-  if (mainWindow) startUpdateChecks(mainWindow.webContents)
+  if (mainWindow) startUpdateChecks(mainWindow.webContents, settings.updateChannel === 'beta')
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()

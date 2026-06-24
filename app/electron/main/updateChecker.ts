@@ -104,11 +104,15 @@ async function checkGitSourceUpdate(webContents: WebContents): Promise<void> {
   sendUpdate(webContents, { source: 'git', commits })
 }
 
-async function startReleaseUpdateChecks(webContents: WebContents): Promise<void> {
+async function startReleaseUpdateChecks(
+  webContents: WebContents,
+  allowPrerelease: boolean
+): Promise<void> {
   if (releaseChecksStarted) return
   releaseChecksStarted = true
 
   const autoUpdater = await getAutoUpdater()
+  autoUpdater.allowPrerelease = allowPrerelease
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.autoRunAppAfterInstall = true
@@ -157,9 +161,9 @@ async function startReleaseUpdateChecks(webContents: WebContents): Promise<void>
   }, 5_000)
 }
 
-export function startUpdateChecks(webContents: WebContents): void {
+export function startUpdateChecks(webContents: WebContents, allowPrerelease = false): void {
   if (app.isPackaged) {
-    void startReleaseUpdateChecks(webContents)
+    void startReleaseUpdateChecks(webContents, allowPrerelease)
     return
   }
 

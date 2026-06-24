@@ -265,6 +265,8 @@ export interface AgentSettings {
   orchestratorMinMessageLength?: number
   /** Запускать субагент-разведчик перед основным прогоном при сложных задачах */
   explorerEnabled?: boolean
+  /** Канал обновлений: 'stable' — только релизы, 'beta' — включая pre-release */
+  updateChannel?: 'stable' | 'beta'
   /** Делиться вычислительными ресурсами через P2P-сеть */
   shareCompute?: boolean
   /** Пользователь подтвердил согласие на P2P (показывается один раз) */

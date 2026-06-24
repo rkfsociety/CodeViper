@@ -2060,6 +2060,27 @@ export function SettingsModal({
                       )}
                     </div>
 
+                    {/* ── Канал обновлений ── */}
+                    <div className={styles.section}>
+                      <div className={styles.sectionLabel}>Канал обновлений</div>
+                      <label className={styles.toggle}>
+                        <input
+                          type="checkbox"
+                          checked={settings.updateChannel === 'beta'}
+                          onChange={(e) =>
+                            onSettingsChange({
+                              updateChannel: e.target.checked ? 'beta' : 'stable'
+                            })
+                          }
+                        />
+                        Beta-версии (pre-release)
+                      </label>
+                      <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
+                        Включить — обновляться до pre-release (нестабильные сборки). По умолчанию
+                        только stable-релизы. Вступает в силу при следующем запуске.
+                      </div>
+                    </div>
+
                     {/* ── Explorer субагент ── */}
                     <div className={styles.section}>
                       <div className={styles.sectionLabel}>Explorer субагент</div>

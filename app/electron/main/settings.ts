@@ -92,6 +92,7 @@ export const PersistedSettingsSchema = z.object({
   orchestratorEnabled: z.boolean().optional(),
   orchestratorMinMessageLength: z.number().optional(),
   explorerEnabled: z.boolean().optional(),
+  updateChannel: z.enum(['stable', 'beta']).optional(),
   autoCollectivePr: z.boolean().optional(),
   shareCompute: z.boolean().optional(),
   p2pConsentGiven: z.boolean().optional(),
@@ -230,6 +231,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
       ? { orchestratorMinMessageLength: settings.orchestratorMinMessageLength }
       : {}),
     ...(settings.explorerEnabled === true ? { explorerEnabled: true } : {}),
+    ...(settings.updateChannel ? { updateChannel: settings.updateChannel } : {}),
     ...(settings.shareCompute === true ? { shareCompute: true } : {}),
     ...(settings.p2pConsentGiven === true ? { p2pConsentGiven: true } : {}),
     ...(settings.p2pServerUrl?.trim() ? { p2pServerUrl: settings.p2pServerUrl.trim() } : {}),
