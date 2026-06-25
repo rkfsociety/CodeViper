@@ -27,6 +27,8 @@ export const COLLECTIVE_MEMORY_SEMANTIC_DEDUP_THRESHOLD = 0.95
 // ── Команды ───────────────────────────────────────────────────────────────────
 /** Таймаут выполнения команды по умолчанию (сек) */
 export const DEFAULT_COMMAND_TIMEOUT_SEC = 120
+/** Максимальный суммарный объём stdout+stderr (байт) до принудительного завершения команды */
+export const COMMAND_OUTPUT_BUFFER_LIMIT_BYTES = 10 * 1024 * 1024 // 10 МБ
 export const COMMAND_TIMEOUT_SEC_MIN = 10
 export const COMMAND_TIMEOUT_SEC_MAX = 600
 

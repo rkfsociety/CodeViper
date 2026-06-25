@@ -23,7 +23,8 @@ import {
   FILE_PREVIEW_THRESHOLD_BYTES,
   FILE_PREVIEW_HEAD_TAIL_LINES,
   READ_DEFAULT_LINE_LIMIT,
-  DEFAULT_COMMAND_TIMEOUT_SEC
+  DEFAULT_COMMAND_TIMEOUT_SEC,
+  COMMAND_OUTPUT_BUFFER_LIMIT_BYTES
 } from '../../shared/constants'
 
 const COMMAND_TIMEOUT_MS = DEFAULT_COMMAND_TIMEOUT_SEC * 1000
@@ -614,6 +615,7 @@ export async function runCommand(
     }
 
     const child = spawnShell(command, cwd, env)
+    let outputBytes = 0
 
     const timer = setTimeout(() => {
       killProcessTree(child)
@@ -626,10 +628,32 @@ export async function runCommand(
     }, timeoutMs)
 
     child.stdout?.on('data', (chunk: Buffer) => {
+      outputBytes += chunk.byteLength
+      if (outputBytes > COMMAND_OUTPUT_BUFFER_LIMIT_BYTES) {
+        killProcessTree(child)
+        const limitMsg = `[CodeViper] Вывод обрезан: превышен лимит ${COMMAND_OUTPUT_BUFFER_LIMIT_BYTES / 1024 / 1024} МБ`
+        finish({
+          stdout: stdout.slice(0, 20_000),
+          stderr: `${stderr}\n${limitMsg}`.trim().slice(0, 20_000),
+          exitCode: 1
+        })
+        return
+      }
       stdout += chunk.toString()
     })
 
     child.stderr?.on('data', (chunk: Buffer) => {
+      outputBytes += chunk.byteLength
+      if (outputBytes > COMMAND_OUTPUT_BUFFER_LIMIT_BYTES) {
+        killProcessTree(child)
+        const limitMsg = `[CodeViper] Вывод обрезан: превышен лимит ${COMMAND_OUTPUT_BUFFER_LIMIT_BYTES / 1024 / 1024} МБ`
+        finish({
+          stdout: stdout.slice(0, 20_000),
+          stderr: `${stderr}\n${limitMsg}`.trim().slice(0, 20_000),
+          exitCode: 1
+        })
+        return
+      }
       stderr += chunk.toString()
     })
 

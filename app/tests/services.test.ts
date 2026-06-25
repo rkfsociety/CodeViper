@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, rmSync, readFileSync, existsSync } from 'fs'
+import { mkdtempSync, rmSync, readFileSync, existsSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
@@ -122,6 +122,21 @@ describe('runCommand', () => {
     expect(result.exitCode).toBe(124)
     expect(result.stderr).toMatch(/таймаут/)
   }, 10_000)
+
+  it('обрезает вывод при превышении лимита буфера', async () => {
+    // Пишем скрипт во временный файл, чтобы избежать проблем с кавычками в cmd.exe
+    const tmpDir = mkdtempSync(join(tmpdir(), 'cv-buf-'))
+    const scriptPath = join(tmpDir, 'bigout.js')
+    try {
+      writeFileSync(scriptPath, 'process.stdout.write(Buffer.alloc(11 * 1024 * 1024, 88))\n')
+      const result = await runCommand(process.cwd(), `node ${scriptPath}`, 30_000)
+      expect(result.stderr).toMatch(/обрезан/)
+      // stdout не должен раздуться до 11 МБ
+      expect(result.stdout.length).toBeLessThan(25_000)
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  }, 30_000)
 })
 
 describe('file operations', () => {
