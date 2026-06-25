@@ -82,6 +82,13 @@ export interface ImportResult {
   skipped: number
 }
 
+export interface PromptTemplate {
+  id: string
+  trigger: string
+  description: string
+  text: string
+}
+
 export interface FileNode {
   name: string
   path: string
@@ -269,6 +276,8 @@ export interface AgentSettings {
   updateChannel?: 'stable' | 'beta'
   /** Запускать run_script в Docker-контейнере (--network none, mount только projectPath) */
   scriptSandboxEnabled?: boolean
+  /** Пользовательские шаблоны промптов (доступны через /trigger в чате) */
+  promptTemplates?: PromptTemplate[]
   /** Делиться вычислительными ресурсами через P2P-сеть */
   shareCompute?: boolean
   /** Пользователь подтвердил согласие на P2P (показывается один раз) */

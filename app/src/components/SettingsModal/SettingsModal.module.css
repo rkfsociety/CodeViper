@@ -292,6 +292,83 @@
   margin-bottom: 0;
 }
 
+.templateList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.templateItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: var(--bg-element);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.templateItemContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.templateTrigger {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-bright, #6dbfff);
+}
+
+.templateDesc {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.templateForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-element);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 6px;
+}
+
+.templateFormActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.btnDanger {
+  color: var(--red-bright, #f85149);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+
+.btnDanger:hover {
+  background: color-mix(in srgb, var(--red-bright, #f85149) 12%, transparent);
+  border-color: color-mix(in srgb, var(--red-bright, #f85149) 30%, transparent);
+}
+
 /* ── Search ── */
 
 .searchBox {

@@ -87,6 +87,16 @@ export const PersistedSettingsSchema = z.object({
       })
     )
     .optional(),
+  promptTemplates: z
+    .array(
+      z.object({
+        id: z.string(),
+        trigger: z.string(),
+        description: z.string(),
+        text: z.string()
+      })
+    )
+    .optional(),
   enabledPlugins: z.array(z.string()).optional(),
   orchestratorModelPath: z.string().optional(),
   orchestratorEnabled: z.boolean().optional(),

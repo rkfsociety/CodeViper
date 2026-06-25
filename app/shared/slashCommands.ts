@@ -1,9 +1,19 @@
+import type { PromptTemplate } from '../src/types'
+
 export interface SlashCommand {
   trigger: string
   description: string
   hasArg?: boolean
   argHint?: string
   expand: (arg?: string) => string
+}
+
+function toSlashCommands(templates: PromptTemplate[]): SlashCommand[] {
+  return templates.map((t) => ({
+    trigger: t.trigger,
+    description: t.description,
+    expand: () => t.text
+  }))
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
@@ -67,20 +77,26 @@ export function parseSlashInput(text: string): { trigger: string; arg: string } 
 }
 
 /** Найти команды, чьё trigger начинается с введённого текста. */
-export function matchSlashCommands(text: string): SlashCommand[] {
+export function matchSlashCommands(
+  text: string,
+  userTemplates: PromptTemplate[] = []
+): SlashCommand[] {
   if (!text.startsWith('/')) return []
   const parsed = parseSlashInput(text)
   if (!parsed) return []
   // Если уже введён аргумент у команды с hasArg — не менять список (продолжаем показывать)
-  return SLASH_COMMANDS.filter((c) => c.trigger.startsWith(parsed.trigger))
+  const all = [...SLASH_COMMANDS, ...toSlashCommands(userTemplates)]
+  return all.filter((c) => c.trigger.startsWith(parsed.trigger))
 }
 
 /** Раскрыть команду, если ввод — слэш-команда. Иначе вернуть исходный текст. */
-export function expandSlashCommand(text: string): string {
+export function expandSlashCommand(text: string, userTemplates: PromptTemplate[] = []): string {
   if (!text.startsWith('/')) return text
   const parsed = parseSlashInput(text)
   if (!parsed) return text
-  const cmd = SLASH_COMMANDS.find((c) => c.trigger === parsed.trigger)
+  // Пользовательские шаблоны имеют приоритет над встроенными
+  const all = [...toSlashCommands(userTemplates), ...SLASH_COMMANDS]
+  const cmd = all.find((c) => c.trigger === parsed.trigger)
   if (!cmd) return text
   return cmd.expand(parsed.arg || undefined)
 }

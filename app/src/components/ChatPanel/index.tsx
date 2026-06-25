@@ -682,7 +682,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   async function send() {
     const raw = input.trim()
-    const text = expandSlashCommand(raw)
+    const text = expandSlashCommand(raw, settings.promptTemplates)
     if (!text || !projectPath || !chatId) return
 
     // Читаем содержимое вложенных файлов
@@ -788,7 +788,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   const projectLocked = messages.length > 0
 
-  const slashMatches = useMemo(() => matchSlashCommands(input), [input])
+  const slashMatches = useMemo(
+    () => matchSlashCommands(input, settings.promptTemplates),
+    [input, settings.promptTemplates]
+  )
 
   // Сбрасывать выделение при изменении списка команд
   useEffect(() => {
