@@ -132,7 +132,12 @@ function appIconPath(): string | undefined {
 const CSP =
   "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http: https: ws: wss:; font-src 'self' data:; worker-src 'self' blob:;"
 
-async function createWindow(): Promise<void> {
+let sessionCspHooked = false
+let recoveringMainWindow = false
+
+function ensureSessionCsp(): void {
+  if (sessionCspHooked) return
+  sessionCspHooked = true
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -141,6 +146,32 @@ async function createWindow(): Promise<void> {
       }
     })
   })
+}
+
+function loadMainWindowContent(win: BrowserWindow): void {
+  if (process.env.ELECTRON_RENDERER_URL) {
+    void win.loadURL(process.env.ELECTRON_RENDERER_URL)
+  } else {
+    void win.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
+/** Пересоздать окно после GPU/рендер-крэша — reload() оставляет sandbox без startupData (пустой экран). */
+async function recoverMainWindow(): Promise<void> {
+  if (recoveringMainWindow || isAppQuitting()) return
+  recoveringMainWindow = true
+  try {
+    const stale = mainWindow
+    mainWindow = null
+    if (stale && !stale.isDestroyed()) stale.destroy()
+    await createWindow()
+  } finally {
+    recoveringMainWindow = false
+  }
+}
+
+async function createWindow(): Promise<void> {
+  ensureSessionCsp()
 
   const icon = appIconPath()
   const windowState = await loadWindowState()
@@ -173,11 +204,9 @@ async function createWindow(): Promise<void> {
 
   createTray(() => mainWindow)
 
-  // Автоперезагрузка при падении рендерера (GPU crash, OOM и т.п.).
+  // Пересоздание окна при падении рендерера (GPU crash, OOM и т.п.).
   mainWindow.webContents.on('render-process-gone', (_e, details) => {
-    if (details.reason !== 'clean-exit' && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.reload()
-    }
+    if (details.reason !== 'clean-exit') void recoverMainWindow()
   })
 
   const logsDir = join(app.getPath('userData'), 'logs')
@@ -199,11 +228,7 @@ async function createWindow(): Promise<void> {
       .catch(() => {})
   })
 
-  if (process.env.ELECTRON_RENDERER_URL) {
-    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  loadMainWindowContent(mainWindow)
 }
 
 function stream(chatId: string, event: AgentStreamPayload): void {
@@ -223,10 +248,13 @@ function stream(chatId: string, event: AgentStreamPayload): void {
   mainWindow?.webContents.send('agent-stream', { chatId, ...event })
 }
 
-// Флаги устойчивости GPU — только в dev; in-process-gpu ломает окно на части систем.
+// На части систем Windows дисковый GPU-кэш недоступен (0x5 Access denied) → пустой/чёрный экран.
+// Отключаем только дисковый кэш шейдеров/GPU — аппаратное ускорение сохраняется.
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
+app.commandLine.appendSwitch('disable-gpu-cache')
+
 if (!app.isPackaged) {
   app.commandLine.appendSwitch('disable-gpu-process-crash-limit')
-  app.commandLine.appendSwitch('in-process-gpu')
 }
 
 async function installReactDevTools(): Promise<void> {
@@ -302,9 +330,7 @@ app.whenReady().then(async () => {
 })
 
 app.on('child-process-gone', (_event, details) => {
-  if (details.type === 'GPU' && mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.reload()
-  }
+  if (details.type === 'GPU') void recoverMainWindow()
 })
 
 app.on('window-all-closed', () => {
