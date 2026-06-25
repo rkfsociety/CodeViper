@@ -134,6 +134,8 @@ const CSP =
 
 let sessionCspHooked = false
 let recoveringMainWindow = false
+let gpuRecoverStreak = 0
+let lastGpuRecoverMs = 0
 
 function ensureSessionCsp(): void {
   if (sessionCspHooked) return
@@ -159,6 +161,19 @@ function loadMainWindowContent(win: BrowserWindow): void {
 /** Пересоздать окно после GPU/рендер-крэша — reload() оставляет sandbox без startupData (пустой экран). */
 async function recoverMainWindow(): Promise<void> {
   if (recoveringMainWindow || isAppQuitting()) return
+
+  const now = Date.now()
+  if (now - lastGpuRecoverMs < 8000) {
+    gpuRecoverStreak++
+  } else {
+    gpuRecoverStreak = 1
+  }
+  lastGpuRecoverMs = now
+  if (gpuRecoverStreak > 2) {
+    console.warn('[window] восстановление окна пропущено — слишком частые GPU-сбои')
+    return
+  }
+
   recoveringMainWindow = true
   try {
     const stale = mainWindow

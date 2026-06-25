@@ -35,8 +35,11 @@ export function useAppStateSync({
     }
 
     const timer = window.setInterval(save, SAVE_INTERVAL_MS)
-    // Сохраняем сразу при монтировании, чтобы не ждать первых 30 с
-    save()
-    return () => window.clearInterval(timer)
+    // Первое сохранение — с задержкой, чтобы не конкурировать со стартом UI
+    const initial = window.setTimeout(save, 5000)
+    return () => {
+      window.clearInterval(timer)
+      window.clearTimeout(initial)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 }

@@ -341,7 +341,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     incognitoRef
   })
 
-  // ── Хук: контекст-превью — черновик только при открытом попапе/модалке (не на каждый символ) ─
+  // ── Превью контекста — только по открытию попапа/модалки (не при старте) ─
+  const contextPreviewOpen = contextPopoverOpen || contextModalOpen
   useContextPreview(
     chatId,
     projectPath,
@@ -349,7 +350,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     input,
     settings.model,
     busy,
-    contextPopoverOpen || contextModalOpen,
+    contextPreviewOpen,
     {
       onPreview: setContextPreview,
       onLoading: setContextLoading

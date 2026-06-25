@@ -19,8 +19,8 @@ export function useContextPreview(
   input: string,
   model: string,
   busy: boolean,
-  /** Включать черновик ввода в превью (попап/модалка контекста). Иначе — только история чата. */
-  includeDraftInPreview: boolean,
+  /** Запрашивать превью только при открытом попапе/модалке контекста */
+  previewOpen: boolean,
   { onPreview, onLoading }: Callbacks
 ): void {
   const messagesRef = useRef(messages)
@@ -37,11 +37,11 @@ export function useContextPreview(
   // только когда меняется число сообщений или id последнего.
   const lastMsgId = messages[messages.length - 1]?.id ?? ''
   const messagesKey = `${messages.length}:${lastMsgId}`
-  const draftText = includeDraftInPreview ? input.trim() : ''
+  const draftText = previewOpen ? input.trim() : ''
   const cacheKey = `${messagesKey}:${model}:${draftText}`
 
   useEffect(() => {
-    if (busy || !chatId || !model) {
+    if (!previewOpen || busy || !chatId || !model) {
       onLoadingRef.current(false)
       return
     }
@@ -79,6 +79,6 @@ export function useContextPreview(
       active = false
       window.clearTimeout(timer)
     }
-    // draftText пустой, пока попап закрыт — ввод не перезапускает тяжёлый IPC
-  }, [chatId, projectPath, cacheKey, draftText, model, busy])
+    // previewOpen=false — не строим превью при старте/вводе; только по клику на ◎
+  }, [chatId, projectPath, cacheKey, draftText, model, busy, previewOpen])
 }

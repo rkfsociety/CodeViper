@@ -243,63 +243,69 @@ export function ChatInputMeta({
             )}
           </button>
 
-          {contextPopoverOpen && contextPreview && (
+          {contextPopoverOpen && (
             <div className={styles.contextPopover} role="tooltip">
-              <div className={styles.ctxTitle}>Контекст модели</div>
-              <div className={styles.ctxRows}>
-                {contextPreview.sections.map((s) => (
-                  <div key={s.id} className={styles.ctxRow}>
-                    <span className={styles.ctxRowName}>{s.title}</span>
-                    <span className={styles.ctxRowVal}>
-                      ~{(s.charCount / 4000).toFixed(1)}k tok
-                      <span className={styles.ctxRowKb}>
-                        {' '}
-                        ({(s.charCount / 1024).toFixed(1)} KB)
-                      </span>
-                    </span>
+              {contextLoading && !contextPreview ? (
+                <div className={styles.ctxTitle}>Загрузка…</div>
+              ) : contextPreview ? (
+                <>
+                  <div className={styles.ctxTitle}>Контекст модели</div>
+                  <div className={styles.ctxRows}>
+                    {contextPreview.sections.map((s) => (
+                      <div key={s.id} className={styles.ctxRow}>
+                        <span className={styles.ctxRowName}>{s.title}</span>
+                        <span className={styles.ctxRowVal}>
+                          ~{(s.charCount / 4000).toFixed(1)}k tok
+                          <span className={styles.ctxRowKb}>
+                            {' '}
+                            ({(s.charCount / 1024).toFixed(1)} KB)
+                          </span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className={styles.ctxBar}>
-                <div
-                  className={styles.ctxBarFill}
-                  style={{
-                    width: `${Math.min(100, contextPreview.contextUsagePercent)}%`,
-                    background:
-                      contextPreview.contextUsagePercent >= 90
-                        ? 'var(--red, #f85149)'
-                        : contextPreview.contextUsagePercent >= 70
-                          ? 'var(--yellow, #d29922)'
-                          : 'var(--blue, #1f6feb)'
-                  }}
-                />
-              </div>
-              <div className={styles.ctxTotal}>
-                ~{contextPreview.estimatedTokens.toLocaleString('ru-RU')} /{' '}
-                {contextPreview.contextLimitTokens.toLocaleString('ru-RU')} tok
-              </div>
-              <button
-                type="button"
-                className={styles.ctxDetails}
-                onClick={() => {
-                  onSetContextPopoverOpen(false)
-                  onSetContextModalOpen(true)
-                }}
-              >
-                Детали →
-              </button>
-              {contextPreview.contextUsagePercent > 60 && (
-                <button
-                  type="button"
-                  className={styles.ctxDetails}
-                  style={{ marginTop: 4, opacity: summarizing ? 0.6 : 1 }}
-                  disabled={summarizing}
-                  onClick={() => void onSummarizeContext()}
-                  title="Суммаризировать старые сообщения, чтобы освободить контекст"
-                >
-                  {summarizing ? 'Сжимаю…' : 'Сжать историю'}
-                </button>
-              )}
+                  <div className={styles.ctxBar}>
+                    <div
+                      className={styles.ctxBarFill}
+                      style={{
+                        width: `${Math.min(100, contextPreview.contextUsagePercent)}%`,
+                        background:
+                          contextPreview.contextUsagePercent >= 90
+                            ? 'var(--red, #f85149)'
+                            : contextPreview.contextUsagePercent >= 70
+                              ? 'var(--yellow, #d29922)'
+                              : 'var(--blue, #1f6feb)'
+                      }}
+                    />
+                  </div>
+                  <div className={styles.ctxTotal}>
+                    ~{contextPreview.estimatedTokens.toLocaleString('ru-RU')} /{' '}
+                    {contextPreview.contextLimitTokens.toLocaleString('ru-RU')} tok
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.ctxDetails}
+                    onClick={() => {
+                      onSetContextPopoverOpen(false)
+                      onSetContextModalOpen(true)
+                    }}
+                  >
+                    Детали →
+                  </button>
+                  {contextPreview.contextUsagePercent > 60 && (
+                    <button
+                      type="button"
+                      className={styles.ctxDetails}
+                      style={{ marginTop: 4, opacity: summarizing ? 0.6 : 1 }}
+                      disabled={summarizing}
+                      onClick={() => void onSummarizeContext()}
+                      title="Суммаризировать старые сообщения, чтобы освободить контекст"
+                    >
+                      {summarizing ? 'Сжимаю…' : 'Сжать историю'}
+                    </button>
+                  )}
+                </>
+              ) : null}
             </div>
           )}
         </div>

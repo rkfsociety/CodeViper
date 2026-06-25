@@ -368,6 +368,8 @@ export interface PrepareAgentContextOptions {
   enableRAG?: boolean
   /** Конфиг векторного хранилища для RAG (провайдер + реквизиты) */
   ragStoreConfig?: VectorStoreConfig
+  /** Быстрая оценка для UI — без дерева проекта, памяти и RAG */
+  uiPreviewOnly?: boolean
   /** Дополнительные инструкции, дописываемые в конец системного промпта */
   customSystemPrompt?: string
   /** Отключённые инструменты агента (имена); исключаются из набора tools */
@@ -424,10 +426,12 @@ export async function buildAgentContextPreview(
   options: PrepareAgentContextOptions = {}
 ): Promise<AgentContextPreview> {
   const chatMode = options.chatMode === true
-  const memorySkillsContext = chatMode ? '' : await buildAgentContext(projectPath, userMessage)
+  const uiOnly = options.uiPreviewOnly === true
+  const memorySkillsContext =
+    chatMode || uiOnly ? '' : await buildAgentContext(projectPath, userMessage)
 
   let projectTreeText = ''
-  if (!chatMode && projectPath.trim()) {
+  if (!chatMode && !uiOnly && projectPath.trim()) {
     const tree = await buildFileTree(projectPath)
     projectTreeText = formatFileTree(tree)
     if (projectTreeText.length > MAX_PROJECT_TREE_CHARS) {
@@ -455,7 +459,7 @@ export async function buildAgentContextPreview(
 
   // Используем RAG поиск если включен и есть chatId и ollamaUrl
   let slicedHistory = history.slice(-adaptiveLimits.maxHistoryMessages)
-  if (options.enableRAG && options.chatId && options.ollamaUrl) {
+  if (!uiOnly && options.enableRAG && options.chatId && options.ollamaUrl) {
     try {
       const ragTimeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('RAG timeout')), 5000)
@@ -497,16 +501,26 @@ export async function buildAgentContextPreview(
     { role: 'user', content: userMessage }
   ]
 
-  const compressed = await compressContextMessages({
-    messages: initialMessages,
-    model,
-    summarizeModel: options.summarizeModel,
-    toolsJsonChars,
-    ollamaUrl: options.ollamaUrl,
-    providerConfig: options.providerConfig,
-    signal: options.signal,
-    summarizeThresholdPercent: options.summarizeThresholdPercent
-  })
+  const compressed = uiOnly
+    ? {
+        messages: initialMessages,
+        truncated: false,
+        summarized: false,
+        droppedMessageCount: 0,
+        usagePercent: 0,
+        limitTokens: 0,
+        estimatedTokens: 0
+      }
+    : await compressContextMessages({
+        messages: initialMessages,
+        model,
+        summarizeModel: options.summarizeModel,
+        toolsJsonChars,
+        ollamaUrl: options.ollamaUrl,
+        providerConfig: options.providerConfig,
+        signal: options.signal,
+        summarizeThresholdPercent: options.summarizeThresholdPercent
+      })
 
   const ollamaMessages = compressed.messages
   if (compressed.truncated && !compressed.summarized) {

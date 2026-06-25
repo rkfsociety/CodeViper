@@ -102,7 +102,9 @@ export function registerAgentIpc(ctx: IpcContext): void {
   ipcMain.handle(
     'preview-agent-context',
     async (_e, projectPath: string, history: ChatMessage[], userMessage: string, model: string) =>
-      buildAgentContextPreview(projectPath, history, userMessage, model)
+      buildAgentContextPreview(projectPath, history, userMessage, model, false, {
+        uiPreviewOnly: true
+      })
   )
 
   ipcMain.handle(
