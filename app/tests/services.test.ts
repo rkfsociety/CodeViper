@@ -25,8 +25,16 @@ describe('isInsideProject', () => {
     expect(isInsideProject('C:/proj', 'C:/proj-evil/file.ts')).toBe(false)
   })
 
-  it('не зависит от регистра', () => {
+  it('не зависит от регистра на Windows', () => {
+    if (process.platform !== 'win32') return
     expect(isInsideProject('C:/Proj', 'c:/proj/src/a.ts')).toBe(true)
+  })
+
+  it('учитывает регистр на не-Windows', () => {
+    if (process.platform === 'win32') return
+    // /Proj и /proj — разные пути на регистрозависимых ФС
+    expect(isInsideProject('/Proj', '/proj/src/a.ts')).toBe(false)
+    expect(isInsideProject('/proj', '/proj/src/a.ts')).toBe(true)
   })
 })
 

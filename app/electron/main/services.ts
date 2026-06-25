@@ -144,8 +144,10 @@ const IGNORED = new Set([
 ])
 
 export function isInsideProject(projectPath: string, targetPath: string): boolean {
-  const root = resolve(projectPath).toLowerCase()
-  const target = resolve(targetPath).toLowerCase()
+  const normalize = (p: string) =>
+    process.platform === 'win32' ? resolve(p).toLowerCase() : resolve(p)
+  const root = normalize(projectPath)
+  const target = normalize(targetPath)
   return target === root || target.startsWith(root + sep)
 }
 
