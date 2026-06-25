@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session } from 'electron'
+import { app, BrowserWindow, Menu, session } from 'electron'
 import { appendFile, mkdir } from 'fs/promises'
 import { mkdirSync } from 'fs'
 import { tmpdir } from 'os'
@@ -241,6 +241,26 @@ async function createWindow(): Promise<void> {
     mkdir(logsDir, { recursive: true })
       .then(() => appendFile(rendererLogPath, entry, 'utf8'))
       .catch(() => {})
+  })
+
+  mainWindow.webContents.on('context-menu', (_e, params) => {
+    const menuItems: Electron.MenuItemConstructorOptions[] = []
+
+    if (params.selectionText) {
+      menuItems.push({ label: 'Копировать', role: 'copy' })
+    }
+    if (params.isEditable) {
+      if (params.selectionText) {
+        menuItems.push({ label: 'Вырезать', role: 'cut' })
+      }
+      menuItems.push({ label: 'Вставить', role: 'paste' })
+      menuItems.push({ type: 'separator' })
+      menuItems.push({ label: 'Выбрать всё', role: 'selectAll' })
+    }
+
+    if (menuItems.length > 0) {
+      Menu.buildFromTemplate(menuItems).popup({ window: mainWindow! })
+    }
   })
 
   loadMainWindowContent(mainWindow)
