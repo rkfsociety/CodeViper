@@ -137,7 +137,7 @@ describe('Нагрузка: 60 сообщений подряд', () => {
     const emit = vi.fn()
 
     for (let i = 0; i < 60; i++) {
-      const runner = new AgentRunner(makeSettings(), projectDir, emit)
+      const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
       await (runner as unknown as { run: (h: ChatMessage[], m: string) => Promise<void> }).run(
         history,
         `Задача ${i}`
@@ -159,7 +159,7 @@ describe('Нагрузка: 60 сообщений подряд', () => {
 
     for (let i = 0; i < 60; i++) {
       try {
-        const runner = new AgentRunner(makeSettings(), projectDir, emit)
+        const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
         await (runner as unknown as { run: (h: ChatMessage[], m: string) => Promise<void> }).run(
           [],
           `Задача ${i}`
@@ -193,7 +193,7 @@ describe('Нагрузка: 10 параллельных чатов', () => {
     const tasks = projectDirs.map(async (dir, idx) => {
       const emit = vi.fn()
       for (let msg = 0; msg < 5; msg++) {
-        const runner = new AgentRunner(makeSettings(), dir, emit)
+        const runner = new AgentRunner({ settings: makeSettings(), projectPath: dir, emit })
         await (runner as unknown as { run: (h: ChatMessage[], m: string) => Promise<void> }).run(
           [],
           `Чат ${idx}, сообщение ${msg}`
@@ -234,7 +234,7 @@ describe('Нагрузка: длинная история', () => {
     const memBefore = heapMB()
     const emit = vi.fn()
 
-    const runner = new AgentRunner(makeSettings(), projectDir, emit)
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
     await expect(
       (runner as unknown as { run: (h: ChatMessage[], m: string) => Promise<void> }).run(
         history,
@@ -256,7 +256,7 @@ describe('Нагрузка: длинная история', () => {
     const emit = vi.fn()
 
     const start = Date.now()
-    const runner = new AgentRunner(makeSettings(), projectDir, emit)
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
     await (runner as unknown as { run: (h: ChatMessage[], m: string) => Promise<void> }).run(
       history,
       'Ответь'
