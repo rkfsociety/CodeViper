@@ -864,7 +864,31 @@ function AppContent() {
           {tracePanelOpen && (
             <section className="panel panel-trace">
               <Suspense fallback={null}>
-                <TracePanel chatId={activeChatId} projectPath={activeProjectPath} />
+                <TracePanel
+                  chatId={activeChatId}
+                  projectPath={activeProjectPath}
+                  onReplayFromStep={(stepTs, userMessage) => {
+                    const msgs = messagesRef.current
+                    let userMsgIndex = -1
+                    for (let i = msgs.length - 1; i >= 0; i--) {
+                      const m = msgs[i]
+                      if (m.role === 'user' && m.content === userMessage && m.timestamp <= stepTs) {
+                        userMsgIndex = i
+                        break
+                      }
+                    }
+                    if (userMsgIndex < 0) return
+                    const userMsg = msgs[userMsgIndex]
+                    const preRunHistory = msgs.slice(0, userMsgIndex)
+                    const intermediateMessages = msgs
+                      .slice(userMsgIndex + 1)
+                      .filter((m) => m.timestamp < stepTs)
+                    chatPanelRef.current?.replayFromStep(
+                      [...preRunHistory, ...intermediateMessages],
+                      userMsg.content
+                    )
+                  }}
+                />
               </Suspense>
             </section>
           )}

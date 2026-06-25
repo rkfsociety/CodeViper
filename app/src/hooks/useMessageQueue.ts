@@ -221,6 +221,56 @@ export function useMessageQueue({
     }
   }
 
+  async function replayRun(replayHistory: ChatMessage[], userMessage: string) {
+    const project = projectPathRef.current
+    const chat = chatIdRef.current
+    const currentSettings = settingsRef.current
+    if (!project || !chat) return
+    if (agentRunningRef.current) return
+
+    setRunning(true)
+    syncBusyState(true, queueRef.current.length)
+    runIdRef.current += 1
+    doneRunIdRef.current = -1
+    onRunStartRef.current()
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(
+        () => reject(new AgentError('Агент не ответил — превышено время ожидания', 'timeout')),
+        AGENT_RUN_TIMEOUT_MS
+      )
+    })
+
+    try {
+      await Promise.race([
+        window.codeviper.runAgent(
+          currentSettings,
+          project,
+          chat,
+          replayHistory,
+          userMessage,
+          incognitoRef?.current ?? false
+        ),
+        timeoutPromise
+      ])
+      clearTimeout(timeoutHandle)
+      await new Promise<void>((resolve) => setTimeout(resolve, 150))
+      if (doneRunIdRef.current !== runIdRef.current) {
+        void processNextQueuedRunRef.current()
+      }
+    } catch (error) {
+      clearTimeout(timeoutHandle)
+      appendMessage({
+        id: makeId(),
+        role: 'system',
+        content: error instanceof Error ? error.message : String(error),
+        timestamp: Date.now()
+      })
+      void processNextQueuedRunRef.current()
+    }
+  }
+
   async function processNextQueuedRun() {
     setRunning(false)
 
@@ -319,6 +369,7 @@ export function useMessageQueue({
     confirmDangerRun,
     stopAgent,
     executeRun,
+    replayRun,
     resetQueue,
     getQueueSnapshot,
     queueSize,

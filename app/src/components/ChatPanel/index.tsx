@@ -58,6 +58,7 @@ export interface ChatPanelHandle {
   insertPath: (path: string) => void
   insertFileMention: (relativePath: string) => void
   focusInput: () => void
+  replayFromStep: (history: ChatMessage[], userMessage: string) => void
 }
 
 interface Props {
@@ -318,6 +319,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     confirmDangerRun,
     stopAgent,
     executeRun,
+    replayRun,
     resetQueue,
     getQueueSnapshot,
     queueSize,
@@ -677,7 +679,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   useImperativeHandle(ref, () => ({
     insertPath: (path: string) => insertPrompt(path),
     insertFileMention: insertFileMentionPath,
-    focusInput: () => chatInputRef.current?.focus()
+    focusInput: () => chatInputRef.current?.focus(),
+    replayFromStep: (history: ChatMessage[], userMessage: string) => {
+      void replayRun(history, userMessage)
+    }
   }))
 
   async function send() {

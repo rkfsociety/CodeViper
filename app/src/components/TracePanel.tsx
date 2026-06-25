@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { AgentTraceEvent } from '../types'
 import { getTraceEvents, clearTraceEvents, onTraceUpdate } from '../traceBuffer'
 import styles from './TracePanel.module.css'
@@ -6,6 +6,7 @@ import styles from './TracePanel.module.css'
 interface Props {
   chatId: string | null
   projectPath: string
+  onReplayFromStep?: (stepTs: number, userMessage: string) => void
 }
 
 const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
@@ -17,7 +18,7 @@ const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
   run_end: '#4ec9b0'
 }
 
-export function TracePanel({ chatId, projectPath }: Props) {
+export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   const [events, setEvents] = useState<AgentTraceEvent[]>(() =>
     chatId ? getTraceEvents(chatId) : []
   )
@@ -56,6 +57,23 @@ export function TracePanel({ chatId, projectPath }: Props) {
   function formatTime(ts: number): string {
     const d = new Date(ts)
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}.${d.getMilliseconds().toString().padStart(3, '0')}`
+  }
+
+  function findRunStart(idx: number): AgentTraceEvent | null {
+    for (let i = idx - 1; i >= 0; i--) {
+      if (events[i].kind === 'run_start') return events[i]
+    }
+    return null
+  }
+
+  function handleReplayClick(e: MouseEvent, eventTs: number, idx: number) {
+    e.stopPropagation()
+    if (!onReplayFromStep) return
+    const runStart = findRunStart(idx)
+    if (!runStart) return
+    const userMessage = runStart.data.message
+    if (typeof userMessage !== 'string' || !userMessage) return
+    onReplayFromStep(eventTs, userMessage)
   }
 
   async function handleExport() {
@@ -116,6 +134,8 @@ export function TracePanel({ chatId, projectPath }: Props) {
         {events.map((ev, idx) => {
           const isOpen = expanded.has(idx)
           const hasData = Object.keys(ev.data).length > 0
+          const canReplay =
+            ev.kind === 'llm_request' && onReplayFromStep != null && findRunStart(idx) != null
           return (
             <div key={idx} className={styles.event}>
               <div
@@ -126,6 +146,15 @@ export function TracePanel({ chatId, projectPath }: Props) {
                 <span className={styles.ts}>{formatTime(ev.ts)}</span>
                 <span className={styles.dot} style={{ background: KIND_COLORS[ev.kind] }} />
                 <span className={styles.label}>{ev.label}</span>
+                {canReplay && (
+                  <button
+                    className={styles.replayBtn}
+                    onClick={(e) => handleReplayClick(e, ev.ts, idx)}
+                    title="Повторить с этого шага"
+                  >
+                    ↩
+                  </button>
+                )}
                 {hasData && <span className={styles.toggle}>{isOpen ? '▾' : '▸'}</span>}
               </div>
               {isOpen && hasData && (
