@@ -30,6 +30,7 @@ export default [
         window: 'readonly',
         document: 'readonly',
         fetch: 'readonly',
+        Response: 'readonly',
         AbortSignal: 'readonly',
         AbortController: 'readonly',
         DOMException: 'readonly',

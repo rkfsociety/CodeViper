@@ -7,6 +7,7 @@ import type {
   ModelPlacement
 } from '../../../shared/modelProvider'
 import { GEMINI_API_BASE_URL } from '../../../shared/constants'
+import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
 // ── Gemini REST types ──────────────────────────────────────────────────────────
 
@@ -68,7 +69,10 @@ class RateLimiter {
 
 // ── Provider ───────────────────────────────────────────────────────────────────
 
-export class GeminiProvider implements ModelProvider {
+export class GeminiProvider extends StreamingChatProvider implements ModelProvider {
+  /** Backoff при 429: по умолчанию 35 с → 60 с → 90 с (Gemini free tier). */
+  protected override readonly BACKOFF_MS = [35_000, 60_000, 90_000]
+
   private rateLimiter: RateLimiter
 
   constructor(
@@ -77,7 +81,123 @@ export class GeminiProvider implements ModelProvider {
     private baseUrl: string = GEMINI_API_BASE_URL,
     rpm = 5
   ) {
+    super()
     this.rateLimiter = new RateLimiter(rpm)
+  }
+
+  /** Ждём слот rate limiter, затем делегируем стриминг базовому классу. */
+  override async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
+    await this.rateLimiter.waitForSlot()
+    yield* super.chat(options)
+  }
+
+  protected override buildRequest(options: ChatOptions): { url: string; init: FetchInit } {
+    const modelName = options.model || this.modelName
+    const isThinkingModel = /2\.5/.test(modelName)
+    const body = this.buildBody(options, isThinkingModel)
+    const url = `${this.baseUrl}/models/${modelName}:streamGenerateContent?key=${encodeURIComponent(this.apiKey)}&alt=sse`
+
+    return {
+      url,
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }
+    }
+  }
+
+  protected override createChunkParser(options: ChatOptions): ChunkParser {
+    const modelName = options.model || this.modelName
+    const toolCalls: ChatChunk['tool_calls'] = []
+    let totalTokens: number | undefined
+
+    return {
+      parse(line: string): ChatChunk | null {
+        if (!line.startsWith('data: ')) return null
+        const raw = line.slice(6).trim()
+        if (!raw || raw === '[DONE]') return null
+
+        let chunk: GeminiChunk
+        try {
+          chunk = JSON.parse(raw) as GeminiChunk
+        } catch {
+          return null
+        }
+
+        if (chunk.usageMetadata?.totalTokenCount) {
+          totalTokens = chunk.usageMetadata.totalTokenCount
+        }
+
+        const parts = chunk.candidates?.[0]?.content?.parts ?? []
+        let text = ''
+        let thinking = ''
+
+        for (const part of parts) {
+          if (part.thought && part.text) {
+            thinking += part.text
+          } else if (part.text) {
+            text += part.text
+          } else if (part.functionCall?.name) {
+            const id = part.functionCall.id ?? randomUUID()
+            toolCalls!.push({
+              id,
+              type: 'function' as const,
+              function: {
+                name: part.functionCall.name,
+                arguments: JSON.stringify(part.functionCall.args ?? {})
+              }
+            })
+          }
+        }
+
+        if (text || thinking) {
+          return { content: text, thinking: thinking || undefined, model: modelName }
+        }
+
+        return null
+      },
+
+      finalize(): ChatChunk[] {
+        if (toolCalls!.length || totalTokens !== undefined) {
+          return [
+            {
+              content: '',
+              tool_calls: toolCalls!.length ? toolCalls : undefined,
+              model: modelName,
+              total_tokens: totalTokens
+            }
+          ]
+        }
+        return []
+      }
+    }
+  }
+
+  /**
+   * Если Retry-After явно присутствует в заголовке или теле — использует его.
+   * Иначе падает обратно на стандартный BACKOFF_MS (чтобы тесты с BACKOFF_MS=[0] работали).
+   */
+  protected override async resolveRetryDelayMs(
+    attempt: number,
+    response: Response,
+    body: string
+  ): Promise<number> {
+    const retryAfterSec = this.parseRetryAfterExplicit(response, body)
+    if (retryAfterSec !== null) return retryAfterSec * 1_000
+    const jitter = Math.floor(Math.random() * 200)
+    return this.BACKOFF_MS[attempt]! + jitter
+  }
+
+  protected override handleHttpError(status: number, body: string): never {
+    if (status === 429) {
+      const match = body.match(/retry in ([\d.]+)\s*s(?:ec(?:onds?)?)?/i)
+      const seconds = match ? Math.ceil(parseFloat(match[1])) : 35
+      throw new Error(
+        `Превышен лимит запросов Gemini API. Подожди ${seconds} сек. и попробуй снова.`
+      )
+    }
+    throw new Error(`Gemini API error ${status}: ${body}`)
   }
 
   async ping(signal?: AbortSignal): Promise<boolean> {
@@ -118,150 +238,6 @@ export class GeminiProvider implements ModelProvider {
     }
   }
 
-  async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
-    const modelName = options.model || this.modelName
-    const isThinkingModel = /2\.5/.test(modelName)
-
-    const body = this.buildRequest(options, isThinkingModel)
-    const url = `${this.baseUrl}/models/${modelName}:streamGenerateContent?key=${encodeURIComponent(this.apiKey)}&alt=sse`
-
-    // Exponential backoff для обработки rate limits (429)
-    let lastError: Error | null = null
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        await this.rateLimiter.waitForSlot()
-
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: options.signal
-        })
-
-        if (res.status === 429) {
-          const retryAfter = this.parseRetryAfter(res, await res.text())
-          if (attempt < 2) {
-            await new Promise((resolve) => setTimeout(resolve, retryAfter * 1_000))
-            continue
-          }
-          throw new Error(
-            `Превышен лимит запросов Gemini API. Подожди ${Math.ceil(retryAfter)} сек. и попробуй снова.`
-          )
-        }
-
-        if (!res.ok) {
-          const err = await res.text().catch(() => res.statusText)
-          throw new Error(`Gemini API error ${res.status}: ${err}`)
-        }
-
-        // Success
-        yield* this.processStream(res, modelName)
-        return
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error))
-        if (!(error instanceof Error) || !error.message.includes('429')) {
-          throw lastError
-        }
-        // Continue retry loop on 429
-      }
-    }
-
-    if (lastError) throw lastError
-  }
-
-  private parseRetryAfter(res: any, body: string): number {
-    // Проверяем заголовок Retry-After
-    const retryAfterHeader = res.headers.get('retry-after')
-    if (retryAfterHeader) {
-      const seconds = parseInt(retryAfterHeader, 10)
-      if (!isNaN(seconds)) return Math.max(seconds, 1)
-    }
-
-    // Пытаемся извлечь из сообщения об ошибке Gemini: "retry in 60s" или "retry in 60 seconds"
-    const match = body.match(/retry in ([\d.]+)\s*s(?:ec(?:onds?)?)?/i)
-    if (match) {
-      const seconds = parseFloat(match[1])
-      return Math.max(Math.ceil(seconds), 1)
-    }
-
-    // Default: 35 секунд (стандартный free tier limit)
-    return 35
-  }
-
-  private async *processStream(res: any, modelName: string): AsyncGenerator<ChatChunk> {
-    const reader = res.body!.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-    const toolCalls: ChatChunk['tool_calls'] = []
-    let totalTokens: number | undefined
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() ?? ''
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        const raw = line.slice(6).trim()
-        if (!raw || raw === '[DONE]') continue
-
-        let chunk: GeminiChunk
-        try {
-          chunk = JSON.parse(raw) as GeminiChunk
-        } catch {
-          continue
-        }
-
-        if (chunk.usageMetadata?.totalTokenCount) {
-          totalTokens = chunk.usageMetadata.totalTokenCount
-        }
-
-        const parts = chunk.candidates?.[0]?.content?.parts ?? []
-        let text = ''
-        let thinking = ''
-
-        for (const part of parts) {
-          if (part.thought && part.text) {
-            thinking += part.text
-          } else if (part.text) {
-            text += part.text
-          } else if (part.functionCall?.name) {
-            const id = part.functionCall.id ?? randomUUID()
-            toolCalls.push({
-              id,
-              type: 'function' as const,
-              function: {
-                name: part.functionCall.name,
-                arguments: JSON.stringify(part.functionCall.args ?? {})
-              }
-            })
-          }
-        }
-
-        if (text || thinking) {
-          yield {
-            content: text,
-            thinking: thinking || undefined,
-            model: modelName
-          }
-        }
-      }
-    }
-
-    // Финальный чанк: tool calls + токены
-    if (toolCalls.length || totalTokens !== undefined) {
-      yield {
-        content: '',
-        tool_calls: toolCalls.length ? toolCalls : undefined,
-        model: modelName,
-        total_tokens: totalTokens
-      }
-    }
-  }
-
   async getModelPlacement(): Promise<ModelPlacement> {
     return 'unknown'
   }
@@ -272,7 +248,27 @@ export class GeminiProvider implements ModelProvider {
     return `${this.baseUrl}/models?key=${encodeURIComponent(this.apiKey)}`
   }
 
-  private buildRequest(options: ChatOptions, isThinkingModel: boolean): GeminiRequest {
+  /** Возвращает секунды из Retry-After заголовка или тела, или null если не найдено. */
+  private parseRetryAfterExplicit(
+    res: { headers: { get(name: string): string | null } },
+    body: string
+  ): number | null {
+    const retryAfterHeader = res.headers.get('retry-after')
+    if (retryAfterHeader) {
+      const seconds = parseInt(retryAfterHeader, 10)
+      if (!isNaN(seconds)) return Math.max(seconds, 1)
+    }
+
+    const match = body.match(/retry in ([\d.]+)\s*s(?:ec(?:onds?)?)?/i)
+    if (match) {
+      const seconds = parseFloat(match[1])
+      return Math.max(Math.ceil(seconds), 1)
+    }
+
+    return null
+  }
+
+  private buildBody(options: ChatOptions, isThinkingModel: boolean): GeminiRequest {
     const systemText = options.messages
       .filter((m) => m.role === 'system' && m.content)
       .map((m) => m.content)

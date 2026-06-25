@@ -63,15 +63,9 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Унификация провайдеров
 
-**6 · L · Claude/Gemini → StreamingChatProvider** — приор. Medium  
-- **Цель:** единый 429-backoff и стриминг для всех провайдеров  
-- **Файлы:** `app/electron/main/providers/claudeProvider.ts`, `geminiProvider.ts`, `streamingChatProvider.ts`  
-- **Действие:** подвести Claude и Gemini под базовый класс, убрать дублирующую ручную логику ретраев Gemini  
-- **Проверка:** `npm test -- providers`; стриминг и ретрай работают у всех провайдеров
-
 ### 🔗 Качество кода
 
-**7 · M · Сокращение any + порог coverage в CI** — приор. Low  
+**6 · M · Сокращение any + порог coverage в CI** — приор. Low  
 - **Цель:** меньше явных `any` в shared/main; порог покрытия в CI  
 - **Файлы:** `app/vitest.config.ts`, `.github/workflows/ci.yml`, точечно по `any`  
 - **Действие:** включить `coverage` (v8) с порогом для `shared/` и `services.ts`; типизировать очевидные `any`  
@@ -79,25 +73,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Новые возможности
 
-**8 · L · Vision-ввод (скриншоты в чат)** — приор. Medium  
+**7 · L · Vision-ввод (скриншоты в чат)** — приор. Medium  
 - **Цель:** вставка изображения в чат → отправка моделям с поддержкой vision (Claude/Gemini/OpenAI)  
 - **Файлы:** `ChatInput.tsx`, `useAgentStream.ts`, `providers/*`, `shared/modelProvider.ts`  
 - **Действие:** приём image из буфера/файла, передача как content-блока в провайдеры, поддерживающие vision  
 - **Проверка:** скриншот + «что на экране?» возвращает осмысленный ответ от облачной модели
 
-**9 · M · Библиотека промптов / слэш-шаблоны** — приор. Low  
+**8 · M · Библиотека промптов / слэш-шаблоны** — приор. Low  
 - **Цель:** пользовательские шаблоны промптов, доступные через `/` в поле ввода  
 - **Файлы:** `ChatInput.tsx`, `app/electron/main/settings.ts` (хранилище шаблонов), новый popover  
 - **Действие:** CRUD шаблонов в настройках + автодополнение `/name` в инпуте  
 - **Проверка:** созданный шаблон подставляется по `/name` в чат
 
-**10 · M · Повтор прогона с шага из TracePanel** — приор. Low  
+**9 · M · Повтор прогона с шага из TracePanel** — приор. Low  
 - **Цель:** перезапуск задачи с выбранного шага трейса  
 - **Файлы:** `TracePanel.tsx`, `useAgentStream.ts`, IPC рестарта  
 - **Действие:** кнопка «Повторить с шага» → восстановление истории до шага и новый прогон  
 - **Проверка:** повтор с шага N стартует с корректным контекстом
 
-**11 · M · Дашборд метрик агента** — приор. Low  
+**10 · M · Дашборд метрик агента** — приор. Low  
 - **Цель:** токены, стоимость, длительность, % успешных прогонов по моделям  
 - **Файлы:** `app/electron/main/agentLogger.ts`, новая `MetricsPanel.tsx`, IPC `get-agent-metrics`  
 - **Действие:** агрегация записей `agentLogger` → таблица/графики в UI  
@@ -105,25 +99,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**12 · L · Голосовой ввод и озвучка** — приор. Low  
+**11 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**13 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
+**12 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
 - **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
 - **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
 - **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
 - **Проверка:** правка файла в UI сохраняется на диск
 
-**14 · XL · LSP в редакторе** — приор. Low  
+**13 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
 - **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**15 · L · Skill marketplace** — приор. Low  
+**14 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
@@ -146,6 +140,7 @@ N · [S/M/L/XL] · Краткое название
 
 **Архитектура**
 - Разбивка agentTools.ts на модули: `core.ts` (файловые/git/package), `integrations.ts` (GitHub/GitLab/Jira/Linear/Web/Memory/Skills/Todo), `mcp.ts` (CodeViper/Ollama/индексация/субагенты), `index.ts` (сборка + ToolArgs + ToolHandlers + getAgentTools)
+- Claude и Gemini → StreamingChatProvider: единый 429-backoff через `resolveRetryDelayMs`; убрана ручная retry-петля Gemini; Claude переведён с SDK на raw HTTP; 16 новых тестов провайдеров
 
 **UX**
 - Экспорт трейса агента: кнопка «Экспортировать» в TracePanel → `.codeviper/traces/<timestamp>.json` в папке проекта

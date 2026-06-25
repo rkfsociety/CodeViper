@@ -45,6 +45,19 @@ export abstract class StreamingChatProvider {
     throw new Error(`HTTP error ${status}: ${body}`)
   }
 
+  /**
+   * Вычислить задержку (мс) для N-й повторной попытки после HTTP 429.
+   * Переопределяется провайдерами, которые умеют читать заголовок Retry-After.
+   */
+  protected async resolveRetryDelayMs(
+    attempt: number,
+    _response: Response,
+    _body: string
+  ): Promise<number> {
+    const jitter = Math.floor(Math.random() * 200)
+    return this.BACKOFF_MS[attempt]! + jitter
+  }
+
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
     const { url, init } = this.buildRequest(options)
 
@@ -52,8 +65,8 @@ export abstract class StreamingChatProvider {
     let res = await doFetch()
 
     for (let attempt = 0; res.status === 429 && attempt < this.BACKOFF_MS.length; attempt++) {
-      const jitter = Math.floor(Math.random() * 200)
-      const waitMs = this.BACKOFF_MS[attempt]! + jitter
+      const body429 = await res.text().catch(() => '')
+      const waitMs = await this.resolveRetryDelayMs(attempt, res, body429)
       options.onRetry429?.(waitMs, attempt + 1)
       await new Promise<void>((resolve) => setTimeout(resolve, waitMs))
       res = await doFetch()

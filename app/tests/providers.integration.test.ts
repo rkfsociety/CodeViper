@@ -12,6 +12,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { OllamaProvider } from '../electron/main/providers/ollamaProvider'
 import { OpenAIProvider } from '../electron/main/providers/openaiProvider'
+import { ClaudeProvider } from '../electron/main/providers/claudeProvider'
+import { GeminiProvider } from '../electron/main/providers/geminiProvider'
 import type { ChatOptions } from '../shared/modelProvider'
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -539,5 +541,454 @@ describe('OpenAIProvider', () => {
       reasoning_effort?: string
     }
     expect(body.reasoning_effort).toBeUndefined()
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ClaudeProvider
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('ClaudeProvider', () => {
+  let provider: ClaudeProvider
+  let fetchMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    provider = new ClaudeProvider('sk-ant-test', 'claude-sonnet-4-6')
+    ;(provider as unknown as { BACKOFF_MS: number[] }).BACKOFF_MS = []
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /** Строит одну строку SSE-события Claude (data: только). */
+  function claudeEvent(payload: Record<string, unknown>): string {
+    return `data: ${JSON.stringify(payload)}\n\n`
+  }
+
+  // ── 1. Стриминг текста ──────────────────────────────────────────────────────
+
+  it('стримит текст через content_block_delta', async () => {
+    const sse =
+      claudeEvent({
+        type: 'message_start',
+        message: { usage: { input_tokens: 10, cache_read_input_tokens: 0 } }
+      }) +
+      claudeEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: '' }
+      }) +
+      claudeEvent({
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'text_delta', text: 'При' }
+      }) +
+      claudeEvent({
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'text_delta', text: 'вет' }
+      }) +
+      claudeEvent({
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'text_delta', text: '!' }
+      }) +
+      claudeEvent({
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn' },
+        usage: { output_tokens: 5 }
+      }) +
+      claudeEvent({ type: 'message_stop' })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    const text = chunks
+      .filter((c) => c.content)
+      .map((c) => c.content)
+      .join('')
+    expect(text).toBe('Привет!')
+    const stopChunk = chunks.find((c) => c.stop_reason === 'end_turn')
+    expect(stopChunk).toBeDefined()
+  })
+
+  it('передаёт корректные заголовки Anthropic', async () => {
+    const sse =
+      claudeEvent({ type: 'message_start', message: { usage: { input_tokens: 1 } } }) +
+      claudeEvent({
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn' },
+        usage: { output_tokens: 1 }
+      })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+    await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>
+    expect(headers['x-api-key']).toBe('sk-ant-test')
+    expect(headers['anthropic-version']).toBe('2023-06-01')
+    expect(headers['anthropic-beta']).toContain('prompt-caching')
+  })
+
+  it('возвращает input_tokens и cache_read_tokens из message_start', async () => {
+    const sse =
+      claudeEvent({
+        type: 'message_start',
+        message: { usage: { input_tokens: 100, cache_read_input_tokens: 80 } }
+      }) +
+      claudeEvent({
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn' },
+        usage: { output_tokens: 20 }
+      })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    const stopChunk = chunks.find((c) => c.stop_reason)!
+    expect(stopChunk.input_tokens).toBe(100)
+    expect(stopChunk.cache_read_tokens).toBe(80)
+    expect(stopChunk.output_tokens).toBe(20)
+    expect(stopChunk.total_tokens).toBe(120)
+  })
+
+  // ── 2. Tool calls ───────────────────────────────────────────────────────────
+
+  it('собирает partial_json и выдаёт tool_calls при stop_reason=tool_use', async () => {
+    const sse =
+      claudeEvent({ type: 'message_start', message: { usage: { input_tokens: 20 } } }) +
+      claudeEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'tool_use', id: 'toolu_abc', name: 'read_file' }
+      }) +
+      claudeEvent({
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: '{"path":' }
+      }) +
+      claudeEvent({
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: '"/tmp/a.txt"}' }
+      }) +
+      claudeEvent({ type: 'content_block_stop', index: 0 }) +
+      claudeEvent({
+        type: 'message_delta',
+        delta: { stop_reason: 'tool_use' },
+        usage: { output_tokens: 15 }
+      })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    const withTool = chunks.find((c) => c.tool_calls?.length)
+    expect(withTool).toBeDefined()
+    expect(withTool!.tool_calls![0].id).toBe('toolu_abc')
+    expect(withTool!.tool_calls![0].function.name).toBe('read_file')
+    expect(JSON.parse(withTool!.tool_calls![0].function.arguments)).toEqual({ path: '/tmp/a.txt' })
+  })
+
+  it('стримит thinking_delta', async () => {
+    const sse =
+      claudeEvent({ type: 'message_start', message: { usage: { input_tokens: 5 } } }) +
+      claudeEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'thinking', thinking: '' }
+      }) +
+      claudeEvent({
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'thinking_delta', thinking: 'Думаю...' }
+      }) +
+      claudeEvent({
+        type: 'content_block_delta',
+        index: 1,
+        delta: { type: 'text_delta', text: 'Готово' }
+      }) +
+      claudeEvent({
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn' },
+        usage: { output_tokens: 3 }
+      })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    const thinkingChunk = chunks.find((c) => c.thinking)
+    expect(thinkingChunk?.thinking).toBe('Думаю...')
+  })
+
+  // ── 3. HTTP-ошибки ──────────────────────────────────────────────────────────
+
+  it('бросает ошибку при 429 (BACKOFF_MS=[]) без ретраев', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      text: async () => JSON.stringify({ error: { message: 'rate limit' } }),
+      body: null
+    } as unknown as Response)
+
+    await expect(collectChunks(provider.chat(BASE_CHAT_OPTIONS))).rejects.toThrow(/429/)
+  })
+
+  it('бросает ошибку при 401', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => JSON.stringify({ error: { message: 'Invalid API key' } }),
+      body: null
+    } as unknown as Response)
+
+    await expect(collectChunks(provider.chat(BASE_CHAT_OPTIONS))).rejects.toThrow(/Invalid API key/)
+  })
+
+  it('повторяет при 429 с backoff и успешно завершает', async () => {
+    ;(provider as unknown as { BACKOFF_MS: number[] }).BACKOFF_MS = [0, 0]
+
+    const okSse =
+      claudeEvent({ type: 'message_start', message: { usage: { input_tokens: 5 } } }) +
+      claudeEvent({
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn' },
+        usage: { output_tokens: 1 }
+      })
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: async () => '',
+        body: null
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: async () => '',
+        body: null
+      } as unknown as Response)
+      .mockResolvedValue(makeResponse(makeStream([okSse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(chunks.find((c) => c.stop_reason === 'end_turn')).toBeDefined()
+  })
+
+  // ── 4. Ping / listModels ────────────────────────────────────────────────────
+
+  it('ping возвращает true при ok-ответе', async () => {
+    fetchMock.mockResolvedValue({ ok: true } as Response)
+    expect(await provider.ping()).toBe(true)
+  })
+
+  it('ping возвращает false при сетевой ошибке', async () => {
+    fetchMock.mockRejectedValue(new Error('ECONNREFUSED'))
+    expect(await provider.ping()).toBe(false)
+  })
+
+  it('listModels парсит массив data', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: 'claude-sonnet-4-6' }, { id: 'claude-opus-4-8' }] })
+    } as unknown as Response)
+
+    const models = await provider.listModels()
+    expect(models).toHaveLength(2)
+    expect(models[0].name).toBe('claude-sonnet-4-6')
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────────────
+// GeminiProvider
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('GeminiProvider', () => {
+  let provider: GeminiProvider
+  let fetchMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    // rpm=999 чтобы rate limiter не тормозил тесты
+    provider = new GeminiProvider(
+      'gemini-key',
+      'gemini-2.0-flash',
+      'https://generativelanguage.googleapis.com/v1beta',
+      999
+    )
+    ;(provider as unknown as { BACKOFF_MS: number[] }).BACKOFF_MS = []
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function geminiSseLine(payload: Record<string, unknown>): string {
+    return `data: ${JSON.stringify(payload)}\n\n`
+  }
+
+  function geminiTextChunk(text: string): Record<string, unknown> {
+    return { candidates: [{ content: { parts: [{ text }] } }] }
+  }
+
+  // ── 1. Стриминг текста ──────────────────────────────────────────────────────
+
+  it('стримит текстовые части Gemini SSE', async () => {
+    const sse =
+      geminiSseLine(geminiTextChunk('При')) +
+      geminiSseLine(geminiTextChunk('вет')) +
+      geminiSseLine({ ...geminiTextChunk('!'), usageMetadata: { totalTokenCount: 30 } })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    const text = chunks
+      .filter((c) => c.content)
+      .map((c) => c.content)
+      .join('')
+    expect(text).toBe('Привет!')
+  })
+
+  it('стримит thinking-части (thought=true)', async () => {
+    const sse = geminiSseLine({
+      candidates: [{ content: { parts: [{ text: 'думаю', thought: true }, { text: 'ответ' }] } }]
+    })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    const chunk = chunks.find((c) => c.thinking)
+    expect(chunk?.thinking).toBe('думаю')
+    expect(chunk?.content).toBe('ответ')
+  })
+
+  it('передаёт API-ключ в URL', async () => {
+    fetchMock.mockResolvedValue(makeResponse(makeStream([geminiSseLine(geminiTextChunk('ok'))])))
+    await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+
+    const url = fetchMock.mock.calls[0][0] as string
+    expect(url).toContain('key=gemini-key')
+    expect(url).toContain('alt=sse')
+  })
+
+  // ── 2. Tool calls ───────────────────────────────────────────────────────────
+
+  it('собирает functionCall и выдаёт в finalize', async () => {
+    const sse = geminiSseLine({
+      candidates: [
+        {
+          content: {
+            parts: [
+              { functionCall: { id: 'fc1', name: 'read_file', args: { path: '/tmp/x.txt' } } }
+            ]
+          }
+        }
+      ],
+      usageMetadata: { totalTokenCount: 10 }
+    })
+
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    const withTool = chunks.find((c) => c.tool_calls?.length)
+    expect(withTool).toBeDefined()
+    expect(withTool!.tool_calls![0].id).toBe('fc1')
+    expect(withTool!.tool_calls![0].function.name).toBe('read_file')
+    expect(JSON.parse(withTool!.tool_calls![0].function.arguments)).toEqual({ path: '/tmp/x.txt' })
+  })
+
+  // ── 3. Ответ 429 ────────────────────────────────────────────────────────────
+
+  it('бросает ошибку с понятным текстом при 429', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      text: async () => 'Please retry in 60 seconds',
+      body: null
+    } as unknown as Response)
+
+    await expect(collectChunks(provider.chat(BASE_CHAT_OPTIONS))).rejects.toThrow(/лимит запросов/)
+  })
+
+  it('повторяет при 429 с backoff и успешно завершает', async () => {
+    ;(provider as unknown as { BACKOFF_MS: number[] }).BACKOFF_MS = [0, 0]
+
+    const okSse = geminiSseLine(geminiTextChunk('ok'))
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: () => null },
+        text: async () => ''
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: () => null },
+        text: async () => ''
+      } as unknown as Response)
+      .mockResolvedValue(makeResponse(makeStream([okSse])))
+
+    const chunks = await collectChunks(provider.chat(BASE_CHAT_OPTIONS))
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(chunks.some((c) => c.content === 'ok')).toBe(true)
+  })
+
+  it('читает Retry-After из тела при расчёте задержки', async () => {
+    ;(provider as unknown as { BACKOFF_MS: number[] }).BACKOFF_MS = [0]
+
+    const delays: number[] = []
+    const options: ChatOptions = {
+      ...BASE_CHAT_OPTIONS,
+      onRetry429: (ms) => delays.push(ms)
+    }
+
+    const okSse = geminiSseLine(geminiTextChunk('ok'))
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: () => null },
+        text: async () => 'Please retry in 1 seconds'
+      } as unknown as Response)
+      .mockResolvedValue(makeResponse(makeStream([okSse])))
+
+    await collectChunks(provider.chat(options))
+    // Задержка 1 000 мс из тела, а не 0 из BACKOFF_MS
+    expect(delays[0]).toBe(1_000)
+  }, 10_000)
+
+  // ── 4. Ping / listModels ────────────────────────────────────────────────────
+
+  it('ping возвращает true при ok-ответе', async () => {
+    fetchMock.mockResolvedValue({ ok: true } as Response)
+    expect(await provider.ping()).toBe(true)
+  })
+
+  it('listModels фильтрует модели по generateContent', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        models: [
+          {
+            name: 'models/gemini-2.0-flash',
+            supportedGenerationMethods: ['generateContent'],
+            inputTokenLimit: 1_000_000
+          },
+          { name: 'models/embedding-001', supportedGenerationMethods: ['embedContent'] }
+        ]
+      })
+    } as unknown as Response)
+
+    const models = await provider.listModels()
+    expect(models).toHaveLength(1)
+    expect(models[0].name).toBe('gemini-2.0-flash')
+    expect(models[0].contextLength).toBe(1_000_000)
   })
 })
