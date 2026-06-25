@@ -312,11 +312,7 @@ export class ContextManager {
       }
       if (chunk.content) {
         content += chunk.content
-        const visible = sanitizeAssistantContent(content)
-        const embedded = extractEmbeddedToolCalls(content, mcpToolNames)
-        if (!(embedded.toolCalls.length > 0 && !embedded.content.trim()) && visible) {
-          this.emitter.emit({ type: 'token', content: chunk.content })
-        }
+        this.emitter.emit({ type: 'token', content: chunk.content })
       }
       if (chunk.total_tokens != null) this.sessionTokens += chunk.total_tokens
       if (chunk.input_tokens != null) this.sessionInputTokens += chunk.input_tokens
