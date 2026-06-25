@@ -61,15 +61,9 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Рефакторинг монолитов
 
-**6 · M · Разбивка agentHandlersProject.ts** — приор. Low  
-- **Цель:** 1206-строчный файл разделить по группам инструментов  
-- **Файлы:** `app/electron/main/agentHandlersProject*.ts`  
-- **Действие:** выделить файловые / поисковые / терминальные обработчики в отдельные модули, реэкспорт без barrel  
-- **Проверка:** `npm run typecheck`; `npm test -- agentHandlersProject`
-
 ### 🔗 Унификация провайдеров
 
-**7 · L · Claude/Gemini → StreamingChatProvider** — приор. Medium  
+**6 · L · Claude/Gemini → StreamingChatProvider** — приор. Medium  
 - **Цель:** единый 429-backoff и стриминг для всех провайдеров  
 - **Файлы:** `app/electron/main/providers/claudeProvider.ts`, `geminiProvider.ts`, `streamingChatProvider.ts`  
 - **Действие:** подвести Claude и Gemini под базовый класс, убрать дублирующую ручную логику ретраев Gemini  
@@ -77,7 +71,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Качество кода
 
-**8 · M · Сокращение any + порог coverage в CI** — приор. Low  
+**7 · M · Сокращение any + порог coverage в CI** — приор. Low  
 - **Цель:** меньше явных `any` в shared/main; порог покрытия в CI  
 - **Файлы:** `app/vitest.config.ts`, `.github/workflows/ci.yml`, точечно по `any`  
 - **Действие:** включить `coverage` (v8) с порогом для `shared/` и `services.ts`; типизировать очевидные `any`  
@@ -85,25 +79,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Новые возможности
 
-**9 · L · Vision-ввод (скриншоты в чат)** — приор. Medium  
+**8 · L · Vision-ввод (скриншоты в чат)** — приор. Medium  
 - **Цель:** вставка изображения в чат → отправка моделям с поддержкой vision (Claude/Gemini/OpenAI)  
 - **Файлы:** `ChatInput.tsx`, `useAgentStream.ts`, `providers/*`, `shared/modelProvider.ts`  
 - **Действие:** приём image из буфера/файла, передача как content-блока в провайдеры, поддерживающие vision  
 - **Проверка:** скриншот + «что на экране?» возвращает осмысленный ответ от облачной модели
 
-**10 · M · Библиотека промптов / слэш-шаблоны** — приор. Low  
+**9 · M · Библиотека промптов / слэш-шаблоны** — приор. Low  
 - **Цель:** пользовательские шаблоны промптов, доступные через `/` в поле ввода  
 - **Файлы:** `ChatInput.tsx`, `app/electron/main/settings.ts` (хранилище шаблонов), новый popover  
 - **Действие:** CRUD шаблонов в настройках + автодополнение `/name` в инпуте  
 - **Проверка:** созданный шаблон подставляется по `/name` в чат
 
-**11 · M · Повтор прогона с шага из TracePanel** — приор. Low  
+**10 · M · Повтор прогона с шага из TracePanel** — приор. Low  
 - **Цель:** перезапуск задачи с выбранного шага трейса  
 - **Файлы:** `TracePanel.tsx`, `useAgentStream.ts`, IPC рестарта  
 - **Действие:** кнопка «Повторить с шага» → восстановление истории до шага и новый прогон  
 - **Проверка:** повтор с шага N стартует с корректным контекстом
 
-**12 · M · Дашборд метрик агента** — приор. Low  
+**11 · M · Дашборд метрик агента** — приор. Low  
 - **Цель:** токены, стоимость, длительность, % успешных прогонов по моделям  
 - **Файлы:** `app/electron/main/agentLogger.ts`, новая `MetricsPanel.tsx`, IPC `get-agent-metrics`  
 - **Действие:** агрегация записей `agentLogger` → таблица/графики в UI  
@@ -111,25 +105,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**13 · L · Голосовой ввод и озвучка** — приор. Low  
+**12 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**14 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
+**13 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
 - **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
 - **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
 - **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
 - **Проверка:** правка файла в UI сохраняется на диск
 
-**15 · XL · LSP в редакторе** — приор. Low  
+**14 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
 - **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**16 · L · Skill marketplace** — приор. Low  
+**15 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
@@ -249,6 +243,9 @@ N · [S/M/L/XL] · Краткое название
 **UI и настройки**
 - Шаблоны чатов: 3 шаблона (Рефакторинг, Новый модуль, Code review), кнопка «▾» в ChatHistoryPanel
 - Авто-PR collective: тумблер «Авто-PR после sync»; после push → `createCodeViperPr()`; «уже существует» не ошибка
+
+**Рефакторинг**
+- Разбивка agentHandlersProject.ts: файловые → `agentHandlersProjectFile.ts`, поисковые → `agentHandlersProjectSearch.ts`, терминальные → `agentHandlersProjectTerminal.ts`; общий контекст в `agentHandlersProjectContext.ts`; IPC-контракт не изменился
 
 **Документация**
 - CONTRIBUTING.md: диаграмма ReAct (mermaid), таблица ключевых модулей, пошаговый гайд добавления инструмента
