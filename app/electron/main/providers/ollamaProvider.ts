@@ -214,12 +214,26 @@ export class OllamaProvider extends StreamingChatProvider implements ModelProvid
   }
 
   async ensureModelLoaded(model: string, signal?: AbortSignal): Promise<void> {
-    const loaded = await this.listModels()
-    if (loaded.some((item) => modelsMatch(item.name, model))) {
-      return
+    // Проверяем /api/tags (установленные модели), а не /api/ps (загруженные в VRAM).
+    // Если модель установлена — Ollama загрузит её сам при первом запросе.
+    const url = this.baseUrl.replace(/\/$/, '')
+    try {
+      const tagsRes = await fetch(`${url}/api/tags`, {
+        signal: signal || AbortSignal.timeout(5_000)
+      })
+      if (tagsRes.ok) {
+        const tagsData = (await tagsRes.json()) as {
+          models?: Array<{ name: string }>
+        }
+        const installed = tagsData.models ?? []
+        if (installed.some((item) => modelsMatch(item.name, model))) {
+          return
+        }
+      }
+    } catch {
+      // если /api/tags недоступен — пробуем pull
     }
 
-    const url = this.baseUrl.replace(/\/$/, '')
     const res = await fetch(`${url}/api/pull`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
