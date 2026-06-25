@@ -1,0 +1,237 @@
+import { ipcMain } from 'electron'
+import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
+import { AgentRunner, fetchOllamaModels } from '../agent'
+import { checkAgentPrerequisites } from '../agentPrerequisites'
+import { formatPrerequisitesMessage } from '../../../shared/agentPrerequisites'
+import { filterToolCallingModels } from '../../../shared/recommendedModels'
+import { buildAgentContextPreview, summarizeChatHistory } from '../agentContext'
+import { formatModelSwitchMessage, prepareOllamaModel } from '../modelRuntime'
+import {
+  selectModelForTask,
+  shouldUseAutoModel,
+  resolveSummarizeModel
+} from '../../../shared/modelRouter'
+import { startSystemStatsPush, stopSystemStatsPush } from '../systemStats'
+import { setProgressTarget, clearProgress } from '../progress'
+import { agentLogger } from '../agentLogger'
+import { hasRunCheckpoint, rollbackRunCheckpoint } from '../runCheckpoint'
+import { makeId } from '../../../shared/makeId'
+import type { AgentSettings, ChatMessage } from '../../../src/types'
+import type { IpcContext } from './ipcContext'
+
+export function registerAgentIpc(ctx: IpcContext): void {
+  const {
+    getWindow,
+    stream,
+    agentRunStates,
+    activeAgentAborts,
+    pendingConfirms,
+    pendingPreviews,
+    pendingHunkSelections,
+    syncTrayAgentBadge,
+    recordRun
+  } = ctx
+
+  function makePreviewFn(signal: AbortSignal): (previewId: string) => Promise<boolean> {
+    return (previewId) =>
+      new Promise<boolean>((resolve) => {
+        const settle = (apply: boolean) => {
+          pendingPreviews.delete(previewId)
+          resolve(apply)
+        }
+        pendingPreviews.set(previewId, settle)
+        signal.addEventListener('abort', () => settle(false), { once: true })
+      })
+  }
+
+  function makeConfirmFn(
+    signal: AbortSignal
+  ): (toolName: string, toolInput: string) => Promise<boolean> {
+    return (toolName, toolInput) =>
+      new Promise<boolean>((resolve) => {
+        const id = makeId()
+        const settle = (approved: boolean) => {
+          pendingConfirms.delete(id)
+          resolve(approved)
+        }
+        pendingConfirms.set(id, settle)
+        signal.addEventListener('abort', () => settle(false), { once: true })
+        getWindow()?.webContents.send('agent-confirm', { id, toolName, toolInput })
+      })
+  }
+
+  ipcMain.handle('get-agent-run-state', async () => Array.from(agentRunStates.keys()))
+
+  ipcMain.handle('stop-agent', async (_e, chatId: string) => {
+    const abort = activeAgentAborts.get(chatId)
+    if (!abort) return false
+    abort.abort()
+    return true
+  })
+
+  ipcMain.handle(IPC.GET_RUN_CHECKPOINT, async (_e, ...a) => {
+    const [chatId] = parseIpcArgs(Contracts[IPC.GET_RUN_CHECKPOINT].args, a)
+    return hasRunCheckpoint(chatId)
+  })
+
+  ipcMain.handle(IPC.ROLLBACK_RUN, async (_e, ...a) => {
+    const [chatId] = parseIpcArgs(Contracts[IPC.ROLLBACK_RUN].args, a)
+    const result = await rollbackRunCheckpoint(chatId)
+    if (result.ok) {
+      stream(chatId, { type: 'run_checkpoint', runCheckpointActive: false })
+    }
+    return result
+  })
+
+  ipcMain.on(IPC.AGENT_CONFIRM_RESPONSE, (_e, id: string, approved: boolean) => {
+    const resolve = pendingConfirms.get(id)
+    if (resolve) {
+      pendingConfirms.delete(id)
+      resolve(approved)
+    }
+  })
+
+  ipcMain.on(IPC.AGENT_PREVIEW_RESPONSE, (_e, id: string, apply: boolean) => {
+    const resolve = pendingPreviews.get(id)
+    if (resolve) {
+      pendingPreviews.delete(id)
+      resolve(apply)
+    }
+  })
+
+  ipcMain.on(IPC.AGENT_PREVIEW_HUNK_SELECTION, (_e, id: string, selectedIndices: number[]) => {
+    pendingHunkSelections.set(id, selectedIndices)
+  })
+
+  ipcMain.handle(
+    'preview-agent-context',
+    async (_e, projectPath: string, history: ChatMessage[], userMessage: string, model: string) =>
+      buildAgentContextPreview(projectPath, history, userMessage, model)
+  )
+
+  ipcMain.handle(
+    'summarize-context',
+    async (_e, chatMessages: ChatMessage[], settings: AgentSettings) =>
+      summarizeChatHistory(chatMessages, settings)
+  )
+
+  ipcMain.handle(
+    'run-agent',
+    async (
+      _e,
+      settings: AgentSettings,
+      projectPath: string,
+      chatId: string,
+      history: ChatMessage[],
+      userMessage: string,
+      incognito?: boolean
+    ) => {
+      if (agentRunStates.has(chatId)) {
+        throw new Error('Агент уже выполняет задачу в этом чате. Дождитесь завершения.')
+      }
+
+      recordRun()
+      agentLogger.setIncognito(incognito ?? false)
+
+      const abortCtrl = new AbortController()
+      agentRunStates.set(chatId, { chatId })
+      activeAgentAborts.set(chatId, abortCtrl)
+      syncTrayAgentBadge()
+      if (!settings.disableSystemStats) startSystemStatsPush(_e.sender)
+      setProgressTarget(_e.sender)
+
+      const skipOllama = (settings.modelProvider ?? 'ollama') !== 'ollama'
+      const prerequisites = await checkAgentPrerequisites(
+        settings.ollamaUrl,
+        projectPath,
+        skipOllama
+      )
+      if (!prerequisites.ok) {
+        stream(chatId, {
+          type: 'error',
+          content: formatPrerequisitesMessage(prerequisites.issues)
+        })
+        stream(chatId, { type: 'done' })
+        activeAgentAborts.delete(chatId)
+        agentRunStates.delete(chatId)
+        syncTrayAgentBadge()
+        return
+      }
+
+      let effectiveSettings = settings
+
+      try {
+        const isCloudProvider = (settings.modelProvider ?? 'ollama') !== 'ollama'
+
+        let installed: Awaited<ReturnType<typeof fetchOllamaModels>> = []
+        if (!isCloudProvider) {
+          installed = await fetchOllamaModels(settings.ollamaUrl)
+          const toolInstalled = filterToolCallingModels(installed)
+          const useAuto = shouldUseAutoModel(settings.autoModel, toolInstalled.length)
+
+          if (useAuto) {
+            const selection = selectModelForTask(userMessage, toolInstalled, settings.model)
+            if (selection) {
+              const { unloaded } = await prepareOllamaModel(settings.ollamaUrl, selection.model)
+              effectiveSettings = { ...settings, model: selection.model }
+              stream(chatId, {
+                type: 'model_selected',
+                selectedModel: selection.model,
+                modelReason: selection.reason,
+                content: formatModelSwitchMessage(selection.model, selection.reason, unloaded)
+              })
+            } else if (!settings.model.trim() && toolInstalled[0]) {
+              effectiveSettings = { ...settings, model: toolInstalled[0].name }
+            }
+          } else if (!effectiveSettings.model.trim() && toolInstalled[0]) {
+            effectiveSettings = { ...settings, model: toolInstalled[0].name }
+          }
+        }
+
+        if (!effectiveSettings.model.trim()) {
+          throw new Error('Модель не выбрана. Скачайте модель в настройках или включите Ollama.')
+        }
+
+        const summarizeModel = resolveSummarizeModel(
+          installed,
+          effectiveSettings.model,
+          settings.summarizeModel
+        )
+
+        const runner = new AgentRunner(
+          effectiveSettings,
+          projectPath,
+          (event) => stream(chatId, event),
+          abortCtrl.signal,
+          makeConfirmFn(abortCtrl.signal),
+          summarizeModel,
+          makePreviewFn(abortCtrl.signal),
+          chatId,
+          (previewId) => {
+            const sel = pendingHunkSelections.get(previewId)
+            pendingHunkSelections.delete(previewId)
+            return sel
+          }
+        )
+
+        await runner.run(history, userMessage)
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          stream(chatId, {
+            type: 'error',
+            content: error instanceof Error ? error.message : String(error)
+          })
+          stream(chatId, { type: 'done' })
+        }
+      } finally {
+        agentLogger.setIncognito(false)
+        stopSystemStatsPush()
+        clearProgress()
+        setProgressTarget(null)
+        activeAgentAborts.delete(chatId)
+        agentRunStates.delete(chatId)
+        syncTrayAgentBadge()
+      }
+    }
+  )
+}
