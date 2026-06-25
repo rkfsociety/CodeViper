@@ -9,7 +9,7 @@ import {
   type AgentPrerequisitesResult
 } from '../../shared/agentPrerequisites'
 import { filterToolCallingModels } from '../../shared/recommendedModels'
-import { fetchOllamaModels, pingOllama } from './agent'
+import { fetchOllamaModelsWithDetails, pingOllama } from './agent'
 
 export async function checkProjectNodeDependencies(
   projectPath: string
@@ -68,7 +68,11 @@ export async function checkAgentPrerequisites(
       issues.push({ type: 'ollama_offline' })
     } else {
       try {
-        const installed = await fetchOllamaModels(ollamaUrl)
+        const raw = await fetchOllamaModelsWithDetails(ollamaUrl)
+        const installed = raw.map((m) => ({
+          ...m,
+          supportsTools: m.capabilities != null ? m.capabilities.includes('tools') : undefined
+        }))
         if (filterToolCallingModels(installed).length === 0) {
           issues.push({
             type: 'no_model',
