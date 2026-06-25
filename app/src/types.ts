@@ -619,7 +619,8 @@ export interface CodeViperAPI {
     chatId: string,
     messages: ChatMessage[],
     userMessage: string,
-    incognito?: boolean
+    incognito?: boolean,
+    userImages?: { name: string; dataUrl: string }[]
   ) => Promise<void>
   getAgentRunState: () => Promise<string[]>
   stopAgent: (chatId: string) => Promise<boolean>

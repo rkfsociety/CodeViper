@@ -142,7 +142,8 @@ const codeviper = {
     chatId: string,
     messages: ChatMessage[],
     userMessage: string,
-    incognito?: boolean
+    incognito?: boolean,
+    userImages?: { name: string; dataUrl: string }[]
   ) =>
     ipcRenderer.invoke(
       IPC.RUN_AGENT,
@@ -151,7 +152,8 @@ const codeviper = {
       chatId,
       messages,
       userMessage,
-      incognito
+      incognito,
+      userImages
     ),
 
   getAgentRunState: () =>

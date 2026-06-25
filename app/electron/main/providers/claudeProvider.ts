@@ -13,7 +13,7 @@ const CACHE_EPHEMERAL = { type: 'ephemeral' as const }
 // ── Raw Anthropic request types (без SDK) ─────────────────────────────────────
 
 interface AnthropicContentBlock {
-  type: 'text' | 'tool_use' | 'tool_result' | 'thinking'
+  type: 'text' | 'image' | 'tool_use' | 'tool_result' | 'thinking'
   text?: string
   id?: string
   name?: string
@@ -21,6 +21,7 @@ interface AnthropicContentBlock {
   tool_use_id?: string
   content?: string
   cache_control?: { type: 'ephemeral' }
+  source?: { type: 'base64'; media_type: string; data: string }
 }
 
 interface AnthropicMessage {
@@ -295,6 +296,16 @@ export class ClaudeProvider extends StreamingChatProvider implements ModelProvid
 
         if (msg.content) {
           content.push({ type: 'text', text: msg.content })
+        }
+
+        for (const img of msg.images ?? []) {
+          const match = img.dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+          if (match) {
+            content.push({
+              type: 'image',
+              source: { type: 'base64', media_type: match[1], data: match[2] }
+            })
+          }
         }
 
         if (msg.tool_calls?.length) {

@@ -16,6 +16,8 @@ export interface ChatMessage {
   tool_calls?: OpenAIToolCall[]
   /** ID вызова инструмента для tool-результатов (cloud-провайдеры). */
   tool_call_id?: string
+  /** Изображения для vision-моделей (data URL). */
+  images?: { name: string; dataUrl: string }[]
 }
 
 export interface ChatOptions {

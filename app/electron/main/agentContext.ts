@@ -129,6 +129,8 @@ export interface OllamaMessage {
   }>
   /** ID вызова инструмента для tool-результатов (cloud-провайдеры). */
   tool_call_id?: string
+  /** Изображения для vision-моделей (data URL). */
+  images?: { name: string; dataUrl: string }[]
 }
 
 const BASE_SYSTEM_PROMPT = `Ты CodeViper, локальный AI-агент для программирования.
@@ -372,6 +374,8 @@ export interface PrepareAgentContextOptions {
   disabledTools?: string[]
   /** Подключённые MCP-серверы — инструменты добавляются динамически */
   mcpServers?: McpServerConfig[]
+  /** Изображения текущего пользовательского сообщения для vision-моделей */
+  userImages?: { name: string; dataUrl: string }[]
 }
 
 function section(
@@ -612,11 +616,15 @@ export async function prepareAgentRunContext(
     selfImproveMode,
     options
   )
+  const userImages = options.userImages
   const messages: OllamaMessage[] = redactMessagesForModel(
-    preview.messages.map((item) => ({
-      role: item.role,
-      content: item.content
-    }))
+    preview.messages.map((item, idx, arr) => {
+      const msg: OllamaMessage = { role: item.role, content: item.content }
+      if (idx === arr.length - 1 && item.role === 'user' && userImages?.length) {
+        msg.images = userImages
+      }
+      return msg
+    })
   )
 
   return { messages, preview }

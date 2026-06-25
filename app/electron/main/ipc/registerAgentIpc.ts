@@ -124,7 +124,8 @@ export function registerAgentIpc(ctx: IpcContext): void {
       chatId: string,
       history: ChatMessage[],
       userMessage: string,
-      incognito?: boolean
+      incognito?: boolean,
+      userImages?: { name: string; dataUrl: string }[]
     ) => {
       if (agentRunStates.has(chatId)) {
         throw new Error('Агент уже выполняет задачу в этом чате. Дождитесь завершения.')
@@ -214,7 +215,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
           }
         )
 
-        await runner.run(history, userMessage)
+        await runner.run(history, userMessage, userImages)
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
           stream(chatId, {

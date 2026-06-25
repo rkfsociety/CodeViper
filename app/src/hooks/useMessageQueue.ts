@@ -147,6 +147,7 @@ export function useMessageQueue({
 
     const idx = messagesRef.current.findIndex((item) => item.id === userMessageId)
     const history = idx >= 0 ? messagesRef.current.slice(0, idx) : messagesRef.current
+    const userImages = idx >= 0 ? messagesRef.current[idx]?.images : undefined
 
     // Task 42: one retry on transient network errors
     const isNetworkError = (err: unknown) =>
@@ -177,7 +178,8 @@ export function useMessageQueue({
             chat,
             history,
             text,
-            incognitoRef?.current ?? false
+            incognitoRef?.current ?? false,
+            userImages
           ),
           timeoutPromise
         ])

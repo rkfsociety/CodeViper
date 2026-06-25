@@ -14,6 +14,7 @@ import { StreamingChatProvider, type ChunkParser, type FetchInit } from './strea
 interface GeminiPart {
   text?: string
   thought?: boolean
+  inlineData?: { mimeType: string; data: string }
   functionCall?: { id?: string; name: string; args?: Record<string, unknown> }
   functionResponse?: { id?: string; name: string; response: Record<string, unknown> }
 }
@@ -323,7 +324,16 @@ export class GeminiProvider extends StreamingChatProvider implements ModelProvid
 
     const lastMsg = nonSystem.at(-1)
     const lastText = lastMsg?.content ?? ''
-    const contents: GeminiContent[] = [...history, { role: 'user', parts: [{ text: lastText }] }]
+    const lastParts: GeminiPart[] = []
+    if (lastText) lastParts.push({ text: lastText })
+    for (const img of lastMsg?.images ?? []) {
+      const match = img.dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+      if (match) lastParts.push({ inlineData: { mimeType: match[1], data: match[2] } })
+    }
+    const contents: GeminiContent[] = [
+      ...history,
+      { role: 'user', parts: lastParts.length ? lastParts : [{ text: '' }] }
+    ]
 
     const req: GeminiRequest = { contents }
 

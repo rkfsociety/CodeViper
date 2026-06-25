@@ -41,10 +41,22 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
 
     // Маппинг сообщений с поддержкой нативных tool calls (assistant) и tool results (tool_call_id).
     const mappedMessages = options.messages.map((msg) => {
+      const hasImages = msg.role === 'user' && msg.images?.length
+
       const m: Record<string, unknown> = {
         role: msg.role,
-        // OpenAI spec: content должен быть null (не "") для assistant-сообщений с tool_calls
-        content: msg.tool_calls?.length && !msg.content ? null : (msg.content ?? null)
+        // Если есть изображения — контент становится массивом content parts
+        content: hasImages
+          ? [
+              ...(msg.content ? [{ type: 'text', text: msg.content }] : []),
+              ...(msg.images ?? []).map((img) => ({
+                type: 'image_url',
+                image_url: { url: img.dataUrl }
+              }))
+            ]
+          : msg.tool_calls?.length && !msg.content
+            ? null
+            : (msg.content ?? null)
       }
       if (msg.tool_calls?.length) {
         m.tool_calls = msg.tool_calls

@@ -254,7 +254,8 @@ export class ContextManager {
         role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
         content: msg.content,
         ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
-        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {})
+        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {}),
+        ...(msg.images?.length ? { images: msg.images } : {})
       }))
     )
 

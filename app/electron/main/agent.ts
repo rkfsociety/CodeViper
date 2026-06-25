@@ -139,7 +139,11 @@ export class AgentRunner {
     )
   }
 
-  async run(history: ChatMessage[], userMessage: string): Promise<void> {
+  async run(
+    history: ChatMessage[],
+    userMessage: string,
+    userImages?: { name: string; dataUrl: string }[]
+  ): Promise<void> {
     this.emitter.throwIfAborted()
     this.toolExecutor.clearEditSnapshots?.()
     if (this.chatId) clearRunCheckpoint(this.chatId)
@@ -290,7 +294,8 @@ export class AgentRunner {
         ragStoreConfig: buildVectorStoreConfig(this.settings, this.projectPath),
         customSystemPrompt,
         disabledTools: this.settings.disabledTools,
-        mcpServers: this.settings.mcpServers
+        mcpServers: this.settings.mcpServers,
+        userImages
       }
     )
     this.emitter.throwIfAborted()

@@ -695,7 +695,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         textParts.push(`[${f.name}] ⚠️ ${result.error ?? 'Не удалось прочитать файл'}`)
       } else if (result.isImage && result.dataUrl) {
         images.push({ name: f.name, dataUrl: result.dataUrl })
-        textParts.push(`[изображение: ${f.name}]\n![${f.name}](${result.dataUrl})`)
+        textParts.push(`[изображение: ${f.name}]`)
       } else if (result.content != null) {
         const ext = f.name.split('.').pop() ?? ''
         textParts.push(`[${f.name}]\n\`\`\`${ext}\n${result.content}\n\`\`\``)
@@ -705,7 +705,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     // Изображения из буфера обмена (Ctrl+V)
     for (const img of clipboardImages) {
       images.push(img)
-      textParts.push(`[изображение: ${img.name}]\n![${img.name}](${img.dataUrl})`)
+      textParts.push(`[изображение: ${img.name}]`)
     }
 
     const fileSection = textParts.length > 0 ? textParts.join('\n\n') + '\n\n' : ''
