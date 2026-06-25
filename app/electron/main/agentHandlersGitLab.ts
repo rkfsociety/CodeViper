@@ -12,7 +12,7 @@ export function createGitLabToolHandlers(
       return listGitlabMrs(projectPath, gitlabToken, gitlabUrl)
     },
 
-    create_gitlab_mr: async (args: any) => {
+    create_gitlab_mr: async (args) => {
       return createGitlabMr(
         projectPath,
         gitlabToken,
@@ -24,7 +24,7 @@ export function createGitLabToolHandlers(
       )
     },
 
-    get_gitlab_pipeline: async (args: any) => {
+    get_gitlab_pipeline: async (args) => {
       return getGitlabPipeline(projectPath, gitlabToken, gitlabUrl, args.pipeline_id)
     }
   }

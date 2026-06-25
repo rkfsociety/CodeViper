@@ -18,7 +18,7 @@ export function createModelToolHandlers(
   signal?: AbortSignal
 ): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
-    preview_ollama_modelfile: async (args: any) => {
+    preview_ollama_modelfile: async (args) => {
       const filePath = resolveDataPath(projectPath, args.data_path)
       const raw = await safeReadFile(projectPath, filePath)
       const examples = parseTrainingData(raw)
@@ -34,7 +34,7 @@ export function createModelToolHandlers(
       return `Примеров: ${examples.length}\n\n${modelfile}`
     },
 
-    create_ollama_model: async (args: any) => {
+    create_ollama_model: async (args) => {
       const filePath = resolveDataPath(projectPath, args.data_path)
       const raw = await safeReadFile(projectPath, filePath)
       const temperature = args.temperature ? Number(args.temperature) : undefined

@@ -29,7 +29,7 @@ export function createMemoryToolHandlers(
   options?: MemoryToolHandlerOptions
 ): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
-    remember: async (args: any) => {
+    remember: async (args) => {
       const entry = await addMemory(
         projectPath,
         {
@@ -45,12 +45,12 @@ export function createMemoryToolHandlers(
       return `Запомнено [${entry.category}/${entry.scope}]: ${entry.content} (id: ${entry.id})`
     },
 
-    search_memory: async (args: any) => {
+    search_memory: async (args) => {
       const results = await searchMemories(projectPath, args.query, 10, ollamaUrl)
       return JSON.stringify(results, null, 2)
     },
 
-    forget: async (args: any) => {
+    forget: async (args) => {
       const removed = await deleteMemory(projectPath, args.id)
       return removed ? `Забыто: ${args.id}` : `Запись не найдена: ${args.id}`
     }

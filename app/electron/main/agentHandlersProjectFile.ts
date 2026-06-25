@@ -48,23 +48,23 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
   const { projectPath, assertInsideProject, guardWrite, editSnapshots } = ctx
 
   return {
-    list_directory: async (args: any) => {
+    list_directory: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
       const target = args.path?.trim() || projectPath
       const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
       return formatFileTree(tree) || '(пусто)'
     },
 
-    read_file: async (args: any) => {
+    read_file: async (args) => {
       assertInsideProject(args.path, 'файл')
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
       return safeReadFilePartial(projectPath, args.path, offset, limit)
     },
 
-    read_multiple_files: async (args: any) => {
+    read_multiple_files: async (args) => {
       const results = await Promise.all(
-        args.paths.map(async (path: any) => {
+        args.paths.map(async (path: string) => {
           try {
             assertInsideProject(path, 'файл')
             const content = await safeReadFilePartial(projectPath, path, 0, undefined)
@@ -77,7 +77,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return JSON.stringify(results)
     },
 
-    file_info: async (args: any) => {
+    file_info: async (args) => {
       assertInsideProject(args.path, 'файл')
       const absPath = resolve(projectPath, args.path)
       const info = await stat(absPath)
@@ -111,11 +111,11 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       ].join('\n')
     },
 
-    project_stats: async (args: any) => {
+    project_stats: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
       const target = args.path?.trim() || projectPath
       const tree = await buildFileTree(target, 0, 5)
-      const counts = countTree(tree as Array<{ isDirectory: boolean; children?: any[] }>)
+      const counts = countTree(tree as Parameters<typeof countTree>[0])
       const topLevel = tree.slice(0, 12).map((node) => `${node.name}${node.isDirectory ? '/' : ''}`)
       const recentCommits = await gitLog(projectPath, { limit: '5', oneline: 'true' }).catch(
         () => '(git log недоступен)'
@@ -132,7 +132,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       ].join('\n')
     },
 
-    write_file: guardWrite(async (args: any) => {
+    write_file: guardWrite(async (args) => {
       assertInsideProject(args.path)
       let oldContent = ''
       try {
@@ -146,7 +146,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return `Файл записан: ${args.path}`
     }),
 
-    create_file: guardWrite(async (args: any) => {
+    create_file: guardWrite(async (args) => {
       assertInsideProject(args.path)
       await safeCreateFile(projectPath, args.path, args.content)
       const diff = createUnifiedDiff('', args.content, args.path)
@@ -154,7 +154,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return `Файл создан: ${args.path}`
     }),
 
-    edit_file: guardWrite(async (args: any) => {
+    edit_file: guardWrite(async (args) => {
       assertInsideProject(args.path)
       let beforeContent = ''
       try {
@@ -184,7 +184,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return `Файл изменён: ${args.path} (замен: ${count})`
     }),
 
-    undo_edit: async (args: any) => {
+    undo_edit: async (args) => {
       assertInsideProject(args.path)
       const absPath = join(projectPath, args.path)
       const snapshot = editSnapshots.get(absPath)
@@ -194,7 +194,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return `Файл восстановлен: ${args.path}`
     },
 
-    append_file: guardWrite(async (args: any) => {
+    append_file: guardWrite(async (args) => {
       assertInsideProject(args.path)
       let oldContent = ''
       try {
@@ -209,7 +209,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return `Добавлено в конец: ${args.path}`
     }),
 
-    delete_file: guardWrite(async (args: any) => {
+    delete_file: guardWrite(async (args) => {
       assertInsideProject(args.path)
       let oldContent = ''
       try {
@@ -223,7 +223,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return `Файл удалён: ${args.path}`
     }),
 
-    move_file: guardWrite(async (args: any) => {
+    move_file: guardWrite(async (args) => {
       assertInsideProject(args.from, 'исходный путь')
       assertInsideProject(args.to, 'целевой путь')
       await safeMoveFile(projectPath, args.from, args.to)
@@ -236,28 +236,28 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       return `Файл перемещён: ${args.from} → ${args.to}`
     }),
 
-    copy_file: guardWrite(async (args: any) => {
+    copy_file: guardWrite(async (args) => {
       assertInsideProject(args.from, 'исходный путь')
       assertInsideProject(args.to, 'целевой путь')
       await safeCopyFile(projectPath, args.from, args.to)
       return `Файл скопирован: ${args.from} → ${args.to}`
     }),
 
-    rename_folder: guardWrite(async (args: any) => {
+    rename_folder: guardWrite(async (args) => {
       assertInsideProject(args.from, 'исходная папка')
       assertInsideProject(args.to, 'целевая папка')
       await safeMoveFolder(projectPath, args.from, args.to)
       return `Папка перемещена: ${args.from} → ${args.to}`
     }),
 
-    copy_folder: guardWrite(async (args: any) => {
+    copy_folder: guardWrite(async (args) => {
       assertInsideProject(args.from, 'исходная папка')
       assertInsideProject(args.to, 'целевая папка')
       await safeCopyFolder(projectPath, args.from, args.to)
       return `Папка скопирована: ${args.from} → ${args.to}`
     }),
 
-    show_file_history: async (args: any) => {
+    show_file_history: async (args) => {
       assertInsideProject(args.path)
       const entries = await readFileHistory(projectPath, args.path)
       if (!entries.length) return `История правок для ${args.path} пуста.`

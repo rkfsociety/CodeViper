@@ -15,7 +15,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
   const { projectPath, assertInsideProject } = ctx
 
   return {
-    grep_files: async (args: any) => {
+    grep_files: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск по коду: ${args.query}`, 0)
@@ -30,7 +30,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
     },
 
-    find_files: async (args: any) => {
+    find_files: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск файлов: ${args.pattern}`, 0)
@@ -45,7 +45,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
     },
 
-    find_symbol: async (args: any) => {
+    find_symbol: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск символа: ${args.name}`, 0)
@@ -59,7 +59,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
     },
 
-    find_references: async (args: any) => {
+    find_references: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск ссылок: ${args.name}`, 0)
@@ -73,7 +73,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
     },
 
-    search_in_project: async (args: any) => {
+    search_in_project: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         if (args.type === 'name') {
@@ -98,7 +98,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
     },
 
-    search_in_file: async (args: any) => {
+    search_in_file: async (args) => {
       assertInsideProject(args.path, 'файл')
       const absPath = resolve(projectPath, args.path)
       const contextLines = Math.min(5, Math.max(0, parseInt(args.context_lines ?? '0', 10) || 0))
@@ -153,7 +153,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       return `${header}\n\n${results.join('\n')}`
     },
 
-    file_search_summary: async (args: any) => {
+    file_search_summary: async (args) => {
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       const result = await grepInTreeWorker(projectPath, args.query, {
         subpath: args.path?.trim()

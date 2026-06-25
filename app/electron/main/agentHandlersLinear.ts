@@ -5,7 +5,7 @@ import { createLinearIssue } from './linearTools'
 export function createLinearToolHandlers(settings: AgentSettings): Partial<ToolHandlers> {
   const { linearApiKey } = settings
   const handlers: Partial<ToolHandlers> = {
-    create_linear_issue: async (args: any) => {
+    create_linear_issue: async (args) => {
       return createLinearIssue(
         args.title,
         args.team_key,

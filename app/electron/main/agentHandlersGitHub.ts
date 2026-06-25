@@ -3,11 +3,11 @@ import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } f
 
 export function createGitHubToolHandlers(): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
-    create_issue: async (args: any) => {
+    create_issue: async (args) => {
       return createIssue(args.title, args.body, args.labels)
     },
 
-    create_pr: async (args: any) => {
+    create_pr: async (args) => {
       return createPr(args.title, args.body)
     },
 
@@ -15,11 +15,11 @@ export function createGitHubToolHandlers(): Partial<ToolHandlers> {
       return listIssues()
     },
 
-    open_issue: async (args: any) => {
+    open_issue: async (args) => {
       return openIssue(args.number)
     },
 
-    trigger_github_workflow: async (args: any) => {
+    trigger_github_workflow: async (args) => {
       return triggerGithubWorkflow(args.workflow_id, args.ref, args.fields)
     }
   }

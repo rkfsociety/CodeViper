@@ -96,7 +96,7 @@ export function createProjectToolHandlers(
     ...createSearchHandlers(ctx),
     ...createTerminalHandlers(ctx),
 
-    search_knowledge_base: async (args: any) => {
+    search_knowledge_base: async (args) => {
       const { query } = args
       const collection = args.collection ?? 'codeviper_project'
       const limit = Math.min(10, Math.max(1, parseInt(args.limit ?? '5', 10) || 5))
@@ -144,7 +144,7 @@ export function createProjectToolHandlers(
         .join('\n\n---\n\n')
     },
 
-    package_info: async (args: any) => {
+    package_info: async (args) => {
       const pkg = await readPackageJson(args.path)
       if (!pkg) return 'package.json не найден или не удалось его прочитать.'
 
@@ -171,7 +171,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    read_package_lock: async (args: any) => {
+    read_package_lock: async (args) => {
       const lock = await readPackageLock(args.path)
       if (!lock) return 'package-lock.json не найден или не удалось его прочитать.'
       const packages = lock.data.packages ? Object.keys(lock.data.packages) : []
@@ -185,7 +185,7 @@ export function createProjectToolHandlers(
         .join('\n')
     },
 
-    dependency_summary: async (args: any) => {
+    dependency_summary: async (args) => {
       const pkg = await readPackageJson(args.path)
       if (!pkg) return 'package.json не найден или не удалось его прочитать.'
       const direct = Object.keys(pkg.data.dependencies ?? {})
@@ -199,7 +199,7 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    test_summary: async (args: any) => {
+    test_summary: async (args) => {
       const pkg = await readPackageJson(args.path)
       if (!pkg) return 'package.json не найден или не удалось его прочитать.'
 
@@ -221,30 +221,30 @@ export function createProjectToolHandlers(
       ].join('\n')
     },
 
-    git_status: async (args: any) => gitStatus(projectPath, args.path),
+    git_status: async (args) => gitStatus(projectPath, args.path),
 
-    git_diff: async (args: any) =>
+    git_diff: async (args) =>
       gitDiff(projectPath, {
         path: args.path,
         staged: args.staged,
         commit: args.commit
       }),
 
-    git_log: async (args: any) =>
+    git_log: async (args) =>
       gitLog(projectPath, {
         limit: args.limit,
         path: args.path,
         oneline: args.oneline
       }),
 
-    recent_changes: async (args: any) =>
+    recent_changes: async (args) =>
       gitLog(projectPath, {
         limit: args.limit ?? '5',
         path: args.path,
         oneline: 'true'
       }),
 
-    index_project: async (_args: any) => {
+    index_project: async (_args) => {
       const { qdrantUrl, qdrantApiKey, ollamaUrl } = options ?? {}
       if (!qdrantUrl) return 'Qdrant URL не настроен в настройках'
       if (!ollamaUrl) return 'Ollama URL не настроен в настройках'
