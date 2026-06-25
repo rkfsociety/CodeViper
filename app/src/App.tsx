@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { initTraceBuffer } from './traceBuffer'
 import logoUrl from '../resources/icon.png'
 import type {
@@ -64,11 +65,13 @@ const DEFAULT_SETTINGS: AgentSettings = {
 
 export default function App() {
   return (
-    <AgentProvider>
-      <QueueProvider>
-        <AppContent />
-      </QueueProvider>
-    </AgentProvider>
+    <ErrorBoundary>
+      <AgentProvider>
+        <QueueProvider>
+          <AppContent />
+        </QueueProvider>
+      </AgentProvider>
+    </ErrorBoundary>
   )
 }
 

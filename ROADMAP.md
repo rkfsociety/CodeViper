@@ -29,31 +29,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Независимые задачи
 
-**1 · S · ErrorBoundary в renderer** — приор. High  
-- **Цель:** исключение при рендере не роняет весь UI в белый экран  
-- **Файлы:** `app/src/components/ErrorBoundary.tsx`, `app/src/App.tsx`  
-- **Действие:** корневой class-компонент `getDerivedStateFromError` + fallback с кнопкой «Перезагрузить»; обернуть дерево App  
-- **Проверка:** компонент, бросающий ошибку в render, показывает fallback, а не пустой экран; `npm run typecheck`
-
-**2 · S · Лимит буфера в runCommand** — приор. High  
+**1 · S · Лимит буфера в runCommand** — приор. High  
 - **Цель:** команда с бесконечным выводом не раздувает память main-процесса до OOM  
 - **Файлы:** `app/electron/main/services.ts`  
 - **Действие:** считать накопленные байты в обработчиках `data`; при превышении порога (константа в `shared/constants.ts`) — `killProcessTree` + пометка «вывод обрезан»  
 - **Проверка:** unit-тест с командой, печатающей >лимита, завершается обрезкой; `npm test`
 
-**3 · S · AgentRunner: options-объект** — приор. Medium  
+**2 · S · AgentRunner: options-объект** — приор. Medium  
 - **Цель:** убрать 9 позиционных параметров конструктора и мёртвый `_summarizeModel`  
 - **Файлы:** `app/electron/main/agent.ts`, вызовы `new AgentRunner(...)` в `index.ts`  
 - **Действие:** ввести интерфейс `AgentRunnerOptions`, перевести конструктор на объект, удалить неиспользуемый параметр  
 - **Проверка:** `npm run typecheck`; существующие тесты `agentRunner.integration` зелёные
 
-**4 · S · isInsideProject без toLowerCase на не-Windows** — приор. Medium  
+**3 · S · isInsideProject без toLowerCase на не-Windows** — приор. Medium  
 - **Цель:** guard пути не путает регистрозависимые ФС (Linux/macOS)  
 - **Файлы:** `app/electron/main/services.ts`  
 - **Действие:** понижать регистр только при `process.platform === 'win32'`  
 - **Проверка:** unit-тест: на не-win `/Proj` и `/proj` считаются разными; `npm test -- services`
 
-**5 · M · Docker dev-окружение** — приор. Low  
+**4 · M · Docker dev-окружение** — приор. Low  
 - **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
 - **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
 - **Действие:** образ + том исходников + `npm run dev`  
@@ -61,13 +55,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Новые возможности
 
-**6 · M · Повтор прогона с шага из TracePanel** — приор. Low  
+**5 · M · Повтор прогона с шага из TracePanel** — приор. Low  
 - **Цель:** перезапуск задачи с выбранного шага трейса  
 - **Файлы:** `TracePanel.tsx`, `useAgentStream.ts`, IPC рестарта  
 - **Действие:** кнопка «Повторить с шага» → восстановление истории до шага и новый прогон  
 - **Проверка:** повтор с шага N стартует с корректным контекстом
 
-**7 · M · Дашборд метрик агента** — приор. Low  
+**6 · M · Дашборд метрик агента** — приор. Low  
 - **Цель:** токены, стоимость, длительность, % успешных прогонов по моделям  
 - **Файлы:** `app/electron/main/agentLogger.ts`, новая `MetricsPanel.tsx`, IPC `get-agent-metrics`  
 - **Действие:** агрегация записей `agentLogger` → таблица/графики в UI  
@@ -75,25 +69,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**8 · L · Голосовой ввод и озвучка** — приор. Low  
+**7 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**9 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
+**8 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
 - **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
 - **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
 - **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
 - **Проверка:** правка файла в UI сохраняется на диск
 
-**10 · XL · LSP в редакторе** — приор. Low  
+**9 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
 - **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**11 · L · Skill marketplace** — приор. Low  
+**10 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
@@ -106,6 +100,7 @@ N · [S/M/L/XL] · Краткое название
 ## ✅ Сделано
 
 - Библиотека промптов / слэш-шаблоны: `PromptTemplate` в типах + Zod-schema; `matchSlashCommands`/`expandSlashCommand` принимают пользовательские шаблоны (с приоритетом над встроенными); CRUD-секция в BehaviorTab (добавить/удалить), ChatPanel передаёт `settings.promptTemplates`
+- ErrorBoundary в renderer: `ErrorBoundary` class-компонент с `getDerivedStateFromError` + fallback «Перезагрузить» обёртывает корень App — белый экран при исключении заменён информативным UI
 - Сокращение any + порог coverage в CI: убраны ~60 явных `args: any` из всех agentHandlers-файлов (контекстуальный вывод от `Partial<ToolHandlers>`); v8-coverage с порогами 60/50/60/60% для `shared/` и `services.ts` в `vitest.config.ts`; CI запускает `npm test -- --coverage`
 - Vision-ввод (скриншоты в чат): Ctrl+V / drag-drop изображений → передача как image-блоков в Claude, OpenAI и Gemini через `userImages` параметр в IPC-цепочке; data URL не встраивается в текст, хранится в `message.images`
 - Разбивка регистрации IPC: 1034-строчный index.ts разнесён на 9 файлов-регистраторов в ipc/ (registerAgentIpc, registerChatsIpc, registerFileIpc, registerMemoryIpc, registerModelsIpc, registerSettingsIpc, registerGithubIpc, registerMiscIpc, registerAppIpc) + IpcContext; index.ts — только инициализация окна и жизненный цикл app
