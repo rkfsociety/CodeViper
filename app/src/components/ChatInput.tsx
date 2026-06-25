@@ -56,9 +56,20 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
   ref
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [cursor, setCursor] = useState(0)
+  const cursorRef = useRef(0)
+  const prevMentionQueryRef = useRef<string | null>(null)
+  const [mentionRevision, setMentionRevision] = useState(0)
   const [mentionIndex, setMentionIndex] = useState(0)
   const [projectFiles, setProjectFiles] = useState<FileMentionItem[]>([])
+
+  const bumpMentionRevisionIfNeeded = useCallback((text: string, cursorPos: number) => {
+    const mention = getActiveFileMention(text, cursorPos)
+    const query = mention?.query ?? null
+    if (query !== prevMentionQueryRef.current) {
+      prevMentionQueryRef.current = query
+      setMentionRevision((n) => n + 1)
+    }
+  }, [])
 
   useImperativeHandle(ref, () => ({
     focus: () => textareaRef.current?.focus(),
@@ -81,8 +92,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
 
   const activeMention = useMemo(() => {
     if (!projectPath.trim() || !focused) return null
-    return getActiveFileMention(value, cursor)
-  }, [value, cursor, projectPath, focused])
+    void mentionRevision
+    return getActiveFileMention(value, cursorRef.current)
+  }, [value, projectPath, focused, mentionRevision])
 
   const mentionMatches = useMemo(() => {
     if (!activeMention || !projectFiles.length) return []
@@ -101,8 +113,9 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
 
   const syncCursor = useCallback(() => {
     const pos = textareaRef.current?.selectionStart ?? value.length
-    setCursor(pos)
-  }, [value.length])
+    cursorRef.current = pos
+    bumpMentionRevisionIfNeeded(value, pos)
+  }, [value, bumpMentionRevisionIfNeeded])
 
   const applyMention = useCallback(
     (item: FileMentionItem) => {
@@ -110,17 +123,18 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
       const { value: next, cursor: nextCursor } = insertFileMention(
         value,
         activeMention.start,
-        cursor,
+        cursorRef.current,
         item.relativePath
       )
       onChange(next)
       requestAnimationFrame(() => {
         textareaRef.current?.focus()
         textareaRef.current?.setSelectionRange(nextCursor, nextCursor)
-        setCursor(nextCursor)
+        cursorRef.current = nextCursor
+        bumpMentionRevisionIfNeeded(next, nextCursor)
       })
     },
-    [activeMention, cursor, onChange, value]
+    [activeMention, bumpMentionRevisionIfNeeded, onChange, value]
   )
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -146,11 +160,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
     if (mentionOpen && e.key === 'Escape') {
       e.preventDefault()
       if (!activeMention) return
-      const next = `${value.slice(0, activeMention.start)}${value.slice(cursor)}`
+      const next = `${value.slice(0, activeMention.start)}${value.slice(cursorRef.current)}`
       onChange(next)
       requestAnimationFrame(() => {
         textareaRef.current?.setSelectionRange(activeMention.start, activeMention.start)
-        setCursor(activeMention.start)
+        cursorRef.current = activeMention.start
+        bumpMentionRevisionIfNeeded(next, activeMention.start)
       })
       return
     }
@@ -171,8 +186,11 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
         ref={textareaRef}
         value={value}
         onChange={(e) => {
-          onChange(e.target.value)
-          setCursor(e.target.selectionStart ?? e.target.value.length)
+          const nextValue = e.target.value
+          const pos = e.target.selectionStart ?? nextValue.length
+          cursorRef.current = pos
+          onChange(nextValue)
+          bumpMentionRevisionIfNeeded(nextValue, pos)
         }}
         onClick={syncCursor}
         onKeyUp={syncCursor}

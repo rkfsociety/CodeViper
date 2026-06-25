@@ -9,7 +9,6 @@ import {
   useRef,
   useState
 } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
 import { makeId } from '../../../shared/makeId'
 import type {
   AgentSettings,
@@ -40,14 +39,9 @@ import { useAgentDispatch, useAgentState } from '../../contexts/AgentContext'
 import { useChatContext } from '../../contexts/ChatContext'
 import { useChatBusy } from '../../contexts/QueueContext'
 import { useAppStateSync } from '../../hooks/useAppStateSync'
-import {
-  CLOUD_KNOWN_MODELS,
-  FILE_LIMIT,
-  groupToolMessages,
-  shouldShowAssistantMessage
-} from './helpers'
+import { CLOUD_KNOWN_MODELS, FILE_LIMIT, shouldShowAssistantMessage } from './helpers'
 import type { DroppedFile } from './ChatInput'
-import { ChatMessages } from './ChatMessages'
+import { ChatPanelMessagesPane } from './ChatPanelMessagesPane'
 import { ChatStatusBar } from './ChatStatusBar'
 
 const FileTimelinePanel = lazy(() =>
@@ -156,8 +150,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   )
   setPlanItemsRef.current = (items) => setPlanItems(items)
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const atBottomRef = useRef(true)
   const chatInputRef = useRef<ChatInputHandle>(null)
   const messagesRef = useRef(messages)
   const chatIdRef = useRef(chatId)
@@ -243,12 +235,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     commitMessages(next)
   }
 
-  function respondPreview(messageId: string, previewId: string, apply: boolean) {
+  const respondPreview = useCallback((messageId: string, previewId: string, apply: boolean) => {
     const msg = messagesRef.current.find((m) => m.id === messageId)
     if (!msg) return
-    upsertMessage({ ...msg, previewStatus: apply ? 'applied' : 'cancelled' })
+    const index = messagesRef.current.findIndex((item) => item.id === messageId)
+    if (index < 0) return
+    const next = [...messagesRef.current]
+    next[index] = { ...msg, previewStatus: apply ? 'applied' : 'cancelled' }
+    messagesRef.current = next
+    setMessagesRef.current(next)
     window.codeviper.respondAgentPreview(previewId, apply)
-  }
+  }, [])
 
   // ── Хук: стрим событий агента ────────────────────────────────────────────
   const { draftRef, draftMessageIdRef, resetStreamState } = useAgentStream({
@@ -344,11 +341,20 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     incognitoRef
   })
 
-  // ── Хук: контекст-превью (debounce 600 ms, не работает пока агент занят) ─
-  useContextPreview(chatId, projectPath, messages, input, settings.model, busy, {
-    onPreview: setContextPreview,
-    onLoading: setContextLoading
-  })
+  // ── Хук: контекст-превью — черновик только при открытом попапе/модалке (не на каждый символ) ─
+  useContextPreview(
+    chatId,
+    projectPath,
+    messages,
+    input,
+    settings.model,
+    busy,
+    contextPopoverOpen || contextModalOpen,
+    {
+      onPreview: setContextPreview,
+      onLoading: setContextLoading
+    }
+  )
 
   // ── Автосохранение состояния для восстановления после краша ─────────────
   useAppStateSync({ chatIdRef, projectPathRef, getQueueSnapshot })
@@ -438,22 +444,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Следим за тем, находится ли пользователь внизу чата
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const onScroll = () => {
-      atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    }
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [])
-
-  const scrollToBottomRef = useRef<(() => void) | null>(null)
-
-  useEffect(() => {
-    scrollToBottomRef.current?.()
-  }, [messages.length, queueSize])
+  // Следим за тем, находится ли пользователь внизу чата — логика в ChatPanelMessagesPane
+  const scrollToBottomRef = useRef<((force?: boolean) => void) | null>(null)
 
   useEffect(() => {
     if (!busy) {
@@ -589,19 +581,22 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }
 
   // ── Ввод ─────────────────────────────────────────────────────────────────
-  async function retryUserMessage(message: ChatMessage) {
-    if (busy || !chatId || !projectPath) return
-    const msg: ChatMessage = {
-      id: makeId(),
-      role: 'user',
-      content: message.content,
-      timestamp: Date.now()
-    }
-    appendMessage(msg)
-    await submitMessage(msg.id, message.content)
-  }
+  const retryUserMessage = useCallback(
+    async (message: ChatMessage) => {
+      if (busy || !chatId || !projectPath) return
+      const msg: ChatMessage = {
+        id: makeId(),
+        role: 'user',
+        content: message.content,
+        timestamp: Date.now()
+      }
+      appendMessage(msg)
+      await submitMessage(msg.id, message.content)
+    },
+    [busy, chatId, projectPath, submitMessage]
+  )
 
-  function editUserMessage(message: ChatMessage) {
+  const editUserMessage = useCallback((message: ChatMessage) => {
     const idx = messagesRef.current.findIndex((m) => m.id === message.id)
     if (idx >= 0) commitMessages(messagesRef.current.slice(0, idx))
     setInput(message.content)
@@ -611,7 +606,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       const len = ta?.value.length ?? 0
       ta?.setSelectionRange(len, len)
     })
-  }
+  }, [])
 
   const handleSaveAsSkill = useCallback((content: string) => {
     setSaveSkillDialog({ content, name: '', saving: false, result: null })
@@ -651,7 +646,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     })
   }, [])
 
-  function insertPrompt(text: string) {
+  const insertPrompt = useCallback((text: string) => {
     setInput((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
     requestAnimationFrame(() => {
       chatInputRef.current?.focus()
@@ -659,7 +654,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       const len = ta?.value.length ?? 0
       ta?.setSelectionRange(len, len)
     })
-  }
+  }, [])
 
   function insertFileMentionPath(relativePath: string) {
     const mention = `@${relativePath.replace(/\\/g, '/')}`
@@ -727,8 +722,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setInput('')
     setDroppedFiles([])
     setClipboardImages([])
-    atBottomRef.current = true
-    scrollToBottomRef.current?.()
+    scrollToBottomRef.current?.(true)
     await submitMessage(userMessage.id, fullText)
   }
 
@@ -802,40 +796,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   useEffect(() => {
     setSlashMenuIndex(0)
   }, [slashMatches.length])
-
-  // Мемоизируем тяжёлые вычисления — не пересчитываются на каждый ре-рендер
-  const displayItems = useMemo(
-    () => groupToolMessages(messages.filter(shouldShowAssistantMessage)),
-    [messages]
-  )
-
-  const pinnedDisplayItems = useMemo(
-    () =>
-      pinnedMessageIds.size > 0
-        ? groupToolMessages(
-            messages.filter((m) => pinnedMessageIds.has(m.id) && shouldShowAssistantMessage(m))
-          )
-        : [],
-    [messages, pinnedMessageIds]
-  )
-
-  const virtualizer = useVirtualizer({
-    count: displayItems.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 80,
-    overscan: 5,
-    measureElement:
-      typeof window !== 'undefined' && navigator.userAgent.includes('Firefox')
-        ? undefined
-        : (el) => el.getBoundingClientRect().height
-  })
-
-  // Обновляем колбэк скролла при каждом рендере — чтобы эффекты выше видели актуальные значения
-  scrollToBottomRef.current = () => {
-    if (atBottomRef.current && displayItems.length > 0) {
-      virtualizer.scrollToIndex(displayItems.length - 1, { align: 'end', behavior: 'smooth' })
-    }
-  }
 
   const lastVisibleMessage = useMemo(
     () => [...messages].reverse().find(shouldShowAssistantMessage),
@@ -912,20 +872,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onClose={() => setContextModalOpen(false)}
       />
 
-      <ChatMessages
+      <ChatPanelMessagesPane
         chatId={chatId}
         projectPath={projectPath}
-        messagesCount={messages.length}
-        displayItems={displayItems}
-        pinnedDisplayItems={pinnedDisplayItems}
+        messages={messages}
         pinnedMessageIds={pinnedMessageIds}
-        scrollRef={scrollRef}
-        virtualizer={virtualizer}
         busy={busy}
+        queueSize={queueSize}
         draftMessageIdRef={draftMessageIdRef}
         runStats={runStats}
+        scrollToBottomRef={scrollToBottomRef}
         togglePinMessage={togglePinMessage}
-        retryUserMessage={(msg) => void retryUserMessage(msg)}
+        retryUserMessage={retryUserMessage}
         editUserMessage={editUserMessage}
         onFileTimeline={setFileTimelinePath}
         onSaveAsSkill={handleSaveAsSkill}

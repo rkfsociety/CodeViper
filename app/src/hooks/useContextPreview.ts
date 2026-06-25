@@ -8,8 +8,7 @@ interface Callbacks {
 }
 
 interface CacheEntry {
-  messagesKey: string
-  model: string
+  cacheKey: string
   preview: AgentContextPreview | null
 }
 
@@ -20,6 +19,8 @@ export function useContextPreview(
   input: string,
   model: string,
   busy: boolean,
+  /** Включать черновик ввода в превью (попап/модалка контекста). Иначе — только история чата. */
+  includeDraftInPreview: boolean,
   { onPreview, onLoading }: Callbacks
 ): void {
   const messagesRef = useRef(messages)
@@ -36,16 +37,17 @@ export function useContextPreview(
   // только когда меняется число сообщений или id последнего.
   const lastMsgId = messages[messages.length - 1]?.id ?? ''
   const messagesKey = `${messages.length}:${lastMsgId}`
+  const draftText = includeDraftInPreview ? input.trim() : ''
+  const cacheKey = `${messagesKey}:${model}:${draftText}`
 
   useEffect(() => {
-    if (busy || !chatId || !model || !input.trim()) {
+    if (busy || !chatId || !model) {
       onLoadingRef.current(false)
       return
     }
 
-    // Кэш-хит: те же сообщения и та же модель — возвращаем сохранённый результат
     const cached = cacheRef.current
-    if (cached && cached.messagesKey === messagesKey && cached.model === model) {
+    if (cached && cached.cacheKey === cacheKey) {
       onPreviewRef.current(cached.preview)
       return
     }
@@ -57,11 +59,11 @@ export function useContextPreview(
         const preview = await window.codeviper.previewAgentContext(
           projectPath,
           messagesRef.current,
-          input.trim(),
+          draftText,
           model
         )
         if (active) {
-          cacheRef.current = { messagesKey, model, preview }
+          cacheRef.current = { cacheKey, preview }
           onPreviewRef.current(preview)
         }
       } catch (err) {
@@ -77,6 +79,6 @@ export function useContextPreview(
       active = false
       window.clearTimeout(timer)
     }
-    // messagesKey вместо messages — не перезапускаем на каждый токен стриминга
-  }, [chatId, projectPath, messagesKey, input, model, busy])
+    // draftText пустой, пока попап закрыт — ввод не перезапускает тяжёлый IPC
+  }, [chatId, projectPath, cacheKey, draftText, model, busy])
 }
