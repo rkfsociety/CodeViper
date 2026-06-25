@@ -32,6 +32,9 @@ const TerminalPanel = lazy(() =>
 const TracePanel = lazy(() =>
   import('./components/TracePanel').then((m) => ({ default: m.TracePanel }))
 )
+const MetricsPanel = lazy(() =>
+  import('./components/MetricsPanel').then((m) => ({ default: m.MetricsPanel }))
+)
 const PrStatusPanel = lazy(() =>
   import('./components/PrStatusPanel').then((m) => ({ default: m.PrStatusPanel }))
 )
@@ -92,6 +95,7 @@ function AppContent() {
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [prPanelOpen, setPrPanelOpen] = useState(false)
   const [tracePanelOpen, setTracePanelOpen] = useState(false)
+  const [metricsPanelOpen, setMetricsPanelOpen] = useState(false)
 
   useEffect(() => initTraceBuffer(), [])
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
@@ -718,6 +722,13 @@ function AppContent() {
               Трасса
             </button>
             <button
+              className={`btn ${metricsPanelOpen ? 'active' : ''}`}
+              onClick={() => setMetricsPanelOpen((v) => !v)}
+              title="Метрики агента — токены, стоимость, статистика прогонов"
+            >
+              Метрики
+            </button>
+            <button
               className="btn"
               onClick={() => window.codeviper.openDevTools()}
               title="Открыть консоль разработчика"
@@ -860,6 +871,14 @@ function AppContent() {
               </div>
             )}
           </section>
+
+          {metricsPanelOpen && (
+            <section className="panel panel-trace">
+              <Suspense fallback={null}>
+                <MetricsPanel />
+              </Suspense>
+            </section>
+          )}
 
           {tracePanelOpen && (
             <section className="panel panel-trace">

@@ -754,6 +754,7 @@ export interface CodeViperAPI {
   getP2pCredits: (
     settings: AgentSettings
   ) => Promise<{ ok: boolean; balance: number; message?: string }>
+  getAgentMetrics: (days?: number) => Promise<unknown>
 }
 
 declare global {

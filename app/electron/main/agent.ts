@@ -160,6 +160,7 @@ export class AgentRunner {
     if (this.chatId) clearRunCheckpoint(this.chatId)
 
     let runCheckpointEmitted = false
+    let runSuccess = true
 
     const runStartMs = Date.now()
     void agentLogger.write({
@@ -667,8 +668,10 @@ export class AgentRunner {
     } catch (error) {
       if (isAbortError(error)) {
         this.emitter.handleAbort()
+        runSuccess = false
         return
       }
+      runSuccess = false
       throw error
     } finally {
       if (this.ctx.providerConfig.type === 'ollama') {
@@ -681,7 +684,8 @@ export class AgentRunner {
       void agentLogger.write({
         event: 'run_end',
         model: this.settings.model,
-        total_ms: Date.now() - runStartMs
+        total_ms: Date.now() - runStartMs,
+        status: runSuccess ? 'ok' : 'error'
       })
       if (selfEdited) {
         if (taskPlanner.isSelfImprove && this.settings.autoPushSelfEdits !== false) {

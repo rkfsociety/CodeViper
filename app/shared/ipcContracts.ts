@@ -448,6 +448,7 @@ export const IPC = {
   REGISTER_P2P_NODE: 'register-p2p-node',
   GET_P2P_CREDITS: 'get-p2p-credits',
   SHOW_AGENT_DONE_NOTIFICATION: 'show-agent-done-notification',
+  GET_AGENT_METRICS: 'get-agent-metrics',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   CANCEL_GGUF_DOWNLOAD: 'cancel-gguf-download',
@@ -794,6 +795,10 @@ export const Contracts = {
       })
     ]),
     result: z.boolean()
+  },
+  [IPC.GET_AGENT_METRICS]: {
+    args: z.tuple([z.number().optional()]),
+    result: z.any()
   }
 } as const
 

@@ -1,0 +1,194 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+  font-size: 11px;
+  color: #aaa;
+  flex-shrink: 0;
+}
+
+.periods {
+  display: flex;
+  gap: 4px;
+}
+
+.periodBtn {
+  background: none;
+  border: 1px solid #555;
+  color: #888;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.periodBtn:hover {
+  background: #3a3a3a;
+}
+.periodBtn.active {
+  border-color: #4ec9b0;
+  color: #4ec9b0;
+  background: #1a2e2a;
+}
+
+.loading {
+  padding: 20px;
+  color: #666;
+  text-align: center;
+  font-size: 11px;
+}
+
+.empty {
+  padding: 20px;
+  color: #555;
+  text-align: center;
+  font-size: 11px;
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.summary {
+  display: flex;
+  gap: 8px;
+}
+
+.summaryCard {
+  flex: 1;
+  background: #2a2a2a;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cardValue {
+  font-size: 18px;
+  font-weight: 600;
+  color: #4ec9b0;
+  line-height: 1;
+}
+
+.cardLabel {
+  font-size: 10px;
+  color: #777;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionTitle {
+  font-size: 10px;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #333;
+  padding-bottom: 3px;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.table th {
+  color: #888;
+  font-weight: normal;
+  padding: 3px 6px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #333;
+}
+
+.table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #2a2a2a;
+  white-space: nowrap;
+}
+
+.table tr:hover td {
+  background: #252525;
+}
+
+.right {
+  text-align: right !important;
+}
+
+.modelCell {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #9cdcfe;
+}
+
+.toolList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolName {
+  min-width: 160px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #c586c0;
+  font-size: 11px;
+}
+
+.toolBar {
+  flex: 1;
+  height: 8px;
+  background: #2a2a2a;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.toolBarFill {
+  height: 100%;
+  background: #4a3a7a;
+  border-radius: 2px;
+  min-width: 4px;
+}
+
+.toolCount {
+  min-width: 32px;
+  text-align: right;
+  color: #888;
+  font-size: 10px;
+}

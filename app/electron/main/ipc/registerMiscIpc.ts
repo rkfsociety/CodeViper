@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { registerNode, fetchP2pCreditsBalance } from '../p2pClient'
 import { runProjectAutoIndex } from '../contextRAG'
+import { agentLogger } from '../agentLogger'
 
 export function registerMiscIpc(): void {
   ipcMain.handle(IPC.REGISTER_P2P_NODE, async (_e, ...a) => {
@@ -20,5 +21,10 @@ export function registerMiscIpc(): void {
       a
     )
     void runProjectAutoIndex(projectPath, ollamaUrl, qdrantUrl, qdrantApiKey)
+  })
+
+  ipcMain.handle(IPC.GET_AGENT_METRICS, async (_e, ...a) => {
+    const [days] = parseIpcArgs(Contracts[IPC.GET_AGENT_METRICS].args, a)
+    return agentLogger.readMetrics(days ?? 30)
   })
 }
