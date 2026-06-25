@@ -19,6 +19,7 @@ import type {
   TodoItem
 } from '../../types'
 import { filterToolCallingModels } from '../../types'
+import { filterAgentCapableModels } from '../../../shared/recommendedModels'
 import { GEMINI_FREE_MODELS } from '../../../shared/constants'
 import { expandSlashCommand, matchSlashCommands } from '../../../shared/slashCommands'
 import type { SlashCommand } from '../../../shared/slashCommands'
@@ -210,10 +211,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   }, [settings.modelProvider, settings.geminiTier, models])
 
   // Не фильтровать облачные модели (они всегда поддерживают tool calling)
+  // В Code-режиме (settings.chatMode === false) дополнительно скрываем модели < 7B
   const displayModels = useMemo(() => {
     const isCloud = settings.modelProvider !== 'ollama'
-    return isCloud ? pickerModels : filterToolCallingModels(pickerModels)
-  }, [pickerModels, settings.modelProvider])
+    const codeMode = !settings.chatMode
+    if (isCloud) return pickerModels
+    const toolModels = filterToolCallingModels(pickerModels)
+    return codeMode ? filterAgentCapableModels(toolModels) : toolModels
+  }, [pickerModels, settings.modelProvider, settings.chatMode])
 
   function commitMessages(next: ChatMessage[]) {
     messagesRef.current = next

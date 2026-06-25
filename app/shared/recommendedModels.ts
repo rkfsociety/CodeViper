@@ -196,6 +196,29 @@ export function filterToolCallingModels<T extends { name: string; supportsTools?
   })
 }
 
+/** Минимальный размер модели (в миллиардах параметров) для агент-режима (Code). */
+export const MIN_AGENT_PARAMS_B = 7
+
+function parseParamSizeB(parameterSize: string | undefined): number | null {
+  if (!parameterSize) return null
+  const m = parameterSize.match(/^(\d+(?:\.\d+)?)\s*[Bb]/)
+  return m ? parseFloat(m[1]!) : null
+}
+
+/**
+ * Фильтрует модели, слишком маленькие для агент-режима (< MIN_AGENT_PARAMS_B B).
+ * Если размер неизвестен — пропускаем модель (на всякий случай оставляем).
+ */
+export function filterAgentCapableModels<T extends { name: string; parameterSize?: string }>(
+  models: T[]
+): T[] {
+  return models.filter((model) => {
+    const sizeB = parseParamSizeB(model.parameterSize)
+    if (sizeB === null) return true // неизвестный размер — не скрываем
+    return sizeB >= MIN_AGENT_PARAMS_B
+  })
+}
+
 export function isRecommendedModelInstalled(
   catalogName: string,
   installed: Array<{ name: string }>
