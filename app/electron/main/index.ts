@@ -34,7 +34,6 @@ import { registerSettingsIpc } from './ipc/registerSettingsIpc'
 import { registerGithubIpc } from './ipc/registerGithubIpc'
 import { registerMiscIpc } from './ipc/registerMiscIpc'
 import { registerAgentIpc } from './ipc/registerAgentIpc'
-import { preloadPluginsAsync } from './pluginLoader'
 import type { IpcContext } from './ipc/ipcContext'
 
 if (process.env.CODEVIPER_E2E === '1') {
@@ -332,10 +331,6 @@ app.whenReady().then(async () => {
 
   void ensureDefaultSkills().catch((err) => {
     console.warn('[startup] ensureDefaultSkills:', err instanceof Error ? err.message : String(err))
-  })
-
-  void preloadPluginsAsync().catch((err) => {
-    console.warn('[startup] preloadPluginsAsync:', err instanceof Error ? err.message : String(err))
   })
 
   if (!app.isPackaged) {
