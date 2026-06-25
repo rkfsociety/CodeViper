@@ -36,10 +36,10 @@ import { registerMiscIpc } from './ipc/registerMiscIpc'
 import { registerAgentIpc } from './ipc/registerAgentIpc'
 import type { IpcContext } from './ipc/ipcContext'
 
-// Отключаем GPU-кэш на диске — на части систем Windows он недоступен для записи (0x5 Access denied),
-// что приводит к чёрному экрану. GPU-ускорение при этом сохраняется.
-app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
-app.commandLine.appendSwitch('disable-gpu-cache')
+// На части систем Windows GPU-процесс вызывает чёрный экран (Gpu Cache Creation failed, 0x5).
+// --disable-gpu переводит Chromium на SwiftShader (программный рендер) — быстрее чем
+// disableHardwareAcceleration(), но без падения GPU-процесса.
+app.commandLine.appendSwitch('disable-gpu')
 
 if (process.env.CODEVIPER_E2E === '1') {
   const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
