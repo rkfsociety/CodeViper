@@ -61,19 +61,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Рефакторинг монолитов
 
-**6 · L · Разбивка SettingsModal.tsx** — приор. Medium  
-- **Цель:** 2854-строчный компонент разнести по вкладкам (как `ChatPanel/`)  
-- **Файлы:** `app/src/components/SettingsModal/` (`index.tsx`, `ProviderTab`, `MemoryTab`, `IntegrationsTab`, `AdvancedTab`)  
-- **Действие:** выделить секции в отдельные компоненты, общий state поднять в `index.tsx`  
-- **Проверка:** `npm run typecheck` + `npm run build`; все вкладки открываются в UI
-
-**7 · M · Разбивка регистрации IPC в index.ts** — приор. Low  
+**6 · M · Разбивка регистрации IPC в index.ts** — приор. Low  
 - **Цель:** 1034-строчный `index.ts` разнести по доменам  
 - **Файлы:** `app/electron/main/index.ts`, новые `ipc/registerGitIpc.ts`, `ipc/registerMemoryIpc.ts` и т.д.  
 - **Действие:** вынести группы `ipcMain.handle(...)` в функции-регистраторы, вызвать из `index.ts`  
 - **Проверка:** `npm run build`; приложение стартует, IPC-каналы отвечают
 
-**8 · M · Разбивка agentHandlersProject.ts** — приор. Low  
+**7 · M · Разбивка agentHandlersProject.ts** — приор. Low  
 - **Цель:** 1206-строчный файл разделить по группам инструментов  
 - **Файлы:** `app/electron/main/agentHandlersProject*.ts`  
 - **Действие:** выделить файловые / поисковые / терминальные обработчики в отдельные модули, реэкспорт без barrel  
@@ -81,7 +75,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Унификация провайдеров
 
-**9 · L · Claude/Gemini → StreamingChatProvider** — приор. Medium  
+**8 · L · Claude/Gemini → StreamingChatProvider** — приор. Medium  
 - **Цель:** единый 429-backoff и стриминг для всех провайдеров  
 - **Файлы:** `app/electron/main/providers/claudeProvider.ts`, `geminiProvider.ts`, `streamingChatProvider.ts`  
 - **Действие:** подвести Claude и Gemini под базовый класс, убрать дублирующую ручную логику ретраев Gemini  
@@ -89,7 +83,7 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Качество кода
 
-**10 · M · Сокращение any + порог coverage в CI** — приор. Low  
+**9 · M · Сокращение any + порог coverage в CI** — приор. Low  
 - **Цель:** меньше явных `any` в shared/main; порог покрытия в CI  
 - **Файлы:** `app/vitest.config.ts`, `.github/workflows/ci.yml`, точечно по `any`  
 - **Действие:** включить `coverage` (v8) с порогом для `shared/` и `services.ts`; типизировать очевидные `any`  
@@ -97,25 +91,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Новые возможности
 
-**11 · L · Vision-ввод (скриншоты в чат)** — приор. Medium  
+**10 · L · Vision-ввод (скриншоты в чат)** — приор. Medium  
 - **Цель:** вставка изображения в чат → отправка моделям с поддержкой vision (Claude/Gemini/OpenAI)  
 - **Файлы:** `ChatInput.tsx`, `useAgentStream.ts`, `providers/*`, `shared/modelProvider.ts`  
 - **Действие:** приём image из буфера/файла, передача как content-блока в провайдеры, поддерживающие vision  
 - **Проверка:** скриншот + «что на экране?» возвращает осмысленный ответ от облачной модели
 
-**12 · M · Библиотека промптов / слэш-шаблоны** — приор. Low  
+**11 · M · Библиотека промптов / слэш-шаблоны** — приор. Low  
 - **Цель:** пользовательские шаблоны промптов, доступные через `/` в поле ввода  
 - **Файлы:** `ChatInput.tsx`, `app/electron/main/settings.ts` (хранилище шаблонов), новый popover  
 - **Действие:** CRUD шаблонов в настройках + автодополнение `/name` в инпуте  
 - **Проверка:** созданный шаблон подставляется по `/name` в чат
 
-**13 · M · Повтор прогона с шага из TracePanel** — приор. Low  
+**12 · M · Повтор прогона с шага из TracePanel** — приор. Low  
 - **Цель:** перезапуск задачи с выбранного шага трейса  
 - **Файлы:** `TracePanel.tsx`, `useAgentStream.ts`, IPC рестарта  
 - **Действие:** кнопка «Повторить с шага» → восстановление истории до шага и новый прогон  
 - **Проверка:** повтор с шага N стартует с корректным контекстом
 
-**14 · M · Дашборд метрик агента** — приор. Low  
+**13 · M · Дашборд метрик агента** — приор. Low  
 - **Цель:** токены, стоимость, длительность, % успешных прогонов по моделям  
 - **Файлы:** `app/electron/main/agentLogger.ts`, новая `MetricsPanel.tsx`, IPC `get-agent-metrics`  
 - **Действие:** агрегация записей `agentLogger` → таблица/графики в UI  
@@ -123,25 +117,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**15 · L · Голосовой ввод и озвучка** — приор. Low  
+**14 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**16 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
+**15 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
 - **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
 - **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
 - **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
 - **Проверка:** правка файла в UI сохраняется на диск
 
-**17 · XL · LSP в редакторе** — приор. Low  
+**16 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
 - **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**18 · L · Skill marketplace** — приор. Low  
+**17 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
@@ -153,6 +147,7 @@ N · [S/M/L/XL] · Краткое название
 
 ## ✅ Сделано
 
+- Разбивка SettingsModal.tsx: 2855-строчный монолит разнесён на `SettingsModal/index.tsx` + 6 вкладок (`ModelTab`, `BehaviorTab`, `PerformanceTab`, `MemoryTab`, `IntegrationsTab`, `PluginsTab`) + `shared.tsx`
 **Коллективная память**
 - Mutex при push: `async-mutex` сериализует merge+push; retry при конфликте с remote; unit-тест concurrent flush
 - Семантический dedup: cosine similarity > 0.95 через embedding queue; дубли не попадают в collective memory
