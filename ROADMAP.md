@@ -35,6 +35,24 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** образ + том исходников + `npm run dev`  
 - **Проверка:** `docker compose up` поднимает приложение
 
+**6 · S · pluginLoader: statSync вне try/catch — падение всего цикла загрузки** — приор. High  
+- **Цель:** ENOENT при `statSync` не должен прерывать загрузку оставшихся плагинов  
+- **Файлы:** `app/electron/main/pluginLoader.ts`  
+- **Действие:** перенести `statSync(filePath)` и `stat.isFile()` внутрь внутреннего `try/catch` (строки 70–73); при ошибке — `console.error` и `continue`  
+- **Проверка:** `npm run typecheck`; вручную удалить файл из плагинов во время работы — остальные плагины должны загрузиться
+
+**7 · S · pluginLoader: очищать require.cache перед re-require плагина** — приор. Medium  
+- **Цель:** отредактированный `.js`-плагин загружается свежей версией без перезапуска приложения  
+- **Файлы:** `app/electron/main/pluginLoader.ts`, `app/electron/main/agentTools/index.ts`  
+- **Действие:** в `requirePlugin` добавить `delete require.cache[require.resolve(filePath)]` перед `require(filePath)`; в `agentTools/index.ts` сбрасывать `cachedPluginTools = null` при IPC-событии «перезагрузить плагины» (или при каждом вызове `getPluginTools()`)  
+- **Проверка:** `npm run typecheck`; изменить текст описания в `.js`-плагине → переоткрыть чат → новый текст виден без перезапуска
+
+**8 · S · Чистка кода: pluginLoader + context-menu** — приор. Low  
+- **Цель:** убрать мелкие замечания ревью: лишние вызовы `statSync` и дублирование в обработчике ПКМ  
+- **Файлы:** `app/electron/main/pluginLoader.ts`, `app/electron/main/index.ts`  
+- **Действие:** (1) в `loadPlugins` заменить `readdirSync` + `statSync` на `readdirSync(PLUGINS_DIR, { withFileTypes: true })` с `dirent.isFile()`; (2) в обработчике `context-menu` убрать дублирующую проверку `params.selectionText` — вынести условие Cut на уровень `isEditable && selectionText` единым блоком  
+- **Проверка:** `npm run typecheck`
+
 ### 🔗 Новые возможности
 
 ### 🔗 Далёкое будущее
