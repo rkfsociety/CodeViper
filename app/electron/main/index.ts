@@ -36,6 +36,9 @@ import { registerMiscIpc } from './ipc/registerMiscIpc'
 import { registerAgentIpc } from './ipc/registerAgentIpc'
 import type { IpcContext } from './ipc/ipcContext'
 
+// Отключаем GPU-ускорение — на части систем Windows вызывает чёрный экран (Gpu Cache Creation failed)
+app.disableHardwareAcceleration()
+
 if (process.env.CODEVIPER_E2E === '1') {
   const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
   mkdirSync(e2eUserData, { recursive: true })
