@@ -1,8 +1,7 @@
 import { existsSync, readdirSync, statSync, writeFileSync } from 'fs'
-import { homedir } from 'os'
+import { homedir, tmpdir } from 'os'
 import { join, extname } from 'path'
 import { createRequire } from 'module'
-import { tmpdir } from 'os'
 import * as esbuild from 'esbuild'
 
 const require = createRequire(import.meta.url)
@@ -184,4 +183,45 @@ export function validatePlugin(plugin: unknown): plugin is Plugin {
  */
 export function getPluginsDirectory(): string {
   return PLUGINS_DIR
+}
+
+/**
+ * Асинхронно предкомпилировать все TypeScript плагины и заполнить кэш.
+ * Вызывать при старте приложения, чтобы последующие синхронные вызовы
+ * loadPlugins() не блокировали event loop через esbuild.buildSync().
+ */
+export async function preloadPluginsAsync(): Promise<void> {
+  if (!existsSync(PLUGINS_DIR)) return
+
+  let files: string[]
+  try {
+    files = readdirSync(PLUGINS_DIR)
+  } catch {
+    return
+  }
+
+  const tsFiles = files.filter((f) => extname(f) === '.ts').map((f) => join(PLUGINS_DIR, f))
+
+  await Promise.all(
+    tsFiles.map(async (filePath) => {
+      try {
+        const stat = statSync(filePath)
+        const cached = pluginCompileCache.get(filePath)
+        if (cached && cached.mtime === stat.mtime.getTime()) return
+
+        const result = await esbuild.build({
+          entryPoints: [filePath],
+          bundle: true,
+          platform: 'node',
+          format: 'cjs',
+          write: false,
+          external: ['electron', 'fs', 'path', 'os']
+        })
+        const compiled = result.outputFiles?.[0]?.text ?? ''
+        pluginCompileCache.set(filePath, { mtime: stat.mtime.getTime(), compiled })
+      } catch (err) {
+        console.error(`Failed to precompile plugin ${filePath}:`, err)
+      }
+    })
+  )
 }
