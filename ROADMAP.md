@@ -25,31 +25,123 @@ N · [S/M/L/XL] · Краткое название
 
 ## 📋 В планах
 
-> Нумерация сквозная **1…4**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
+> Нумерация сквозная **1…18**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
 
 ### ⚡ Независимые задачи
 
-**1 · M · Docker dev-окружение** — приор. Low  
+**1 · S · ErrorBoundary в renderer** — приор. High  
+- **Цель:** исключение при рендере не роняет весь UI в белый экран  
+- **Файлы:** `app/src/components/ErrorBoundary.tsx`, `app/src/App.tsx`  
+- **Действие:** корневой class-компонент `getDerivedStateFromError` + fallback с кнопкой «Перезагрузить»; обернуть дерево App  
+- **Проверка:** компонент, бросающий ошибку в render, показывает fallback, а не пустой экран; `npm run typecheck`
+
+**2 · S · Лимит буфера в runCommand** — приор. High  
+- **Цель:** команда с бесконечным выводом не раздувает память main-процесса до OOM  
+- **Файлы:** `app/electron/main/services.ts`  
+- **Действие:** считать накопленные байты в обработчиках `data`; при превышении порога (константа в `shared/constants.ts`) — `killProcessTree` + пометка «вывод обрезан»  
+- **Проверка:** unit-тест с командой, печатающей >лимита, завершается обрезкой; `npm test`
+
+**3 · S · AgentRunner: options-объект** — приор. Medium  
+- **Цель:** убрать 9 позиционных параметров конструктора и мёртвый `_summarizeModel`  
+- **Файлы:** `app/electron/main/agent.ts`, вызовы `new AgentRunner(...)` в `index.ts`  
+- **Действие:** ввести интерфейс `AgentRunnerOptions`, перевести конструктор на объект, удалить неиспользуемый параметр  
+- **Проверка:** `npm run typecheck`; существующие тесты `agentRunner.integration` зелёные
+
+**4 · S · isInsideProject без toLowerCase на не-Windows** — приор. Medium  
+- **Цель:** guard пути не путает регистрозависимые ФС (Linux/macOS)  
+- **Файлы:** `app/electron/main/services.ts`  
+- **Действие:** понижать регистр только при `process.platform === 'win32'`  
+- **Проверка:** unit-тест: на не-win `/Proj` и `/proj` считаются разными; `npm test -- services`
+
+**5 · M · Docker dev-окружение** — приор. Low  
 - **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
 - **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
 - **Действие:** образ + том исходников + `npm run dev`  
 - **Проверка:** `docker compose up` поднимает приложение
 
+### 🔗 Рефакторинг монолитов
+
+**6 · L · Разбивка SettingsModal.tsx** — приор. Medium  
+- **Цель:** 2854-строчный компонент разнести по вкладкам (как `ChatPanel/`)  
+- **Файлы:** `app/src/components/SettingsModal/` (`index.tsx`, `ProviderTab`, `MemoryTab`, `IntegrationsTab`, `AdvancedTab`)  
+- **Действие:** выделить секции в отдельные компоненты, общий state поднять в `index.tsx`  
+- **Проверка:** `npm run typecheck` + `npm run build`; все вкладки открываются в UI
+
+**7 · M · Разбивка регистрации IPC в index.ts** — приор. Low  
+- **Цель:** 1034-строчный `index.ts` разнести по доменам  
+- **Файлы:** `app/electron/main/index.ts`, новые `ipc/registerGitIpc.ts`, `ipc/registerMemoryIpc.ts` и т.д.  
+- **Действие:** вынести группы `ipcMain.handle(...)` в функции-регистраторы, вызвать из `index.ts`  
+- **Проверка:** `npm run build`; приложение стартует, IPC-каналы отвечают
+
+**8 · M · Разбивка agentHandlersProject.ts** — приор. Low  
+- **Цель:** 1206-строчный файл разделить по группам инструментов  
+- **Файлы:** `app/electron/main/agentHandlersProject*.ts`  
+- **Действие:** выделить файловые / поисковые / терминальные обработчики в отдельные модули, реэкспорт без barrel  
+- **Проверка:** `npm run typecheck`; `npm test -- agentHandlersProject`
+
+### 🔗 Унификация провайдеров
+
+**9 · L · Claude/Gemini → StreamingChatProvider** — приор. Medium  
+- **Цель:** единый 429-backoff и стриминг для всех провайдеров  
+- **Файлы:** `app/electron/main/providers/claudeProvider.ts`, `geminiProvider.ts`, `streamingChatProvider.ts`  
+- **Действие:** подвести Claude и Gemini под базовый класс, убрать дублирующую ручную логику ретраев Gemini  
+- **Проверка:** `npm test -- providers`; стриминг и ретрай работают у всех провайдеров
+
+### 🔗 Качество кода
+
+**10 · M · Сокращение any + порог coverage в CI** — приор. Low  
+- **Цель:** меньше явных `any` в shared/main; порог покрытия в CI  
+- **Файлы:** `app/vitest.config.ts`, `.github/workflows/ci.yml`, точечно по `any`  
+- **Действие:** включить `coverage` (v8) с порогом для `shared/` и `services.ts`; типизировать очевидные `any`  
+- **Проверка:** `npm test -- --coverage` проходит порог; `npm run typecheck`
+
+### 🔗 Новые возможности
+
+**11 · L · Vision-ввод (скриншоты в чат)** — приор. Medium  
+- **Цель:** вставка изображения в чат → отправка моделям с поддержкой vision (Claude/Gemini/OpenAI)  
+- **Файлы:** `ChatInput.tsx`, `useAgentStream.ts`, `providers/*`, `shared/modelProvider.ts`  
+- **Действие:** приём image из буфера/файла, передача как content-блока в провайдеры, поддерживающие vision  
+- **Проверка:** скриншот + «что на экране?» возвращает осмысленный ответ от облачной модели
+
+**12 · M · Библиотека промптов / слэш-шаблоны** — приор. Low  
+- **Цель:** пользовательские шаблоны промптов, доступные через `/` в поле ввода  
+- **Файлы:** `ChatInput.tsx`, `app/electron/main/settings.ts` (хранилище шаблонов), новый popover  
+- **Действие:** CRUD шаблонов в настройках + автодополнение `/name` в инпуте  
+- **Проверка:** созданный шаблон подставляется по `/name` в чат
+
+**13 · M · Повтор прогона с шага из TracePanel** — приор. Low  
+- **Цель:** перезапуск задачи с выбранного шага трейса  
+- **Файлы:** `TracePanel.tsx`, `useAgentStream.ts`, IPC рестарта  
+- **Действие:** кнопка «Повторить с шага» → восстановление истории до шага и новый прогон  
+- **Проверка:** повтор с шага N стартует с корректным контекстом
+
+**14 · M · Дашборд метрик агента** — приор. Low  
+- **Цель:** токены, стоимость, длительность, % успешных прогонов по моделям  
+- **Файлы:** `app/electron/main/agentLogger.ts`, новая `MetricsPanel.tsx`, IPC `get-agent-metrics`  
+- **Действие:** агрегация записей `agentLogger` → таблица/графики в UI  
+- **Проверка:** панель показывает статистику по завершённым прогонам
+
 ### 🔗 Далёкое будущее
 
-**2 · L · Голосовой ввод и озвучка** — приор. Low  
+**15 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**3 · XL · LSP в редакторе** — приор. Low  
-- **Цель:** go-to-definition, hover, diagnostics для открытого файла в встроенном просмотре  
-- **Файлы:** `app/electron/main/lspClient.ts`, Monaco или CodeMirror интеграция  
+**16 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
+- **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
+- **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
+- **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
+- **Проверка:** правка файла в UI сохраняется на диск
+
+**17 · XL · LSP в редакторе** — приор. Low  
+- **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
+- **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**4 · L · Skill marketplace** — приор. Low  
+**18 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
