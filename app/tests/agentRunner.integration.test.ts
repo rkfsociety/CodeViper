@@ -118,7 +118,7 @@ describe('AgentRunner — интеграционный прогон', () => {
   it('простой текстовый ответ — emit assistant + done', async () => {
     chatState.impl = makeResponses([[{ content: 'Привет! Чем помочь?' }]])
 
-    const runner = new AgentRunner(makeSettings(), projectDir, emit)
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
 
     await runner.run([], 'привет')
 
@@ -141,7 +141,7 @@ describe('AgentRunner — интеграционный прогон', () => {
       [{ content: 'Папка пустая.' }]
     ])
 
-    const runner = new AgentRunner(makeSettings(), projectDir, emit)
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
 
     await runner.run([], 'покажи папку')
 
@@ -166,7 +166,7 @@ describe('AgentRunner — интеграционный прогон', () => {
       [{ content: 'Файл прочитан.' }]
     ])
 
-    const runner = new AgentRunner(makeSettings(), projectDir, emit)
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
 
     await runner.run([], 'прочитай файл')
 
@@ -193,13 +193,12 @@ describe('AgentRunner — интеграционный прогон', () => {
 
     const confirm = vi.fn().mockResolvedValue(false)
 
-    const runner = new AgentRunner(
-      makeSettings({ permissionMode: 'ask' }),
-      projectDir,
+    const runner = new AgentRunner({
+      settings: makeSettings({ permissionMode: 'ask' }),
+      projectPath: projectDir,
       emit,
-      undefined,
       confirm
-    )
+    })
 
     await runner.run([], 'запиши файл')
 
@@ -223,7 +222,12 @@ describe('AgentRunner — интеграционный прогон', () => {
       throw new DOMException('Aborted', 'AbortError')
     }
 
-    const runner = new AgentRunner(makeSettings(), projectDir, emit, controller.signal)
+    const runner = new AgentRunner({
+      settings: makeSettings(),
+      projectPath: projectDir,
+      emit,
+      signal: controller.signal
+    })
 
     // run() должен завершиться без uncaught exception
     await expect(runner.run([], 'сделай что-нибудь')).resolves.toBeUndefined()
@@ -248,7 +252,7 @@ describe('AgentRunner — интеграционный прогон', () => {
       [{ content: 'Готово.' }]
     ])
 
-    const runner = new AgentRunner(makeSettings(), projectDir, emit)
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
 
     await expect(runner.run([], 'список')).resolves.toBeUndefined()
 

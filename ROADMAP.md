@@ -29,19 +29,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### ⚡ Независимые задачи
 
-**1 · S · AgentRunner: options-объект** — приор. Medium  
-- **Цель:** убрать 9 позиционных параметров конструктора и мёртвый `_summarizeModel`  
-- **Файлы:** `app/electron/main/agent.ts`, вызовы `new AgentRunner(...)` в `index.ts`  
-- **Действие:** ввести интерфейс `AgentRunnerOptions`, перевести конструктор на объект, удалить неиспользуемый параметр  
-- **Проверка:** `npm run typecheck`; существующие тесты `agentRunner.integration` зелёные
-
-**2 · S · isInsideProject без toLowerCase на не-Windows** — приор. Medium  
+**1 · S · isInsideProject без toLowerCase на не-Windows** — приор. Medium  
 - **Цель:** guard пути не путает регистрозависимые ФС (Linux/macOS)  
 - **Файлы:** `app/electron/main/services.ts`  
 - **Действие:** понижать регистр только при `process.platform === 'win32'`  
 - **Проверка:** unit-тест: на не-win `/Proj` и `/proj` считаются разными; `npm test -- services`
 
-**3 · M · Docker dev-окружение** — приор. Low  
+**2 · M · Docker dev-окружение** — приор. Low  
 - **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
 - **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
 - **Действие:** образ + том исходников + `npm run dev`  
@@ -49,13 +43,13 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Новые возможности
 
-**4 · M · Повтор прогона с шага из TracePanel** — приор. Low  
+**3 · M · Повтор прогона с шага из TracePanel** — приор. Low  
 - **Цель:** перезапуск задачи с выбранного шага трейса  
 - **Файлы:** `TracePanel.tsx`, `useAgentStream.ts`, IPC рестарта  
 - **Действие:** кнопка «Повторить с шага» → восстановление истории до шага и новый прогон  
 - **Проверка:** повтор с шага N стартует с корректным контекстом
 
-**5 · M · Дашборд метрик агента** — приор. Low  
+**4 · M · Дашборд метрик агента** — приор. Low  
 - **Цель:** токены, стоимость, длительность, % успешных прогонов по моделям  
 - **Файлы:** `app/electron/main/agentLogger.ts`, новая `MetricsPanel.tsx`, IPC `get-agent-metrics`  
 - **Действие:** агрегация записей `agentLogger` → таблица/графики в UI  
@@ -63,25 +57,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**6 · L · Голосовой ввод и озвучка** — приор. Low  
+**5 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**7 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
+**6 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
 - **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
 - **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
 - **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
 - **Проверка:** правка файла в UI сохраняется на диск
 
-**8 · XL · LSP в редакторе** — приор. Low  
+**7 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
 - **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**9 · L · Skill marketplace** — приор. Low  
+**8 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
@@ -92,6 +86,8 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
+
+- AgentRunner options-объект: интерфейс `AgentRunnerOptions` + деструктуризация в конструкторе; удалён мёртвый параметр `_summarizeModel`; убран `resolveSummarizeModel` из registerAgentIpc; обновлены все call sites (agent.ts P2P, registerAgentIpc.ts, тесты)
 
 - Лимит буфера runCommand: `COMMAND_OUTPUT_BUFFER_LIMIT_BYTES = 10 МБ` в `constants.ts`; счётчик байт в обработчиках `data` → `killProcessTree` + сообщение «вывод обрезан» при превышении; unit-тест в `services.test.ts`
 

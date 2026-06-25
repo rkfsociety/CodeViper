@@ -6,11 +6,7 @@ import { formatPrerequisitesMessage } from '../../../shared/agentPrerequisites'
 import { filterToolCallingModels } from '../../../shared/recommendedModels'
 import { buildAgentContextPreview, summarizeChatHistory } from '../agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel } from '../modelRuntime'
-import {
-  selectModelForTask,
-  shouldUseAutoModel,
-  resolveSummarizeModel
-} from '../../../shared/modelRouter'
+import { selectModelForTask, shouldUseAutoModel } from '../../../shared/modelRouter'
 import { startSystemStatsPush, stopSystemStatsPush } from '../systemStats'
 import { setProgressTarget, clearProgress } from '../progress'
 import { agentLogger } from '../agentLogger'
@@ -193,27 +189,20 @@ export function registerAgentIpc(ctx: IpcContext): void {
           throw new Error('Модель не выбрана. Скачайте модель в настройках или включите Ollama.')
         }
 
-        const summarizeModel = resolveSummarizeModel(
-          installed,
-          effectiveSettings.model,
-          settings.summarizeModel
-        )
-
-        const runner = new AgentRunner(
-          effectiveSettings,
+        const runner = new AgentRunner({
+          settings: effectiveSettings,
           projectPath,
-          (event) => stream(chatId, event),
-          abortCtrl.signal,
-          makeConfirmFn(abortCtrl.signal),
-          summarizeModel,
-          makePreviewFn(abortCtrl.signal),
+          emit: (event) => stream(chatId, event),
+          signal: abortCtrl.signal,
+          confirm: makeConfirmFn(abortCtrl.signal),
+          previewFn: makePreviewFn(abortCtrl.signal),
           chatId,
-          (previewId) => {
+          hunkSelectionFn: (previewId) => {
             const sel = pendingHunkSelections.get(previewId)
             pendingHunkSelections.delete(previewId)
             return sel
           }
-        )
+        })
 
         await runner.run(history, userMessage, userImages)
       } catch (error) {

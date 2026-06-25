@@ -35,6 +35,17 @@ import {
 } from './p2pClient'
 
 export { parseToolArgs } from './agentToolExecutor'
+
+export interface AgentRunnerOptions {
+  settings: AgentSettings
+  projectPath: string
+  emit: (event: AgentStreamPayload) => void
+  signal?: AbortSignal
+  confirm?: (toolName: string, toolInput: string) => Promise<boolean>
+  previewFn?: (previewId: string) => Promise<boolean>
+  chatId?: string
+  hunkSelectionFn?: (previewId: string) => number[] | undefined
+}
 export {
   fetchOllamaModels,
   fetchOllamaModelsWithDetails,
@@ -70,16 +81,13 @@ export async function runIncomingP2pTask(
   }
 
   try {
-    const runner = new AgentRunner(
+    const runner = new AgentRunner({
       settings,
       projectPath,
       emit,
       signal,
-      undefined,
-      undefined,
-      undefined,
-      `p2p-${task.id}`
-    )
+      chatId: `p2p-${task.id}`
+    })
     await runner.run([], prompt)
     return { accepted: true, paused: false, message: 'задача выполнена' }
   } finally {
@@ -90,24 +98,27 @@ export async function runIncomingP2pTask(
 export class AgentRunner {
   private readonly selfImprovementPlan = new SelfImprovementPlanStore()
   private settings: AgentSettings
+  private readonly projectPath: string
+  private readonly chatId: string | undefined
 
   private readonly emitter: ResponseEmitter
   private readonly ctx: ContextManager
   private readonly toolExecutor: ToolExecutor
   private readonly selfImproveOrchestrator: SelfImprovementOrchestrator
 
-  constructor(
-    settings: AgentSettings,
-    private readonly projectPath: string,
-    emit: (event: AgentStreamPayload) => void,
-    signal?: AbortSignal,
-    confirm?: (toolName: string, toolInput: string) => Promise<boolean>,
-    _summarizeModel?: string,
-    previewFn?: (previewId: string) => Promise<boolean>,
-    private readonly chatId?: string,
-    hunkSelectionFn?: (previewId: string) => number[] | undefined
-  ) {
+  constructor({
+    settings,
+    projectPath,
+    emit,
+    signal,
+    confirm,
+    previewFn,
+    chatId,
+    hunkSelectionFn
+  }: AgentRunnerOptions) {
     this.settings = settings
+    this.projectPath = projectPath
+    this.chatId = chatId
     this.emitter = new ResponseEmitter(emit, signal)
     this.ctx = new ContextManager(settings, this.emitter, signal)
 
