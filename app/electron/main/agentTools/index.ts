@@ -187,6 +187,7 @@ export interface ToolArgs {
   list_issues: Record<string, never>
   open_issue: { number: string }
   trigger_github_workflow: { workflow_id: string; ref?: string; fields?: string }
+  check_github_auth: Record<string, never>
   list_gitlab_mrs: Record<string, never>
   create_gitlab_mr: {
     source_branch: string

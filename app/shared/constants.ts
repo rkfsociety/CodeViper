@@ -107,6 +107,9 @@ export const COLLECTIVE_MEMORY_REPO_PATH = 'docs/collective/ViperMemory.md'
 export const COLLECTIVE_MEMORY_PUSH_RETRY_MAX = 3
 /** Коллективные навыки в репозитории CodeViper */
 export const COLLECTIVE_SKILLS_REPO_PATH = 'docs/collective/ViperSkills.md'
+/** Репозиторий для API-синхронизации коллективной памяти (без локального git) */
+export const CODEVIPER_GITHUB_OWNER = 'rkfsociety'
+export const CODEVIPER_GITHUB_REPO = 'CodeViper'
 
 // ── P2P-вычисления ───────────────────────────────────────────────────────────
 /** CPU выше порога → входящие P2P-задачи на паузе */

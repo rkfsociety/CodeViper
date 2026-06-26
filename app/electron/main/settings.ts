@@ -67,12 +67,14 @@ export const PersistedSettingsSchema = z.object({
   autoIndexOnOpen: z.boolean().optional(),
   customSystemPrompt: z.string().optional(),
   gitlabToken: z.string().optional(),
+  githubToken: z.string().optional(),
   gitlabUrl: z.string().optional(),
   jiraUrl: z.string().optional(),
   jiraToken: z.string().optional(),
   linearApiKey: z.string().optional(),
   disabledTools: z.array(z.string()).optional(),
   sourceRootOverride: z.string().optional(),
+  gitRepoRoot: z.string().optional(),
   mcpServers: z
     .array(
       z.object({
@@ -224,6 +226,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
       ? { customSystemPrompt: settings.customSystemPrompt.trim() }
       : {}),
     ...(settings.gitlabToken?.trim() ? { gitlabToken: settings.gitlabToken.trim() } : {}),
+    ...(settings.githubToken?.trim() ? { githubToken: settings.githubToken.trim() } : {}),
     ...(settings.gitlabUrl?.trim() ? { gitlabUrl: settings.gitlabUrl.trim() } : {}),
     ...(settings.disabledTools?.length ? { disabledTools: settings.disabledTools } : {}),
     ...(settings.selfImproveBranch?.trim()
@@ -233,6 +236,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.sourceRootOverride?.trim()
       ? { sourceRootOverride: settings.sourceRootOverride.trim() }
       : {}),
+    ...(settings.gitRepoRoot?.trim() ? { gitRepoRoot: settings.gitRepoRoot.trim() } : {}),
     ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {}),
     ...(settings.orchestratorModelPath?.trim()
       ? { orchestratorModelPath: settings.orchestratorModelPath.trim() }
@@ -305,6 +309,7 @@ export async function loadSettings(): Promise<PersistedSettings> {
       if (obj.qdrantApiKey) obj.qdrantApiKey = decryptApiKey(obj.qdrantApiKey as string)
       if (obj.milvusApiKey) obj.milvusApiKey = decryptApiKey(obj.milvusApiKey as string)
       if (obj.gitlabToken) obj.gitlabToken = decryptApiKey(obj.gitlabToken as string)
+      if (obj.githubToken) obj.githubToken = decryptApiKey(obj.githubToken as string)
       if (obj.jiraToken) obj.jiraToken = decryptApiKey(obj.jiraToken as string)
       if (obj.linearApiKey) obj.linearApiKey = decryptApiKey(obj.linearApiKey as string)
     }
@@ -335,6 +340,7 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     qdrantApiKey: encryptApiKey(normalized.qdrantApiKey ?? ''),
     milvusApiKey: encryptApiKey(normalized.milvusApiKey ?? ''),
     ...(normalized.gitlabToken ? { gitlabToken: encryptApiKey(normalized.gitlabToken) } : {}),
+    ...(normalized.githubToken ? { githubToken: encryptApiKey(normalized.githubToken) } : {}),
     ...(normalized.jiraToken ? { jiraToken: encryptApiKey(normalized.jiraToken) } : {}),
     ...(normalized.linearApiKey ? { linearApiKey: encryptApiKey(normalized.linearApiKey) } : {})
   }

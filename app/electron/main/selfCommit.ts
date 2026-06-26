@@ -4,6 +4,7 @@ import { join } from 'path'
 import { app } from 'electron'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { getCodeViperSourceRoot } from './codeviperSource'
+import { resolveGitRepoRoot } from './githubAuth'
 
 interface GitResult {
   code: number
@@ -138,22 +139,25 @@ export async function ensureSelfImproveBranch(
     return { ok: false, message: 'ветка самоулучшения должна начинаться с agent/' }
   }
 
-  try {
-    await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
-  } catch {
-    return { ok: false, message: 'не git-репозиторий — переключение ветки пропущено' }
+  const repoRoot = await getRepoRoot(source)
+  if (!repoRoot) {
+    return {
+      ok: false,
+      message:
+        'не git-репозиторий — переключение ветки пропущено. Укажите корень git-клона в Настройках (Поведение) или GitHub Token (Интеграции) для API-синхронизации.'
+    }
   }
 
-  const current = await getCurrentBranch(source)
+  const current = await getCurrentBranch(repoRoot)
   if (current === branch) {
     return { ok: true, message: `уже на ветке ${branch}`, branch }
   }
 
   try {
-    if (await localBranchExists(source, branch)) {
-      await runGitWithRetry(source, ['checkout', branch], 'checkout')
+    if (await localBranchExists(repoRoot, branch)) {
+      await runGitWithRetry(repoRoot, ['checkout', branch], 'checkout')
     } else {
-      await runGitWithRetry(source, ['checkout', '-b', branch], 'checkout')
+      await runGitWithRetry(repoRoot, ['checkout', '-b', branch], 'checkout')
     }
   } catch (err) {
     return {
@@ -167,13 +171,14 @@ export async function ensureSelfImproveBranch(
 
 /** Корень git-репозитория (родитель app/ при разработке из исходников). */
 export async function getRepoRoot(cwd?: string): Promise<string | null> {
-  const source = cwd ?? getCodeViperSourceRoot()
-  try {
-    const result = await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
-    return result.stdout.trim() || null
-  } catch {
-    return null
+  if (cwd) {
+    const result = await runGit(cwd, ['rev-parse', '--show-toplevel'])
+    if (result.code === 0) {
+      const root = result.stdout.trim()
+      if (root) return root
+    }
   }
+  return resolveGitRepoRoot()
 }
 
 /**

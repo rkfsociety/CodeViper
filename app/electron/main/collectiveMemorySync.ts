@@ -20,6 +20,7 @@ import { getCodeViperSourceRoot } from './codeviperSource'
 import { redactSecrets } from '../../shared/secretRedaction'
 import { maxSemanticSimilarity } from './embeddingQueue'
 import { loadSettings } from './settings'
+import { getRepoFileViaApi, upsertRepoFileViaApi } from './githubAuth'
 
 function runGitCmd(
   cwd: string,
@@ -180,21 +181,48 @@ export async function readCollectiveMemoryEntries(): Promise<MemoryEntry[]> {
   }))
 }
 
+async function readCollectiveStoreForMerge(): Promise<MemoryStore> {
+  const filePath = await getCollectiveMemoryFilePath()
+  if (filePath && existsSync(filePath)) {
+    try {
+      return parseMemoryMarkdown(await readFile(filePath, 'utf8'))
+    } catch {
+      return emptyStore()
+    }
+  }
+
+  const settings = await loadSettings()
+  const token = settings.githubToken?.trim()
+  if (!token) return emptyStore()
+
+  const branch = resolveSelfImproveBranch(settings.selfImproveBranch)
+  try {
+    const remote = await getRepoFileViaApi(token, COLLECTIVE_MEMORY_REPO_PATH, branch)
+    if (remote) return parseMemoryMarkdown(remote.content)
+  } catch {
+    /* API недоступен — пустой store */
+  }
+  return emptyStore()
+}
+
+async function mergeEntriesToMarkdown(
+  entries: MemoryEntry[]
+): Promise<{ markdown: string; added: number }> {
+  const store = await readCollectiveStoreForMerge()
+  const { ollamaUrl } = await loadSettings()
+  const { store: merged, added } = await mergeEntriesWithSemanticDedup(store, entries, ollamaUrl)
+  return { markdown: renderMemoryMarkdown(merged), added }
+}
+
 async function mergeIntoCollectiveFile(entries: MemoryEntry[]): Promise<number> {
   if (!entries.length) return 0
 
+  const { markdown, added } = await mergeEntriesToMarkdown(entries)
   const filePath = await getCollectiveMemoryFilePath()
-  if (!filePath) return 0
-
-  const store = existsSync(filePath)
-    ? parseMemoryMarkdown(await readFile(filePath, 'utf8'))
-    : emptyStore()
-
-  const { ollamaUrl } = await loadSettings()
-  const { store: merged, added } = await mergeEntriesWithSemanticDedup(store, entries, ollamaUrl)
-
-  await mkdir(dirname(filePath), { recursive: true })
-  await writeFile(filePath, renderMemoryMarkdown(merged), 'utf8')
+  if (filePath) {
+    await mkdir(dirname(filePath), { recursive: true })
+    await writeFile(filePath, markdown, 'utf8')
+  }
   return added
 }
 
@@ -324,6 +352,47 @@ export async function flushCollectiveMemoryToGit(
   }
 
   const reasons = rejected.map((r) => r.reason)
+  const branch = resolveSelfImproveBranch(configuredBranch)
+  const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
+
+  if (!repoRoot) {
+    const settings = await loadSettings()
+    const token = settings.githubToken?.trim()
+    if (!token) {
+      return {
+        ok: false,
+        message:
+          'не git-репозиторий и нет GitHub Token. Настройки → Поведение: «Корень git-репозитория»; Интеграции: token с правом repo. Либо: gh auth login',
+        branch,
+        syncedCount: 0,
+        rejectedCount: rejected.length,
+        rejectionReasons: reasons.length > 0 ? reasons : undefined
+      }
+    }
+
+    return collectiveMemoryPushMutex.runExclusive(async () => {
+      const { markdown, added } = await mergeEntriesToMarkdown(valid)
+      const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 80) || 'коллективная память'
+      const message = `chore(memory): ${shortSummary}\n\nCo-authored-by: CodeViper <295331836+CodeViperApp@users.noreply.github.com>`
+      const apiResult = await upsertRepoFileViaApi(
+        token,
+        COLLECTIVE_MEMORY_REPO_PATH,
+        branch,
+        markdown,
+        message
+      )
+      return {
+        ok: apiResult.ok,
+        message: apiResult.ok
+          ? `знания отправлены через GitHub API → ${branch}`
+          : apiResult.message,
+        branch,
+        syncedCount: added > 0 ? added : valid.length,
+        rejectedCount: rejected.length,
+        rejectionReasons: reasons.length > 0 ? reasons : undefined
+      }
+    })
+  }
 
   return collectiveMemoryPushMutex.runExclusive(async () => {
     let added = 0
@@ -331,7 +400,6 @@ export async function flushCollectiveMemoryToGit(
       ok: false,
       message: 'push не выполнялся'
     }
-    const branch = resolveSelfImproveBranch(configuredBranch)
 
     for (let attempt = 1; attempt <= COLLECTIVE_MEMORY_PUSH_RETRY_MAX; attempt++) {
       added = await mergeIntoCollectiveFile(valid)

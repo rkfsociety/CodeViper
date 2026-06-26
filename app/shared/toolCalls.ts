@@ -35,6 +35,7 @@ export const AGENT_TOOL_NAMES = [
   'git_log',
   'recent_changes',
   // GitHub
+  'check_github_auth',
   'create_issue',
   'create_pr',
   'list_issues',

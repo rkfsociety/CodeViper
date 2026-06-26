@@ -146,12 +146,34 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
             />
           </label>
           <div className={`${styles.hint} ${styles.hintInline}`}>
-            Personal Access Token с правом <code>gist</code> для кнопки «Поделиться» в Памяти и
-            Навыках. Создать:{' '}
+            Personal Access Token с правами <code>repo</code> (синхронизация знаний на GitHub) и{' '}
+            <code>gist</code> (кнопка «Поделиться»). Создать:{' '}
             <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
               github.com/settings/tokens
             </a>
           </div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const r = await window.codeviper.checkGitHubAuth()
+                window.alert(r.formatted)
+              } catch (e) {
+                window.alert(e instanceof Error ? e.message : String(e))
+              }
+            }}
+            style={{
+              marginTop: '8px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              backgroundColor: 'var(--color-bg-secondary)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '4px',
+              fontSize: '14px'
+            }}
+          >
+            Проверить GitHub / git
+          </button>
         </div>
       </SettingItem>
 

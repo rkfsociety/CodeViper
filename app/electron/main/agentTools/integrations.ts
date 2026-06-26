@@ -4,6 +4,15 @@ export const GITHUB_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'check_github_auth',
+      description:
+        'Проверить авторизацию GitHub (gh CLI и/или Token) и наличие локального git-клона для синхронизации коллективных знаний. Вызывай перед push коллективной памяти, если sync падает.',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'create_issue',
       description: 'Создать GitHub Issue через gh CLI',
       parameters: {

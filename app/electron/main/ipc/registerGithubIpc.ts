@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { IPC } from '../../../shared/ipcContracts'
 import { listPullRequests } from '../githubPr'
+import { getGitHubAuthStatus, formatGitHubAuthStatus } from '../githubAuth'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from '../githubTools'
 import { createCodeViperPr } from '../selfCommit'
 import { listRoadmapItems } from '../roadmapParser'
@@ -31,4 +32,9 @@ export function registerGithubIpc(): void {
   )
 
   ipcMain.handle(IPC.LIST_ROADMAP_ITEMS, async () => listRoadmapItems())
+
+  ipcMain.handle(IPC.CHECK_GITHUB_AUTH, async () => {
+    const status = await getGitHubAuthStatus()
+    return { ...status, formatted: formatGitHubAuthStatus(status) }
+  })
 }

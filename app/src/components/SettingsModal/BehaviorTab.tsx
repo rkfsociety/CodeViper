@@ -492,6 +492,40 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
             Абсолютный путь к папке <code>app/</code> исходников CodeViper. Если указан,
             используется вместо автоматического поиска. Оставьте пусто для автоматического поиска.
           </div>
+          <label>
+            Корень git-репозитория (для синхронизации знаний)
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="F:\\github\\CodeViper"
+                value={settings.gitRepoRoot ?? ''}
+                onChange={(e) => onSettingsChange({ gitRepoRoot: e.target.value })}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const path = await window.codeviper.selectFolder()
+                  if (path) onSettingsChange({ gitRepoRoot: path })
+                }}
+                style={{
+                  padding: '6px 12px',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--color-bg-secondary)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              >
+                Выбрать папку
+              </button>
+            </div>
+          </label>
+          <div className={`${styles.hint} ${styles.hintInline}`}>
+            Клон репозитория CodeViper (где лежит <code>.git</code> и <code>ROADMAP.md</code>).
+            Нужен для git push знаний; без него — GitHub Token с правом <code>repo</code> в
+            Интеграциях.
+          </div>
         </div>
       </SettingItem>
 

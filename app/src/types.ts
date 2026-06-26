@@ -260,6 +260,8 @@ export interface AgentSettings {
   disabledTools?: string[]
   /** Переопределённый путь к исходникам CodeViper (абсолютный путь папки app/) */
   sourceRootOverride?: string
+  /** Абсолютный путь к корню git-клона CodeViper (родитель app/) */
+  gitRepoRoot?: string
   /** Подключённые MCP-серверы с кэшем инструментов из /.well-known/mcp */
   mcpServers?: McpServerConfig[]
   /** Включённые плагины (имена плагинов из ~/.codeviper/plugins) */
@@ -745,6 +747,16 @@ export interface CodeViperAPI {
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>
   listRoadmapItems: () => Promise<RoadmapItem[]>
+  checkGitHubAuth: () => Promise<{
+    ghInstalled: boolean
+    ghLoggedIn: boolean
+    tokenConfigured: boolean
+    tokenValid: boolean
+    login?: string
+    gitRepoRoot: string | null
+    hints: string[]
+    formatted: string
+  }>
   benchmarkModel: (ollamaUrl: string, model: string) => Promise<BenchmarkResult>
   autoIndexProject: (
     projectPath: string,

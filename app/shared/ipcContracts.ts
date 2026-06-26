@@ -441,6 +441,7 @@ export const IPC = {
   BENCHMARK_MODEL: 'benchmark-model',
   AUTO_INDEX_PROJECT: 'auto-index-project',
   LIST_ROADMAP_ITEMS: 'list-roadmap-items',
+  CHECK_GITHUB_AUTH: 'check-github-auth',
   SELECT_GGUF_FILE: 'select-gguf-file',
   DOWNLOAD_GGUF: 'download-gguf',
   DELETE_GGUF_FILE: 'delete-gguf-file',
@@ -707,6 +708,19 @@ export const Contracts = {
   [IPC.LIST_ROADMAP_ITEMS]: {
     args: z.tuple([]),
     result: z.array(RoadmapItemSchema)
+  },
+  [IPC.CHECK_GITHUB_AUTH]: {
+    args: z.tuple([]),
+    result: z.object({
+      ghInstalled: z.boolean(),
+      ghLoggedIn: z.boolean(),
+      tokenConfigured: z.boolean(),
+      tokenValid: z.boolean(),
+      login: z.string().optional(),
+      gitRepoRoot: z.string().nullable(),
+      hints: z.array(z.string()),
+      formatted: z.string()
+    })
   },
   [IPC.DELETE_GGUF_FILE]: {
     args: z.tuple([z.string()]),

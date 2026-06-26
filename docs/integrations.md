@@ -20,6 +20,8 @@
 
 Глобальные знания синхронизируются в `docs/collective/ViperMemory.md` на GitHub; в статус-баре — чип **☁️ Память → agent/self-improve**.
 
+**Нужно одно из двух:** git-клон CodeViper (Настройки → Поведение → «Корень git-репозитория», например `F:\github\CodeViper`) **или** GitHub Personal Access Token с правами `repo` и `gist` (Настройки → Интеграции → кнопка «Проверить GitHub / git»). Из установщика без клона push идёт через GitHub API.
+
 ## Автообновление
 
 Установщик (packaged): `electron-updater` + GitHub Releases, баннер с прогрессом загрузки (%, объём, скорость, ETA) и кнопкой «Перезапустить и обновить». **Windows:** `CodeViper-Setup-*.exe` требует UAC (установка для всех пользователей, `perMachine`). Перед установкой приложение завершает воркеры и агентов; на Windows при сбое `quitAndInstall` запускается установщик из `%LOCALAPPDATA%\codeviper-updater\pending\`. Лог: `%APPDATA%\CodeViper\logs\update-*.ndjson`. Разработка из исходников: git fetch `app/` и перезапуск через лаунчер.
