@@ -3,7 +3,7 @@ import { appendFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
-import { BUNDLED_SOURCE_DIR_NAME } from '../../shared/constants'
+import { BUNDLED_SOURCE_DIR_NAME, BUNDLED_SOURCE_STARTUP_WAIT_MS } from '../../shared/constants'
 
 export interface BundledSourceSyncResult {
   updated: boolean
@@ -133,4 +133,49 @@ export async function syncBundledSourceIfEnabled(
 ): Promise<BundledSourceSyncResult | null> {
   if (!liveRuntimeFromGit) return null
   return syncBundledSource()
+}
+
+export interface BundledSourceStartupOptions {
+  isPackaged?: boolean
+  /** Переопределение лимита ожидания (только тесты). */
+  startupWaitMs?: number
+}
+
+export function shouldRunBundledSourceStartupSync(options: {
+  isPackaged: boolean
+  liveRuntimeFromGit: boolean
+}): boolean {
+  if (process.env.CODEVIPER_E2E === '1') return false
+  return options.isPackaged && options.liveRuntimeFromGit
+}
+
+/**
+ * Pull при старте packaged-приложения. Ждёт не дольше BUNDLED_SOURCE_STARTUP_WAIT_MS;
+ * дольше — sync продолжается в фоне. Ошибки только в лог, fallback на asar.
+ */
+export async function runBundledSourceStartupSync(
+  liveRuntimeFromGit: boolean,
+  options?: BundledSourceStartupOptions
+): Promise<void> {
+  const isPackaged = options?.isPackaged ?? app.isPackaged
+  if (!shouldRunBundledSourceStartupSync({ isPackaged, liveRuntimeFromGit })) return
+
+  const waitMs = options?.startupWaitMs ?? BUNDLED_SOURCE_STARTUP_WAIT_MS
+
+  const syncPromise = syncBundledSource()
+    .then(async (result) => {
+      if (result.error) {
+        await logBundledSourceSync('startup sync failed — fallback to asar', {
+          error: result.error,
+          localHead: result.localHead
+        })
+      }
+      return result
+    })
+    .catch(async (err) => {
+      const error = err instanceof Error ? err.message : String(err)
+      await logBundledSourceSync('startup sync error — fallback to asar', { error })
+    })
+
+  await Promise.race([syncPromise, new Promise<void>((resolve) => setTimeout(resolve, waitMs))])
 }

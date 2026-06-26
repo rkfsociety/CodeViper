@@ -50,7 +50,7 @@ cd CodeViper/app && npm install
 |---|---|
 | [Демонстрации (GIF)](docs/demos.md) | [Примеры запросов](docs/example-prompts.md) |
 | [Интеграции (MCP, P2P, коллективная память)](docs/integrations.md) | [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) |
-| [ROADMAP](ROADMAP.md) (**блок 0** — live runtime, затем 148 задач) | блок 0: `Выполни пункт N из ROADMAP.md — блок 0, live runtime` |
+| [ROADMAP](ROADMAP.md) (**блок 0** — live runtime, затем 147 задач) | блок 0: `Выполни пункт N из ROADMAP.md — блок 0, live runtime` |
 
 ## Участие
 

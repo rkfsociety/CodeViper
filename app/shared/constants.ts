@@ -134,6 +134,8 @@ export const CODEVIPER_GITHUB_REPO = 'CodeViper'
 // ── Live runtime (блок 0) ─────────────────────────────────────────────────────
 /** Подпапка клона репозитория относительно userData (%APPDATA%/CodeViper/source) */
 export const BUNDLED_SOURCE_DIR_NAME = 'source'
+/** Макс. ожидание startup sync перед показом окна (мс) */
+export const BUNDLED_SOURCE_STARTUP_WAIT_MS = 3_000
 
 // ── P2P-вычисления ───────────────────────────────────────────────────────────
 /** CPU выше порога → входящие P2P-задачи на паузе */
