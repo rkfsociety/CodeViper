@@ -13,6 +13,11 @@ export const UpdateInfoSchema = z.discriminatedUnion('source', [
     transferred: z.number().nonnegative().optional(),
     total: z.number().nonnegative().optional(),
     bytesPerSecond: z.number().nonnegative().optional()
+  }),
+  z.object({
+    source: z.literal('runtime'),
+    ready: z.literal(true),
+    localHead: z.string().optional()
   })
 ])
 

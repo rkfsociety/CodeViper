@@ -372,6 +372,10 @@ function AppContent() {
     return window.codeviper.onUpdateAvailable((info) => setUpdateInfo(info))
   }, [])
 
+  useEffect(() => {
+    return window.codeviper.onRuntimeUpdateReady((info) => setUpdateInfo(info))
+  }, [])
+
   // Проверяем наличие краш-снимка при старте (файл остался после аварийного завершения)
   useEffect(() => {
     void window.codeviper.getCrashRecovery().then((state) => {
@@ -799,7 +803,12 @@ function AppContent() {
               setInstallingUpdate(true)
               window.codeviper.installUpdate()
             }}
-            onDismiss={() => setUpdateInfo(null)}
+            onDismiss={() => {
+              if (updateInfo.source === 'runtime') {
+                window.codeviper.dismissRuntimeUpdate()
+              }
+              setUpdateInfo(null)
+            }}
           />
         )}
 

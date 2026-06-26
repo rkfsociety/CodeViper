@@ -9,6 +9,7 @@ import { ensureDefaultSkills } from './defaultSkills'
 import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
 import { stopSystemStatsPush } from './systemStats'
 import { startUpdateChecks } from './updateChecker'
+import { startRuntimeUpdateNotifier } from './runtimeUpdate'
 import { registerShutdownHook } from './appShutdown'
 import { unloadModel } from './nodeLlama'
 import { resolveAppIconPath } from './appIcon'
@@ -396,7 +397,10 @@ app.whenReady().then(async () => {
     void installReactDevTools()
   }
 
-  if (mainWindow) startUpdateChecks(mainWindow.webContents, settings.updateChannel === 'beta')
+  if (mainWindow) {
+    startUpdateChecks(mainWindow.webContents, settings.updateChannel === 'beta')
+    startRuntimeUpdateNotifier(mainWindow.webContents)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()

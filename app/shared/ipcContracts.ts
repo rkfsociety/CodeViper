@@ -483,6 +483,8 @@ export const IPC = {
   SYSTEM_STATS: 'system-stats',
   PROGRESS_EVENT: 'progress-event',
   UPDATE_AVAILABLE: 'update-available',
+  RUNTIME_UPDATE_READY: 'runtime-update-ready',
+  DISMISS_RUNTIME_UPDATE: 'dismiss-runtime-update',
   MCP_HEALTH_STATUS: 'mcp-health-status'
 } as const
 

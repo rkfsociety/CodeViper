@@ -7,6 +7,7 @@ import type { WebContents } from 'electron'
 import type { UpdateInfo } from '../../shared/updateInfo'
 import { resolveWindowsPendingInstaller } from '../../shared/updateInstall'
 import { getCodeViperSourceRoot } from './codeviperSource'
+import { isRuntimeUpdatePending, relaunchForRuntimeUpdate } from './runtimeUpdate'
 import { runShutdownHooks } from './appShutdown'
 import { shutdownEmbeddingWorker } from './embeddingQueue'
 import { shutdownLargeFileWorker } from './largeFileQueue'
@@ -257,6 +258,18 @@ function launchQuitAndInstall(): void {
 
 export function installPendingUpdate(): void {
   if (installInProgress) return
+
+  if (isRuntimeUpdatePending()) {
+    installInProgress = true
+    void relaunchForRuntimeUpdate().catch((err) => {
+      installInProgress = false
+      void logUpdate('runtime-relaunch-failed', {
+        error: err instanceof Error ? err.message : String(err)
+      })
+    })
+    return
+  }
+
   installInProgress = true
 
   if (!app.isPackaged) {

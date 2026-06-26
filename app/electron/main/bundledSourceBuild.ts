@@ -207,7 +207,14 @@ export async function maybeBuildBundledSourceAfterSync(
     return null
   }
 
-  return buildBundledSourceRuntime()
+  return buildBundledSourceRuntime().then(async (result) => {
+    if (result.built) {
+      void import('./runtimeUpdate').then(({ markRuntimeUpdateReady }) =>
+        markRuntimeUpdateReady(syncResult.localHead)
+      )
+    }
+    return result
+  })
 }
 
 /** Проверка изменений app/ между двумя коммитами (тесты / диагностика). */

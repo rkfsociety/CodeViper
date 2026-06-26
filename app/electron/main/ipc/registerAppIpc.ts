@@ -4,6 +4,7 @@ import { join } from 'path'
 import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { readAppState, writeAppState, clearAppState } from '../appState'
 import { installPendingUpdate } from '../updateChecker'
+import { dismissRuntimeUpdate } from '../runtimeUpdate'
 import { getPluginsDirectory } from '../pluginLoader'
 import type { AppState } from '../../../src/types'
 import type { IpcContext } from './ipcContext'
@@ -63,6 +64,10 @@ export function registerAppIpc(ctx: IpcContext): void {
 
   ipcMain.on(IPC.INSTALL_UPDATE, () => {
     installPendingUpdate()
+  })
+
+  ipcMain.on(IPC.DISMISS_RUNTIME_UPDATE, () => {
+    dismissRuntimeUpdate()
   })
 
   ipcMain.on(IPC.OPEN_EXTERNAL, (_e, url: string) => {

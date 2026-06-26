@@ -754,6 +754,8 @@ export interface CodeViperAPI {
     rejectionReasons?: string[]
   }>
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
+  onRuntimeUpdateReady: (cb: (info: UpdateInfo) => void) => () => void
+  dismissRuntimeUpdate: () => void
   restartApp: () => void
   installUpdate: () => void
   openDevTools: () => void

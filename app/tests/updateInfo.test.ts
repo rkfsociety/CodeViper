@@ -31,4 +31,14 @@ describe('UpdateInfoSchema', () => {
     expect(parsed.percent).toBe(42.5)
     expect(parsed.transferred).toBe(150_000_000)
   })
+
+  it('принимает runtime-обновление после pull+build', () => {
+    const parsed = UpdateInfoSchema.parse({
+      source: 'runtime',
+      ready: true,
+      localHead: 'abc1234'
+    })
+    if (parsed.source !== 'runtime') throw new Error('expected runtime')
+    expect(parsed.ready).toBe(true)
+  })
 })

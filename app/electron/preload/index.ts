@@ -464,6 +464,17 @@ const codeviper = {
     return () => ipcRenderer.removeListener(IPC.UPDATE_AVAILABLE, handler)
   },
 
+  onRuntimeUpdateReady: (cb: (info: import('../../shared/updateInfo').UpdateInfo) => void) => {
+    const handler = (
+      _e: Electron.IpcRendererEvent,
+      info: import('../../shared/updateInfo').UpdateInfo
+    ) => cb(info)
+    ipcRenderer.on(IPC.RUNTIME_UPDATE_READY, handler)
+    return () => ipcRenderer.removeListener(IPC.RUNTIME_UPDATE_READY, handler)
+  },
+
+  dismissRuntimeUpdate: () => ipcRenderer.send(IPC.DISMISS_RUNTIME_UPDATE),
+
   onMcpHealthStatus: (
     cb: (payload: { results: import('../../src/types').McpHealthResult[] }) => void
   ) => {

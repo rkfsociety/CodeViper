@@ -59,6 +59,17 @@ export function UpdateBanner({ info, installing = false, onInstall, onDismiss }:
                 🔄 Загружается версия <strong>{info.version}</strong> с GitHub Releases…
               </>
             )
+          ) : info.source === 'runtime' ? (
+            <>
+              🔄 Обновление agent runtime готово
+              {info.localHead ? (
+                <>
+                  {' '}
+                  (<code>{info.localHead.slice(0, 7)}</code>)
+                </>
+              ) : null}
+              . Перезапустите для применения.
+            </>
           ) : (
             <>
               🔄 Доступно обновление исходников:{' '}
@@ -88,10 +99,12 @@ export function UpdateBanner({ info, installing = false, onInstall, onDismiss }:
           onClick={onInstall}
         >
           {installing
-            ? 'Устанавливаем…'
+            ? 'Перезапускаем…'
             : info.source === 'release' && info.ready
               ? 'Перезапустить и обновить'
-              : 'Перезапустить'}
+              : info.source === 'runtime'
+                ? 'Перезапустить для применения'
+                : 'Перезапустить'}
         </button>
         <button type="button" className="btn" onClick={onDismiss}>
           Позже
