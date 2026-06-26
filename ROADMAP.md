@@ -21,11 +21,11 @@ N · [S/M/L/XL] · Краткое название
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** нумерация сквозная (1…51); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
+**Правила:** нумерация сквозная (1…68); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
 
 ## 📋 В планах
 
-> Нумерация сквозная **1…51**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
+> Нумерация сквозная **1…68**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
 
 ### ⚡ Независимые задачи
 
@@ -368,6 +368,114 @@ N · [S/M/L/XL] · Краткое название
 - **Файлы:** `ChatPanel/`, `AgentStatusBar.tsx`, locale-файлы  
 - **Действие:** ключи `chat.*`, `status.*`  
 - **Проверка:** en locale — placeholder поля ввода на английском
+
+### 🔗 Рефакторинг монолитов (продолжение)
+
+> Самые крупные файлы сейчас: `ModelTab.tsx` (~1100), `ChatPanel/index.tsx` (~980), `App.tsx` (~940), `ipcContracts.ts` (~790), `ChatHistoryPanel.tsx` (~740). Пп. 21–23 покрывают App/agent/ChatPanel; ниже — остальные.
+
+**52 · M · ModelTab: формы провайдеров** — приор. Medium  
+- **Цель:** вынести JSX-блоки `provider === '…'` в `ModelTab/providers/*.tsx`  
+- **Файлы:** `SettingsModal/ModelTab.tsx` → `SettingsModal/ModelTab/providers/` (Ollama, DeepSeek, Gemini, …)  
+- **Действие:** каждый провайдер — отдельный компонент с props `{ settings, onSettingsChange }`; ModelTab — switch по `modelProvider`  
+- **Проверка:** `npm run typecheck`; смена провайдера в настройках работает как раньше
+
+**53 · M · ModelTab: оркестратор, бенчмарк, канал обновлений** — приор. Medium  
+- **Цель:** вынести нижнюю часть ModelTab (~300 строк) в отдельные секции  
+- **Файлы:** `OrchestratorSection.tsx`, `BenchmarkSection.tsx`, `UpdateChannelSection.tsx` в `SettingsModal/ModelTab/`  
+- **Действие:** перенести GGUF-download, benchmark, orchestrator toggle, beta-channel без изменения логики  
+- **Проверка:** бенчмарк и скачивание GGUF работают; `ModelTab.tsx` < 400 строк
+
+**54 · M · ipcContracts: Zod-схемы данных** — приор. Medium  
+- **Цель:** схемы `ChatMessage`, `AgentSettings`, `SavedChat` и др. — в `shared/ipc/schemas.ts`  
+- **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/schemas.ts`  
+- **Действие:** re-export из `ipcContracts.ts` для обратной совместимости импортов  
+- **Проверка:** `npm run typecheck`; импорты `ChatMessageSchema` не сломаны
+
+**55 · M · ipcContracts: IPC enum и Contracts** — приор. Medium  
+- **Цель:** объект `IPC` и `Contracts` — в `shared/ipc/channels.ts`  
+- **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/channels.ts`  
+- **Действие:** `ipcContracts.ts` — barrel re-export; `parseIpcArgs` остаётся рядом с Contracts  
+- **Проверка:** `npm run typecheck`; preload и register*Ipc компилируются
+
+**56 · M · ChatHistoryPanel: виртуализированный список** — приор. Low  
+- **Цель:** JSX рендера `FlatItem` и virtualizer — в `ChatHistoryList.tsx`  
+- **Файлы:** `ChatHistoryPanel.tsx` → `ChatHistoryList.tsx`  
+- **Действие:** props: `items`, `activeChatId`, `onSelect`; панель — композиция + toolbar  
+- **Проверка:** скролл длинной истории чатов без регрессий
+
+**57 · M · ChatHistoryPanel: DnD и диалоги** — приор. Low  
+- **Цель:** drag-and-drop, Prompt/Confirm state — в `useChatHistoryDnD.ts`  
+- **Файлы:** `ChatHistoryPanel.tsx`, `useChatHistoryDnD.ts`  
+- **Действие:** хук возвращает handlers и dialog state; панель < 400 строк  
+- **Проверка:** перетаскивание чата в папку работает
+
+**58 · M · types.ts: доменные модули** — приор. Low  
+- **Цель:** разнести ~720 строк на `types/chat.ts`, `types/settings.ts`, `types/memory.ts`, `types/api.ts`  
+- **Файлы:** `app/src/types/` (новая папка), `types.ts` — re-export  
+- **Действие:** `CodeViperAPI` в `api.ts`; `AgentSettings` в `settings.ts`  
+- **Проверка:** `npm run typecheck`; нет циклических импортов
+
+**59 · M · agentContext: RAG-hints** — приор. Low  
+- **Цель:** grep-nudge и `maybeAppendRagSearchHintAfterEmptyGrep` — в `agentContextRag.ts`  
+- **Файлы:** `agentContext.ts` → `agentContextRag.ts`  
+- **Действие:** re-export из `agentContext.ts`  
+- **Проверка:** `npm test` — существующие тесты RAG-hint зелёные
+
+**60 · M · agentContext: preview и prepare** — приор. Low  
+- **Цель:** `buildAgentContextPreview`, `prepareAgentRunContext`, `summarizeChatHistory` — в `agentContextBuild.ts`  
+- **Файлы:** `agentContext.ts` → `agentContextBuild.ts`  
+- **Действие:** `agentContext.ts` < 150 строк, только re-export и `OllamaMessage`  
+- **Проверка:** `npm run typecheck`; превью контекста в UI открывается
+
+**61 · M · services.ts: файловые операции** — приор. Medium  
+- **Цель:** `safeRead*`, `safeWrite*`, `buildFileTree`, кэши — в `fileServices.ts`  
+- **Файлы:** `services.ts` → `fileServices.ts`  
+- **Действие:** `services.ts` re-export для handler-импортов  
+- **Проверка:** `npm test -- services` зелёный
+
+**62 · M · services.ts: runCommand** — приор. Medium  
+- **Цель:** `validateCommand`, `normalizeCommand`, `runCommand`, лимит буфера — в `commandRunner.ts`  
+- **Файлы:** `services.ts` → `commandRunner.ts`  
+- **Действие:** handlers импортируют из `commandRunner.ts` или barrel `services.ts`  
+- **Проверка:** `npm test -- services.test` — validateCommand и buffer limit
+
+**63 · M · useAgentStream: обработчики событий** — приор. Low  
+- **Цель:** switch по `AgentStreamEvent.type` — в `agentStreamHandlers.ts`  
+- **Файлы:** `useAgentStream.ts` → `agentStreamHandlers.ts`  
+- **Действие:** чистые функции `(event, ctx) => partialState`; хук — подписка и setState  
+- **Проверка:** `npm run typecheck`; стрим агента в UI без регрессий
+
+**64 · M · preload: группы API** — приор. Low  
+- **Цель:** `codeviper` object разбить на `preload/agentApi.ts`, `preload/chatApi.ts`, `preload/fileApi.ts`  
+- **Файлы:** `electron/preload/index.ts`, `electron/preload/*.ts`  
+- **Действие:** `Object.assign` или spread в `contextBridge.exposeInMainWorld`  
+- **Проверка:** `npm run typecheck`; `window.codeviper.*` доступен в renderer
+
+**65 · M · agentTools/core: files / git / package** — приор. Low  
+- **Цель:** `FILE_TOOLS`, `GIT_TOOLS`, `PACKAGE_TOOLS` — в отдельные файлы (~200 строк каждый)  
+- **Файлы:** `agentTools/core.ts` → `coreFiles.ts`, `coreGit.ts`, `corePackage.ts`; `core.ts` — сборка  
+- **Действие:** `getAgentTools()` без изменений снаружи  
+- **Проверка:** `npm run typecheck`; список инструментов агента тот же
+
+**66 · S · Поиск по истории чатов** — приор. Medium  
+- **Цель:** поле фильтра в `ChatHistoryPanel` по заголовку и последнему сообщению  
+- **Файлы:** `ChatHistoryPanel.tsx`  
+- **Действие:** `searchQuery` state + `useMemo` фильтр `FlatItem`  
+- **Проверка:** ввод текста сужает список чатов
+
+### 🔗 CI и покрытие тестами
+
+**67 · M · E2E: smoke настройки и отправка** — приор. Medium  
+- **Цель:** Playwright-тест: открыть настройки → закрыть → ввести промпт (mock LLM)  
+- **Файлы:** `app/tests/e2e/smoke.spec.ts`  
+- **Действие:** `CODEVIPER_E2E=1`; stub agent-stream или пустой ответ  
+- **Проверка:** `npm run test:e2e` — новый тест зелёный в CI
+
+**68 · M · Coverage пороги electron/main** — приор. Medium  
+- **Цель:** расширить `vitest.config.ts` coverage на `agentLoopGuard.ts`, `runCheckpoint.ts`, `commandRunner.ts`  
+- **Файлы:** `vitest.config.ts`, тесты в `tests/`  
+- **Действие:** `include` + thresholds 50% branches для выбранных модулей  
+- **Проверка:** `npm test -- --coverage` проходит пороги в CI
 
 ---
 
