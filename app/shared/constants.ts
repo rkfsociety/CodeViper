@@ -131,6 +131,10 @@ export const COLLECTIVE_SKILLS_REPO_PATH = 'docs/collective/ViperSkills.md'
 export const CODEVIPER_GITHUB_OWNER = 'rkfsociety'
 export const CODEVIPER_GITHUB_REPO = 'CodeViper'
 
+// ── Live runtime (блок 0) ─────────────────────────────────────────────────────
+/** Подпапка клона репозитория относительно userData (%APPDATA%/CodeViper/source) */
+export const BUNDLED_SOURCE_DIR_NAME = 'source'
+
 // ── P2P-вычисления ───────────────────────────────────────────────────────────
 /** CPU выше порога → входящие P2P-задачи на паузе */
 export const P2P_PAUSE_CPU_THRESHOLD = 15
