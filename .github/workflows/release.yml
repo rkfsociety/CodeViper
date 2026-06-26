@@ -12,8 +12,6 @@ jobs:
   # Создаём черновик релиза до старта сборок — все платформы загружают в него
   prepare:
     runs-on: ubuntu-latest
-    outputs:
-      release_id: ${{ steps.create.outputs.release_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,16 +29,14 @@ jobs:
           else
             NOTES=$(git log --pretty=format:"- %s" --no-merges | head -30)
           fi
-          RELEASE_ID=$(gh release create "$TAG" \
+          gh release create "$TAG" \
             --title "CodeViper $TAG" \
             --draft \
             --notes "## Что нового
           ${NOTES}
 
           ---
-          **Установка:** скачайте \`CodeViper-Setup-*.exe\` (Windows), \`.AppImage\` (Linux) или \`.dmg\` (macOS)." \
-            --json id --jq '.id')
-          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          **Установка:** скачайте \`CodeViper-Setup-*.exe\` (Windows), \`.AppImage\` (Linux) или \`.dmg\` (macOS)."
 
   release:
     needs: prepare
