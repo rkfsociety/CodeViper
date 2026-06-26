@@ -5,9 +5,13 @@ test.describe('Ollama ping', () => {
   test('индикатор статуса Ollama виден в топбаре', async () => {
     const { app, page } = await launchApp()
     try {
-      // .status-dot должен появиться — онлайн или офлайн, не важно
       const dot = page.locator('.status-dot')
-      await expect(dot).toBeVisible({ timeout: 10_000 })
+      await expect(dot).toHaveAttribute('title', /Ollama (online|offline)/, { timeout: 10_000 })
+      await expect(dot).toHaveClass(/\b(online|offline)\b/)
+      const box = await dot.boundingBox()
+      expect(box).not.toBeNull()
+      expect(box!.width).toBeGreaterThan(0)
+      expect(box!.height).toBeGreaterThan(0)
     } finally {
       await closeApp(app)
     }
