@@ -19,7 +19,8 @@ const CONFIRM_IN_ACCEPT_EDITS = new Set<string>([
   // Создание PR — внешнее действие (публикация на GitHub), подтверждаем всегда кроме bypass.
   'create_codeviper_pr',
   'git_commit',
-  'git_push'
+  'git_push',
+  'git_checkout'
 ])
 
 export function normalizePermissionMode(value: unknown): PermissionMode {

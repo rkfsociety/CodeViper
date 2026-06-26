@@ -184,6 +184,7 @@ export interface ToolArgs {
   git_log: { limit?: string; path?: string; oneline?: string }
   git_commit: { message: string }
   git_push: { remote?: string; branch?: string }
+  git_checkout: { branch: string; force?: string }
   create_issue: { title: string; body?: string; labels?: string }
   create_pr: { title?: string; body?: string }
   list_issues: Record<string, never>

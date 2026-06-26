@@ -28,7 +28,8 @@ export const MUTATING_TOOLS = new Set([
   'create_linear_issue',
   'delegate_to_editor',
   'git_commit',
-  'git_push'
+  'git_push',
+  'git_checkout'
 ])
 
 const MUTATION_TASK_PATTERNS: RegExp[] = [

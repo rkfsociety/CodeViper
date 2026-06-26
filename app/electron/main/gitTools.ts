@@ -211,3 +211,45 @@ export async function gitPush(
   const result = await runGit(projectPath, args)
   return formatGitPushResult(result)
 }
+
+async function hasDirtyWorkingTree(projectPath: string): Promise<boolean> {
+  const status = await runGit(projectPath, ['status', '--porcelain'])
+  return status.code === 0 && status.stdout.trim().length > 0
+}
+
+/** git switch/checkout ветки внутри projectPath; dirty tree без force запрещён. */
+export async function gitCheckout(
+  projectPath: string,
+  options: { branch: string; force?: string }
+): Promise<string> {
+  const repoError = await ensureGitRepo(projectPath)
+  if (repoError) return repoError
+
+  const branch = options.branch?.trim()
+  if (!branch) return 'Не указана ветка для checkout'
+
+  const branchError = validateGitRef(branch)
+  if (branchError) return `Недопустимое имя ветки: ${branchError}`
+
+  const force = parseToolBool(options.force)
+  if (!force && (await hasDirtyWorkingTree(projectPath))) {
+    return [
+      'Ошибка: рабочее дерево не чистое (есть незакоммиченные изменения).',
+      'Сначала commit или stash, либо передай force=true для принудительного переключения (локальные правки могут быть потеряны).'
+    ].join('\n')
+  }
+
+  const switchArgs = ['switch']
+  if (force) switchArgs.push('-f')
+  switchArgs.push(branch)
+
+  let result = await runGit(projectPath, switchArgs)
+  if (result.code !== 0 && /unknown switch|not a git command/i.test(result.stderr)) {
+    const checkoutArgs = ['checkout']
+    if (force) checkoutArgs.push('-f')
+    checkoutArgs.push(branch)
+    result = await runGit(projectPath, checkoutArgs)
+  }
+
+  return formatGitResult(result)
+}

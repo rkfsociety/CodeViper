@@ -618,6 +618,28 @@ export const GIT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'git_checkout',
+      description:
+        'Переключить ветку (git switch/checkout). При незакоммиченных изменениях нужен force=true.',
+      parameters: {
+        type: 'object',
+        properties: {
+          branch: {
+            type: 'string',
+            description: 'Имя ветки для переключения'
+          },
+          force: {
+            type: 'string',
+            description: 'true — переключить при dirty tree (может потерять локальные правки)'
+          }
+        },
+        required: ['branch']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'recent_changes',
       description: 'Краткая сводка последних изменений git по проекту или папке',
       parameters: {

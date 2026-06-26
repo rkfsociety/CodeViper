@@ -108,6 +108,11 @@ describe('executeTool — git_commit', () => {
     const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
     await expect(handlers.git_push!({ remote: 'origin' })).rejects.toThrow(/только чтение/i)
   })
+
+  it('readonlyMode блокирует git_checkout', async () => {
+    const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
+    await expect(handlers.git_checkout!({ branch: 'feature' })).rejects.toThrow(/только чтение/i)
+  })
 })
 
 // ─── Тесты self-improvement handlers ──────────────────────────────────────
