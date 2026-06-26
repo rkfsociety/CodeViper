@@ -60,6 +60,8 @@ export function isCodeViperSourceRelativePath(filePath: string): boolean {
   )
 }
 
+export const SELF_IMPROVE_TEST_IMPORTS_HINT = `**Тесты** (\`app/tests/*.test.ts\`): импорт из main — \`../electron/main/...\`, из shared — \`../shared/...\`, типы UI — \`../src/types\`. Не \`./modelRuntime\` и не пути к несуществующим файлам в tests/.`
+
 export function buildRoadmapSelfImproveHint(itemNum: number | null, sourceRoot: string): string {
   const itemLine = itemNum
     ? `Пункт ROADMAP: **${itemNum}**.`
@@ -73,7 +75,9 @@ ${itemLine} Корень исходников CodeViper (app/): \`${sourceRoot}\
 
 **Файл из «Файлы» отсутствует (ENOENT):** сразу create_codeviper_file с полным содержимым; не повторять read_*.
 
-**План set_self_improvement_plan** обязан включать: реализация → run_codeviper_command (Проверка) → правка ROADMAP.md (удалить пункт, перенумеровать, «✅ Сделано») → README (счётчик задач) → commit_and_push_self_edits.
+${SELF_IMPROVE_TEST_IMPORTS_HINT}
+
+**План set_self_improvement_plan** обязан включать: реализация → run_codeviper_command (\`npm run typecheck\` затем тесты из «Проверка») → правка ROADMAP.md → README → commit_and_push_self_edits.
 
 Не вызывай list_directory «для разведки», если пути уже в ROADMAP.`
 }
@@ -255,11 +259,13 @@ ROADMAP.md — формат пункта:
 
 **Исходники CodeViper** (app/, tests/, ROADMAP.md): только инструменты \`*_codeviper_*\`. Не read_file/list_directory/create_file проекта. Не пути Program Files / установки .exe.
 
+${SELF_IMPROVE_TEST_IMPORTS_HINT}
+
 Алгоритм:
 1. read_codeviper_file ../ROADMAP.md → пункт N; read_codeviper_file для путей из «Файлы» (ENOENT → create_codeviper_file)
 2. set_self_improvement_plan — Действие + Проверка + обновление ROADMAP.md + README.md
 3. create_codeviper_file / edit_codeviper_file → complete_self_improvement_item(id)
-4. run_codeviper_command — команды из «Проверка»
+4. run_codeviper_command — сначала \`npm run typecheck\`, затем команды из «Проверка» (npm test …)
 5. edit_codeviper_file ../ROADMAP.md и README.md — удалить пункт N, перенумеровать, «✅ Сделано», счётчик задач
 6. commit_and_push_self_edits в том же прогоне
 7. В цепочке 🔗 — не переходить к следующему номеру, пока текущий не закрыт
@@ -267,7 +273,7 @@ ROADMAP.md — формат пункта:
 Без steps пользователю — только tool_calling.`
 
 export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_improvement_plan по полям ROADMAP (Действие + Проверка + ROADMAP/README).
-[{"id":"1","title":"…Действие…"},{"id":"2","title":"…Проверка npm test…"},{"id":"3","title":"ROADMAP: удалить пункт, Сделано, перенумерация"},{"id":"4","title":"README: счётчик задач"}]
+[{"id":"1","title":"…Действие…"},{"id":"2","title":"npm run typecheck"},{"id":"3","title":"…Проверка npm test…"},{"id":"4","title":"ROADMAP: удалить пункт, Сделано, перенумерация"},{"id":"5","title":"README: счётчик задач"}]
 Только tool_calling. read_codeviper_file ../ROADMAP.md и файлы из «Файлы» (*_codeviper_*, не read_file).`
 
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =

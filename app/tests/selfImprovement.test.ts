@@ -37,9 +37,10 @@ describe('selfImprovement', () => {
 
   it('строит ROADMAP-hint', () => {
     const hint = buildRoadmapSelfImproveHint(1, 'F:/github/CodeViper/app')
-    expect(hint).toContain('пункт')
+    expect(hint).toMatch(/пункт/i)
     expect(hint).toContain('codeviper')
     expect(hint).toContain('Program Files')
+    expect(hint).toContain('../electron/main/')
   })
 
   it('увеличивает лимит шагов для самоулучшения', () => {

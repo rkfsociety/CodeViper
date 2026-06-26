@@ -13,6 +13,7 @@ describe('UpdateInfoSchema', () => {
       version: '0.2.0',
       ready: true
     })
+    if (parsed.source !== 'release') throw new Error('expected release')
     expect(parsed.ready).toBe(true)
   })
 

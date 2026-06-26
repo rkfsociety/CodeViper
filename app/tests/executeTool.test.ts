@@ -66,7 +66,7 @@ describe('executeTool — write_file + readonlyMode', () => {
 describe('executeTool — неизвестный инструмент', () => {
   it('возвращает "Неизвестный инструмент"', async () => {
     // Эмулируем поведение AgentRunner.executeTool: ищем handler, при отсутствии — строка
-    const { handlers } = createProjectToolHandlers(projectDir) as {
+    const { handlers } = createProjectToolHandlers(projectDir) as unknown as {
       handlers: Record<string, ((args: Record<string, string>) => Promise<string>) | undefined>
     }
     const handler = handlers['no_such_tool']

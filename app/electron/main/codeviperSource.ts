@@ -201,12 +201,14 @@ export function buildSelfEditContext(isPackaged = false): string {
 - create_codeviper_file — новый файл (ошибка, если уже есть)
 - edit_codeviper_file — точечная замена old_string → new_string
 - append_codeviper_file — дописать в конец существующего файла
-- run_codeviper_command — команды в корне app/ (npm test, npm run typecheck${buildCmd})
+- run_codeviper_command — команды в корне app/ (npm run typecheck, npm test${buildCmd})
 - create_codeviper_branch <name> — создать ветку agent/<name> вместо коммита в master
 - push_codeviper_branch — запушить ветку agent/... на GitHub
 - create_codeviper_pr — создать Pull Request из ветки agent/* (gh pr create); PR не mержится автоматически
 
 Навыки (instructions без пересборки): create_skill / update_skill — всегда глобальные, %APPDATA%/CodeViper/ViperSkills.md.
+
+**Тесты** (\`tests/*.test.ts\`): \`../electron/main/...\`, \`../shared/...\`, \`../src/types\` — не \`./modelRuntime\`.
 
 Типичный workflow «улучши себя»:
 1. list_codeviper_directory + read_codeviper_file — изучить agent.ts, skills.ts, shared/

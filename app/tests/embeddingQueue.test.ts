@@ -10,7 +10,7 @@ const { MockWorker } = vi.hoisted(() => {
     constructor(filename: string, options?: { workerData?: Record<string, unknown> }) {
       super()
       MockWorker._lastInstance = this
-      MockWorker._lastOptions = options
+      MockWorker._lastOptions = options ?? null
     }
     static _lastInstance: MockWorker | null = null
     static _lastOptions: { workerData?: Record<string, unknown> } | null = null

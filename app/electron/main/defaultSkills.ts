@@ -291,9 +291,12 @@ N · [S/M/L/XL] · Название — приор. …
 - Цель: …
 - Файлы: app/…
 - Действие: …
-- Проверка: typecheck | test | UI
+- Проверка: npm run typecheck; npm test -- … | UI-сценарий
 \`\`\`
 Промпт: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
+
+## Тесты app/tests/
+Импорты: \`../electron/main/...\`, \`../shared/...\`, \`../src/types\`. Не \`./modelRuntime\`.
 
 ## Инструменты плана
 | Инструмент | Назначение |
@@ -305,7 +308,7 @@ N · [S/M/L/XL] · Название — приор. …
 ## Workflow
 1. \`read_codeviper_file\` ROADMAP.md → пункт N; прочитать «Файлы»
 2. \`set_self_improvement_plan\` по полям пункта
-3. Правки → \`run_codeviper_command\` из «Проверка» → \`complete_self_improvement_item\`
+3. Правки → \`run_codeviper_command\`: \`npm run typecheck\` затем тесты из «Проверка» → \`complete_self_improvement_item\`
 4. Пункт ROADMAP → «✅ Сделано», перенумеровать «В планах» с 1 (тот же коммит)
 5. В цепочке 🔗 не брать следующий номер, пока текущий не закрыт`
 }

@@ -29,7 +29,7 @@ N · [S/M/L/XL] · Краткое название — приор. High|Medium|L
 - Цель: один измеримый результат
 - Файлы: конкретные пути (app/electron/main/…, app/src/…)
 - Действие: одна атомарная правка
-- Проверка: npm run typecheck | npm test -- … | сценарий в UI
+- Проверка: npm run typecheck; npm test -- … | сценарий в UI
 ```
 
 **Промпт пользователя:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
