@@ -1,10 +1,10 @@
 import { dialog, ipcMain } from 'electron'
-import { mkdir, unlink, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { unlink } from 'fs/promises'
 import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from '../services'
 import { readFileHistory } from '../fileHistory'
 import { loadSettings } from '../settings'
+import { exportAgentTrace } from '../traceStorage'
 import type { IpcContext } from './ipcContext'
 
 const ATTACHMENT_SIZE_LIMIT = 200 * 1024
@@ -86,22 +86,8 @@ export function registerFileIpc(ctx: IpcContext): void {
   )
 
   ipcMain.handle(IPC.EXPORT_TRACE, async (_e, ...a) => {
-    const [projectPath, chatId, events] = parseIpcArgs(Contracts[IPC.EXPORT_TRACE].args, a)
-    if (!projectPath.trim()) {
-      return { ok: false, error: 'Проект не выбран' }
-    }
-    try {
-      const tracesDir = join(projectPath, '.codeviper', 'traces')
-      await mkdir(tracesDir, { recursive: true })
-      const filename = `${Date.now()}.json`
-      const filePath = join(tracesDir, filename)
-      const payload = { chatId, exportedAt: Date.now(), events }
-      await writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8')
-      return { ok: true, path: filePath }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return { ok: false, error: message }
-    }
+    const [chatId, events, projectPath] = parseIpcArgs(Contracts[IPC.EXPORT_TRACE].args, a)
+    return exportAgentTrace(chatId, events, projectPath)
   })
 
   ipcMain.handle(IPC.RUN_TERMINAL_COMMAND, async (_e, ...a) => {

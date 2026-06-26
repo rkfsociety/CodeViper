@@ -1059,7 +1059,7 @@ N · [S/M/L/XL] · Краткое название — уровень 1…142
 - Claude и Gemini → StreamingChatProvider: единый 429-backoff через `resolveRetryDelayMs`; убрана ручная retry-петля Gemini; Claude переведён с SDK на raw HTTP; 16 новых тестов провайдеров
 
 **UX**
-- Экспорт трейса агента: кнопка «Экспортировать» в TracePanel → `.codeviper/traces/<timestamp>.json` в папке проекта
+- Экспорт трейса агента: кнопка «Экспортировать» в TracePanel → `%APPDATA%/CodeViper/traces/<timestamp>.json` (папка данных приложения)
 - Cherry-pick hunks в DiffPreviewModal: `parseDiffHunks` + `applySelectedHunks` в `shared/diffPreview.ts`; чекбоксы ханков в `DiffPreviewModal`; кнопка «Применить выбранное»; IPC `AGENT_PREVIEW_HUNK_SELECTION`; `hunkSelectionFn` в `ToolExecutor`
 
 **Надёжность агентного цикла**
@@ -1178,6 +1178,10 @@ N · [S/M/L/XL] · Краткое название — уровень 1…142
 
 **Плагины**
 - Zod-валидация схемы tool при загрузке: невалидный `.js`-плагин логируется и пропускается, остальные загружаются
+
+**Инструменты проекта**
+- `list_directory` / `project_stats`: относительный `path` резолвится от корня проекта, а не от cwd установки
+- Экспорт трейса: `userData/traces/` вместо `{проект}/.codeviper/traces/`
 
 **Настройки**
 - Удалён deprecated `cloudApiKey`: миграция в per-provider keys при загрузке; UI облачного провайдера использует ключ выбранного провайдера

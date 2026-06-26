@@ -51,7 +51,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
   return {
     list_directory: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
-      const target = args.path?.trim() || projectPath
+      const target = args.path?.trim() ? resolve(projectPath, args.path.trim()) : projectPath
       const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
       return formatFileTree(tree) || '(пусто)'
     },
@@ -118,7 +118,7 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
 
     project_stats: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
-      const target = args.path?.trim() || projectPath
+      const target = args.path?.trim() ? resolve(projectPath, args.path.trim()) : projectPath
       const tree = await buildFileTree(target, 0, 5)
       const counts = countTree(tree as Parameters<typeof countTree>[0])
       const topLevel = tree.slice(0, 12).map((node) => `${node.name}${node.isDirectory ? '/' : ''}`)

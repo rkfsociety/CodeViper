@@ -84,10 +84,14 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   }
 
   async function handleExport() {
-    if (!chatId || events.length === 0 || !projectPath || exporting) return
+    if (!chatId || events.length === 0 || exporting) return
     setExporting(true)
     try {
-      const result = await window.codeviper.exportTrace(projectPath, chatId, events)
+      const result = await window.codeviper.exportTrace(
+        chatId,
+        events,
+        projectPath.trim() || undefined
+      )
       if (result.ok && result.path) {
         window.codeviper.showItemInFolder(result.path)
       }
@@ -96,7 +100,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
     }
   }
 
-  const canExport = Boolean(chatId && projectPath && events.length > 0 && !exporting)
+  const canExport = Boolean(chatId && events.length > 0 && !exporting)
 
   return (
     <div className={styles.panel}>
@@ -109,9 +113,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
                 className={styles.exportBtn}
                 onClick={() => void handleExport()}
                 disabled={!canExport}
-                title={
-                  projectPath ? 'Сохранить в .codeviper/traces/' : 'Сначала выберите папку проекта'
-                }
+                title="Сохранить в папку данных приложения (%APPDATA%/CodeViper/traces/)"
               >
                 {exporting ? 'Сохранение…' : 'Экспортировать'}
               </button>

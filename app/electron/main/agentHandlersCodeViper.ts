@@ -1,3 +1,4 @@
+import { resolve } from 'path'
 import type { ToolHandlers } from './agentTools'
 import {
   getCodeViperSourceRoot,
@@ -22,7 +23,7 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
     list_codeviper_directory: async (args) => {
       const root = getCodeViperSourceRoot()
-      const target = args.path?.trim() || root
+      const target = args.path?.trim() ? resolve(root, args.path.trim()) : root
       if (!isAllowedSelfPath(root, target)) {
         throw new Error('Доступ запрещён: путь вне исходников CodeViper')
       }

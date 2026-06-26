@@ -715,9 +715,9 @@ export interface CodeViperAPI {
   exportChats: () => Promise<ChatStore>
   importChats: (chats: SavedChat[]) => Promise<ImportResult>
   exportTrace: (
-    projectPath: string,
     chatId: string,
-    events: AgentTraceEvent[]
+    events: AgentTraceEvent[],
+    projectPath?: string
   ) => Promise<{ ok: boolean; path?: string; error?: string }>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void

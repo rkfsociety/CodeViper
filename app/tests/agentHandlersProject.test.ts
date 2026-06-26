@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, readFileSync } from 'fs'
+import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { createProjectToolHandlers } from '../electron/main/agentHandlersProject'
@@ -76,5 +76,24 @@ describe('createProjectToolHandlers — санитизация путей', () =
     // Не должны кидать ошибку при пустом path
     const result = await handlers.read_file!({ path: file })
     expect(result).toContain('hello world')
+  })
+
+  it('list_directory резолвит относительный path от корня проекта', async () => {
+    const subDir = join(projectDir, 'src')
+    mkdirSync(subDir, { recursive: true })
+    writeFileSync(join(subDir, 'index.ts'), 'export {}\n')
+
+    const { handlers } = createProjectToolHandlers(projectDir)
+    const prevCwd = process.cwd()
+    const foreignCwd = mkdtempSync(join(tmpdir(), 'cv-foreign-'))
+    process.chdir(foreignCwd)
+    try {
+      const result = await handlers.list_directory!({ path: 'src' })
+      expect(result).toContain('index.ts')
+      expect(result).not.toContain('ENOENT')
+    } finally {
+      process.chdir(prevCwd)
+      rmSync(foreignCwd, { recursive: true, force: true })
+    }
   })
 })

@@ -351,9 +351,9 @@ const codeviper = {
   importChats: (chats: unknown[]) =>
     withTimeout(ipcRenderer.invoke(IPC.IMPORT_CHATS, chats), IPC_TIMEOUT_MS * 3, 'importChats'),
 
-  exportTrace: (projectPath: string, chatId: string, events: unknown[]) =>
+  exportTrace: (chatId: string, events: unknown[], projectPath?: string) =>
     withTimeout(
-      ipcRenderer.invoke(IPC.EXPORT_TRACE, projectPath, chatId, events),
+      ipcRenderer.invoke(IPC.EXPORT_TRACE, chatId, events, projectPath),
       IPC_TIMEOUT_MS,
       'exportTrace'
     ),

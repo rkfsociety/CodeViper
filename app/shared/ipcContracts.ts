@@ -653,7 +653,7 @@ export const Contracts = {
     result: ImportResultSchema
   },
   [IPC.EXPORT_TRACE]: {
-    args: z.tuple([z.string(), z.string(), z.array(AgentTraceEventSchema)]),
+    args: z.tuple([z.string(), z.array(AgentTraceEventSchema), z.string().optional()]),
     result: z.object({
       ok: z.boolean(),
       path: z.string().optional(),
