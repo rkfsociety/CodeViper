@@ -1,0 +1,25 @@
+---
+description: Порядок релиза CodeViper — CI перед тегом
+alwaysApply: true
+---
+
+# Релиз CodeViper
+
+**Release workflow не ждёт CI.** Тег `v*` сразу запускает `.github/workflows/release.yml`.
+
+## Обязательный порядок
+
+```
+push на master → CI зелёный → bump версии → push → тег vX.Y.Z → push тег
+```
+
+1. Убедиться, что последний push на `master` прошёл CI (`build` job зелёный).
+2. Поднять `"version"` в `app/package.json` (semver).
+3. `npm run typecheck` → `npm run build` в `app/`.
+4. Коммит и push на `master`.
+5. Только после зелёного CI на этом коммите: `git tag vX.Y.Z` → `git push origin vX.Y.Z`.
+
+## Не делать
+
+- Не пушить тег, пока CI на релизном коммите не зелёный.
+- Не пропускать локальный `npm test` / `typecheck` / `build` перед bump версии.
