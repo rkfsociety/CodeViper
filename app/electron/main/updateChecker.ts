@@ -46,7 +46,10 @@ function runGit(
 }
 
 const GIT_CHECK_INTERVAL_MS = 10 * 60 * 1000
+const RELEASE_CHECK_INTERVAL_MS = 30 * 60 * 1000
+const UPDATE_CHECK_INITIAL_DELAY_MS = 5_000
 let gitTimer: ReturnType<typeof setInterval> | null = null
+let releaseTimer: ReturnType<typeof setInterval> | null = null
 let releaseChecksStarted = false
 let pendingReleaseVersion: string | null = null
 let updateDownloadReady = false
@@ -104,6 +107,12 @@ async function checkGitSourceUpdate(webContents: WebContents): Promise<void> {
   sendUpdate(webContents, { source: 'git', commits })
 }
 
+async function checkReleaseUpdate(): Promise<void> {
+  if (updateDownloadReady || installInProgress) return
+  const autoUpdater = await getAutoUpdater()
+  await autoUpdater.checkForUpdates().catch(() => {})
+}
+
 async function startReleaseUpdateChecks(
   webContents: WebContents,
   allowPrerelease: boolean
@@ -156,9 +165,12 @@ async function startReleaseUpdateChecks(
     void logUpdate('error', { error: err instanceof Error ? err.message : String(err) })
   })
 
-  setTimeout(() => {
-    void autoUpdater.checkForUpdates().catch(() => {})
-  }, 5_000)
+  if (releaseTimer) return
+  setTimeout(() => void checkReleaseUpdate().catch(() => {}), UPDATE_CHECK_INITIAL_DELAY_MS)
+  releaseTimer = setInterval(
+    () => void checkReleaseUpdate().catch(() => {}),
+    RELEASE_CHECK_INTERVAL_MS
+  )
 }
 
 export function startUpdateChecks(webContents: WebContents, allowPrerelease = false): void {
@@ -168,7 +180,10 @@ export function startUpdateChecks(webContents: WebContents, allowPrerelease = fa
   }
 
   if (gitTimer) return
-  setTimeout(() => void checkGitSourceUpdate(webContents).catch(() => {}), 5_000)
+  setTimeout(
+    () => void checkGitSourceUpdate(webContents).catch(() => {}),
+    UPDATE_CHECK_INITIAL_DELAY_MS
+  )
   gitTimer = setInterval(
     () => void checkGitSourceUpdate(webContents).catch(() => {}),
     GIT_CHECK_INTERVAL_MS
@@ -179,6 +194,10 @@ export function stopUpdateChecks(): void {
   if (gitTimer) {
     clearInterval(gitTimer)
     gitTimer = null
+  }
+  if (releaseTimer) {
+    clearInterval(releaseTimer)
+    releaseTimer = null
   }
 }
 
