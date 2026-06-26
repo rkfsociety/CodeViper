@@ -18,6 +18,13 @@ const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
   run_end: '#4ec9b0'
 }
 
+function isErrorTraceEvent(ev: AgentTraceEvent): boolean {
+  if (ev.data.ok === false) return true
+  if (ev.data.status === 'error' || ev.data.status === 'aborted') return true
+  if (typeof ev.data.error === 'string' && ev.data.error.length > 0) return true
+  return false
+}
+
 export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   const [events, setEvents] = useState<AgentTraceEvent[]>(() =>
     chatId ? getTraceEvents(chatId) : []
@@ -134,18 +141,24 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
         {events.map((ev, idx) => {
           const isOpen = expanded.has(idx)
           const hasData = Object.keys(ev.data).length > 0
+          const isError = isErrorTraceEvent(ev)
           const canReplay =
             ev.kind === 'llm_request' && onReplayFromStep != null && findRunStart(idx) != null
           return (
-            <div key={idx} className={styles.event}>
+            <div key={idx} className={`${styles.event}${isError ? ` ${styles.eventError}` : ''}`}>
               <div
                 className={styles.eventHeader}
                 onClick={() => hasData && toggleExpand(idx)}
                 style={{ cursor: hasData ? 'pointer' : 'default' }}
               >
                 <span className={styles.ts}>{formatTime(ev.ts)}</span>
-                <span className={styles.dot} style={{ background: KIND_COLORS[ev.kind] }} />
-                <span className={styles.label}>{ev.label}</span>
+                <span
+                  className={styles.dot}
+                  style={{ background: isError ? '#f44747' : KIND_COLORS[ev.kind] }}
+                />
+                <span className={`${styles.label}${isError ? ` ${styles.labelError}` : ''}`}>
+                  {ev.label}
+                </span>
                 {canReplay && (
                   <button
                     className={styles.replayBtn}
@@ -158,7 +171,9 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
                 {hasData && <span className={styles.toggle}>{isOpen ? '▾' : '▸'}</span>}
               </div>
               {isOpen && hasData && (
-                <pre className={styles.data}>{JSON.stringify(ev.data, null, 2)}</pre>
+                <pre className={`${styles.data}${isError ? ` ${styles.dataError}` : ''}`}>
+                  {JSON.stringify(ev.data, null, 2)}
+                </pre>
               )}
             </div>
           )

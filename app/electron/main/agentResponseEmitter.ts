@@ -1,4 +1,5 @@
 import type { AgentStreamPayload, AgentTraceEvent } from '../../src/types'
+import { emitAgentTrace } from './agentTrace'
 
 export class ResponseEmitter {
   constructor(
@@ -20,7 +21,7 @@ export class ResponseEmitter {
   }
 
   trace(kind: AgentTraceEvent['kind'], label: string, data: Record<string, unknown>): void {
-    this._emit({ type: 'trace', traceEvent: { ts: Date.now(), kind, label, data } })
+    emitAgentTrace(this._emit, kind, label, data)
   }
 
   emit(event: AgentStreamPayload): void {

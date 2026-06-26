@@ -19,6 +19,12 @@ import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import type { SelfImprovementItem } from '../../shared/selfImprovement'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { agentLogger, type AgentLogEntry } from './agentLogger'
+import {
+  buildToolCallTraceData,
+  buildToolResultTraceData,
+  emitAgentTrace,
+  isToolResultOk
+} from './agentTrace'
 import { createUnifiedDiff } from './diffUtil'
 import { applySelectedHunks } from '../../shared/diffPreview'
 import { getCodeViperSourceRoot, runCodeViperCommand } from './codeviperSource'
@@ -333,24 +339,29 @@ export class ToolExecutor {
   ): Promise<ToolInvocationResult> {
     const debug = this.settings.debugAgent === true
     void agentLogger.write(buildToolCallLogEntry(debug, step, name, args))
+    const callTrace = buildToolCallTraceData(step, name, args)
+    emitAgentTrace(this.emit, 'tool_call', callTrace.label, callTrace.data)
     if (debug) {
       console.log(`[CodeViper:agent] ▶ ${name}`, args)
     }
 
     const toolStartMs = Date.now()
     let output = ''
-    let ok = true
+    let threw = false
     try {
       output = await this.executeTool(name, args)
     } catch (error) {
-      ok = false
+      threw = true
       output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
     }
 
     output = this.enrichToolOutput(name, args, output)
     const durationMs = Date.now() - toolStartMs
+    const toolOk = isToolResultOk(threw, output)
 
-    void agentLogger.write(buildToolResultLogEntry(debug, step, name, ok, durationMs, output))
+    void agentLogger.write(buildToolResultLogEntry(debug, step, name, toolOk, durationMs, output))
+    const resultTrace = buildToolResultTraceData(step, name, output, threw, durationMs)
+    emitAgentTrace(this.emit, 'tool_result', resultTrace.label, resultTrace.data)
     if (debug) {
       console.log(`[CodeViper:agent] ◀ ${name} (${durationMs}ms)`, output)
     }
@@ -435,6 +446,10 @@ export class ToolExecutor {
           if (this.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
           if (!approved) {
             const output = '⛔ Действие отклонено пользователем'
+            const callTrace = buildToolCallTraceData(step, name, args)
+            emitAgentTrace(this.emit, 'tool_call', callTrace.label, callTrace.data)
+            const resultTrace = buildToolResultTraceData(step, name, output, true, 0)
+            emitAgentTrace(this.emit, 'tool_result', resultTrace.label, resultTrace.data)
             this.emit({ type: 'tool_end', toolName: name, toolOutput: output })
             return { call, name, output }
           }

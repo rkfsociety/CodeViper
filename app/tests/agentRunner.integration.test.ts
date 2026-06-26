@@ -80,11 +80,15 @@ function makeSettings(overrides: Partial<AgentSettings> = {}): AgentSettings {
 // ── Хелпер: последовательность ответов модели ────────────────────────────────
 // Каждый элемент массива — это один вызов chat() (один шаг агента).
 // Внутри каждого шага — массив чанков.
+type MockChatChunk = {
+  content: string
+  input_tokens?: number
+  output_tokens?: number
+}
+
 // Tool call передаётся как JSON в поле content, т.к. AgentRunner.chat()
 // извлекает инструменты через extractEmbeddedToolCalls(content), а НЕ из chunk.tool_calls.
-function makeResponses(
-  steps: Array<Array<{ content: string }>>
-): () => AsyncGenerator<{ content: string }> {
+function makeResponses(steps: Array<Array<MockChatChunk>>): () => AsyncGenerator<MockChatChunk> {
   let call = 0
   return async function* () {
     const chunks = steps[call] ?? steps[steps.length - 1]
@@ -241,6 +245,80 @@ describe('AgentRunner — интеграционный прогон', () => {
       content: string
     }>
     expect(errorEvents.some((e) => e.content.includes('Остановлено'))).toBe(true)
+  })
+
+  it('превышение maxCostPerRunUsd — abort с сообщением о лимите', async () => {
+    let chatCalls = 0
+    const baseImpl = makeResponses([
+      [{ content: 'Шаг 1', input_tokens: 50_000, output_tokens: 5_000 }],
+      [{ content: 'Шаг 2 — не должен выполниться' }]
+    ])
+    chatState.impl = async function* () {
+      chatCalls++
+      yield* baseImpl()
+    }
+
+    const runner = new AgentRunner({
+      settings: makeSettings({
+        model: 'gpt-4o-mini',
+        modelProvider: 'openai',
+        maxCostPerRunUsd: 0.001
+      }),
+      projectPath: projectDir,
+      emit
+    })
+
+    await runner.run([], 'тест лимита стоимости')
+
+    expect(chatCalls).toBe(1)
+    const types = emitted.map((e) => e.type)
+    expect(types).toContain('error')
+    expect(types).toContain('done')
+    const errorEvents = emitted.filter((e) => e.type === 'error') as Array<{
+      type: 'error'
+      content: string
+    }>
+    expect(errorEvents.some((e) => e.content.includes('Лимит стоимости'))).toBe(true)
+  })
+
+  it('ошибка инструмента попадает в trace как tool_result с error', async () => {
+    chatState.impl = makeResponses([
+      [{ content: toolCallContent('read_file', { path: join(projectDir, 'missing.txt') }) }],
+      [{ content: 'Файл не найден.' }]
+    ])
+
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
+    await runner.run([], 'прочитай missing')
+
+    const traceEvents = emitted.filter((e) => e.type === 'trace').map((e) => e.traceEvent!)
+    const toolResult = traceEvents.find((t) => t.kind === 'tool_result')
+    expect(toolResult).toBeDefined()
+    expect(toolResult!.data.ok).toBe(false)
+    expect(String(toolResult!.data.error)).toMatch(/Ошибка|ENOENT|не найден/i)
+  })
+
+  it('abort прогона пишет run_end со status aborted в trace', async () => {
+    const controller = new AbortController()
+    chatState.impl = async function* () {
+      controller.abort()
+      throw new DOMException('Aborted', 'AbortError')
+    }
+
+    const runner = new AgentRunner({
+      settings: makeSettings(),
+      projectPath: projectDir,
+      emit,
+      signal: controller.signal
+    })
+
+    await runner.run([], 'abort test')
+
+    const runEnd = emitted
+      .filter((e) => e.type === 'trace')
+      .map((e) => e.traceEvent!)
+      .find((t) => t.kind === 'run_end')
+    expect(runEnd).toBeDefined()
+    expect(runEnd!.data.status).toBe('aborted')
   })
 
   it('невалидный JSON в аргументах tool call не крашит прогон', async () => {

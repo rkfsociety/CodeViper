@@ -1,6 +1,11 @@
 import type { AgentSettings, AgentStreamPayload, ChatMessage } from '../../src/types'
 import { sanitizeAssistantContent } from '../../shared/toolCalls'
-import { AGENT_STEP_TIMEOUT_MS } from '../../shared/constants'
+import {
+  AGENT_STEP_TIMEOUT_MS,
+  isCostLimitExceeded,
+  resolveMaxCostPerRunUsd
+} from '../../shared/constants'
+import { formatCostUsd } from '../../shared/generationMetrics'
 import {
   MUTATING_TOOLS,
   TOOL_VERIFICATION_FAILED_MESSAGE,
@@ -26,6 +31,7 @@ import { analyze } from './orchestratorModel'
 import { runSubagent } from './subagentRunner'
 
 import { ResponseEmitter } from './agentResponseEmitter'
+import { buildRunEndTraceData } from './agentTrace'
 import { LoopGuard } from './agentLoopGuard'
 import { ContextManager } from './agentContextManager'
 import {
@@ -185,6 +191,17 @@ export class AgentRunner {
 
     let runCheckpointEmitted = false
     let runSuccess = true
+    let runEndTraced = false
+
+    const traceRunEnd = (
+      status: 'ok' | 'error' | 'aborted',
+      extra: Record<string, unknown> = {}
+    ): void => {
+      if (runEndTraced) return
+      runEndTraced = true
+      const end = buildRunEndTraceData(Date.now() - runStartMs, status, extra)
+      this.emitter.trace('run_end', end.label, end.data)
+    }
 
     const runStartMs = Date.now()
     void agentLogger.write({
@@ -423,10 +440,18 @@ export class AgentRunner {
         } catch (error) {
           if (isAbortError(error)) {
             this.emitter.handleAbort()
+            runSuccess = false
+            traceRunEnd('aborted')
             return
           }
           if (error instanceof CircuitBreakerOpenError) {
             const secsLeft = Math.ceil((error.openUntilMs - Date.now()) / 1000)
+            const cbMessage = `⚡ Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`
+            this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+              step,
+              durationMs: Date.now() - stepStartMs,
+              error: cbMessage
+            })
             // Повторно эмитим состояние open — контекст мог быть сброшен в RESET при старте прогона
             this.emitter.emit({
               type: 'circuit_breaker',
@@ -439,19 +464,40 @@ export class AgentRunner {
               this.ctx.providerConfig.type !== 'ollama' && (await pingOllama(ollamaUrl))
             if (ollamaAvailable) {
               this.emitter.emit({ type: 'ollama_fallback_offer', ollamaFallbackUrl: ollamaUrl })
+              runSuccess = false
+              traceRunEnd('error', { error: cbMessage, steps: step })
               this.emitter.emit({ type: 'done' })
               return
             }
             this.emitter.emit({
               type: 'error',
-              content: `⚡ Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`
+              content: cbMessage
             })
+            runSuccess = false
+            traceRunEnd('error', { error: cbMessage, steps: step })
             this.emitter.emit({ type: 'done' })
             return
           }
+          const errMsg = error instanceof Error ? error.message : String(error)
+          this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+            step,
+            durationMs: Date.now() - stepStartMs,
+            error: errMsg
+          })
+          runSuccess = false
           throw error
         }
         requireToolNext = false
+
+        const costLimit = resolveMaxCostPerRunUsd(this.settings.maxCostPerRunUsd)
+        if (isCostLimitExceeded(this.ctx.sessionCostUsd, costLimit)) {
+          this.emitter.emit({
+            type: 'error',
+            content: `💰 Лимит стоимости прогона превышен: ~${formatCostUsd(this.ctx.sessionCostUsd)} из ${formatCostUsd(costLimit!)}. Прогон остановлен.`
+          })
+          this.emitter.emit({ type: 'done' })
+          return
+        }
 
         const durationMs = Date.now() - stepStartMs
         void agentLogger.write({
@@ -546,6 +592,7 @@ export class AgentRunner {
             }
             // Пользователь отменил диалог — завершаем
             await taskPlanner.finalize(messages, userMessage, usedTools, this.settings)
+            traceRunEnd('aborted', { steps: step })
             this.emitter.emit({ type: 'done' })
             return
           }
@@ -558,6 +605,7 @@ export class AgentRunner {
                 thinking: assistantThinking
               })
             await taskPlanner.finalize(messages, userMessage, usedTools, this.settings)
+            traceRunEnd('ok', { steps: step, sessionTokens: this.ctx.sessionTokens })
             this.emitter.emit({ type: 'done' })
             return
           }
@@ -565,6 +613,8 @@ export class AgentRunner {
             if (assistantText) messages.pop()
             this.emitter.emit({ type: 'clear_draft' })
             this.emitter.emit({ type: 'error', content: planAction.content })
+            runSuccess = false
+            traceRunEnd('error', { error: planAction.content, steps: step })
             this.emitter.emit({ type: 'done' })
             return
           }
@@ -608,6 +658,8 @@ export class AgentRunner {
             if (assistantText) messages.pop()
             this.emitter.emit({ type: 'clear_draft' })
             this.emitter.emit({ type: 'error', content: TOOL_VERIFICATION_FAILED_MESSAGE })
+            runSuccess = false
+            traceRunEnd('error', { error: TOOL_VERIFICATION_FAILED_MESSAGE, steps: step })
             this.emitter.emit({ type: 'done' })
             return
           }
@@ -629,6 +681,7 @@ export class AgentRunner {
               type: 'error',
               content: `Модель не ответила и не вызвала инструменты.${smallModelHint} Попробуй выбрать другую модель или переформулировать задачу.`
             })
+            runSuccess = false
           }
           await taskPlanner.finalize(
             messages,
@@ -636,14 +689,15 @@ export class AgentRunner {
             mutatingToolsUsed.size > 0,
             this.settings
           )
-          this.emitter.trace(
-            'run_end',
-            `■ Завершено за ${Date.now() - runStartMs}ms, шагов: ${step}, токенов: ${this.ctx.sessionTokens}`,
-            {
-              durationMs: Date.now() - runStartMs,
-              steps: step,
-              sessionTokens: this.ctx.sessionTokens
-            }
+          traceRunEnd(
+            runSuccess ? 'ok' : 'error',
+            runSuccess
+              ? { steps: step, sessionTokens: this.ctx.sessionTokens }
+              : {
+                  steps: step,
+                  sessionTokens: this.ctx.sessionTokens,
+                  error: 'Модель не ответила и не вызвала инструменты'
+                }
           )
           this.emitter.emit({ type: 'done' })
           return
