@@ -18,6 +18,7 @@ import {
   buildFileTree
 } from './services'
 import { parseToolBool } from '../../shared/fileEdit'
+import { parseReadMultiplePaths } from '../../shared/readMultiplePaths'
 import { parseTreeDepth } from './agentHandlersUtils'
 import { gitLog } from './gitTools'
 import type { ProjectHandlerContext } from './agentHandlersProjectContext'
@@ -63,8 +64,12 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
     },
 
     read_multiple_files: async (args) => {
+      const paths = parseReadMultiplePaths(args.paths)
+      if (!paths.length) {
+        return 'Ошибка: paths пуст — укажи массив путей к файлам'
+      }
       const results = await Promise.all(
-        args.paths.map(async (path: string) => {
+        paths.map(async (path: string) => {
           try {
             assertInsideProject(path, 'файл')
             const content = await safeReadFilePartial(projectPath, path, 0, undefined)

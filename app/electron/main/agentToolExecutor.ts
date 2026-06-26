@@ -25,6 +25,7 @@ import { getCodeViperSourceRoot, runCodeViperCommand } from './codeviperSource'
 import type { OllamaMessage } from './agentContext'
 import type { LoopGuard } from './agentLoopGuard'
 import { normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
+import { parseReadMultiplePaths } from '../../shared/readMultiplePaths'
 import {
   isCodeViperSourceRelativePath,
   READ_FILE_ENOENT_CREATE_HINT,
@@ -193,7 +194,10 @@ export class ToolExecutor {
         'read_multiple_files'
       ])
       if (projectFileTools.has(name)) {
-        const pathArg = (args.path ?? args.paths ?? '').trim()
+        const pathArg =
+          name === 'read_multiple_files'
+            ? parseReadMultiplePaths(args.paths).join(', ')
+            : String(args.path ?? args.paths ?? '').trim()
         if (
           isCodeViperSourceRelativePath(pathArg) ||
           /Program Files[\\/]CodeViper/i.test(pathArg) ||

@@ -1,5 +1,26 @@
 import { describe, it, expect } from 'vitest'
+import { parseReadMultiplePaths } from '../shared/readMultiplePaths'
 import { normalizeToolLoopSignature } from '../shared/toolLoopGuard'
+
+describe('parseReadMultiplePaths', () => {
+  it('принимает массив строк (Gemini / cloud)', () => {
+    expect(parseReadMultiplePaths(['b.ts', 'a.ts'])).toEqual(['b.ts', 'a.ts'])
+  })
+
+  it('принимает JSON-строку (Ollama)', () => {
+    expect(parseReadMultiplePaths('["b.ts","a.ts"]')).toEqual(['b.ts', 'a.ts'])
+  })
+
+  it('принимает CSV', () => {
+    expect(parseReadMultiplePaths('a.ts, b.ts')).toEqual(['a.ts', 'b.ts'])
+  })
+
+  it('пустое значение → []', () => {
+    expect(parseReadMultiplePaths(undefined)).toEqual([])
+    expect(parseReadMultiplePaths('')).toEqual([])
+    expect(parseReadMultiplePaths([])).toEqual([])
+  })
+})
 
 describe('normalizeToolLoopSignature', () => {
   it('ignores offset/limit for read_file', () => {
@@ -21,9 +42,16 @@ describe('normalizeToolLoopSignature', () => {
     expect(sig).toBe('read_codeviper_file:electron/main/agent.ts')
   })
 
-  it('sorts paths in read_multiple_files', () => {
+  it('sorts paths in read_multiple_files (JSON string)', () => {
     const sig = normalizeToolLoopSignature('read_multiple_files', {
       paths: '["b.ts","a.ts"]'
+    })
+    expect(sig).toBe('read_multiple_files:a.ts|b.ts')
+  })
+
+  it('sorts paths in read_multiple_files (array from cloud provider)', () => {
+    const sig = normalizeToolLoopSignature('read_multiple_files', {
+      paths: ['b.ts', 'a.ts']
     })
     expect(sig).toBe('read_multiple_files:a.ts|b.ts')
   })
