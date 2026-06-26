@@ -9,7 +9,41 @@ permissions:
   contents: write
 
 jobs:
+  # Создаём черновик релиза до старта сборок — все платформы загружают в него
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create draft release
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            NOTES=$(git log --pretty=format:"- %s" --no-merges | head -30)
+          fi
+          RELEASE_ID=$(gh release create "$TAG" \
+            --title "CodeViper $TAG" \
+            --draft \
+            --notes "## Что нового
+          ${NOTES}
+
+          ---
+          **Установка:** скачайте \`CodeViper-Setup-*.exe\` (Windows), \`.AppImage\` (Linux) или \`.dmg\` (macOS)." \
+            --json id --jq '.id')
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -25,8 +59,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -67,31 +99,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-  # Ждём все платформы, затем снимаем draft и добавляем release notes
+  # Все платформы готовы — снимаем draft
   publish:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Publish release with notes
+      - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.ref_name }}"
-          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
-          if [ -n "$PREV_TAG" ]; then
-            NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
-          else
-            NOTES=$(git log --pretty=format:"- %s" --no-merges | head -30)
-          fi
-          gh release edit "$TAG" \
-            --draft=false \
-            --title "CodeViper $TAG" \
-            --notes "## Что нового
-          ${NOTES}
-
-          ---
-          **Установка:** скачайте \`CodeViper-Setup-*.exe\` (Windows), \`.AppImage\` (Linux) или \`.dmg\` (macOS)."
+          gh release edit "${{ github.ref_name }}" \
+            --repo rkfsociety/CodeViper \
+            --draft=false
