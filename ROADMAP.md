@@ -2,7 +2,7 @@
 
 Планы развития и список выполненного. Назад в [README](README.md).
 
-> **Принцип чтения:** задачи сгруппированы в цепочки — внутри каждой группы строгий порядок сверху вниз. Следующий шаг начинать только после завершения предыдущего. Между группами порядок произвольный.
+> **Принцип чтения:** пункты **1…148 отсортированы по важности** (🔴→🟢). Внутри цепочки — строгий порядок; между несвязанными пунктами — тоже сверху вниз. Пропускать к более низкому уровню без причины не рекомендуется.
 
 
 ### Формат задач для самообучения агента
@@ -12,7 +12,7 @@
 **Шаблон пункта:**
 
 ```text
-N · [S/M/L/XL] · Краткое название
+N · [S/M/L/XL] · Краткое название — уровень 1…4
 - Цель: один измеримый результат
 - Файлы: конкретные пути (app/electron/main/…, app/src/…)
 - Действие: одна атомарная правка
@@ -21,923 +21,1014 @@ N · [S/M/L/XL] · Краткое название
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** нумерация сквозная (1…148); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
+**Правила:** нумерация **1…148 по убыванию важности** (уровень 1 — первым); внутри цепочки — строго по порядку; один пункт = один прогон; после проверки — `complete_self_improvement_item`.
 
 ## 📋 В планах
 
-> Нумерация сквозная **1…148**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
+> Нумерация сквозная **1…148** — **отсортировано по важности и пользе** (уровни 1→4). Сначала надёжность и ядро, затем UX, расширения, polish. Сложность: S / M / L / XL. Выполненные цепочки см. «✅ Сделано».
 
-### ⚡ Независимые задачи
+### 🔴 Уровень 1 — критично
 
-**1 · M · Docker dev-окружение** — приор. Low  
-- **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
-- **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
-- **Действие:** образ + том исходников + `npm run dev`  
-- **Проверка:** `docker compose up` поднимает приложение
+> Надёжность агента, безопасность, тесты ядра, git-инструменты, RAG/MCP. Внутри уровня — сверху вниз. **Цепочки** (строго по порядку): split-view **21–23**, onboarding **34–36**, редактор **58–59**, worktree **63–65**, LSP **87–89**, i18n **143–147**.
 
-**2 · S · README: Linux и macOS в быстром старте** — приор. Medium  
-- **Цель:** бейджи платформ, ссылки на AppImage/DMG и `CodeViper.sh` из релизов  
-- **Файлы:** `README.md`  
-- **Действие:** дополнить «Быстрый старт» установкой не только через Windows-установщик  
-- **Проверка:** README содержит AppImage, dmg и POSIX-лаунчер
-
-### 🔗 Горячие клавиши
-
-**3 · M · Расширение горячих клавиш** — приор. Medium  
-- **Цель:** Escape — стоп агента; Ctrl+Shift+N — новый чат; Ctrl+B — фокус/переключение дерева файлов  
-- **Файлы:** `app/src/App.tsx`, `app/src/components/KeyboardShortcutsModal.tsx`  
-- **Действие:** обработчики `keydown` + строки в модалке `?`  
-- **Проверка:** каждая комбинация работает в UI; модалка отображает новые шорткаты
-
-### 🔗 Split-view превью файла
-
-**4 · M · Resizable split layout** — приор. Medium  
-- **Цель:** основной layout с изменяемой шириной панели превью справа от чата  
-- **Файлы:** `app/src/App.tsx`, `app/src/App.module.css` (или `styles.css`)  
-- **Действие:** splitter между чатом и правой панелью; ширина в `localStorage`  
-- **Проверка:** перетаскивание границы меняет ширину; после перезапуска ширина сохранена
-
-**5 · M · FilePreviewPanel read-only** — приор. Medium  
-- **Цель:** компонент просмотра файла с подсветкой синтаксиса (как в DiffPreviewModal)  
-- **Файлы:** `app/src/components/FilePreviewPanel.tsx`, `shared/diffPreview.ts`  
-- **Действие:** IPC `read-file` → highlight.js; заголовок с путём и кнопкой закрыть  
-- **Проверка:** открытие `.ts` файла показывает подсветку
-
-**6 · S · ProjectTree открывает превью** — приор. Medium  
-- **Цель:** клик по файлу в `ProjectTreePanel` открывает его в `FilePreviewPanel`  
-- **Файлы:** `app/src/components/ProjectTreePanel.tsx`, `app/src/App.tsx`  
-- **Действие:** callback `onFileOpen(path)` → state `previewPath` в App  
-- **Проверка:** клик в дереве → файл виден в split-панели
-
-### 🔗 Голосовой ввод и озвучка
-
-**7 · M · STT — кнопка микрофона** — приор. Low  
-- **Цель:** диктовка в поле ввода через Web Speech API (`SpeechRecognition`)  
-- **Файлы:** `app/src/components/ChatPanel/ChatInput.tsx`  
-- **Действие:** кнопка 🎤 → `recognition.start()` → текст в `onInputChange`  
-- **Проверка:** диктовка вставляет распознанный текст в поле
-
-**8 · M · TTS — кнопка «Озвучить»** — приор. Low  
-- **Цель:** озвучка последнего ответа ассистента через `speechSynthesis`  
-- **Файлы:** `app/src/components/MessageBody.tsx` (или `MessageRow.tsx`)  
-- **Действие:** кнопка «🔊» на сообщении assistant → `SpeechSynthesisUtterance`  
-- **Проверка:** нажатие воспроизводит текст ответа
-
-### 🔗 Встроенный редактор и LSP
-
-**9 · M · CodeEditorPanel на CodeMirror** — приор. Medium  
-- **Цель:** редактируемая вкладка файла вместо read-only `FilePreviewPanel` (п. 5)  
-- **Файлы:** `app/src/components/CodeEditorPanel.tsx`, `app/package.json`  
-- **Действие:** зависимость `@codemirror/*`; обёртка с темой под тёмный UI  
-- **Проверка:** файл открывается в редакторе; курсор и правка работают
-
-**10 · M · Сохранение из редактора** — приор. Medium  
-- **Цель:** Ctrl+S / кнопка «Сохранить» пишет файл через существующий IPC  
-- **Файлы:** `CodeEditorPanel.tsx`, `app/electron/main/ipc/registerFileIpc.ts`  
-- **Действие:** `window.codeviper.writeFile(path, content)`; индикатор «несохранено»  
-- **Проверка:** правка + сохранение → содержимое на диске изменилось
-
-**11 · M · lspClient — spawn language server** — приор. Low  
-- **Цель:** main-процесс запускает `typescript-language-server` / `pyright-langserver` по расширению файла  
-- **Файлы:** `app/electron/main/lspClient.ts` (новый)  
-- **Действие:** JSON-RPC over stdio; `didOpen`/`didChange`/`shutdown`  
-- **Проверка:** unit-тест с mock child_process; лог «LSP ready» для `.ts`
-
-**12 · M · LSP hover и go-to-definition (TS/JS)** — приор. Low  
-- **Цель:** hover tooltip и Ctrl+click → переход к определению в `CodeEditorPanel` (п. 9)  
-- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
-- **Действие:** IPC `lsp-request` → `textDocument/hover`, `textDocument/definition`  
-- **Проверка:** Ctrl+click на символ → курсор на определении в том же файле
-
-**13 · M · LSP pyright для Python** — приор. Low  
-- **Цель:** те же hover/definition для `.py` через pyright-langserver  
-- **Файлы:** `lspClient.ts`  
-- **Действие:** ветка выбора сервера по `languageFromPath`; инициализация pyright  
-- **Проверка:** Ctrl+click на `def foo` в `.py` → переход к определению
-
-### 🔗 Символьный индекс (find_symbol)
-
-**14 · M · find_symbol для Go** — приор. Medium  
-- **Цель:** `find_symbol` / `find_references` для `.go` через `go/ast` или tree-sitter  
-- **Файлы:** `app/electron/main/symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
-- **Действие:** парсер Go → символы с `path:line:col`  
-- **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.go` файлом
-
-**15 · M · find_symbol для Rust** — приор. Medium  
-- **Цель:** символы для `.rs` (tree-sitter-rust или синтаксический обход)  
-- **Файлы:** `symbolIndex.ts`  
-- **Действие:** расширить `walkProjectForSymbols` для `.rs`  
-- **Проверка:** unit-тест: `fn main` и `struct Foo` находятся по имени
-
-**16 · M · find_symbol для Java** — приор. Medium  
-- **Цель:** символы для `.java` (class/method)  
-- **Файлы:** `symbolIndex.ts`  
-- **Действие:** regex или tree-sitter-java для объявлений top-level  
-- **Проверка:** unit-тест на простом `.java` с `public class Bar`
-
-### 🔗 Тесты ядра агента
-
-**17 · M · Unit-тесты agentLoopGuard** — приор. High  
+**1 · M · Unit-тесты agentLoopGuard** — уровень 1
 - **Цель:** покрытие `MAX_CONSECUTIVE_SAME_TOOL` и `MAX_SAME_TOOL_TOTAL`  
 - **Файлы:** `app/electron/main/agentLoopGuard.ts`, `app/tests/agentLoopGuard.test.ts`  
 - **Действие:** кейсы: 5 подряд → блок; 50 всего → блок; сброс при смене tool  
 - **Проверка:** `npm test -- agentLoopGuard`
 
-**18 · M · Unit-тесты runCheckpoint** — приор. High  
+
+**2 · M · Unit-тесты runCheckpoint** — уровень 1
 - **Цель:** stash создаётся перед первым mutating tool; rollback восстанавливает  
 - **Файлы:** `app/electron/main/runCheckpoint.ts`, `app/tests/runCheckpoint.test.ts`  
 - **Действие:** mock `git stash create` + `git stash apply`  
 - **Проверка:** `npm test -- runCheckpoint`
 
-**19 · M · Unit-тесты parallel tool execution** — приор. High  
+
+**3 · M · Unit-тесты parallel tool execution** — уровень 1
 - **Цель:** `agentToolExecutor` выполняет независимые tool calls параллельно  
 - **Файлы:** `app/electron/main/agentToolExecutor.ts`, `app/tests/agentToolExecutor.test.ts`  
 - **Действие:** два mock handler с задержкой → wall time < sum  
 - **Проверка:** `npm test -- agentToolExecutor`
 
-**20 · M · Unit-тест Ollama fallback** — приор. Medium  
-- **Цель:** `CircuitBreakerOpenError` → emit `ollama_fallback_offer`  
-- **Файлы:** `app/electron/main/agent.ts`, `app/tests/agentFallback.test.ts`  
-- **Действие:** mock provider throws circuit open → проверить payload события  
-- **Проверка:** `npm test -- agentFallback`
 
-### 🔗 Рефакторинг монолитов
-
-**21 · M · Разбивка App.tsx** — приор. Low  
-- **Цель:** вынести layout и модалки из ~1000-строчного `App.tsx`  
-- **Файлы:** `app/src/App.tsx` → `AppLayout.tsx`, `useAppModals.ts`  
-- **Действие:** перенести JSX layout + state модалок без изменения поведения  
-- **Проверка:** `npm run typecheck`; E2E или ручной smoke UI
-
-**22 · M · Разбивка agent.ts** — приор. Low  
-- **Цель:** отделить цикл ReAct от dispatch инструментов  
-- **Файлы:** `agent.ts` → `agentLoop.ts`, `agentStreamHandler.ts`  
-- **Действие:** `AgentRunner.run()` делегирует в `runAgentLoop()`  
-- **Проверка:** `npm run typecheck`; существующие agent-тесты зелёные
-
-**23 · M · Хук useChatPanelState** — приор. Low  
-- **Цель:** сократить `ChatPanel/index.tsx` — state и refs в отдельный хук  
-- **Файлы:** `app/src/components/ChatPanel/index.tsx`, `useChatPanelState.ts`  
-- **Действие:** перенести useState/useRef блоки в хук; index — только композиция  
-- **Проверка:** `npm run typecheck`; отправка сообщения в UI работает
-
-### 🔗 Git worktree на чат
-
-**24 · M · gitWorktree.ts** — приор. Medium  
-- **Цель:** create / remove / list worktrees через `git worktree`  
-- **Файлы:** `app/electron/main/gitWorktree.ts` (новый), `gitTools.ts`  
-- **Действие:** `createWorktree(repoPath, branch)` → путь worktree; `removeWorktree`  
-- **Проверка:** unit-тест с temp git repo; `git worktree list` содержит запись
-
-**25 · M · worktreePath в чате + IPC** — приор. Medium  
-- **Цель:** поле `worktreePath?` в persisted chat; IPC `create-chat-worktree`  
-- **Файлы:** `chats.ts`, `types.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
-- **Действие:** кнопка «Изолировать в worktree» в меню чата  
-- **Проверка:** новый чат получает отдельную папку worktree
-
-**26 · M · AgentRunner — корень worktree** — приор. Medium  
-- **Цель:** если у чата есть `worktreePath`, агент работает в нём, а не в `projectPath`  
-- **Файлы:** `agent.ts`, `registerAgentIpc.ts`, `agentHandlersProjectContext.ts`  
-- **Действие:** `resolveProjectRoot(chat)` → `worktreePath ?? projectPath`  
-- **Проверка:** правка файла в изолированном чате не затрагивает основную копию
-
-### 🔗 Режим «только план»
-
-**27 · M · planBeforeExecute в настройках** — приор. Medium  
-- **Цель:** тумблер «Сначала показать план» в BehaviorTab  
-- **Файлы:** `settings.ts`, `BehaviorTab.tsx`, `types.ts`  
-- **Действие:** `planBeforeExecute: boolean` в Zod-схеме с default `false`  
-- **Проверка:** настройка сохраняется и загружается
-
-**28 · M · Пауза после плана до подтверждения** — приор. Medium  
-- **Цель:** при `planBeforeExecute` оркестратор показывает план и ждёт кнопку «Выполнить»  
-- **Файлы:** `agent.ts`, `orchestratorModel.ts`, `ChatPanel/index.tsx`  
-- **Действие:** emit `plan_awaiting_confirm`; UI-кнопка продолжает прогон  
-- **Проверка:** с включённым тумблером агент не вызывает tools до «Выполнить»
-
-**29 · S · Toast при ожидании подтверждения** — приор. Medium  
-- **Цель:** системное уведомление, если агент ждёт `preview_edit`/danger-dialog, а окно не в фокусе  
-- **Файлы:** `app/src/App.tsx`, `app/electron/main/tray.ts` или `webhookNotify.ts`  
-- **Действие:** при `pendingApproval` + `!document.hasFocus()` → toast «Агент ждёт подтверждения»  
-- **Проверка:** сценарий в UI: свернуть окно → агент вызывает preview → toast появляется
-
-### 🔗 Onboarding первого запуска
-
-**30 · M · Флаг firstRunCompleted** — приор. Medium  
-- **Цель:** `firstRunCompleted: boolean` в settings; false при первой установке  
-- **Файлы:** `settings.ts`, `types.ts`  
-- **Действие:** поле в Zod с default `false`; true после завершения визарда  
-- **Проверка:** чистый settings.json → `firstRunCompleted === false`
-
-**31 · M · OnboardingWizard** — приор. Medium  
-- **Цель:** модалка: выбор провайдера → модель → открыть проект  
-- **Файлы:** `app/src/components/OnboardingWizard.tsx`, `App.tsx`  
-- **Действие:** 3 шага; показ при `!firstRunCompleted`; «Пропустить» → true  
-- **Проверка:** первый запуск показывает визард; повторный — нет
-
-**32 · S · Ссылка на example-prompts в визарде** — приор. Low  
-- **Цель:** финальный шаг визарда — кнопка «Примеры запросов» → `docs/example-prompts.md`  
-- **Файлы:** `OnboardingWizard.tsx`  
-- **Действие:** `shell.openExternal` или открытие вики/GitHub  
-- **Проверка:** клик открывает страницу с примерами
-
-### 🔗 Экспорт и импорт чата
-
-**33 · M · IPC export-chat** — приор. Medium  
-- **Цель:** экспорт сообщений и метаданных чата в JSON  
-- **Файлы:** `chats.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
-- **Действие:** `export-chat` → `{ messages, settings, projectPath }`; save dialog  
-- **Проверка:** экспорт → файл валидный JSON с messages
-
-**34 · M · IPC import-chat** — приор. Medium  
-- **Цель:** импорт чата из JSON в новый чат в store  
-- **Файлы:** `chats.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
-- **Действие:** open dialog → parse → `createChat` с messages  
-- **Проверка:** импортированный чат отображает историю
-
-### 🔗 Skill marketplace
-
-**35 · M · Fetch remote skill manifest** — приор. Low  
-- **Цель:** список навыков с GitHub raw URL или индекс-файла  
-- **Файлы:** `app/electron/main/skills.ts`, `registerMiscIpc.ts`  
-- **Действие:** `list-remote-skills(url)` → `{ name, description, url }[]`  
-- **Проверка:** unit-тест с mock fetch на тестовый manifest.json
-
-**36 · M · import-remote-skill UI** — приор. Low  
-- **Цель:** кнопка «Импорт из каталога» в SkillsPanel  
-- **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
-- **Действие:** выбор из списка → download SKILL.md → локальный skill  
-- **Проверка:** импорт skill из URL появляется в списке навыков
-
-### 🔗 Автоматизации
-
-**37 · M · AutomationRule в settings** — приор. Medium  
-- **Цель:** тип `{ id, cron, prompt, enabled }` + Zod-массив в настройках  
-- **Файлы:** `settings.ts`, `types.ts`  
-- **Действие:** `automations: AutomationRule[]` с default `[]`  
-- **Проверка:** `npm run typecheck`; сохранение массива в settings.json
-
-**38 · M · automationScheduler в main** — приор. Medium  
-- **Цель:** таймер проверяет cron-выражения и ставит промпт в очередь чата  
-- **Файлы:** `app/electron/main/automationScheduler.ts`, `index.ts`  
-- **Действие:** `node-cron` или setInterval + parse; emit в default chat  
-- **Проверка:** unit-тест: rule `* * * * *` + mock time → enqueue вызван
-
-**39 · M · AutomationsTab в настройках** — приор. Medium  
-- **Цель:** CRUD автоматизаций: cron, промпт, вкл/выкл  
-- **Файлы:** `SettingsModal/AutomationsTab.tsx`, `SettingsModal/index.tsx`  
-- **Действие:** форма добавления; список с удалением  
-- **Проверка:** созданная автоматизация сохраняется и видна после reopen settings
-
-### 🔗 Сравнение моделей (A/B)
-
-**40 · M · Дублировать промпт во второй чат** — приор. Low  
-- **Цель:** кнопка «Сравнить с другой моделью» копирует промпт в новый чат  
-- **Файлы:** `ChatPanel/index.tsx`, `ChatHistoryPanel.tsx`  
-- **Действие:** `createChat` + тот же `input` + подсказка выбрать модель  
-- **Проверка:** два чата с одинаковым первым сообщением пользователя
-
-**41 · M · SplitChatView** — приор. Low  
-- **Цель:** два чата side-by-side для сравнения ответов  
-- **Файлы:** `app/src/App.tsx`, `SplitChatView.tsx`  
-- **Действие:** режим «Сравнение» — два `ChatPanel` с общим projectPath  
-- **Проверка:** оба чата видны одновременно; отправка в каждый независима
-
-### 🔗 P2P-сервер
-
-**42 · M · docker-compose для server/p2p** — приор. Medium  
-- **Цель:** one-click деплой сигнального сервера + Redis  
-- **Файлы:** `server/p2p/docker-compose.yml`, `server/p2p/README.md`, `docs/integrations.md`  
-- **Действие:** сервисы `p2p` + `redis`; env-шаблон `.env.example`  
-- **Проверка:** `docker compose up` → `GET /health` → 200
-
-**43 · M · Dashboard статуса узлов** — приор. Low  
-- **Цель:** `GET /admin/dashboard` — онлайн-узлы, задачи, кредиты (auth)  
-- **Файлы:** `server/p2p/src/routes/admin.ts`  
-- **Действие:** JSON `{ nodes, activeTasks, totalCredits }`  
-- **Проверка:** интеграционный тест с mock-узлами
-
-**44 · M · Рейтинг узлов по latency** — приор. Low  
-- **Цель:** `router.ts` предпочитает узлы с меньшим средним RTT  
-- **Файлы:** `server/p2p/src/router.ts`, `server/p2p/src/credits.ts`  
-- **Действие:** хранить `avgLatencyMs` per node; сортировка при route  
-- **Проверка:** unit-тест: два узла → выбирается с меньшей latency
-
-### 🔗 Плагины
-
-**45 · S · Документация plugin-authoring** — приор. Medium  
-- **Цель:** гайд автора плагина: схема tool, пример `.js`, hot-reload  
-- **Файлы:** `docs/plugin-authoring.md`, ссылка в `README.md`  
-- **Действие:** минимальный working example + ограничения (только `.js`)  
-- **Проверка:** файл существует; README ссылается на него
-
-**46 · M · Валидация схемы tool при загрузке** — приор. Medium  
-- **Цель:** невалидный плагин логируется и пропускается, не ломая остальные  
-- **Файлы:** `app/electron/main/pluginLoader.ts`  
-- **Действие:** Zod-схема `{ name, description, parameters }`; catch per plugin  
-- **Проверка:** unit-тест: плагин без `name` → skip + остальные загружены
-
-### 🔗 Интернационализация (i18n)
-
-**47 · M · Инфраструктура i18n** — приор. Low  
-- **Цель:** функция `t(key)` + `locales/ru.json` (текущие строки) + `en.json`  
-- **Файлы:** `app/src/i18n/index.ts`, `app/src/i18n/locales/`  
-- **Действие:** React context `I18nProvider`; fallback на ключ  
-- **Проверка:** `t('settings.title')` возвращает строку на обоих языках
-
-**48 · M · Переключатель языка в настройках** — приор. Low  
-- **Цель:** `locale: 'ru' | 'en'` в settings + UI в BehaviorTab  
-- **Файлы:** `settings.ts`, `BehaviorTab.tsx`, `App.tsx`  
-- **Действие:** select «Язык»; `I18nProvider` читает settings.locale  
-- **Проверка:** смена на en → хотя бы один переведённый заголовок меняется
-
-**49 · M · i18n: строки App и шапки** — приор. Low  
-- **Цель:** вынести строки `App.tsx` (кнопки, заголовки панелей) в locale-файлы  
-- **Файлы:** `App.tsx`, `locales/ru.json`, `locales/en.json`  
-- **Действие:** заменить литералы на `t('…')`  
-- **Проверка:** en locale — шапка и «Настройки» на английском
-
-**50 · M · i18n: SettingsModal** — приор. Low  
-- **Цель:** перевести вкладки и подписи настроек  
-- **Файлы:** `SettingsModal/*.tsx`, locale-файлы  
-- **Действие:** ключи `settings.model.*`, `settings.behavior.*` и т.д.  
-- **Проверка:** en locale — названия вкладок на английском
-
-**51 · M · i18n: ChatPanel и сообщения UI** — приор. Low  
-- **Цель:** перевести placeholder, кнопки отправки, статус-бар  
-- **Файлы:** `ChatPanel/`, `AgentStatusBar.tsx`, locale-файлы  
-- **Действие:** ключи `chat.*`, `status.*`  
-- **Проверка:** en locale — placeholder поля ввода на английском
-
-### 🔗 Рефакторинг монолитов (продолжение)
-
-> Самые крупные файлы сейчас: `ModelTab.tsx` (~1100), `ChatPanel/index.tsx` (~980), `App.tsx` (~940), `ipcContracts.ts` (~790), `ChatHistoryPanel.tsx` (~740). Пп. 21–23 покрывают App/agent/ChatPanel; ниже — остальные.
-
-**52 · M · ModelTab: формы провайдеров** — приор. Medium  
-- **Цель:** вынести JSX-блоки `provider === '…'` в `ModelTab/providers/*.tsx`  
-- **Файлы:** `SettingsModal/ModelTab.tsx` → `SettingsModal/ModelTab/providers/` (Ollama, DeepSeek, Gemini, …)  
-- **Действие:** каждый провайдер — отдельный компонент с props `{ settings, onSettingsChange }`; ModelTab — switch по `modelProvider`  
-- **Проверка:** `npm run typecheck`; смена провайдера в настройках работает как раньше
-
-**53 · M · ModelTab: оркестратор, бенчмарк, канал обновлений** — приор. Medium  
-- **Цель:** вынести нижнюю часть ModelTab (~300 строк) в отдельные секции  
-- **Файлы:** `OrchestratorSection.tsx`, `BenchmarkSection.tsx`, `UpdateChannelSection.tsx` в `SettingsModal/ModelTab/`  
-- **Действие:** перенести GGUF-download, benchmark, orchestrator toggle, beta-channel без изменения логики  
-- **Проверка:** бенчмарк и скачивание GGUF работают; `ModelTab.tsx` < 400 строк
-
-**54 · M · ipcContracts: Zod-схемы данных** — приор. Medium  
-- **Цель:** схемы `ChatMessage`, `AgentSettings`, `SavedChat` и др. — в `shared/ipc/schemas.ts`  
-- **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/schemas.ts`  
-- **Действие:** re-export из `ipcContracts.ts` для обратной совместимости импортов  
-- **Проверка:** `npm run typecheck`; импорты `ChatMessageSchema` не сломаны
-
-**55 · M · ipcContracts: IPC enum и Contracts** — приор. Medium  
-- **Цель:** объект `IPC` и `Contracts` — в `shared/ipc/channels.ts`  
-- **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/channels.ts`  
-- **Действие:** `ipcContracts.ts` — barrel re-export; `parseIpcArgs` остаётся рядом с Contracts  
-- **Проверка:** `npm run typecheck`; preload и register*Ipc компилируются
-
-**56 · M · ChatHistoryPanel: виртуализированный список** — приор. Low  
-- **Цель:** JSX рендера `FlatItem` и virtualizer — в `ChatHistoryList.tsx`  
-- **Файлы:** `ChatHistoryPanel.tsx` → `ChatHistoryList.tsx`  
-- **Действие:** props: `items`, `activeChatId`, `onSelect`; панель — композиция + toolbar  
-- **Проверка:** скролл длинной истории чатов без регрессий
-
-**57 · M · ChatHistoryPanel: DnD и диалоги** — приор. Low  
-- **Цель:** drag-and-drop, Prompt/Confirm state — в `useChatHistoryDnD.ts`  
-- **Файлы:** `ChatHistoryPanel.tsx`, `useChatHistoryDnD.ts`  
-- **Действие:** хук возвращает handlers и dialog state; панель < 400 строк  
-- **Проверка:** перетаскивание чата в папку работает
-
-**58 · M · types.ts: доменные модули** — приор. Low  
-- **Цель:** разнести ~720 строк на `types/chat.ts`, `types/settings.ts`, `types/memory.ts`, `types/api.ts`  
-- **Файлы:** `app/src/types/` (новая папка), `types.ts` — re-export  
-- **Действие:** `CodeViperAPI` в `api.ts`; `AgentSettings` в `settings.ts`  
-- **Проверка:** `npm run typecheck`; нет циклических импортов
-
-**59 · M · agentContext: RAG-hints** — приор. Low  
-- **Цель:** grep-nudge и `maybeAppendRagSearchHintAfterEmptyGrep` — в `agentContextRag.ts`  
-- **Файлы:** `agentContext.ts` → `agentContextRag.ts`  
-- **Действие:** re-export из `agentContext.ts`  
-- **Проверка:** `npm test` — существующие тесты RAG-hint зелёные
-
-**60 · M · agentContext: preview и prepare** — приор. Low  
-- **Цель:** `buildAgentContextPreview`, `prepareAgentRunContext`, `summarizeChatHistory` — в `agentContextBuild.ts`  
-- **Файлы:** `agentContext.ts` → `agentContextBuild.ts`  
-- **Действие:** `agentContext.ts` < 150 строк, только re-export и `OllamaMessage`  
-- **Проверка:** `npm run typecheck`; превью контекста в UI открывается
-
-**61 · M · services.ts: файловые операции** — приор. Medium  
-- **Цель:** `safeRead*`, `safeWrite*`, `buildFileTree`, кэши — в `fileServices.ts`  
-- **Файлы:** `services.ts` → `fileServices.ts`  
-- **Действие:** `services.ts` re-export для handler-импортов  
-- **Проверка:** `npm test -- services` зелёный
-
-**62 · M · services.ts: runCommand** — приор. Medium  
-- **Цель:** `validateCommand`, `normalizeCommand`, `runCommand`, лимит буфера — в `commandRunner.ts`  
-- **Файлы:** `services.ts` → `commandRunner.ts`  
-- **Действие:** handlers импортируют из `commandRunner.ts` или barrel `services.ts`  
-- **Проверка:** `npm test -- services.test` — validateCommand и buffer limit
-
-**63 · M · useAgentStream: обработчики событий** — приор. Low  
-- **Цель:** switch по `AgentStreamEvent.type` — в `agentStreamHandlers.ts`  
-- **Файлы:** `useAgentStream.ts` → `agentStreamHandlers.ts`  
-- **Действие:** чистые функции `(event, ctx) => partialState`; хук — подписка и setState  
-- **Проверка:** `npm run typecheck`; стрим агента в UI без регрессий
-
-**64 · M · preload: группы API** — приор. Low  
-- **Цель:** `codeviper` object разбить на `preload/agentApi.ts`, `preload/chatApi.ts`, `preload/fileApi.ts`  
-- **Файлы:** `electron/preload/index.ts`, `electron/preload/*.ts`  
-- **Действие:** `Object.assign` или spread в `contextBridge.exposeInMainWorld`  
-- **Проверка:** `npm run typecheck`; `window.codeviper.*` доступен в renderer
-
-**65 · M · agentTools/core: files / git / package** — приор. Low  
-- **Цель:** `FILE_TOOLS`, `GIT_TOOLS`, `PACKAGE_TOOLS` — в отдельные файлы (~200 строк каждый)  
-- **Файлы:** `agentTools/core.ts` → `coreFiles.ts`, `coreGit.ts`, `corePackage.ts`; `core.ts` — сборка  
-- **Действие:** `getAgentTools()` без изменений снаружи  
-- **Проверка:** `npm run typecheck`; список инструментов агента тот же
-
-**66 · S · Поиск по истории чатов** — приор. Medium  
-- **Цель:** поле фильтра в `ChatHistoryPanel` по заголовку и последнему сообщению  
-- **Файлы:** `ChatHistoryPanel.tsx`  
-- **Действие:** `searchQuery` state + `useMemo` фильтр `FlatItem`  
-- **Проверка:** ввод текста сужает список чатов
-
-### 🔗 CI и покрытие тестами
-
-**67 · M · E2E: smoke настройки и отправка** — приор. Medium  
-- **Цель:** Playwright-тест: открыть настройки → закрыть → ввести промпт (mock LLM)  
-- **Файлы:** `app/e2e/smoke.spec.ts`  
-- **Действие:** `CODEVIPER_E2E=1`; stub agent-stream или пустой ответ  
-- **Проверка:** `npm run test:e2e` — новый тест зелёный в CI
-
-**68 · M · Coverage пороги electron/main** — приор. Medium  
+**4 · M · Coverage пороги electron/main** — уровень 1
 - **Цель:** расширить `vitest.config.ts` coverage на `agentLoopGuard.ts`, `runCheckpoint.ts`, `commandRunner.ts`  
 - **Файлы:** `vitest.config.ts`, тесты в `tests/`  
 - **Действие:** `include` + thresholds 50% branches для выбранных модулей  
 - **Проверка:** `npm test -- --coverage` проходит пороги в CI
 
-### 🔗 Тема и масштаб UI
 
-**69 · S · Сохранение светлой темы в settings** — приор. Medium  
-- **Цель:** `lightMode` не сбрасывается после перезапуска (`App.tsx` сейчас только `useState`)  
-- **Файлы:** `settings.ts`, `types.ts`, `App.tsx`  
-- **Действие:** `uiLightMode: boolean` в Zod; загрузка при старте  
-- **Проверка:** включить ☀️ → перезапуск → тема сохранена
-
-**70 · S · Масштаб шрифта UI** — приор. Low  
-- **Цель:** `uiFontScale: 0.9 | 1 | 1.1 | 1.25` в настройках → `document.documentElement.style.fontSize`  
-- **Файлы:** `PerformanceTab.tsx`, `settings.ts`, `App.tsx`  
-- **Действие:** select в PerformanceTab; применение при загрузке  
-- **Проверка:** 1.25 — текст чата крупнее
-
-**71 · S · Режим высокой контрастности** — приор. Low  
-- **Цель:** класс `high-contrast` на `:root` для слабовидящих  
-- **Файлы:** `styles.css`, `PerformanceTab.tsx`, `settings.ts`  
-- **Действие:** тумблер + контрастные CSS-переменные  
-- **Проверка:** границы панелей и кнопок заметно контрастнее
-
-### 🔗 Сообщения и чат (UX)
-
-**72 · S · Копировать блок кода в MessageBody** — приор. Medium  
-- **Цель:** кнопка «Копировать» на каждом `<pre><code>` в markdown-ответе  
-- **Файлы:** `MessageBody.tsx`, `MessageBody.module.css`  
-- **Действие:** `navigator.clipboard.writeText` по клику  
-- **Проверка:** копирование блока кода из ответа агента
-
-**73 · M · Повторить ответ ассистента** — приор. Medium  
-- **Цель:** в меню `MessageRow` для `assistant` — «↺ Перегенерировать» (truncate history + resend)  
-- **Файлы:** `MessageRow.tsx`, `ChatPanel/index.tsx`, `useMessageQueue.ts`  
-- **Действие:** удалить assistant-сообщение и последний user turn → повторный прогон  
-- **Проверка:** перегенерация даёт новый ответ
-
-**74 · M · Экспорт чата в Markdown** — приор. Medium  
-- **Цель:** кнопка в меню чата → `.md` с ролями и код-блоками  
-- **Файлы:** `ChatHistoryPanel.tsx`, `chats.ts`, `registerChatsIpc.ts`  
-- **Действие:** `export-chat-markdown` IPC + save dialog  
-- **Проверка:** файл читается в любом MD-viewer
-
-**75 · M · Недавние проекты** — приор. Medium  
-- **Цель:** список последних 10 `projectPath` в WelcomePanel и меню «Открыть»  
-- **Файлы:** `settings.ts`, `WelcomePanel.tsx`, `App.tsx`  
-- **Действие:** `recentProjects: string[]` при `selectProjectFolder`  
-- **Проверка:** после открытия 2 проектов оба в списке
-
-**76 · S · Избранные чаты** — приор. Low  
-- **Цель:** звезда ⭐ на чате → секция «Избранное» вверху истории  
-- **Файлы:** `SavedChat` + `chats.ts`, `ChatHistoryPanel.tsx`  
-- **Действие:** `starred?: boolean`; сортировка starred first  
-- **Проверка:** избранный чат остаётся наверху
-
-**77 · S · Цвет папки чатов** — приор. Low  
-- **Цель:** `ChatFolder.color?: string` — цветная полоска у заголовка папки  
-- **Файлы:** `types.ts`, `chats.ts`, `ChatHistoryPanel.tsx`  
-- **Действие:** picker в контекстном меню папки  
-- **Проверка:** цвет виден и сохраняется
-
-**78 · M · Drag-drop папок в чат** — приор. Low  
-- **Цель:** перетаскивание директории → `@path` или attachment как у файлов  
-- **Файлы:** `ChatPanel/ChatInput.tsx`, `registerFileIpc.ts`  
-- **Действие:** resolve directory path; лимит вложенных файлов  
-- **Проверка:** drop папки добавляет путь в чат
-
-**79 · S · Автосохранение черновика ввода** — приор. Medium  
-- **Цель:** `input` поля чата в `localStorage` per `chatId` с debounce 500 мс  
-- **Файлы:** `ChatPanel/index.tsx`  
-- **Действие:** восстановление при переключении чата  
-- **Проверка:** набрать текст → другой чат → вернуться — текст на месте
-
-**80 · S · Очередь: удалить элемент** — приор. Low  
-- **Цель:** кнопка ✕ у каждого сообщения в очереди (`AgentStatusBar` / queue UI)  
-- **Файлы:** `AgentStatusBar.tsx`, `QueueContext.tsx`  
-- **Действие:** `removeFromQueue(index)` IPC или context  
-- **Проверка:** элемент исчезает, остальные выполняются
-
-### 🔗 Git-инструменты агента (проект пользователя)
-
-**81 · M · git_commit** — приор. High  
+**5 · M · git_commit** — уровень 1
 - **Цель:** инструмент `git_commit` с `message` вместо сырого `run_command git commit`  
 - **Файлы:** `agentTools/core.ts`, `gitTools.ts`, `agentHandlersProject.ts`  
 - **Действие:** `git commit -m` с экранированием; только внутри projectPath  
 - **Проверка:** unit-тест + агент коммитит через tool
 
-**82 · M · git_push** — приор. Medium  
+
+**6 · M · git_push** — уровень 1
 - **Цель:** `git_push` с опциональным `remote`/`branch`; уважать `permissionMode`  
 - **Файлы:** `gitTools.ts`, `agentTools/core.ts`, handlers  
 - **Действие:** `git push`; ошибка при non-fast-forward — текст агенту  
 - **Проверка:** mock git в unit-тесте
 
-**83 · M · git_checkout** — приор. Medium  
+
+**7 · M · git_checkout** — уровень 1
 - **Цель:** безопасный `git checkout branch` / `git switch`  
 - **Файлы:** `gitTools.ts`, `agentTools/core.ts`  
 - **Действие:** запрет checkout при dirty tree без флага `force`  
 - **Проверка:** unit-тест на dirty tree → ошибка
 
-**84 · M · git_stash / git_stash_pop** — приор. Low  
-- **Цель:** stash перед опасными операциями по запросу агента  
-- **Файлы:** `gitTools.ts`, `agentTools/core.ts`  
-- **Действие:** `git stash push -m` и `git stash pop`  
-- **Проверка:** round-trip stash в temp repo
 
-**85 · S · .codeviperignore** — приор. Medium  
+**8 · S · .codeviperignore** — уровень 1
 - **Цель:** паттерны игнора для агента (как `.cursorignore`)  
 - **Файлы:** `ignorePatterns.ts`, `docs/`  
 - **Действие:** читать `.codeviperignore` после `.cursorignore`  
 - **Проверка:** unit-тест: файл в ignore не в `list_directory`
 
-### 🔗 Провайдеры и fallback
 
-**86 · M · OpenAI-compatible произвольный endpoint** — приор. Medium  
-- **Цель:** провайдер `custom` — `baseUrl` + `apiKey` + model id (LM Studio, vLLM)  
-- **Файлы:** `openaiProvider.ts`, `modelRuntime.ts`, `ModelTab/providers/`  
-- **Действие:** переиспользовать OpenAI client с custom baseURL  
-- **Проверка:** ping к mock server
+**9 · M · Валидация схемы tool при загрузке** — уровень 1
+- **Цель:** невалидный плагин логируется и пропускается, не ломая остальные  
+- **Файлы:** `app/electron/main/pluginLoader.ts`  
+- **Действие:** Zod-схема `{ name, description, parameters }`; catch per plugin  
+- **Проверка:** unit-тест: плагин без `name` → skip + остальные загружены
 
-**87 · M · Провайдер Mistral** — приор. Low  
-- **Цель:** `modelProvider: 'mistral'` через Mistral API  
-- **Файлы:** `mistralProvider.ts`, `modelRuntime.ts`, `constants.ts`  
-- **Действие:** `StreamingChatProvider` + список моделей  
-- **Проверка:** unit-тест stream parser
 
-**88 · M · Цепочка fallback моделей** — приор. Medium  
-- **Цель:** `fallbackModels: string[]` — при ошибке провайдера пробовать следующую  
-- **Файлы:** `agentContextManager.ts`, `settings.ts`, `BehaviorTab.tsx`  
-- **Действие:** loop в `AgentRunner` при 429/5xx  
-- **Проверка:** mock: primary fail → secondary ok
+**10 · M · npm audit в CI** — уровень 1
+- **Цель:** CI падает при high/critical уязвимостях в зависимостях  
+- **Файлы:** `.github/workflows/ci.yml`  
+- **Действие:** `npm audit --audit-level=high` в app/; fail on high  
+- **Проверка:** CI job проходит на чистом lockfile
 
-**89 · S · Лимит стоимости за прогон** — приор. Medium  
+
+**11 · S · Лимит стоимости за прогон** — уровень 1
 - **Цель:** `maxCostPerRunUsd` — остановка при превышении `estimatedCostUsd`  
 - **Файлы:** `constants.ts`, `agent.ts`, `BehaviorTab.tsx`  
 - **Действие:** проверка после каждого LLM-шага  
 - **Проверка:** unit-тест с низким лимитом → abort
 
-### 🔗 Интеграции (issue trackers)
 
-**90 · M · Bitbucket: create_pull_request** — приор. Low  
-- **Цель:** tool `create_bitbucket_pr` через REST API 2.0  
-- **Файлы:** `bitbucketTools.ts`, `agentTools/integrations.ts`, `IntegrationsTab.tsx`  
-- **Действие:** token + workspace/repo в settings  
-- **Проверка:** unit-тест с mock fetch
+**12 · M · Удалить deprecated cloudApiKey** — уровень 1
+- **Цель:** миграция settings → per-provider keys; убрать поле из UI  
+- **Файлы:** `settings.ts`, `ModelTab.tsx`, `agentContextManager.ts`  
+- **Действие:** при загрузке перенести `cloudApiKey` в `openaiApiKey` если пусто; удалить из Zod и UI  
+- **Проверка:** старый конфиг мигрирует без потери ключа
 
-**91 · M · Azure DevOps: create_work_item** — приор. Low  
-- **Цель:** tool `create_ado_work_item` (PAT + org/project)  
-- **Файлы:** `adoTools.ts`, `integrations.ts`, settings  
-- **Действие:** WIQL/create work item REST  
-- **Проверка:** mock API test
 
-**92 · S · Discord webhook** — приор. Low  
-- **Цель:** `discordWebhookUrl` — уведомление «агент готов» в Discord  
-- **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`, `settings.ts`  
-- **Действие:** POST embed JSON  
-- **Проверка:** unit-тест payload
+**13 · M · Unit-тест Ollama fallback** — уровень 1
+- **Цель:** `CircuitBreakerOpenError` → emit `ollama_fallback_offer`  
+- **Файлы:** `app/electron/main/agent.ts`, `app/tests/agentFallback.test.ts`  
+- **Действие:** mock provider throws circuit open → проверить payload события  
+- **Проверка:** `npm test -- agentFallback`
 
-**93 · S · Telegram Bot уведомления** — приор. Low  
-- **Цель:** `telegramBotToken` + `telegramChatId` в настройках  
-- **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`  
-- **Действие:** `sendMessage` API  
-- **Проверка:** mock fetch test
 
-### 🔗 Доступность (a11y)
+**14 · M · git_stash / git_stash_pop** — уровень 1
+- **Цель:** stash перед опасными операциями по запросу агента  
+- **Файлы:** `gitTools.ts`, `agentTools/core.ts`  
+- **Действие:** `git stash push -m` и `git stash pop`  
+- **Проверка:** round-trip stash в temp repo
 
-**94 · M · Аудит focus trap в модалках** — приор. Medium  
-- **Цель:** все `role="dialog"` используют `useModalA11y` + Tab cycle  
-- **Файлы:** модалки без хука (`MetricsPanel`, `TracePanel`, …)  
-- **Действие:** подключить `useModalA11y`; initial focus на первый интерактивный элемент  
-- **Проверка:** Tab не уходит за пределы открытой модалки
 
-**95 · S · Skip link «К содержимому»** — приор. Low  
-- **Цель:** скрытая ссылка в начале `App.tsx` → `#main-chat`  
-- **Файлы:** `App.tsx`, `styles.css`  
-- **Действие:** `:focus` показывает ссылку  
-- **Проверка:** Tab с первого элемента → skip → фокус в чате
+**15 · M · Инкрементальная индексация при изменении файлов** — уровень 1
+- **Цель:** Qdrant-индекс обновляется при сохранении файла без полного reindex  
+- **Файлы:** `vectorStore.ts`, `services.ts` watcher, `embeddingQueue.ts`  
+- **Действие:** watcher → debounce → upsert/delete эмбеддингов изменённого файла  
+- **Проверка:** правка файла → поиск находит новый контент без full reindex
 
-**96 · S · aria-live для статуса агента** — приор. Medium  
-- **Цель:** screen reader объявляет «Агент работает» / «Готово»  
-- **Файлы:** `AgentStatusBar.tsx`  
-- **Действие:** `aria-live="polite"` region с текстом фазы  
-- **Проверка:** accessibility inspector показывает live region
 
-### 🔗 Наблюдаемость и отладка
+**16 · M · Health-check MCP при старте** — уровень 1
+- **Цель:** ping каждого сервера из settings; toast при недоступности  
+- **Файлы:** `mcpRegistry.ts`, `index.ts`, `IntegrationsTab.tsx`  
+- **Действие:** при `app.ready` вызвать list tools / ping; toast + лог при ошибке  
+- **Проверка:** offline server → предупреждение в UI
 
-**97 · M · Просмотр NDJSON-логов агента** — приор. Medium  
-- **Цель:** вкладка или панель «Логи» — tail `agent-*.ndjson`  
-- **Файлы:** `agentLogger.ts`, `LogViewerPanel.tsx`, IPC `read-agent-logs`  
-- **Действие:** фильтр по event type; последние 500 строк  
-- **Проверка:** после прогона логи видны в UI
 
-**98 · S · Экспорт метрик в CSV** — приор. Low  
-- **Цель:** кнопка в `MetricsPanel` → CSV byModel + topTools  
-- **Файлы:** `MetricsPanel.tsx`  
-- **Действие:** blob download  
-- **Проверка:** CSV открывается в Excel
+**17 · M · Вкл/выкл MCP-tools по серверу** — уровень 1
+- **Цель:** `mcpServer.enabledTools: string[]` в конфиге  
+- **Файлы:** `mcpRegistry.ts`, `McpIntegrationsSection.tsx`  
+- **Действие:** фильтр tools при сборке `getAgentTools()`; чекбоксы в UI  
+- **Проверка:** отключённый tool не в списке агента
 
-**99 · S · Режим отладки агента** — приор. Medium  
+
+**18 · S · Режим отладки агента** — уровень 1
 - **Цель:** `debugAgent: boolean` — verbose `console` + все tool I/O в лог  
 - **Файлы:** `settings.ts`, `agentToolExecutor.ts`, `BehaviorTab.tsx`  
 - **Действие:** тумблер в BehaviorTab  
 - **Проверка:** при включении в NDJSON больше деталей
 
-### 🔗 Markdown и ссылки
 
-**100 · M · Mermaid в ответах агента** — приор. Low  
-- **Цель:** блоки ` ```mermaid ` рендерятся как SVG  
-- **Файлы:** `MessageBody.tsx`, dependency `mermaid`  
-- **Действие:** lazy import mermaid; sandboxed render  
-- **Проверка:** диаграмма из примера отображается
+### 🟠 Уровень 2 — высокая польза
 
-**101 · S · Подтверждение внешних ссылок** — приор. Medium  
+> Ежедневный UX, превью файлов, onboarding, провайдеры, субагенты, E2E, ModelTab. Пункты **19–59** — выполнять сверху вниз; цепочки см. блок уровня 1.
+
+**19 · S · Toast при ожидании подтверждения** — уровень 2
+- **Цель:** системное уведомление, если агент ждёт `preview_edit`/danger-dialog, а окно не в фокусе  
+- **Файлы:** `app/src/App.tsx`, `app/electron/main/tray.ts` или `webhookNotify.ts`  
+- **Действие:** при `pendingApproval` + `!document.hasFocus()` → toast «Агент ждёт подтверждения»  
+- **Проверка:** сценарий в UI: свернуть окно → агент вызывает preview → toast появляется
+
+
+**20 · M · Расширение горячих клавиш** — уровень 2
+- **Цель:** Escape — стоп агента; Ctrl+Shift+N — новый чат; Ctrl+B — фокус/переключение дерева файлов  
+- **Файлы:** `app/src/App.tsx`, `app/src/components/KeyboardShortcutsModal.tsx`  
+- **Действие:** обработчики `keydown` + строки в модалке `?`  
+- **Проверка:** каждая комбинация работает в UI; модалка отображает новые шорткаты
+
+
+**21 · M · Resizable split layout** — уровень 2
+- **Цель:** основной layout с изменяемой шириной панели превью справа от чата  
+- **Файлы:** `app/src/App.tsx`, `app/src/App.module.css` (или `styles.css`)  
+- **Действие:** splitter между чатом и правой панелью; ширина в `localStorage`  
+- **Проверка:** перетаскивание границы меняет ширину; после перезапуска ширина сохранена
+
+
+**22 · M · FilePreviewPanel read-only** — уровень 2
+- **Цель:** компонент просмотра файла с подсветкой синтаксиса (как в DiffPreviewModal)  
+- **Файлы:** `app/src/components/FilePreviewPanel.tsx`, `shared/diffPreview.ts`  
+- **Действие:** IPC `read-file` → highlight.js; заголовок с путём и кнопкой закрыть  
+- **Проверка:** открытие `.ts` файла показывает подсветку
+
+
+**23 · S · ProjectTree открывает превью** — уровень 2
+- **Цель:** клик по файлу в `ProjectTreePanel` открывает его в `FilePreviewPanel`  
+- **Файлы:** `app/src/components/ProjectTreePanel.tsx`, `app/src/App.tsx`  
+- **Действие:** callback `onFileOpen(path)` → state `previewPath` в App  
+- **Проверка:** клик в дереве → файл виден в split-панели
+
+
+**24 · S · Копировать блок кода в MessageBody** — уровень 2
+- **Цель:** кнопка «Копировать» на каждом `<pre><code>` в markdown-ответе  
+- **Файлы:** `MessageBody.tsx`, `MessageBody.module.css`  
+- **Действие:** `navigator.clipboard.writeText` по клику  
+- **Проверка:** копирование блока кода из ответа агента
+
+
+**25 · M · Повторить ответ ассистента** — уровень 2
+- **Цель:** в меню `MessageRow` для `assistant` — «↺ Перегенерировать» (truncate history + resend)  
+- **Файлы:** `MessageRow.tsx`, `ChatPanel/index.tsx`, `useMessageQueue.ts`  
+- **Действие:** удалить assistant-сообщение и последний user turn → повторный прогон  
+- **Проверка:** перегенерация даёт новый ответ
+
+
+**26 · S · Поиск по истории чатов** — уровень 2
+- **Цель:** поле фильтра в `ChatHistoryPanel` по заголовку и последнему сообщению  
+- **Файлы:** `ChatHistoryPanel.tsx`  
+- **Действие:** `searchQuery` state + `useMemo` фильтр `FlatItem`  
+- **Проверка:** ввод текста сужает список чатов
+
+
+**27 · S · Автосохранение черновика ввода** — уровень 2
+- **Цель:** `input` поля чата в `localStorage` per `chatId` с debounce 500 мс  
+- **Файлы:** `ChatPanel/index.tsx`  
+- **Действие:** восстановление при переключении чата  
+- **Проверка:** набрать текст → другой чат → вернуться — текст на месте
+
+
+**28 · S · Сохранение светлой темы в settings** — уровень 2
+- **Цель:** `lightMode` не сбрасывается после перезапуска (`App.tsx` сейчас только `useState`)  
+- **Файлы:** `settings.ts`, `types.ts`, `App.tsx`  
+- **Действие:** `uiLightMode: boolean` в Zod; загрузка при старте  
+- **Проверка:** включить ☀️ → перезапуск → тема сохранена
+
+
+**29 · M · Quick Open — палитра файлов Ctrl+P** — уровень 2
+- **Цель:** fuzzy search по project tree → открыть превью  
+- **Файлы:** `QuickOpenPalette.tsx`, `App.tsx`  
+- **Действие:** модалка + IPC `get-project-tree`; Enter → `onFileOpen`  
+- **Проверка:** Ctrl+P → ввод → Enter открывает файл
+
+
+**30 · S · Ctrl+` — переключить терминал** — уровень 2
+- **Цель:** быстро показать/скрыть `TerminalPanel` без мыши  
+- **Файлы:** `App.tsx`, `KeyboardShortcutsModal.tsx`  
+- **Действие:** toggle state `terminalVisible` по Ctrl+`  
+- **Проверка:** терминал показывается/скрывается
+
+
+**31 · M · Недавние проекты** — уровень 2
+- **Цель:** список последних 10 `projectPath` в WelcomePanel и меню «Открыть»  
+- **Файлы:** `settings.ts`, `WelcomePanel.tsx`, `App.tsx`  
+- **Действие:** `recentProjects: string[]` при `selectProjectFolder`  
+- **Проверка:** после открытия 2 проектов оба в списке
+
+
+**32 · M · planBeforeExecute в настройках** — уровень 2
+- **Цель:** тумблер «Сначала показать план» в BehaviorTab  
+- **Файлы:** `settings.ts`, `BehaviorTab.tsx`, `types.ts`  
+- **Действие:** `planBeforeExecute: boolean` в Zod-схеме с default `false`  
+- **Проверка:** настройка сохраняется и загружается
+
+
+**33 · M · Пауза после плана до подтверждения** — уровень 2
+- **Цель:** при `planBeforeExecute` оркестратор показывает план и ждёт кнопку «Выполнить»  
+- **Файлы:** `agent.ts`, `orchestratorModel.ts`, `ChatPanel/index.tsx`  
+- **Действие:** emit `plan_awaiting_confirm`; UI-кнопка продолжает прогон  
+- **Проверка:** с включённым тумблером агент не вызывает tools до «Выполнить»
+
+
+**34 · M · Флаг firstRunCompleted** — уровень 2
+- **Цель:** `firstRunCompleted: boolean` в settings; false при первой установке  
+- **Файлы:** `settings.ts`, `types.ts`  
+- **Действие:** поле в Zod с default `false`; true после завершения визарда  
+- **Проверка:** чистый settings.json → `firstRunCompleted === false`
+
+
+**35 · M · OnboardingWizard** — уровень 2
+- **Цель:** модалка: выбор провайдера → модель → открыть проект  
+- **Файлы:** `app/src/components/OnboardingWizard.tsx`, `App.tsx`  
+- **Действие:** 3 шага; показ при `!firstRunCompleted`; «Пропустить» → true  
+- **Проверка:** первый запуск показывает визард; повторный — нет
+
+
+**36 · S · Ссылка на example-prompts в визарде** — уровень 2
+- **Цель:** финальный шаг визарда — кнопка «Примеры запросов» → `docs/example-prompts.md`  
+- **Файлы:** `OnboardingWizard.tsx`  
+- **Действие:** `shell.openExternal` или открытие вики/GitHub  
+- **Проверка:** клик открывает страницу с примерами
+
+
+**37 · M · OpenAI-compatible произвольный endpoint** — уровень 2
+- **Цель:** провайдер `custom` — `baseUrl` + `apiKey` + model id (LM Studio, vLLM)  
+- **Файлы:** `openaiProvider.ts`, `modelRuntime.ts`, `ModelTab/providers/`  
+- **Действие:** переиспользовать OpenAI client с custom baseURL  
+- **Проверка:** ping к mock server
+
+
+**38 · M · Цепочка fallback моделей** — уровень 2
+- **Цель:** `fallbackModels: string[]` — при ошибке провайдера пробовать следующую  
+- **Файлы:** `agentContextManager.ts`, `settings.ts`, `BehaviorTab.tsx`  
+- **Действие:** loop в `AgentRunner` при 429/5xx  
+- **Проверка:** mock: primary fail → secondary ok
+
+
+**39 · S · Чип прогресса индексации** — уровень 2
+- **Цель:** «Индекс 42%» в `AgentStatusBar` при `index_project`  
+- **Файлы:** `AgentStatusBar.tsx`, stream event `index_progress`  
+- **Действие:** подписка на `index_progress` → обновление чипа  
+- **Проверка:** чип виден во время индексации
+
+
+**40 · S · Ручная переиндексация** — уровень 2
+- **Цель:** кнопка в `ProjectTreePanel` ПКМ → «Переиндексировать»  
+- **Файлы:** `ProjectTreePanel.tsx`, IPC вызов `index_project`  
+- **Действие:** пункт меню → `index_project` для текущего `projectPath`  
+- **Проверка:** индексация запускается
+
+
+**41 · M · Аудит focus trap в модалках** — уровень 2
+- **Цель:** все `role="dialog"` используют `useModalA11y` + Tab cycle  
+- **Файлы:** модалки без хука (`MetricsPanel`, `TracePanel`, …)  
+- **Действие:** подключить `useModalA11y`; initial focus на первый интерактивный элемент  
+- **Проверка:** Tab не уходит за пределы открытой модалки
+
+
+**42 · S · aria-live для статуса агента** — уровень 2
+- **Цель:** screen reader объявляет «Агент работает» / «Готово»  
+- **Файлы:** `AgentStatusBar.tsx`  
+- **Действие:** `aria-live="polite"` region с текстом фазы  
+- **Проверка:** accessibility inspector показывает live region
+
+
+**43 · M · Просмотр NDJSON-логов агента** — уровень 2
+- **Цель:** вкладка или панель «Логи» — tail `agent-*.ndjson`  
+- **Файлы:** `agentLogger.ts`, `LogViewerPanel.tsx`, IPC `read-agent-logs`  
+- **Действие:** фильтр по event type; последние 500 строк  
+- **Проверка:** после прогона логи видны в UI
+
+
+**44 · S · Подтверждение внешних ссылок** — уровень 2
 - **Цель:** клик по `http(s)` в MessageBody → ConfirmDialog перед `openExternal`  
 - **Файлы:** `MessageBody.tsx`, `App.tsx`  
 - **Действие:** перехват click на `<a>`  
 - **Проверка:** без подтверждения браузер не открывается
 
-**102 · M · Клик по пути в code block → открыть файл** — приор. Medium  
-- **Цель:** `src/foo.ts:12` в коде → открыть в превью (п. 5–6)  
+
+**45 · M · Клик по пути в code block → открыть файл** — уровень 2
+- **Цель:** `src/foo.ts:12` в коде → открыть в превью (п. 21–23)  
 - **Файлы:** `MessageBody.tsx`, `App.tsx`  
 - **Действие:** regex path:line; IPC read + preview  
 - **Проверка:** клик открывает файл на строке
 
-### 🔗 Slash-команды
 
-**103 · S · Slash /lint** — приор. Low  
-- **Файлы:** `shared/slashCommands.ts`  
-- **Действие:** expand → `npm run lint` + исправить  
-- **Проверка:** `/lint` в меню slash
+**46 · M · Субагент Reviewer** — уровень 2
+- **Цель:** `delegate_to_reviewer` — read-only обзор diff без правок  
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`, `agent.ts`  
+- **Проверка:** unit-тест контракта; чип «Ревью…»
 
-**104 · S · Slash /build** — приор. Low  
-- **Файлы:** `shared/slashCommands.ts`  
-- **Действие:** expand → `npm run build` + исправить ошибки  
-- **Проверка:** `/build` в автодополнении
 
-**105 · S · Slash /security** — приор. Low  
-- **Файлы:** `shared/slashCommands.ts`  
-- **Действие:** expand → review на секреты, injection, unsafe commands  
-- **Проверка:** `/security` в списке
+**47 · M · Субагент Tester** — уровень 2
+- **Цель:** `delegate_to_tester` — только `run_tests` / `run_command` test  
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`  
+- **Проверка:** не вызывает write_file
 
-### 🔗 Рефакторинг монолитов (продолжение 2)
 
-**106 · M · BehaviorTab: автоматизация и git** — приор. Low  
-- **Цель:** вынести секции автокоммита и git-sync в `BehaviorAutomationSection.tsx`  
-- **Файлы:** `BehaviorTab.tsx` (~580 строк)  
-- **Проверка:** `BehaviorTab.tsx` < 350 строк
+**48 · M · E2E: smoke настройки и отправка** — уровень 2
+- **Цель:** Playwright-тест: открыть настройки → закрыть → ввести промпт (mock LLM)  
+- **Файлы:** `app/e2e/smoke.spec.ts`  
+- **Действие:** `CODEVIPER_E2E=1`; stub agent-stream или пустой ответ  
+- **Проверка:** `npm run test:e2e` — новый тест зелёный в CI
 
-**107 · M · BehaviorTab: инструменты и промпты** — приор. Low  
-- **Цель:** `disabledTools`, `promptTemplates`, permissions — в `BehaviorToolsSection.tsx`  
-- **Файлы:** `BehaviorTab.tsx`  
-- **Проверка:** typecheck; настройки сохраняются
 
-**108 · M · IntegrationsTab: MCP секция** — приор. Low  
-- **Файлы:** `IntegrationsTab.tsx` → `McpIntegrationsSection.tsx`  
-- **Проверка:** MCP CRUD в UI работает
-
-**109 · M · IntegrationsTab: P2P и webhooks** — приор. Low  
-- **Файлы:** `IntegrationsTab.tsx` → `P2pIntegrationsSection.tsx`, `WebhookSection.tsx`  
-- **Проверка:** тумблер P2P и webhook URL сохраняются
-
-**110 · M · vectorStore: Qdrant / Milvus** — приор. Low  
-- **Файлы:** `vectorStore.ts` → `qdrantStore.ts`, `milvusStore.ts`  
-- **Проверка:** `search_knowledge_base` без регрессий
-
-**111 · M · memory.ts: локальная vs контекстная сборка** — приор. Low  
-- **Файлы:** `memory.ts` → `memoryStore.ts`, `memoryContext.ts`  
-- **Проверка:** `npm test -- memory`
-
-**112 · M · collectiveMemorySync: pull / push** — приор. Low  
-- **Файлы:** `collectiveMemorySync.ts` — два модуля  
-- **Проверка:** `npm test -- collectiveMemorySync`
-
-**113 · M · agentTools/integrations: GitHub + GitLab** — приор. Low  
-- **Файлы:** `integrationsGitHub.ts`, `integrationsGitLab.ts`  
-- **Проверка:** tool names в `AGENT_TOOL_NAMES` на месте
-
-**114 · M · agentTools/integrations: memory + skills + web** — приор. Low  
-- **Файлы:** `integrationsMemory.ts`, `integrationsWeb.ts`  
-- **Проверка:** typecheck
-
-**115 · M · defaultSkills: данные в JSON** — приор. Low  
-- **Цель:** SKILL markdown из `resources/default-skills/*.md` вместо строк в TS  
-- **Файлы:** `defaultSkills.ts`, `resources/default-skills/`  
-- **Проверка:** `npm test -- defaultSkills`
-
-**116 · M · useMessageQueue: обработчики стрима** — приор. Low  
-- **Файлы:** `useMessageQueue.ts` → `messageQueueHandlers.ts`  
-- **Проверка:** отправка и danger-block работают
-
-**117 · M · ChatPanel: вынести MessagesPane state** — приор. Low  
-- **Цель:** `ChatPanelMessagesPane` + хук `useChatMessagesPane` из `index.tsx`  
-- **Файлы:** `ChatPanel/index.tsx` (~980 строк)  
-- **Проверка:** `index.tsx` < 600 строк
-
-**118 · M · agentContextManager: выбор провайдера** — приор. Low  
-- **Файлы:** `agentContextManager.ts` (~350) → `providerResolver.ts`  
-- **Проверка:** cloud/ollama routing tests
-
-### 🔗 Тесты (продолжение)
-
-**119 · M · Component test MessageRow** — приор. Medium  
+**49 · M · Component test MessageRow** — уровень 2
 - **Цель:** vitest + @testing-library/react для pin/retry menu  
 - **Файлы:** `tests/MessageRow.test.tsx`, vitest config jsdom  
 - **Проверка:** `npm test -- MessageRow`
 
-**120 · M · E2E: навигация по вкладкам настроек** — приор. Medium  
+
+**50 · M · E2E: навигация по вкладкам настроек** — уровень 2
 - **Файлы:** `e2e/settings.test.ts`  
 - **Проверка:** `npm run test:e2e`
 
-**121 · M · E2E: дерево проекта** — приор. Medium  
-- **Файлы:** `e2e/project-tree.test.ts`  
-- **Действие:** открыть tree → клик файл  
-- **Проверка:** e2e green
 
-**122 · M · E2E: DiffPreviewModal** — приор. Low  
-- **Файлы:** `e2e/diff-preview.test.ts`  
-- **Действие:** mock preview_edit event  
-- **Проверка:** e2e green
-
-### 🔗 CI и документация
-
-**123 · S · Dependabot для npm** — приор. Medium  
-- **Файлы:** `.github/dependabot.yml`  
-- **Действие:** weekly `app/` и root  
-- **Проверка:** файл валиден по schema dependabot
-
-**124 · M · npm audit в CI** — приор. Medium  
-- **Файлы:** `.github/workflows/ci.yml`  
-- **Действие:** `npm audit --audit-level=high` в app/; fail on high  
-- **Проверка:** CI job проходит на чистом lockfile
-
-**125 · S · docs/troubleshooting.md** — приор. Medium  
+**51 · S · docs/troubleshooting.md** — уровень 2
 - **Цель:** GPUCache, чёрный экран, plugins, portable Node  
 - **Файлы:** `docs/troubleshooting.md`, ссылка в README  
 - **Проверка:** README ссылается на troubleshooting
 
-### 🔗 Терминал и горячие клавиши (продолжение)
 
-**126 · S · Ctrl+` — переключить терминал** — приор. Medium  
-- **Файлы:** `App.tsx`, `KeyboardShortcutsModal.tsx`  
-- **Проверка:** терминал показывается/скрывается
+**52 · S · README: Linux и macOS в быстром старте** — уровень 2
+- **Цель:** бейджи платформ, ссылки на AppImage/DMG и `CodeViper.sh` из релизов  
+- **Файлы:** `README.md`  
+- **Действие:** дополнить «Быстрый старт» установкой не только через Windows-установщик  
+- **Проверка:** README содержит AppImage, dmg и POSIX-лаунчер
 
-**127 · S · Ctrl+Shift+T — экспорт трейса** — приор. Low  
-- **Файлы:** `App.tsx`, `TracePanel.tsx`  
-- **Действие:** если trace open → export; иначе открыть TracePanel  
-- **Проверка:** shortcut в модалке `?`
 
-**128 · M · Quick Open — палитра файлов Ctrl+P** — приор. Medium  
-- **Цель:** fuzzy search по project tree → открыть превью  
-- **Файлы:** `QuickOpenPalette.tsx`, `App.tsx`  
-- **Проверка:** Ctrl+P → ввод → Enter открывает файл
+**53 · M · ModelTab: формы провайдеров** — уровень 2
+- **Цель:** вынести JSX-блоки `provider === '…'` в `ModelTab/providers/*.tsx`  
+- **Файлы:** `SettingsModal/ModelTab.tsx` → `SettingsModal/ModelTab/providers/` (Ollama, DeepSeek, Gemini, …)  
+- **Действие:** каждый провайдер — отдельный компонент с props `{ settings, onSettingsChange }`; ModelTab — switch по `modelProvider`  
+- **Проверка:** `npm run typecheck`; смена провайдера в настройках работает как раньше
 
-**129 · S · Кнопка «Очистить» в терминале** — приор. Low  
-- **Файлы:** `TerminalPanel.tsx`  
-- **Проверка:** output сбрасывается
 
-### 🔗 Индексация и RAG
+**54 · M · ModelTab: оркестратор, бенчмарк, канал обновлений** — уровень 2
+- **Цель:** вынести нижнюю часть ModelTab (~300 строк) в отдельные секции  
+- **Файлы:** `OrchestratorSection.tsx`, `BenchmarkSection.tsx`, `UpdateChannelSection.tsx` в `SettingsModal/ModelTab/`  
+- **Действие:** перенести GGUF-download, benchmark, orchestrator toggle, beta-channel без изменения логики  
+- **Проверка:** бенчмарк и скачивание GGUF работают; `ModelTab.tsx` < 400 строк
 
-**130 · S · Чип прогресса индексации** — приор. Medium  
-- **Цель:** «Индекс 42%» в `AgentStatusBar` при `index_project`  
-- **Файлы:** `AgentStatusBar.tsx`, stream event `index_progress`  
-- **Проверка:** чип виден во время индексации
 
-**131 · S · Ручная переиндексация** — приор. Medium  
-- **Цель:** кнопка в `ProjectTreePanel` ПКМ → «Переиндексировать»  
-- **Файлы:** `ProjectTreePanel.tsx`, IPC вызов `index_project`  
-- **Проверка:** индексация запускается
+**55 · M · Экспорт чата в Markdown** — уровень 2
+- **Цель:** кнопка в меню чата → `.md` с ролями и код-блоками  
+- **Файлы:** `ChatHistoryPanel.tsx`, `chats.ts`, `registerChatsIpc.ts`  
+- **Действие:** `export-chat-markdown` IPC + save dialog  
+- **Проверка:** файл читается в любом MD-viewer
 
-**132 · M · Инкрементальная индексация при изменении файлов** — приор. Medium  
-- **Цель:** watcher → debounce → upsert/delete в Qdrant для изменённого файла  
-- **Файлы:** `vectorStore.ts`, `services.ts` watcher, `embeddingQueue.ts`  
-- **Проверка:** правка файла → поиск находит новый контент без full reindex
 
-### 🔗 MCP
+**56 · M · IPC export-chat** — уровень 2
+- **Цель:** экспорт сообщений и метаданных чата в JSON  
+- **Файлы:** `chats.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** `export-chat` → `{ messages, settings, projectPath }`; save dialog  
+- **Проверка:** экспорт → файл валидный JSON с messages
 
-**133 · M · Health-check MCP при старте** — приор. Medium  
-- **Цель:** ping каждого сервера из settings; toast при недоступности  
-- **Файлы:** `mcpRegistry.ts`, `index.ts`, `IntegrationsTab.tsx`  
-- **Проверка:** offline server → предупреждение в UI
 
-**134 · M · Вкл/выкл MCP-tools по серверу** — приор. Medium  
-- **Цель:** `mcpServer.enabledTools: string[]` в конфиге  
-- **Файлы:** `mcpRegistry.ts`, `McpIntegrationsSection.tsx`  
-- **Проверка:** отключённый tool не в списке агента
+**57 · M · IPC import-chat** — уровень 2
+- **Цель:** импорт чата из JSON в новый чат в store  
+- **Файлы:** `chats.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** open dialog → parse → `createChat` с messages  
+- **Проверка:** импортированный чат отображает историю
 
-**135 · S · Шаблоны MCP-серверов** — приор. Low  
-- **Цель:** кнопки «+ filesystem», «+ fetch» с готовым JSON конфигом  
-- **Файлы:** `IntegrationsTab.tsx`, `docs/integrations.md`  
-- **Проверка:** шаблон добавляет запись в settings
 
-### 🔗 Память и навыки (UI)
+**58 · M · CodeEditorPanel на CodeMirror** — уровень 2
+- **Цель:** редактируемая вкладка файла вместо read-only `FilePreviewPanel` (п. 22)  
+- **Файлы:** `app/src/components/CodeEditorPanel.tsx`, `app/package.json`  
+- **Действие:** зависимость `@codemirror/*`; обёртка с темой под тёмный UI  
+- **Проверка:** файл открывается в редакторе; курсор и правка работают
 
-**136 · S · Поиск в MemoryPanel** — приор. Medium  
+
+**59 · M · Сохранение из редактора** — уровень 2
+- **Цель:** Ctrl+S / кнопка «Сохранить» пишет файл через существующий IPC  
+- **Файлы:** `CodeEditorPanel.tsx`, `app/electron/main/ipc/registerFileIpc.ts`  
+- **Действие:** `window.codeviper.writeFile(path, content)`; индикатор «несохранено»  
+- **Проверка:** правка + сохранение → содержимое на диске изменилось
+
+
+### 🟡 Уровень 3 — средняя польза
+
+> Символы, worktree, рефакторинг IPC/services, интеграции, LSP, автоматизации, P2P. Пункты **60–104**.
+
+**60 · M · find_symbol для Go** — уровень 3
+- **Цель:** `find_symbol` / `find_references` для `.go` через `go/ast` или tree-sitter  
+- **Файлы:** `app/electron/main/symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** парсер Go → символы с `path:line:col`  
+- **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.go` файлом
+
+
+**61 · M · find_symbol для Rust** — уровень 3
+- **Цель:** символы для `.rs` (tree-sitter-rust или синтаксический обход)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** расширить `walkProjectForSymbols` для `.rs`  
+- **Проверка:** unit-тест: `fn main` и `struct Foo` находятся по имени
+
+
+**62 · M · find_symbol для Java** — уровень 3
+- **Цель:** символы для `.java` (class/method)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** regex или tree-sitter-java для объявлений top-level  
+- **Проверка:** unit-тест на простом `.java` с `public class Bar`
+
+
+**63 · M · gitWorktree.ts** — уровень 3
+- **Цель:** create / remove / list worktrees через `git worktree`  
+- **Файлы:** `app/electron/main/gitWorktree.ts` (новый), `gitTools.ts`  
+- **Действие:** `createWorktree(repoPath, branch)` → путь worktree; `removeWorktree`  
+- **Проверка:** unit-тест с temp git repo; `git worktree list` содержит запись
+
+
+**64 · M · worktreePath в чате + IPC** — уровень 3
+- **Цель:** поле `worktreePath?` в persisted chat; IPC `create-chat-worktree`  
+- **Файлы:** `chats.ts`, `types.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** кнопка «Изолировать в worktree» в меню чата  
+- **Проверка:** новый чат получает отдельную папку worktree
+
+
+**65 · M · AgentRunner — корень worktree** — уровень 3
+- **Цель:** если у чата есть `worktreePath`, агент работает в нём, а не в `projectPath`  
+- **Файлы:** `agent.ts`, `registerAgentIpc.ts`, `agentHandlersProjectContext.ts`  
+- **Действие:** `resolveProjectRoot(chat)` → `worktreePath ?? projectPath`  
+- **Проверка:** правка файла в изолированном чате не затрагивает основную копию
+
+
+**66 · M · ipcContracts: Zod-схемы данных** — уровень 3
+- **Цель:** схемы `ChatMessage`, `AgentSettings`, `SavedChat` и др. — в `shared/ipc/schemas.ts`  
+- **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/schemas.ts`  
+- **Действие:** re-export из `ipcContracts.ts` для обратной совместимости импортов  
+- **Проверка:** `npm run typecheck`; импорты `ChatMessageSchema` не сломаны
+
+
+**67 · M · ipcContracts: IPC enum и Contracts** — уровень 3
+- **Цель:** объект `IPC` и `Contracts` — в `shared/ipc/channels.ts`  
+- **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/channels.ts`  
+- **Действие:** `ipcContracts.ts` — barrel re-export; `parseIpcArgs` остаётся рядом с Contracts  
+- **Проверка:** `npm run typecheck`; preload и register*Ipc компилируются
+
+
+**68 · M · services.ts: файловые операции** — уровень 3
+- **Цель:** `safeRead*`, `safeWrite*`, `buildFileTree`, кэши — в `fileServices.ts`  
+- **Файлы:** `services.ts` → `fileServices.ts`  
+- **Действие:** `services.ts` re-export для handler-импортов  
+- **Проверка:** `npm test -- services` зелёный
+
+
+**69 · M · services.ts: runCommand** — уровень 3
+- **Цель:** `validateCommand`, `normalizeCommand`, `runCommand`, лимит буфера — в `commandRunner.ts`  
+- **Файлы:** `services.ts` → `commandRunner.ts`  
+- **Действие:** handlers импортируют из `commandRunner.ts` или barrel `services.ts`  
+- **Проверка:** `npm test -- services.test` — validateCommand и buffer limit
+
+
+**70 · S · Поиск в MemoryPanel** — уровень 3
 - **Файлы:** `MemoryPanel.tsx`  
 - **Действие:** filter по тексту и category  
 - **Проверка:** поиск сужает список
 
-**137 · S · Фильтр по тегам в SkillsPanel** — приор. Low  
-- **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
-- **Действие:** теги из frontmatter SKILL.md  
-- **Проверка:** фильтр по тегу работает
 
-**138 · M · Импорт skill из файла** — приор. Low  
+**71 · M · Импорт skill из файла** — уровень 3
 - **Цель:** кнопка «Импорт .md» → copy в skills dir  
 - **Файлы:** `SkillsPanel.tsx`, IPC `import-skill-file`  
 - **Проверка:** skill появляется в списке
 
-### 🔗 P2P-клиент
 
-**139 · M · Reconnect с backoff** — приор. Medium  
+**72 · S · Шаблоны MCP-серверов** — уровень 3
+- **Цель:** кнопки «+ filesystem», «+ fetch» с готовым JSON конфигом  
+- **Файлы:** `IntegrationsTab.tsx`, `docs/integrations.md`  
+- **Проверка:** шаблон добавляет запись в settings
+
+
+**73 · S · Slash /lint** — уровень 3
+- **Файлы:** `shared/slashCommands.ts`  
+- **Действие:** expand → `npm run lint` + исправить  
+- **Проверка:** `/lint` в меню slash
+
+
+**74 · S · Slash /build** — уровень 3
+- **Файлы:** `shared/slashCommands.ts`  
+- **Действие:** expand → `npm run build` + исправить ошибки  
+- **Проверка:** `/build` в автодополнении
+
+
+**75 · S · Slash /security** — уровень 3
+- **Файлы:** `shared/slashCommands.ts`  
+- **Действие:** expand → review на секреты, injection, unsafe commands  
+- **Проверка:** `/security` в списке
+
+
+**76 · S · Ctrl+Shift+T — экспорт трейса** — уровень 3
+- **Файлы:** `App.tsx`, `TracePanel.tsx`  
+- **Действие:** если trace open → export; иначе открыть TracePanel  
+- **Проверка:** shortcut в модалке `?`
+
+
+**77 · S · Кнопка «Очистить» в терминале** — уровень 3
+- **Файлы:** `TerminalPanel.tsx`  
+- **Проверка:** output сбрасывается
+
+
+**78 · S · Очередь: удалить элемент** — уровень 3
+- **Цель:** кнопка ✕ у каждого сообщения в очереди (`AgentStatusBar` / queue UI)  
+- **Файлы:** `AgentStatusBar.tsx`, `QueueContext.tsx`  
+- **Действие:** `removeFromQueue(index)` IPC или context  
+- **Проверка:** элемент исчезает, остальные выполняются
+
+
+**79 · S · Skip link «К содержимому»** — уровень 3
+- **Цель:** скрытая ссылка в начале `App.tsx` → `#main-chat`  
+- **Файлы:** `App.tsx`, `styles.css`  
+- **Действие:** `:focus` показывает ссылку  
+- **Проверка:** Tab с первого элемента → skip → фокус в чате
+
+
+**80 · S · Экспорт метрик в CSV** — уровень 3
+- **Цель:** кнопка в `MetricsPanel` → CSV byModel + topTools  
+- **Файлы:** `MetricsPanel.tsx`  
+- **Действие:** blob download  
+- **Проверка:** CSV открывается в Excel
+
+
+**81 · S · Документация plugin-authoring** — уровень 3
+- **Цель:** гайд автора плагина: схема tool, пример `.js`, hot-reload  
+- **Файлы:** `docs/plugin-authoring.md`, ссылка в `README.md`  
+- **Действие:** минимальный working example + ограничения (только `.js`)  
+- **Проверка:** файл существует; README ссылается на него
+
+
+**82 · M · Провайдер Mistral** — уровень 3
+- **Цель:** `modelProvider: 'mistral'` через Mistral API  
+- **Файлы:** `mistralProvider.ts`, `modelRuntime.ts`, `constants.ts`  
+- **Действие:** `StreamingChatProvider` + список моделей  
+- **Проверка:** unit-тест stream parser
+
+
+**83 · M · Bitbucket: create_pull_request** — уровень 3
+- **Цель:** tool `create_bitbucket_pr` через REST API 2.0  
+- **Файлы:** `bitbucketTools.ts`, `agentTools/integrations.ts`, `IntegrationsTab.tsx`  
+- **Действие:** token + workspace/repo в settings  
+- **Проверка:** unit-тест с mock fetch
+
+
+**84 · M · Azure DevOps: create_work_item** — уровень 3
+- **Цель:** tool `create_ado_work_item` (PAT + org/project)  
+- **Файлы:** `adoTools.ts`, `integrations.ts`, settings  
+- **Действие:** WIQL/create work item REST  
+- **Проверка:** mock API test
+
+
+**85 · S · Discord webhook** — уровень 3
+- **Цель:** `discordWebhookUrl` — уведомление «агент готов» в Discord  
+- **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`, `settings.ts`  
+- **Действие:** POST embed JSON  
+- **Проверка:** unit-тест payload
+
+
+**86 · S · Telegram Bot уведомления** — уровень 3
+- **Цель:** `telegramBotToken` + `telegramChatId` в настройках  
+- **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`  
+- **Действие:** `sendMessage` API  
+- **Проверка:** mock fetch test
+
+
+**87 · M · lspClient — spawn language server** — уровень 3
+- **Цель:** main-процесс запускает `typescript-language-server` / `pyright-langserver` по расширению файла  
+- **Файлы:** `app/electron/main/lspClient.ts` (новый)  
+- **Действие:** JSON-RPC over stdio; `didOpen`/`didChange`/`shutdown`  
+- **Проверка:** unit-тест с mock child_process; лог «LSP ready» для `.ts`
+
+
+**88 · M · LSP hover и go-to-definition (TS/JS)** — уровень 3
+- **Цель:** hover tooltip и Ctrl+click → переход к определению в `CodeEditorPanel` (п. 58)  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** IPC `lsp-request` → `textDocument/hover`, `textDocument/definition`  
+- **Проверка:** Ctrl+click на символ → курсор на определении в том же файле
+
+
+**89 · M · LSP pyright для Python** — уровень 3
+- **Цель:** те же hover/definition для `.py` через pyright-langserver  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка выбора сервера по `languageFromPath`; инициализация pyright  
+- **Проверка:** Ctrl+click на `def foo` в `.py` → переход к определению
+
+
+**90 · M · Fetch remote skill manifest** — уровень 3
+- **Цель:** список навыков с GitHub raw URL или индекс-файла  
+- **Файлы:** `app/electron/main/skills.ts`, `registerMiscIpc.ts`  
+- **Действие:** `list-remote-skills(url)` → `{ name, description, url }[]`  
+- **Проверка:** unit-тест с mock fetch на тестовый manifest.json
+
+
+**91 · M · import-remote-skill UI** — уровень 3
+- **Цель:** кнопка «Импорт из каталога» в SkillsPanel  
+- **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
+- **Действие:** выбор из списка → download SKILL.md → локальный skill  
+- **Проверка:** импорт skill из URL появляется в списке навыков
+
+
+**92 · M · AutomationRule в settings** — уровень 3
+- **Цель:** тип `{ id, cron, prompt, enabled }` + Zod-массив в настройках  
+- **Файлы:** `settings.ts`, `types.ts`  
+- **Действие:** `automations: AutomationRule[]` с default `[]`  
+- **Проверка:** `npm run typecheck`; сохранение массива в settings.json
+
+
+**93 · M · automationScheduler в main** — уровень 3
+- **Цель:** таймер проверяет cron-выражения и ставит промпт в очередь чата  
+- **Файлы:** `app/electron/main/automationScheduler.ts`, `index.ts`  
+- **Действие:** `node-cron` или setInterval + parse; emit в default chat  
+- **Проверка:** unit-тест: rule `* * * * *` + mock time → enqueue вызван
+
+
+**94 · M · AutomationsTab в настройках** — уровень 3
+- **Цель:** CRUD автоматизаций: cron, промпт, вкл/выкл  
+- **Файлы:** `SettingsModal/AutomationsTab.tsx`, `SettingsModal/index.tsx`  
+- **Действие:** форма добавления; список с удалением  
+- **Проверка:** созданная автоматизация сохраняется и видна после reopen settings
+
+
+**95 · M · Дублировать промпт во второй чат** — уровень 3
+- **Цель:** кнопка «Сравнить с другой моделью» копирует промпт в новый чат  
+- **Файлы:** `ChatPanel/index.tsx`, `ChatHistoryPanel.tsx`  
+- **Действие:** `createChat` + тот же `input` + подсказка выбрать модель  
+- **Проверка:** два чата с одинаковым первым сообщением пользователя
+
+
+**96 · M · SplitChatView** — уровень 3
+- **Цель:** два чата side-by-side для сравнения ответов  
+- **Файлы:** `app/src/App.tsx`, `SplitChatView.tsx`  
+- **Действие:** режим «Сравнение» — два `ChatPanel` с общим projectPath  
+- **Проверка:** оба чата видны одновременно; отправка в каждый независима
+
+
+**97 · M · docker-compose для server/p2p** — уровень 3
+- **Цель:** one-click деплой сигнального сервера + Redis  
+- **Файлы:** `server/p2p/docker-compose.yml`, `server/p2p/README.md`, `docs/integrations.md`  
+- **Действие:** сервисы `p2p` + `redis`; env-шаблон `.env.example`  
+- **Проверка:** `docker compose up` → `GET /health` → 200
+
+
+**98 · M · Dashboard статуса узлов** — уровень 3
+- **Цель:** `GET /admin/dashboard` — онлайн-узлы, задачи, кредиты (auth)  
+- **Файлы:** `server/p2p/src/routes/admin.ts`  
+- **Действие:** JSON `{ nodes, activeTasks, totalCredits }`  
+- **Проверка:** интеграционный тест с mock-узлами
+
+
+**99 · M · Рейтинг узлов по latency** — уровень 3
+- **Цель:** `router.ts` предпочитает узлы с меньшим средним RTT  
+- **Файлы:** `server/p2p/src/router.ts`, `server/p2p/src/credits.ts`  
+- **Действие:** хранить `avgLatencyMs` per node; сортировка при route  
+- **Проверка:** unit-тест: два узла → выбирается с меньшей latency
+
+
+**100 · M · Reconnect с backoff** — уровень 3
 - **Файлы:** `p2pClient.ts`  
 - **Действие:** exponential delay 1s→30s при обрыве WSS  
 - **Проверка:** unit-тест reconnect attempts
 
-**140 · S · Чип P2P offline** — приор. Low  
+
+**101 · S · Чип P2P offline** — уровень 3
 - **Файлы:** `AgentStatusBar.tsx`, `p2pClient.ts`  
 - **Действие:** «P2P offline» при disconnect  
 - **Проверка:** виден при остановленном сервере
 
-**141 · M · История P2P-задач** — приор. Low  
+
+**102 · M · История P2P-задач** — уровень 3
 - **Файлы:** `P2pHistoryPanel.tsx`, local NDJSON или settings  
 - **Проверка:** последние 20 relay в UI
 
-### 🔗 Настройки и миграции
 
-**142 · M · Удалить deprecated cloudApiKey** — приор. Medium  
-- **Цель:** миграция settings → per-provider keys; убрать поле из UI  
-- **Файлы:** `settings.ts`, `ModelTab.tsx`, `agentContextManager.ts`  
-- **Проверка:** старый конфиг мигрирует без потери ключа
+**103 · S · Масштаб шрифта UI** — уровень 3
+- **Цель:** `uiFontScale: 0.9 | 1 | 1.1 | 1.25` в настройках → `document.documentElement.style.fontSize`  
+- **Файлы:** `PerformanceTab.tsx`, `settings.ts`, `App.tsx`  
+- **Действие:** select в PerformanceTab; применение при загрузке  
+- **Проверка:** 1.25 — текст чата крупнее
 
-**143 · S · Сохранение последнего benchmark** — приор. Low  
+
+**104 · S · Избранные чаты** — уровень 3
+- **Цель:** звезда ⭐ на чате → секция «Избранное» вверху истории  
+- **Файлы:** `SavedChat` + `chats.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** `starred?: boolean`; сортировка starred first  
+- **Проверка:** избранный чат остаётся наверху
+
+
+### 🟢 Уровень 4 — низкий приоритет
+
+> Голос, рефакторинг монолитов, i18n, Docker, polish. Пункты **105–148** — когда уровни 1–3 закрыты.
+
+**105 · M · STT — кнопка микрофона** — уровень 4
+- **Цель:** диктовка в поле ввода через Web Speech API (`SpeechRecognition`)  
+- **Файлы:** `app/src/components/ChatPanel/ChatInput.tsx`  
+- **Действие:** кнопка 🎤 → `recognition.start()` → текст в `onInputChange`  
+- **Проверка:** диктовка вставляет распознанный текст в поле
+
+
+**106 · M · TTS — кнопка «Озвучить»** — уровень 4
+- **Цель:** озвучка последнего ответа ассистента через `speechSynthesis`  
+- **Файлы:** `app/src/components/MessageBody.tsx` (или `MessageRow.tsx`)  
+- **Действие:** кнопка «🔊» на сообщении assistant → `SpeechSynthesisUtterance`  
+- **Проверка:** нажатие воспроизводит текст ответа
+
+
+**107 · M · Разбивка App.tsx** — уровень 4
+- **Цель:** вынести layout и модалки из ~1000-строчного `App.tsx`  
+- **Файлы:** `app/src/App.tsx` → `AppLayout.tsx`, `useAppModals.ts`  
+- **Действие:** перенести JSX layout + state модалок без изменения поведения  
+- **Проверка:** `npm run typecheck`; E2E или ручной smoke UI
+
+
+**108 · M · Разбивка agent.ts** — уровень 4
+- **Цель:** отделить цикл ReAct от dispatch инструментов  
+- **Файлы:** `agent.ts` → `agentLoop.ts`, `agentStreamHandler.ts`  
+- **Действие:** `AgentRunner.run()` делегирует в `runAgentLoop()`  
+- **Проверка:** `npm run typecheck`; существующие agent-тесты зелёные
+
+
+**109 · M · Хук useChatPanelState** — уровень 4
+- **Цель:** сократить `ChatPanel/index.tsx` — state и refs в отдельный хук  
+- **Файлы:** `app/src/components/ChatPanel/index.tsx`, `useChatPanelState.ts`  
+- **Действие:** перенести useState/useRef блоки в хук; index — только композиция  
+- **Проверка:** `npm run typecheck`; отправка сообщения в UI работает
+
+
+**110 · M · ChatPanel: вынести MessagesPane state** — уровень 4
+- **Цель:** `ChatPanelMessagesPane` + хук `useChatMessagesPane` из `index.tsx`  
+- **Файлы:** `ChatPanel/index.tsx` (~980 строк)  
+- **Проверка:** `index.tsx` < 600 строк
+
+
+**111 · M · ChatHistoryPanel: виртуализированный список** — уровень 4
+- **Цель:** JSX рендера `FlatItem` и virtualizer — в `ChatHistoryList.tsx`  
+- **Файлы:** `ChatHistoryPanel.tsx` → `ChatHistoryList.tsx`  
+- **Действие:** props: `items`, `activeChatId`, `onSelect`; панель — композиция + toolbar  
+- **Проверка:** скролл длинной истории чатов без регрессий
+
+
+**112 · M · ChatHistoryPanel: DnD и диалоги** — уровень 4
+- **Цель:** drag-and-drop, Prompt/Confirm state — в `useChatHistoryDnD.ts`  
+- **Файлы:** `ChatHistoryPanel.tsx`, `useChatHistoryDnD.ts`  
+- **Действие:** хук возвращает handlers и dialog state; панель < 400 строк  
+- **Проверка:** перетаскивание чата в папку работает
+
+
+**113 · M · types.ts: доменные модули** — уровень 4
+- **Цель:** разнести ~720 строк на `types/chat.ts`, `types/settings.ts`, `types/memory.ts`, `types/api.ts`  
+- **Файлы:** `app/src/types/` (новая папка), `types.ts` — re-export  
+- **Действие:** `CodeViperAPI` в `api.ts`; `AgentSettings` в `settings.ts`  
+- **Проверка:** `npm run typecheck`; нет циклических импортов
+
+
+**114 · M · agentContext: RAG-hints** — уровень 4
+- **Цель:** grep-nudge и `maybeAppendRagSearchHintAfterEmptyGrep` — в `agentContextRag.ts`  
+- **Файлы:** `agentContext.ts` → `agentContextRag.ts`  
+- **Действие:** re-export из `agentContext.ts`  
+- **Проверка:** `npm test` — существующие тесты RAG-hint зелёные
+
+
+**115 · M · agentContext: preview и prepare** — уровень 4
+- **Цель:** `buildAgentContextPreview`, `prepareAgentRunContext`, `summarizeChatHistory` — в `agentContextBuild.ts`  
+- **Файлы:** `agentContext.ts` → `agentContextBuild.ts`  
+- **Действие:** `agentContext.ts` < 150 строк, только re-export и `OllamaMessage`  
+- **Проверка:** `npm run typecheck`; превью контекста в UI открывается
+
+
+**116 · M · useAgentStream: обработчики событий** — уровень 4
+- **Цель:** switch по `AgentStreamEvent.type` — в `agentStreamHandlers.ts`  
+- **Файлы:** `useAgentStream.ts` → `agentStreamHandlers.ts`  
+- **Действие:** чистые функции `(event, ctx) => partialState`; хук — подписка и setState  
+- **Проверка:** `npm run typecheck`; стрим агента в UI без регрессий
+
+
+**117 · M · preload: группы API** — уровень 4
+- **Цель:** `codeviper` object разбить на `preload/agentApi.ts`, `preload/chatApi.ts`, `preload/fileApi.ts`  
+- **Файлы:** `electron/preload/index.ts`, `electron/preload/*.ts`  
+- **Действие:** `Object.assign` или spread в `contextBridge.exposeInMainWorld`  
+- **Проверка:** `npm run typecheck`; `window.codeviper.*` доступен в renderer
+
+
+**118 · M · agentTools/core: files / git / package** — уровень 4
+- **Цель:** `FILE_TOOLS`, `GIT_TOOLS`, `PACKAGE_TOOLS` — в отдельные файлы (~200 строк каждый)  
+- **Файлы:** `agentTools/core.ts` → `coreFiles.ts`, `coreGit.ts`, `corePackage.ts`; `core.ts` — сборка  
+- **Действие:** `getAgentTools()` без изменений снаружи  
+- **Проверка:** `npm run typecheck`; список инструментов агента тот же
+
+
+**119 · M · BehaviorTab: автоматизация и git** — уровень 4
+- **Цель:** вынести секции автокоммита и git-sync в `BehaviorAutomationSection.tsx`  
+- **Файлы:** `BehaviorTab.tsx` (~580 строк)  
+- **Проверка:** `BehaviorTab.tsx` < 350 строк
+
+
+**120 · M · BehaviorTab: инструменты и промпты** — уровень 4
+- **Цель:** `disabledTools`, `promptTemplates`, permissions — в `BehaviorToolsSection.tsx`  
+- **Файлы:** `BehaviorTab.tsx`  
+- **Проверка:** typecheck; настройки сохраняются
+
+
+**121 · M · IntegrationsTab: MCP секция** — уровень 4
+- **Файлы:** `IntegrationsTab.tsx` → `McpIntegrationsSection.tsx`  
+- **Проверка:** MCP CRUD в UI работает
+
+
+**122 · M · IntegrationsTab: P2P и webhooks** — уровень 4
+- **Файлы:** `IntegrationsTab.tsx` → `P2pIntegrationsSection.tsx`, `WebhookSection.tsx`  
+- **Проверка:** тумблер P2P и webhook URL сохраняются
+
+
+**123 · M · vectorStore: Qdrant / Milvus** — уровень 4
+- **Файлы:** `vectorStore.ts` → `qdrantStore.ts`, `milvusStore.ts`  
+- **Проверка:** `search_knowledge_base` без регрессий
+
+
+**124 · M · memory.ts: локальная vs контекстная сборка** — уровень 4
+- **Файлы:** `memory.ts` → `memoryStore.ts`, `memoryContext.ts`  
+- **Проверка:** `npm test -- memory`
+
+
+**125 · M · collectiveMemorySync: pull / push** — уровень 4
+- **Файлы:** `collectiveMemorySync.ts` — два модуля  
+- **Проверка:** `npm test -- collectiveMemorySync`
+
+
+**126 · M · agentTools/integrations: GitHub + GitLab** — уровень 4
+- **Файлы:** `integrationsGitHub.ts`, `integrationsGitLab.ts`  
+- **Проверка:** tool names в `AGENT_TOOL_NAMES` на месте
+
+
+**127 · M · agentTools/integrations: memory + skills + web** — уровень 4
+- **Файлы:** `integrationsMemory.ts`, `integrationsWeb.ts`  
+- **Проверка:** typecheck
+
+
+**128 · M · defaultSkills: данные в JSON** — уровень 4
+- **Цель:** SKILL markdown из `resources/default-skills/*.md` вместо строк в TS  
+- **Файлы:** `defaultSkills.ts`, `resources/default-skills/`  
+- **Проверка:** `npm test -- defaultSkills`
+
+
+**129 · M · useMessageQueue: обработчики стрима** — уровень 4
+- **Файлы:** `useMessageQueue.ts` → `messageQueueHandlers.ts`  
+- **Проверка:** отправка и danger-block работают
+
+
+**130 · M · agentContextManager: выбор провайдера** — уровень 4
+- **Файлы:** `agentContextManager.ts` (~350) → `providerResolver.ts`  
+- **Проверка:** cloud/ollama routing tests
+
+
+**131 · S · Режим высокой контрастности** — уровень 4
+- **Цель:** класс `high-contrast` на `:root` для слабовидящих  
+- **Файлы:** `styles.css`, `PerformanceTab.tsx`, `settings.ts`  
+- **Действие:** тумблер + контрастные CSS-переменные  
+- **Проверка:** границы панелей и кнопок заметно контрастнее
+
+
+**132 · S · Цвет папки чатов** — уровень 4
+- **Цель:** `ChatFolder.color?: string` — цветная полоска у заголовка папки  
+- **Файлы:** `types.ts`, `chats.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** picker в контекстном меню папки  
+- **Проверка:** цвет виден и сохраняется
+
+
+**133 · M · Drag-drop папок в чат** — уровень 4
+- **Цель:** перетаскивание директории → `@path` или attachment как у файлов  
+- **Файлы:** `ChatPanel/ChatInput.tsx`, `registerFileIpc.ts`  
+- **Действие:** resolve directory path; лимит вложенных файлов  
+- **Проверка:** drop папки добавляет путь в чат
+
+
+**134 · M · Mermaid в ответах агента** — уровень 4
+- **Цель:** блоки ` ```mermaid ` рендерятся как SVG  
+- **Файлы:** `MessageBody.tsx`, dependency `mermaid`  
+- **Действие:** lazy import mermaid; sandboxed render  
+- **Проверка:** диаграмма из примера отображается
+
+
+**135 · M · E2E: дерево проекта** — уровень 4
+- **Файлы:** `e2e/project-tree.test.ts`  
+- **Действие:** открыть tree → клик файл  
+- **Проверка:** e2e green
+
+
+**136 · M · E2E: DiffPreviewModal** — уровень 4
+- **Файлы:** `e2e/diff-preview.test.ts`  
+- **Действие:** mock preview_edit event  
+- **Проверка:** e2e green
+
+
+**137 · S · Фильтр по тегам в SkillsPanel** — уровень 4
+- **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
+- **Действие:** теги из frontmatter SKILL.md  
+- **Проверка:** фильтр по тегу работает
+
+
+**138 · S · Сохранение последнего benchmark** — уровень 4
 - **Файлы:** `settings.ts`, `ModelTab.tsx`  
 - **Действие:** `lastBenchmark: BenchmarkResult` после прогона  
 - **Проверка:** результат виден после reopen settings
 
-### 🔗 Окна и платформа
 
-**144 · L · Открепить чат в отдельное окно** — приор. Low  
+**139 · S · Dependabot для npm** — уровень 4
+- **Файлы:** `.github/dependabot.yml`  
+- **Действие:** weekly `app/` и root  
+- **Проверка:** файл валиден по schema dependabot
+
+
+**140 · M · WSL: перевод путей проекта** — уровень 4
+- **Цель:** `\\wsl$\...` ↔ `/mnt/...` при выборе папки на Windows  
+- **Файлы:** `fsUtil.ts`, `registerFileIpc.ts`  
+- **Проверка:** unit-тест path normalize
+
+
+**141 · S · Long paths на Windows** — уровень 4
+- **Файлы:** `package.json` build manifest / `electron-builder`  
+- **Действие:** `requestedExecutionLevel` + known issue doc  
+- **Проверка:** проект с путём >260 символов открывается
+
+
+**142 · L · Открепить чат в отдельное окно** — уровень 4
 - **Цель:** второй `BrowserWindow` с тем же chatId через IPC sync  
 - **Файлы:** `index.ts`, `App.tsx`, `registerAppIpc.ts`  
 - **Действие:** «Открыть в новом окне» в меню чата  
 - **Проверка:** два окна — один чат синхронизирован
 
-**145 · M · WSL: перевод путей проекта** — приор. Low  
-- **Цель:** `\\wsl$\...` ↔ `/mnt/...` при выборе папки на Windows  
-- **Файлы:** `fsUtil.ts`, `registerFileIpc.ts`  
-- **Проверка:** unit-тест path normalize
 
-**146 · S · Long paths на Windows** — приор. Low  
-- **Файлы:** `package.json` build manifest / `electron-builder`  
-- **Действие:** `requestedExecutionLevel` + known issue doc  
-- **Проверка:** проект с путём >260 символов открывается
+**143 · M · Инфраструктура i18n** — уровень 4
+- **Цель:** функция `t(key)` + `locales/ru.json` (текущие строки) + `en.json`  
+- **Файлы:** `app/src/i18n/index.ts`, `app/src/i18n/locales/`  
+- **Действие:** React context `I18nProvider`; fallback на ключ  
+- **Проверка:** `t('settings.title')` возвращает строку на обоих языках
 
-### 🔗 Субагенты и оркестрация
 
-**147 · M · Субагент Reviewer** — приор. Medium  
-- **Цель:** `delegate_to_reviewer` — read-only обзор diff без правок  
-- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`, `agent.ts`  
-- **Проверка:** unit-тест контракта; чип «Ревью…»
+**144 · M · Переключатель языка в настройках** — уровень 4
+- **Цель:** `locale: 'ru' | 'en'` в settings + UI в BehaviorTab  
+- **Файлы:** `settings.ts`, `BehaviorTab.tsx`, `App.tsx`  
+- **Действие:** select «Язык»; `I18nProvider` читает settings.locale  
+- **Проверка:** смена на en → хотя бы один переведённый заголовок меняется
 
-**148 · M · Субагент Tester** — приор. Medium  
-- **Цель:** `delegate_to_tester` — только `run_tests` / `run_command` test  
-- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`  
-- **Проверка:** не вызывает write_file
+
+**145 · M · i18n: строки App и шапки** — уровень 4
+- **Цель:** вынести строки `App.tsx` (кнопки, заголовки панелей) в locale-файлы  
+- **Файлы:** `App.tsx`, `locales/ru.json`, `locales/en.json`  
+- **Действие:** заменить литералы на `t('…')`  
+- **Проверка:** en locale — шапка и «Настройки» на английском
+
+
+**146 · M · i18n: SettingsModal** — уровень 4
+- **Цель:** перевести вкладки и подписи настроек  
+- **Файлы:** `SettingsModal/*.tsx`, locale-файлы  
+- **Действие:** ключи `settings.model.*`, `settings.behavior.*` и т.д.  
+- **Проверка:** en locale — названия вкладок на английском
+
+
+**147 · M · i18n: ChatPanel и сообщения UI** — уровень 4
+- **Цель:** перевести placeholder, кнопки отправки, статус-бар  
+- **Файлы:** `ChatPanel/`, `AgentStatusBar.tsx`, locale-файлы  
+- **Действие:** ключи `chat.*`, `status.*`  
+- **Проверка:** en locale — placeholder поля ввода на английском
+
+
+**148 · M · Docker dev-окружение** — уровень 4
+- **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
+- **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
+- **Действие:** образ + том исходников + `npm run dev`  
+- **Проверка:** `docker compose up` поднимает приложение
 
 ---
 
