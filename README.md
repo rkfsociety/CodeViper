@@ -50,7 +50,7 @@ cd CodeViper/app && npm install
 |---|---|
 | [Демонстрации (GIF)](docs/demos.md) | [Примеры запросов](docs/example-prompts.md) |
 | [Интеграции (MCP, P2P)](docs/integrations.md) | [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) |
-| [ROADMAP](ROADMAP.md) | промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper` |
+| [ROADMAP](ROADMAP.md) (51 задача) | промпт: `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper` |
 
 ## Участие
 

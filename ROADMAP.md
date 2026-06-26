@@ -21,11 +21,11 @@ N · [S/M/L/XL] · Краткое название
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** нумерация сквозная (1…5); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
+**Правила:** нумерация сквозная (1…51); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
 
 ## 📋 В планах
 
-> Нумерация сквозная **1…5**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
+> Нумерация сквозная **1…51**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
 
 ### ⚡ Независимые задачи
 
@@ -35,35 +35,339 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** образ + том исходников + `npm run dev`  
 - **Проверка:** `docker compose up` поднимает приложение
 
-### 🔗 Новые возможности
+**2 · S · README: Linux и macOS в быстром старте** — приор. Medium  
+- **Цель:** бейджи платформ, ссылки на AppImage/DMG и `CodeViper.sh` из релизов  
+- **Файлы:** `README.md`  
+- **Действие:** дополнить «Быстрый старт» установкой не только через Windows-установщик  
+- **Проверка:** README содержит AppImage, dmg и POSIX-лаунчер
 
-### 🔗 Далёкое будущее
+### 🔗 Горячие клавиши
 
-**2 · L · Голосовой ввод и озвучка** — приор. Low  
-- **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
-- **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
-- **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
-- **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
+**3 · M · Расширение горячих клавиш** — приор. Medium  
+- **Цель:** Escape — стоп агента; Ctrl+Shift+N — новый чат; Ctrl+B — фокус/переключение дерева файлов  
+- **Файлы:** `app/src/App.tsx`, `app/src/components/KeyboardShortcutsModal.tsx`  
+- **Действие:** обработчики `keydown` + строки в модалке `?`  
+- **Проверка:** каждая комбинация работает в UI; модалка отображает новые шорткаты
 
-**3 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
-- **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
-- **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
-- **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
-- **Проверка:** правка файла в UI сохраняется на диск
+### 🔗 Split-view превью файла
 
-**4 · XL · LSP в редакторе** — приор. Low  
-- **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
-- **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
-- **Действие:** запуск typescript-language-server / pyright по типу файла  
-- **Проверка:** Ctrl+click на символ → переход к определению
+**4 · M · Resizable split layout** — приор. Medium  
+- **Цель:** основной layout с изменяемой шириной панели превью справа от чата  
+- **Файлы:** `app/src/App.tsx`, `app/src/App.module.css` (или `styles.css`)  
+- **Действие:** splitter между чатом и правой панелью; ширина в `localStorage`  
+- **Проверка:** перетаскивание границы меняет ширину; после перезапуска ширина сохранена
 
-**5 · L · Skill marketplace** — приор. Low  
-- **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
-- **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
-- **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
-- **Проверка:** импорт skill из URL появляется локально
+**5 · M · FilePreviewPanel read-only** — приор. Medium  
+- **Цель:** компонент просмотра файла с подсветкой синтаксиса (как в DiffPreviewModal)  
+- **Файлы:** `app/src/components/FilePreviewPanel.tsx`, `shared/diffPreview.ts`  
+- **Действие:** IPC `read-file` → highlight.js; заголовок с путём и кнопкой закрыть  
+- **Проверка:** открытие `.ts` файла показывает подсветку
 
-### ⚡ Идеи (декомпозиция по запросу)
+**6 · S · ProjectTree открывает превью** — приор. Medium  
+- **Цель:** клик по файлу в `ProjectTreePanel` открывает его в `FilePreviewPanel`  
+- **Файлы:** `app/src/components/ProjectTreePanel.tsx`, `app/src/App.tsx`  
+- **Действие:** callback `onFileOpen(path)` → state `previewPath` в App  
+- **Проверка:** клик в дереве → файл виден в split-панели
+
+### 🔗 Голосовой ввод и озвучка
+
+**7 · M · STT — кнопка микрофона** — приор. Low  
+- **Цель:** диктовка в поле ввода через Web Speech API (`SpeechRecognition`)  
+- **Файлы:** `app/src/components/ChatPanel/ChatInput.tsx`  
+- **Действие:** кнопка 🎤 → `recognition.start()` → текст в `onInputChange`  
+- **Проверка:** диктовка вставляет распознанный текст в поле
+
+**8 · M · TTS — кнопка «Озвучить»** — приор. Low  
+- **Цель:** озвучка последнего ответа ассистента через `speechSynthesis`  
+- **Файлы:** `app/src/components/MessageBody.tsx` (или `MessageRow.tsx`)  
+- **Действие:** кнопка «🔊» на сообщении assistant → `SpeechSynthesisUtterance`  
+- **Проверка:** нажатие воспроизводит текст ответа
+
+### 🔗 Встроенный редактор и LSP
+
+**9 · M · CodeEditorPanel на CodeMirror** — приор. Medium  
+- **Цель:** редактируемая вкладка файла вместо read-only `FilePreviewPanel` (п. 5)  
+- **Файлы:** `app/src/components/CodeEditorPanel.tsx`, `app/package.json`  
+- **Действие:** зависимость `@codemirror/*`; обёртка с темой под тёмный UI  
+- **Проверка:** файл открывается в редакторе; курсор и правка работают
+
+**10 · M · Сохранение из редактора** — приор. Medium  
+- **Цель:** Ctrl+S / кнопка «Сохранить» пишет файл через существующий IPC  
+- **Файлы:** `CodeEditorPanel.tsx`, `app/electron/main/ipc/registerFileIpc.ts`  
+- **Действие:** `window.codeviper.writeFile(path, content)`; индикатор «несохранено»  
+- **Проверка:** правка + сохранение → содержимое на диске изменилось
+
+**11 · M · lspClient — spawn language server** — приор. Low  
+- **Цель:** main-процесс запускает `typescript-language-server` / `pyright-langserver` по расширению файла  
+- **Файлы:** `app/electron/main/lspClient.ts` (новый)  
+- **Действие:** JSON-RPC over stdio; `didOpen`/`didChange`/`shutdown`  
+- **Проверка:** unit-тест с mock child_process; лог «LSP ready» для `.ts`
+
+**12 · M · LSP hover и go-to-definition (TS/JS)** — приор. Low  
+- **Цель:** hover tooltip и Ctrl+click → переход к определению в `CodeEditorPanel` (п. 9)  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** IPC `lsp-request` → `textDocument/hover`, `textDocument/definition`  
+- **Проверка:** Ctrl+click на символ → курсор на определении в том же файле
+
+**13 · M · LSP pyright для Python** — приор. Low  
+- **Цель:** те же hover/definition для `.py` через pyright-langserver  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка выбора сервера по `languageFromPath`; инициализация pyright  
+- **Проверка:** Ctrl+click на `def foo` в `.py` → переход к определению
+
+### 🔗 Символьный индекс (find_symbol)
+
+**14 · M · find_symbol для Go** — приор. Medium  
+- **Цель:** `find_symbol` / `find_references` для `.go` через `go/ast` или tree-sitter  
+- **Файлы:** `app/electron/main/symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** парсер Go → символы с `path:line:col`  
+- **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.go` файлом
+
+**15 · M · find_symbol для Rust** — приор. Medium  
+- **Цель:** символы для `.rs` (tree-sitter-rust или синтаксический обход)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** расширить `walkProjectForSymbols` для `.rs`  
+- **Проверка:** unit-тест: `fn main` и `struct Foo` находятся по имени
+
+**16 · M · find_symbol для Java** — приор. Medium  
+- **Цель:** символы для `.java` (class/method)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** regex или tree-sitter-java для объявлений top-level  
+- **Проверка:** unit-тест на простом `.java` с `public class Bar`
+
+### 🔗 Тесты ядра агента
+
+**17 · M · Unit-тесты agentLoopGuard** — приор. High  
+- **Цель:** покрытие `MAX_CONSECUTIVE_SAME_TOOL` и `MAX_SAME_TOOL_TOTAL`  
+- **Файлы:** `app/electron/main/agentLoopGuard.ts`, `app/tests/agentLoopGuard.test.ts`  
+- **Действие:** кейсы: 5 подряд → блок; 50 всего → блок; сброс при смене tool  
+- **Проверка:** `npm test -- agentLoopGuard`
+
+**18 · M · Unit-тесты runCheckpoint** — приор. High  
+- **Цель:** stash создаётся перед первым mutating tool; rollback восстанавливает  
+- **Файлы:** `app/electron/main/runCheckpoint.ts`, `app/tests/runCheckpoint.test.ts`  
+- **Действие:** mock `git stash create` + `git stash apply`  
+- **Проверка:** `npm test -- runCheckpoint`
+
+**19 · M · Unit-тесты parallel tool execution** — приор. High  
+- **Цель:** `agentToolExecutor` выполняет независимые tool calls параллельно  
+- **Файлы:** `app/electron/main/agentToolExecutor.ts`, `app/tests/agentToolExecutor.test.ts`  
+- **Действие:** два mock handler с задержкой → wall time < sum  
+- **Проверка:** `npm test -- agentToolExecutor`
+
+**20 · M · Unit-тест Ollama fallback** — приор. Medium  
+- **Цель:** `CircuitBreakerOpenError` → emit `ollama_fallback_offer`  
+- **Файлы:** `app/electron/main/agent.ts`, `app/tests/agentFallback.test.ts`  
+- **Действие:** mock provider throws circuit open → проверить payload события  
+- **Проверка:** `npm test -- agentFallback`
+
+### 🔗 Рефакторинг монолитов
+
+**21 · M · Разбивка App.tsx** — приор. Low  
+- **Цель:** вынести layout и модалки из ~1000-строчного `App.tsx`  
+- **Файлы:** `app/src/App.tsx` → `AppLayout.tsx`, `useAppModals.ts`  
+- **Действие:** перенести JSX layout + state модалок без изменения поведения  
+- **Проверка:** `npm run typecheck`; E2E или ручной smoke UI
+
+**22 · M · Разбивка agent.ts** — приор. Low  
+- **Цель:** отделить цикл ReAct от dispatch инструментов  
+- **Файлы:** `agent.ts` → `agentLoop.ts`, `agentStreamHandler.ts`  
+- **Действие:** `AgentRunner.run()` делегирует в `runAgentLoop()`  
+- **Проверка:** `npm run typecheck`; существующие agent-тесты зелёные
+
+**23 · M · Хук useChatPanelState** — приор. Low  
+- **Цель:** сократить `ChatPanel/index.tsx` — state и refs в отдельный хук  
+- **Файлы:** `app/src/components/ChatPanel/index.tsx`, `useChatPanelState.ts`  
+- **Действие:** перенести useState/useRef блоки в хук; index — только композиция  
+- **Проверка:** `npm run typecheck`; отправка сообщения в UI работает
+
+### 🔗 Git worktree на чат
+
+**24 · M · gitWorktree.ts** — приор. Medium  
+- **Цель:** create / remove / list worktrees через `git worktree`  
+- **Файлы:** `app/electron/main/gitWorktree.ts` (новый), `gitTools.ts`  
+- **Действие:** `createWorktree(repoPath, branch)` → путь worktree; `removeWorktree`  
+- **Проверка:** unit-тест с temp git repo; `git worktree list` содержит запись
+
+**25 · M · worktreePath в чате + IPC** — приор. Medium  
+- **Цель:** поле `worktreePath?` в persisted chat; IPC `create-chat-worktree`  
+- **Файлы:** `chats.ts`, `types.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** кнопка «Изолировать в worktree» в меню чата  
+- **Проверка:** новый чат получает отдельную папку worktree
+
+**26 · M · AgentRunner — корень worktree** — приор. Medium  
+- **Цель:** если у чата есть `worktreePath`, агент работает в нём, а не в `projectPath`  
+- **Файлы:** `agent.ts`, `registerAgentIpc.ts`, `agentHandlersProjectContext.ts`  
+- **Действие:** `resolveProjectRoot(chat)` → `worktreePath ?? projectPath`  
+- **Проверка:** правка файла в изолированном чате не затрагивает основную копию
+
+### 🔗 Режим «только план»
+
+**27 · M · planBeforeExecute в настройках** — приор. Medium  
+- **Цель:** тумблер «Сначала показать план» в BehaviorTab  
+- **Файлы:** `settings.ts`, `BehaviorTab.tsx`, `types.ts`  
+- **Действие:** `planBeforeExecute: boolean` в Zod-схеме с default `false`  
+- **Проверка:** настройка сохраняется и загружается
+
+**28 · M · Пауза после плана до подтверждения** — приор. Medium  
+- **Цель:** при `planBeforeExecute` оркестратор показывает план и ждёт кнопку «Выполнить»  
+- **Файлы:** `agent.ts`, `orchestratorModel.ts`, `ChatPanel/index.tsx`  
+- **Действие:** emit `plan_awaiting_confirm`; UI-кнопка продолжает прогон  
+- **Проверка:** с включённым тумблером агент не вызывает tools до «Выполнить»
+
+**29 · S · Toast при ожидании подтверждения** — приор. Medium  
+- **Цель:** системное уведомление, если агент ждёт `preview_edit`/danger-dialog, а окно не в фокусе  
+- **Файлы:** `app/src/App.tsx`, `app/electron/main/tray.ts` или `webhookNotify.ts`  
+- **Действие:** при `pendingApproval` + `!document.hasFocus()` → toast «Агент ждёт подтверждения»  
+- **Проверка:** сценарий в UI: свернуть окно → агент вызывает preview → toast появляется
+
+### 🔗 Onboarding первого запуска
+
+**30 · M · Флаг firstRunCompleted** — приор. Medium  
+- **Цель:** `firstRunCompleted: boolean` в settings; false при первой установке  
+- **Файлы:** `settings.ts`, `types.ts`  
+- **Действие:** поле в Zod с default `false`; true после завершения визарда  
+- **Проверка:** чистый settings.json → `firstRunCompleted === false`
+
+**31 · M · OnboardingWizard** — приор. Medium  
+- **Цель:** модалка: выбор провайдера → модель → открыть проект  
+- **Файлы:** `app/src/components/OnboardingWizard.tsx`, `App.tsx`  
+- **Действие:** 3 шага; показ при `!firstRunCompleted`; «Пропустить» → true  
+- **Проверка:** первый запуск показывает визард; повторный — нет
+
+**32 · S · Ссылка на example-prompts в визарде** — приор. Low  
+- **Цель:** финальный шаг визарда — кнопка «Примеры запросов» → `docs/example-prompts.md`  
+- **Файлы:** `OnboardingWizard.tsx`  
+- **Действие:** `shell.openExternal` или открытие вики/GitHub  
+- **Проверка:** клик открывает страницу с примерами
+
+### 🔗 Экспорт и импорт чата
+
+**33 · M · IPC export-chat** — приор. Medium  
+- **Цель:** экспорт сообщений и метаданных чата в JSON  
+- **Файлы:** `chats.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** `export-chat` → `{ messages, settings, projectPath }`; save dialog  
+- **Проверка:** экспорт → файл валидный JSON с messages
+
+**34 · M · IPC import-chat** — приор. Medium  
+- **Цель:** импорт чата из JSON в новый чат в store  
+- **Файлы:** `chats.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** open dialog → parse → `createChat` с messages  
+- **Проверка:** импортированный чат отображает историю
+
+### 🔗 Skill marketplace
+
+**35 · M · Fetch remote skill manifest** — приор. Low  
+- **Цель:** список навыков с GitHub raw URL или индекс-файла  
+- **Файлы:** `app/electron/main/skills.ts`, `registerMiscIpc.ts`  
+- **Действие:** `list-remote-skills(url)` → `{ name, description, url }[]`  
+- **Проверка:** unit-тест с mock fetch на тестовый manifest.json
+
+**36 · M · import-remote-skill UI** — приор. Low  
+- **Цель:** кнопка «Импорт из каталога» в SkillsPanel  
+- **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
+- **Действие:** выбор из списка → download SKILL.md → локальный skill  
+- **Проверка:** импорт skill из URL появляется в списке навыков
+
+### 🔗 Автоматизации
+
+**37 · M · AutomationRule в settings** — приор. Medium  
+- **Цель:** тип `{ id, cron, prompt, enabled }` + Zod-массив в настройках  
+- **Файлы:** `settings.ts`, `types.ts`  
+- **Действие:** `automations: AutomationRule[]` с default `[]`  
+- **Проверка:** `npm run typecheck`; сохранение массива в settings.json
+
+**38 · M · automationScheduler в main** — приор. Medium  
+- **Цель:** таймер проверяет cron-выражения и ставит промпт в очередь чата  
+- **Файлы:** `app/electron/main/automationScheduler.ts`, `index.ts`  
+- **Действие:** `node-cron` или setInterval + parse; emit в default chat  
+- **Проверка:** unit-тест: rule `* * * * *` + mock time → enqueue вызван
+
+**39 · M · AutomationsTab в настройках** — приор. Medium  
+- **Цель:** CRUD автоматизаций: cron, промпт, вкл/выкл  
+- **Файлы:** `SettingsModal/AutomationsTab.tsx`, `SettingsModal/index.tsx`  
+- **Действие:** форма добавления; список с удалением  
+- **Проверка:** созданная автоматизация сохраняется и видна после reopen settings
+
+### 🔗 Сравнение моделей (A/B)
+
+**40 · M · Дублировать промпт во второй чат** — приор. Low  
+- **Цель:** кнопка «Сравнить с другой моделью» копирует промпт в новый чат  
+- **Файлы:** `ChatPanel/index.tsx`, `ChatHistoryPanel.tsx`  
+- **Действие:** `createChat` + тот же `input` + подсказка выбрать модель  
+- **Проверка:** два чата с одинаковым первым сообщением пользователя
+
+**41 · M · SplitChatView** — приор. Low  
+- **Цель:** два чата side-by-side для сравнения ответов  
+- **Файлы:** `app/src/App.tsx`, `SplitChatView.tsx`  
+- **Действие:** режим «Сравнение» — два `ChatPanel` с общим projectPath  
+- **Проверка:** оба чата видны одновременно; отправка в каждый независима
+
+### 🔗 P2P-сервер
+
+**42 · M · docker-compose для server/p2p** — приор. Medium  
+- **Цель:** one-click деплой сигнального сервера + Redis  
+- **Файлы:** `server/p2p/docker-compose.yml`, `server/p2p/README.md`, `docs/integrations.md`  
+- **Действие:** сервисы `p2p` + `redis`; env-шаблон `.env.example`  
+- **Проверка:** `docker compose up` → `GET /health` → 200
+
+**43 · M · Dashboard статуса узлов** — приор. Low  
+- **Цель:** `GET /admin/dashboard` — онлайн-узлы, задачи, кредиты (auth)  
+- **Файлы:** `server/p2p/src/routes/admin.ts`  
+- **Действие:** JSON `{ nodes, activeTasks, totalCredits }`  
+- **Проверка:** интеграционный тест с mock-узлами
+
+**44 · M · Рейтинг узлов по latency** — приор. Low  
+- **Цель:** `router.ts` предпочитает узлы с меньшим средним RTT  
+- **Файлы:** `server/p2p/src/router.ts`, `server/p2p/src/credits.ts`  
+- **Действие:** хранить `avgLatencyMs` per node; сортировка при route  
+- **Проверка:** unit-тест: два узла → выбирается с меньшей latency
+
+### 🔗 Плагины
+
+**45 · S · Документация plugin-authoring** — приор. Medium  
+- **Цель:** гайд автора плагина: схема tool, пример `.js`, hot-reload  
+- **Файлы:** `docs/plugin-authoring.md`, ссылка в `README.md`  
+- **Действие:** минимальный working example + ограничения (только `.js`)  
+- **Проверка:** файл существует; README ссылается на него
+
+**46 · M · Валидация схемы tool при загрузке** — приор. Medium  
+- **Цель:** невалидный плагин логируется и пропускается, не ломая остальные  
+- **Файлы:** `app/electron/main/pluginLoader.ts`  
+- **Действие:** Zod-схема `{ name, description, parameters }`; catch per plugin  
+- **Проверка:** unit-тест: плагин без `name` → skip + остальные загружены
+
+### 🔗 Интернационализация (i18n)
+
+**47 · M · Инфраструктура i18n** — приор. Low  
+- **Цель:** функция `t(key)` + `locales/ru.json` (текущие строки) + `en.json`  
+- **Файлы:** `app/src/i18n/index.ts`, `app/src/i18n/locales/`  
+- **Действие:** React context `I18nProvider`; fallback на ключ  
+- **Проверка:** `t('settings.title')` возвращает строку на обоих языках
+
+**48 · M · Переключатель языка в настройках** — приор. Low  
+- **Цель:** `locale: 'ru' | 'en'` в settings + UI в BehaviorTab  
+- **Файлы:** `settings.ts`, `BehaviorTab.tsx`, `App.tsx`  
+- **Действие:** select «Язык»; `I18nProvider` читает settings.locale  
+- **Проверка:** смена на en → хотя бы один переведённый заголовок меняется
+
+**49 · M · i18n: строки App и шапки** — приор. Low  
+- **Цель:** вынести строки `App.tsx` (кнопки, заголовки панелей) в locale-файлы  
+- **Файлы:** `App.tsx`, `locales/ru.json`, `locales/en.json`  
+- **Действие:** заменить литералы на `t('…')`  
+- **Проверка:** en locale — шапка и «Настройки» на английском
+
+**50 · M · i18n: SettingsModal** — приор. Low  
+- **Цель:** перевести вкладки и подписи настроек  
+- **Файлы:** `SettingsModal/*.tsx`, locale-файлы  
+- **Действие:** ключи `settings.model.*`, `settings.behavior.*` и т.д.  
+- **Проверка:** en locale — названия вкладок на английском
+
+**51 · M · i18n: ChatPanel и сообщения UI** — приор. Low  
+- **Цель:** перевести placeholder, кнопки отправки, статус-бар  
+- **Файлы:** `ChatPanel/`, `AgentStatusBar.tsx`, locale-файлы  
+- **Действие:** ключи `chat.*`, `status.*`  
+- **Проверка:** en locale — placeholder поля ввода на английском
 
 ---
 
@@ -116,7 +420,7 @@ N · [S/M/L/XL] · Краткое название
 - validateCommand нормализация: `normalizeCommand()` декодирует `\xNN`/`\uNNNN`/`%NN` перед блок-листом; `safeCreateFile` использует флаг `fileExists` + errno вместо string-сравнения; unit-тесты hex/unicode/url-обфускации
 
 **CI и качество**
-- E2E на Linux/macOS: матрица `ubuntu-latest`/`macos-latest`, отдельный job `e2e`; `--no-sandbox` на Linux; `CODEVIPER_E2E=1` пропускает git-sync
+- E2E на Linux/macOS: матрица `ubuntu-latest`/`macos-latest`, отдельный job `e2e`; `--no-sandbox` on Linux; `CODEVIPER_E2E=1` пропускает git-sync
 - Авто-цикл «тесты → почини»: `run_tests` — авто-определение runner, парсинг падений, агент сам переиспользует инструмент
 - Песочница `run_script`: Docker `--network none --memory 512m`, fallback на локальный запуск
 - Счётчик стоимости облачных запросов: `MODEL_PRICING`, `estimatedCostUsd`, чип `~$X.XXX` в AgentStatusBar
