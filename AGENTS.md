@@ -7,6 +7,11 @@
 - Порядок перед каждым коммитом: `npm run typecheck` → `npm run build` → обновить ROADMAP/README → `git commit` → `git push`.
 - `npm run dist` автоматически вызывает `setup-node` (скачивание portable Node.js LTS в `app/resources/node/`). Папка в `.gitignore`, не коммитить.
 
+## Версионирование
+
+- **`app/package.json` → `version` — только при релизе**, не при каждом коммите. См. `.cursor/rules/versioning.mdc` и `release-workflow.mdc`.
+- Обычный коммит: typecheck → build → ROADMAP/README → commit → push **без** bump версии.
+
 ## Portable Node.js
 
 Цепочка самопересборки завершена: `setup-node` → `extraResources` → `getBundledNodeBin()` + PATH в `runCodeViperCommand`.
