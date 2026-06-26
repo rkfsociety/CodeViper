@@ -139,3 +139,25 @@ export async function gitLog(
   const result = await runGit(projectPath, args)
   return formatGitResult(result)
 }
+
+const MAX_COMMIT_MESSAGE_LEN = 5000
+
+function validateCommitMessage(message: string | undefined): string | null {
+  const trimmed = message?.trim() ?? ''
+  if (!trimmed) return 'Пустое сообщение коммита'
+  if (trimmed.length > MAX_COMMIT_MESSAGE_LEN) return 'Сообщение коммита слишком длинное'
+  if (trimmed.startsWith('-')) return 'Сообщение коммита не может начинаться с "-"'
+  return null
+}
+
+/** git commit -m внутри projectPath (аргументы spawn, без shell). */
+export async function gitCommit(projectPath: string, message: string): Promise<string> {
+  const repoError = await ensureGitRepo(projectPath)
+  if (repoError) return repoError
+
+  const messageError = validateCommitMessage(message)
+  if (messageError) return messageError
+
+  const result = await runGit(projectPath, ['commit', '-m', message.trim()])
+  return formatGitResult(result)
+}

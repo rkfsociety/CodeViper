@@ -22,6 +22,7 @@ export const TOOL_LABELS: Record<string, string> = {
   git_status: 'Смотрю git status',
   git_diff: 'Смотрю git diff',
   git_log: 'Смотрю git log',
+  git_commit: 'Создаю git commit',
   create_issue: 'Создаю issue',
   create_pr: 'Создаю PR',
   list_issues: 'Смотрю issues',
@@ -105,6 +106,10 @@ export function compactToolChatLine(
     case 'append_file':
       return `✓ ${firstLine(body) || label}`
     case 'run_command': {
+      const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
+      return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
+    }
+    case 'git_commit': {
       const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
       return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
     }

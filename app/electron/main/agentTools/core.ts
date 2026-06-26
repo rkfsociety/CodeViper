@@ -578,6 +578,24 @@ export const GIT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'git_commit',
+      description:
+        'Создать git-коммит staged-изменений с сообщением (безопаснее run_command git commit)',
+      parameters: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            description: 'Сообщение коммита (-m)'
+          }
+        },
+        required: ['message']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'recent_changes',
       description: 'Краткая сводка последних изменений git по проекту или папке',
       parameters: {

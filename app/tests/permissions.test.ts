@@ -33,6 +33,7 @@ describe('toolRequiresConfirm', () => {
     expect(toolRequiresConfirm('acceptEdits', 'run_command')).toBe(true)
     expect(toolRequiresConfirm('acceptEdits', 'run_codeviper_command')).toBe(true)
     expect(toolRequiresConfirm('acceptEdits', 'create_ollama_model')).toBe(true)
+    expect(toolRequiresConfirm('acceptEdits', 'git_commit')).toBe(true)
   })
 
   it('acceptEdits — навыки и память не требуют подтверждения', () => {

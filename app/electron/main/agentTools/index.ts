@@ -182,6 +182,7 @@ export interface ToolArgs {
   git_status: { path?: string }
   git_diff: { path?: string; staged?: string; commit?: string }
   git_log: { limit?: string; path?: string; oneline?: string }
+  git_commit: { message: string }
   create_issue: { title: string; body?: string; labels?: string }
   create_pr: { title?: string; body?: string }
   list_issues: Record<string, never>

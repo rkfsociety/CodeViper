@@ -17,7 +17,8 @@ const CONFIRM_IN_ACCEPT_EDITS = new Set<string>([
   'run_codeviper_command',
   'create_ollama_model',
   // Создание PR — внешнее действие (публикация на GitHub), подтверждаем всегда кроме bypass.
-  'create_codeviper_pr'
+  'create_codeviper_pr',
+  'git_commit'
 ])
 
 export function normalizePermissionMode(value: unknown): PermissionMode {

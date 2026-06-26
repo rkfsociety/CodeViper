@@ -83,8 +83,8 @@ export const TOOL_GROUPS: { id: string; label: string; desc: string; tools: stri
   {
     id: 'git',
     label: 'Git',
-    desc: 'Статус, diff, история коммитов',
-    tools: ['git_status', 'git_diff', 'git_log', 'recent_changes']
+    desc: 'Статус, diff, история, commit',
+    tools: ['git_status', 'git_diff', 'git_log', 'git_commit', 'recent_changes']
   },
   {
     id: 'github',

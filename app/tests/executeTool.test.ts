@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { execSync } from 'child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -74,6 +75,33 @@ describe('executeTool — неизвестный инструмент', () => {
     // AgentRunner возвращает фиксированную строку при отсутствии хендлера
     const fallback = handler ? await handler({}) : `Неизвестный инструмент: no_such_tool`
     expect(fallback).toContain('Неизвестный инструмент')
+  })
+})
+
+describe('executeTool — git_commit', () => {
+  it('коммитит staged-изменения через handler', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'cv-git-handler-'))
+    try {
+      execSync('git init', { cwd: dir, stdio: 'ignore' })
+      execSync('git config user.email test@test.com', { cwd: dir, stdio: 'ignore' })
+      execSync('git config user.name Test', { cwd: dir, stdio: 'ignore' })
+      writeFileSync(join(dir, 'commit-me.txt'), 'data', 'utf8')
+      execSync('git add commit-me.txt', { cwd: dir, stdio: 'ignore' })
+
+      const { handlers } = createProjectToolHandlers(dir)
+      const result = await handlers.git_commit!({ message: 'via git_commit tool' })
+      expect(result).toMatch(/^exit: 0/)
+
+      const subject = execSync('git log -1 --pretty=%s', { cwd: dir, encoding: 'utf8' }).trim()
+      expect(subject).toBe('via git_commit tool')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('readonlyMode блокирует git_commit', async () => {
+    const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
+    await expect(handlers.git_commit!({ message: 'blocked' })).rejects.toThrow(/только чтение/i)
   })
 })
 

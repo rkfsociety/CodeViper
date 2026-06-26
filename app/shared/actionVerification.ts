@@ -26,7 +26,8 @@ export const MUTATING_TOOLS = new Set([
   'index_project',
   'create_jira_issue',
   'create_linear_issue',
-  'delegate_to_editor'
+  'delegate_to_editor',
+  'git_commit'
 ])
 
 const MUTATION_TASK_PATTERNS: RegExp[] = [
