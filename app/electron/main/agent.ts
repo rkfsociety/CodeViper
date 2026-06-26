@@ -24,7 +24,7 @@ import {
   isRoadmapSelfImprovementTask,
   buildRoadmapSelfImproveHint
 } from '../../shared/selfImprovement'
-import { getCodeViperSourceRoot } from './codeviperSource'
+import { getActiveAgentSourceRootPath } from './runtimeBootstrap'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
@@ -328,7 +328,7 @@ export class AgentRunner {
     if (explorerSummary)
       hintParts.push(`## Разведка проекта (субагент-explorer)\n${explorerSummary}`)
     if (taskMode === 'self-improve' && isRoadmapSelfImprovementTask(userMessage)) {
-      hintParts.push(buildRoadmapSelfImproveHint(roadmapItemNum, getCodeViperSourceRoot()))
+      hintParts.push(buildRoadmapSelfImproveHint(roadmapItemNum, getActiveAgentSourceRootPath()))
     }
     const customSystemPrompt = hintParts.length
       ? `${baseSystemPrompt}\n\n${hintParts.join('\n\n')}`.trim()

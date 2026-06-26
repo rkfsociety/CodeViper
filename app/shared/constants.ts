@@ -138,6 +138,8 @@ export const BUNDLED_SOURCE_DIR_NAME = 'source'
 export const BUNDLED_SOURCE_APP_DIR_NAME = 'app'
 /** Макс. ожидание startup sync перед показом окна (мс) */
 export const BUNDLED_SOURCE_STARTUP_WAIT_MS = 3_000
+/** Минимальный размер out/main/index.js для считания runtime валидным */
+export const BUNDLED_RUNTIME_MAIN_MIN_BYTES = 1024
 /** Таймаут npm install / build в клоне (с) */
 export const BUNDLED_SOURCE_BUILD_TIMEOUT_SEC = 600
 

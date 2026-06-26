@@ -7,7 +7,7 @@
  */
 import { ModelRuntime } from './modelRuntime'
 import { getAgentTools } from './agentTools'
-import { createProjectToolHandlers } from './agentHandlersProject'
+import { resolveAgentHandlerFactories } from './runtimeBootstrap'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
@@ -83,7 +83,7 @@ export async function runSubagent(
   const filteredTools = allTools.filter((t) => allowedTools.includes(t.name))
 
   // Обработчики инструментов (только project-tools для explorer/editor)
-  const { handlers } = createProjectToolHandlers(
+  const { handlers } = resolveAgentHandlerFactories().createProjectToolHandlers(
     projectPath,
     settings.commandTimeoutSec != null ? settings.commandTimeoutSec * 1000 : undefined,
     {

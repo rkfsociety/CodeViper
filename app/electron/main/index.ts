@@ -38,6 +38,7 @@ import type { IpcContext } from './ipc/ipcContext'
 import { IPC } from '../../shared/ipcContracts'
 import { healthCheckMcpServers } from './mcpRegistry'
 import { runBundledSourceStartupSync } from './bundledSourceSync'
+import { initBundledRuntimeFromSettings } from './runtimeBootstrap'
 
 if (process.env.CODEVIPER_E2E === '1') {
   const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
@@ -376,6 +377,7 @@ app.whenReady().then(async () => {
   }
 
   await runBundledSourceStartupSync(settings.liveRuntimeFromGit ?? false)
+  await initBundledRuntimeFromSettings(settings)
 
   if (settings.gitSyncOnStartup && !process.env.CODEVIPER_E2E) {
     pullCollectiveMemoryFromRemote(settings.selfImproveBranch).catch(() => {})

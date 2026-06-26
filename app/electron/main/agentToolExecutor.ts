@@ -1,19 +1,7 @@
 import type { AgentSettings, AgentStreamPayload } from '../../src/types'
 import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
 import { getAgentTools, type ToolHandlers } from './agentTools'
-import { createProjectToolHandlers } from './agentHandlersProject'
-import { createGitHubToolHandlers } from './agentHandlersGitHub'
-import { createGitLabToolHandlers } from './agentHandlersGitLab'
-import { createJiraToolHandlers } from './agentHandlersJira'
-import { createLinearToolHandlers } from './agentHandlersLinear'
-import { createCodeViperToolHandlers } from './agentHandlersCodeViper'
-import { createMemoryToolHandlers } from './agentHandlersMemory'
-import { createSkillsToolHandlers } from './agentHandlersSkills'
-import { createSelfImprovementToolHandlers } from './agentHandlersSelfImprovement'
-import { createModelToolHandlers } from './agentHandlersModels'
-import { createTodoToolHandlers } from './agentHandlersTodo'
-import { createMcpToolHandlers, notifyMcpToolResult } from './mcpTools'
-import { createWebToolHandlers } from './agentHandlersWeb'
+import { notifyMcpToolResult } from './mcpTools'
 import { runSubagent } from './subagentRunner'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import type { SelfImprovementItem } from '../../shared/selfImprovement'
@@ -27,7 +15,8 @@ import {
 } from './agentTrace'
 import { createUnifiedDiff } from './diffUtil'
 import { applySelectedHunks } from '../../shared/diffPreview'
-import { getCodeViperSourceRoot, runCodeViperCommand } from './codeviperSource'
+import { runCodeViperCommand } from './codeviperSource'
+import { resolveAgentHandlerFactories, getActiveAgentSourceRootPath } from './runtimeBootstrap'
 import type { OllamaMessage } from './agentContext'
 import type { LoopGuard } from './agentLoopGuard'
 import { normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
@@ -242,7 +231,8 @@ export class ToolExecutor {
 
   private getToolHandlers(): ToolHandlers {
     if (this.toolHandlers) return this.toolHandlers
-    const projectResult = createProjectToolHandlers(
+    const factories = resolveAgentHandlerFactories()
+    const projectResult = factories.createProjectToolHandlers(
       this.projectPath,
       this.settings.commandTimeoutSec != null ? this.settings.commandTimeoutSec * 1000 : undefined,
       {
@@ -258,22 +248,22 @@ export class ToolExecutor {
     this.clearEditSnapshots = projectResult.clearEditSnapshots
     this.toolHandlers = {
       ...projectResult.handlers,
-      ...createGitHubToolHandlers(),
-      ...createGitLabToolHandlers(this.projectPath, this.settings),
-      ...createJiraToolHandlers(this.settings),
-      ...createLinearToolHandlers(this.settings),
-      ...createCodeViperToolHandlers(),
-      ...createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl, {
+      ...factories.createGitHubToolHandlers(),
+      ...factories.createGitLabToolHandlers(this.projectPath, this.settings),
+      ...factories.createJiraToolHandlers(this.settings),
+      ...factories.createLinearToolHandlers(this.settings),
+      ...factories.createCodeViperToolHandlers(),
+      ...factories.createMemoryToolHandlers(this.projectPath, this.emit, this.settings.ollamaUrl, {
         syncCollectiveMemory: this.settings.syncCollectiveMemory
       }),
-      ...createSkillsToolHandlers(this.projectPath, this.emit),
+      ...factories.createSkillsToolHandlers(this.projectPath, this.emit),
       ...(this.selfImprovementPlan && this.onEmitPlan
-        ? createSelfImprovementToolHandlers(this.selfImprovementPlan, this.onEmitPlan)
+        ? factories.createSelfImprovementToolHandlers(this.selfImprovementPlan, this.onEmitPlan)
         : {}),
-      ...createTodoToolHandlers(this.emit),
-      ...createModelToolHandlers(this.projectPath, this.settings, this.signal),
-      ...createWebToolHandlers(),
-      ...createMcpToolHandlers(this.settings.mcpServers),
+      ...factories.createTodoToolHandlers(this.emit),
+      ...factories.createModelToolHandlers(this.projectPath, this.settings, this.signal),
+      ...factories.createWebToolHandlers(),
+      ...factories.createMcpToolHandlers(this.settings.mcpServers),
       ...this.createSubagentToolHandlers()
       // Эти два обработчика регистрируются в AgentRunner через overrideHandlers().
     } as ToolHandlers
@@ -394,7 +384,7 @@ export class ToolExecutor {
   }
 
   private async runAutoVerify(): Promise<string> {
-    const root = getCodeViperSourceRoot()
+    const root = getActiveAgentSourceRootPath()
     const { readFile } = await import('fs/promises')
     const { join } = await import('path')
     let scripts: Record<string, string> = {}
