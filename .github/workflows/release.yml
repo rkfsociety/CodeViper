@@ -67,10 +67,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      # Только один runner обновляет описание релиза
-      - name: Update release notes
-        if: runner.os == 'Linux'
-        working-directory: ${{ github.workspace }}
+  # Ждём все платформы, затем снимаем draft и добавляем release notes
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish release with notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -82,6 +88,7 @@ jobs:
             NOTES=$(git log --pretty=format:"- %s" --no-merges | head -30)
           fi
           gh release edit "$TAG" \
+            --draft=false \
             --title "CodeViper $TAG" \
             --notes "## Что нового
           ${NOTES}
