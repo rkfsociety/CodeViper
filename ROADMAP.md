@@ -21,11 +21,11 @@ N · [S/M/L/XL] · Краткое название
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** нумерация сквозная (1…68); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
+**Правила:** нумерация сквозная (1…148); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
 
 ## 📋 В планах
 
-> Нумерация сквозная **1…68**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
+> Нумерация сквозная **1…148**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
 
 ### ⚡ Независимые задачи
 
@@ -467,7 +467,7 @@ N · [S/M/L/XL] · Краткое название
 
 **67 · M · E2E: smoke настройки и отправка** — приор. Medium  
 - **Цель:** Playwright-тест: открыть настройки → закрыть → ввести промпт (mock LLM)  
-- **Файлы:** `app/tests/e2e/smoke.spec.ts`  
+- **Файлы:** `app/e2e/smoke.spec.ts`  
 - **Действие:** `CODEVIPER_E2E=1`; stub agent-stream или пустой ответ  
 - **Проверка:** `npm run test:e2e` — новый тест зелёный в CI
 
@@ -476,6 +476,468 @@ N · [S/M/L/XL] · Краткое название
 - **Файлы:** `vitest.config.ts`, тесты в `tests/`  
 - **Действие:** `include` + thresholds 50% branches для выбранных модулей  
 - **Проверка:** `npm test -- --coverage` проходит пороги в CI
+
+### 🔗 Тема и масштаб UI
+
+**69 · S · Сохранение светлой темы в settings** — приор. Medium  
+- **Цель:** `lightMode` не сбрасывается после перезапуска (`App.tsx` сейчас только `useState`)  
+- **Файлы:** `settings.ts`, `types.ts`, `App.tsx`  
+- **Действие:** `uiLightMode: boolean` в Zod; загрузка при старте  
+- **Проверка:** включить ☀️ → перезапуск → тема сохранена
+
+**70 · S · Масштаб шрифта UI** — приор. Low  
+- **Цель:** `uiFontScale: 0.9 | 1 | 1.1 | 1.25` в настройках → `document.documentElement.style.fontSize`  
+- **Файлы:** `PerformanceTab.tsx`, `settings.ts`, `App.tsx`  
+- **Действие:** select в PerformanceTab; применение при загрузке  
+- **Проверка:** 1.25 — текст чата крупнее
+
+**71 · S · Режим высокой контрастности** — приор. Low  
+- **Цель:** класс `high-contrast` на `:root` для слабовидящих  
+- **Файлы:** `styles.css`, `PerformanceTab.tsx`, `settings.ts`  
+- **Действие:** тумблер + контрастные CSS-переменные  
+- **Проверка:** границы панелей и кнопок заметно контрастнее
+
+### 🔗 Сообщения и чат (UX)
+
+**72 · S · Копировать блок кода в MessageBody** — приор. Medium  
+- **Цель:** кнопка «Копировать» на каждом `<pre><code>` в markdown-ответе  
+- **Файлы:** `MessageBody.tsx`, `MessageBody.module.css`  
+- **Действие:** `navigator.clipboard.writeText` по клику  
+- **Проверка:** копирование блока кода из ответа агента
+
+**73 · M · Повторить ответ ассистента** — приор. Medium  
+- **Цель:** в меню `MessageRow` для `assistant` — «↺ Перегенерировать» (truncate history + resend)  
+- **Файлы:** `MessageRow.tsx`, `ChatPanel/index.tsx`, `useMessageQueue.ts`  
+- **Действие:** удалить assistant-сообщение и последний user turn → повторный прогон  
+- **Проверка:** перегенерация даёт новый ответ
+
+**74 · M · Экспорт чата в Markdown** — приор. Medium  
+- **Цель:** кнопка в меню чата → `.md` с ролями и код-блоками  
+- **Файлы:** `ChatHistoryPanel.tsx`, `chats.ts`, `registerChatsIpc.ts`  
+- **Действие:** `export-chat-markdown` IPC + save dialog  
+- **Проверка:** файл читается в любом MD-viewer
+
+**75 · M · Недавние проекты** — приор. Medium  
+- **Цель:** список последних 10 `projectPath` в WelcomePanel и меню «Открыть»  
+- **Файлы:** `settings.ts`, `WelcomePanel.tsx`, `App.tsx`  
+- **Действие:** `recentProjects: string[]` при `selectProjectFolder`  
+- **Проверка:** после открытия 2 проектов оба в списке
+
+**76 · S · Избранные чаты** — приор. Low  
+- **Цель:** звезда ⭐ на чате → секция «Избранное» вверху истории  
+- **Файлы:** `SavedChat` + `chats.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** `starred?: boolean`; сортировка starred first  
+- **Проверка:** избранный чат остаётся наверху
+
+**77 · S · Цвет папки чатов** — приор. Low  
+- **Цель:** `ChatFolder.color?: string` — цветная полоска у заголовка папки  
+- **Файлы:** `types.ts`, `chats.ts`, `ChatHistoryPanel.tsx`  
+- **Действие:** picker в контекстном меню папки  
+- **Проверка:** цвет виден и сохраняется
+
+**78 · M · Drag-drop папок в чат** — приор. Low  
+- **Цель:** перетаскивание директории → `@path` или attachment как у файлов  
+- **Файлы:** `ChatPanel/ChatInput.tsx`, `registerFileIpc.ts`  
+- **Действие:** resolve directory path; лимит вложенных файлов  
+- **Проверка:** drop папки добавляет путь в чат
+
+**79 · S · Автосохранение черновика ввода** — приор. Medium  
+- **Цель:** `input` поля чата в `localStorage` per `chatId` с debounce 500 мс  
+- **Файлы:** `ChatPanel/index.tsx`  
+- **Действие:** восстановление при переключении чата  
+- **Проверка:** набрать текст → другой чат → вернуться — текст на месте
+
+**80 · S · Очередь: удалить элемент** — приор. Low  
+- **Цель:** кнопка ✕ у каждого сообщения в очереди (`AgentStatusBar` / queue UI)  
+- **Файлы:** `AgentStatusBar.tsx`, `QueueContext.tsx`  
+- **Действие:** `removeFromQueue(index)` IPC или context  
+- **Проверка:** элемент исчезает, остальные выполняются
+
+### 🔗 Git-инструменты агента (проект пользователя)
+
+**81 · M · git_commit** — приор. High  
+- **Цель:** инструмент `git_commit` с `message` вместо сырого `run_command git commit`  
+- **Файлы:** `agentTools/core.ts`, `gitTools.ts`, `agentHandlersProject.ts`  
+- **Действие:** `git commit -m` с экранированием; только внутри projectPath  
+- **Проверка:** unit-тест + агент коммитит через tool
+
+**82 · M · git_push** — приор. Medium  
+- **Цель:** `git_push` с опциональным `remote`/`branch`; уважать `permissionMode`  
+- **Файлы:** `gitTools.ts`, `agentTools/core.ts`, handlers  
+- **Действие:** `git push`; ошибка при non-fast-forward — текст агенту  
+- **Проверка:** mock git в unit-тесте
+
+**83 · M · git_checkout** — приор. Medium  
+- **Цель:** безопасный `git checkout branch` / `git switch`  
+- **Файлы:** `gitTools.ts`, `agentTools/core.ts`  
+- **Действие:** запрет checkout при dirty tree без флага `force`  
+- **Проверка:** unit-тест на dirty tree → ошибка
+
+**84 · M · git_stash / git_stash_pop** — приор. Low  
+- **Цель:** stash перед опасными операциями по запросу агента  
+- **Файлы:** `gitTools.ts`, `agentTools/core.ts`  
+- **Действие:** `git stash push -m` и `git stash pop`  
+- **Проверка:** round-trip stash в temp repo
+
+**85 · S · .codeviperignore** — приор. Medium  
+- **Цель:** паттерны игнора для агента (как `.cursorignore`)  
+- **Файлы:** `ignorePatterns.ts`, `docs/`  
+- **Действие:** читать `.codeviperignore` после `.cursorignore`  
+- **Проверка:** unit-тест: файл в ignore не в `list_directory`
+
+### 🔗 Провайдеры и fallback
+
+**86 · M · OpenAI-compatible произвольный endpoint** — приор. Medium  
+- **Цель:** провайдер `custom` — `baseUrl` + `apiKey` + model id (LM Studio, vLLM)  
+- **Файлы:** `openaiProvider.ts`, `modelRuntime.ts`, `ModelTab/providers/`  
+- **Действие:** переиспользовать OpenAI client с custom baseURL  
+- **Проверка:** ping к mock server
+
+**87 · M · Провайдер Mistral** — приор. Low  
+- **Цель:** `modelProvider: 'mistral'` через Mistral API  
+- **Файлы:** `mistralProvider.ts`, `modelRuntime.ts`, `constants.ts`  
+- **Действие:** `StreamingChatProvider` + список моделей  
+- **Проверка:** unit-тест stream parser
+
+**88 · M · Цепочка fallback моделей** — приор. Medium  
+- **Цель:** `fallbackModels: string[]` — при ошибке провайдера пробовать следующую  
+- **Файлы:** `agentContextManager.ts`, `settings.ts`, `BehaviorTab.tsx`  
+- **Действие:** loop в `AgentRunner` при 429/5xx  
+- **Проверка:** mock: primary fail → secondary ok
+
+**89 · S · Лимит стоимости за прогон** — приор. Medium  
+- **Цель:** `maxCostPerRunUsd` — остановка при превышении `estimatedCostUsd`  
+- **Файлы:** `constants.ts`, `agent.ts`, `BehaviorTab.tsx`  
+- **Действие:** проверка после каждого LLM-шага  
+- **Проверка:** unit-тест с низким лимитом → abort
+
+### 🔗 Интеграции (issue trackers)
+
+**90 · M · Bitbucket: create_pull_request** — приор. Low  
+- **Цель:** tool `create_bitbucket_pr` через REST API 2.0  
+- **Файлы:** `bitbucketTools.ts`, `agentTools/integrations.ts`, `IntegrationsTab.tsx`  
+- **Действие:** token + workspace/repo в settings  
+- **Проверка:** unit-тест с mock fetch
+
+**91 · M · Azure DevOps: create_work_item** — приор. Low  
+- **Цель:** tool `create_ado_work_item` (PAT + org/project)  
+- **Файлы:** `adoTools.ts`, `integrations.ts`, settings  
+- **Действие:** WIQL/create work item REST  
+- **Проверка:** mock API test
+
+**92 · S · Discord webhook** — приор. Low  
+- **Цель:** `discordWebhookUrl` — уведомление «агент готов» в Discord  
+- **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`, `settings.ts`  
+- **Действие:** POST embed JSON  
+- **Проверка:** unit-тест payload
+
+**93 · S · Telegram Bot уведомления** — приор. Low  
+- **Цель:** `telegramBotToken` + `telegramChatId` в настройках  
+- **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`  
+- **Действие:** `sendMessage` API  
+- **Проверка:** mock fetch test
+
+### 🔗 Доступность (a11y)
+
+**94 · M · Аудит focus trap в модалках** — приор. Medium  
+- **Цель:** все `role="dialog"` используют `useModalA11y` + Tab cycle  
+- **Файлы:** модалки без хука (`MetricsPanel`, `TracePanel`, …)  
+- **Действие:** подключить `useModalA11y`; initial focus на первый интерактивный элемент  
+- **Проверка:** Tab не уходит за пределы открытой модалки
+
+**95 · S · Skip link «К содержимому»** — приор. Low  
+- **Цель:** скрытая ссылка в начале `App.tsx` → `#main-chat`  
+- **Файлы:** `App.tsx`, `styles.css`  
+- **Действие:** `:focus` показывает ссылку  
+- **Проверка:** Tab с первого элемента → skip → фокус в чате
+
+**96 · S · aria-live для статуса агента** — приор. Medium  
+- **Цель:** screen reader объявляет «Агент работает» / «Готово»  
+- **Файлы:** `AgentStatusBar.tsx`  
+- **Действие:** `aria-live="polite"` region с текстом фазы  
+- **Проверка:** accessibility inspector показывает live region
+
+### 🔗 Наблюдаемость и отладка
+
+**97 · M · Просмотр NDJSON-логов агента** — приор. Medium  
+- **Цель:** вкладка или панель «Логи» — tail `agent-*.ndjson`  
+- **Файлы:** `agentLogger.ts`, `LogViewerPanel.tsx`, IPC `read-agent-logs`  
+- **Действие:** фильтр по event type; последние 500 строк  
+- **Проверка:** после прогона логи видны в UI
+
+**98 · S · Экспорт метрик в CSV** — приор. Low  
+- **Цель:** кнопка в `MetricsPanel` → CSV byModel + topTools  
+- **Файлы:** `MetricsPanel.tsx`  
+- **Действие:** blob download  
+- **Проверка:** CSV открывается в Excel
+
+**99 · S · Режим отладки агента** — приор. Medium  
+- **Цель:** `debugAgent: boolean` — verbose `console` + все tool I/O в лог  
+- **Файлы:** `settings.ts`, `agentToolExecutor.ts`, `BehaviorTab.tsx`  
+- **Действие:** тумблер в BehaviorTab  
+- **Проверка:** при включении в NDJSON больше деталей
+
+### 🔗 Markdown и ссылки
+
+**100 · M · Mermaid в ответах агента** — приор. Low  
+- **Цель:** блоки ` ```mermaid ` рендерятся как SVG  
+- **Файлы:** `MessageBody.tsx`, dependency `mermaid`  
+- **Действие:** lazy import mermaid; sandboxed render  
+- **Проверка:** диаграмма из примера отображается
+
+**101 · S · Подтверждение внешних ссылок** — приор. Medium  
+- **Цель:** клик по `http(s)` в MessageBody → ConfirmDialog перед `openExternal`  
+- **Файлы:** `MessageBody.tsx`, `App.tsx`  
+- **Действие:** перехват click на `<a>`  
+- **Проверка:** без подтверждения браузер не открывается
+
+**102 · M · Клик по пути в code block → открыть файл** — приор. Medium  
+- **Цель:** `src/foo.ts:12` в коде → открыть в превью (п. 5–6)  
+- **Файлы:** `MessageBody.tsx`, `App.tsx`  
+- **Действие:** regex path:line; IPC read + preview  
+- **Проверка:** клик открывает файл на строке
+
+### 🔗 Slash-команды
+
+**103 · S · Slash /lint** — приор. Low  
+- **Файлы:** `shared/slashCommands.ts`  
+- **Действие:** expand → `npm run lint` + исправить  
+- **Проверка:** `/lint` в меню slash
+
+**104 · S · Slash /build** — приор. Low  
+- **Файлы:** `shared/slashCommands.ts`  
+- **Действие:** expand → `npm run build` + исправить ошибки  
+- **Проверка:** `/build` в автодополнении
+
+**105 · S · Slash /security** — приор. Low  
+- **Файлы:** `shared/slashCommands.ts`  
+- **Действие:** expand → review на секреты, injection, unsafe commands  
+- **Проверка:** `/security` в списке
+
+### 🔗 Рефакторинг монолитов (продолжение 2)
+
+**106 · M · BehaviorTab: автоматизация и git** — приор. Low  
+- **Цель:** вынести секции автокоммита и git-sync в `BehaviorAutomationSection.tsx`  
+- **Файлы:** `BehaviorTab.tsx` (~580 строк)  
+- **Проверка:** `BehaviorTab.tsx` < 350 строк
+
+**107 · M · BehaviorTab: инструменты и промпты** — приор. Low  
+- **Цель:** `disabledTools`, `promptTemplates`, permissions — в `BehaviorToolsSection.tsx`  
+- **Файлы:** `BehaviorTab.tsx`  
+- **Проверка:** typecheck; настройки сохраняются
+
+**108 · M · IntegrationsTab: MCP секция** — приор. Low  
+- **Файлы:** `IntegrationsTab.tsx` → `McpIntegrationsSection.tsx`  
+- **Проверка:** MCP CRUD в UI работает
+
+**109 · M · IntegrationsTab: P2P и webhooks** — приор. Low  
+- **Файлы:** `IntegrationsTab.tsx` → `P2pIntegrationsSection.tsx`, `WebhookSection.tsx`  
+- **Проверка:** тумблер P2P и webhook URL сохраняются
+
+**110 · M · vectorStore: Qdrant / Milvus** — приор. Low  
+- **Файлы:** `vectorStore.ts` → `qdrantStore.ts`, `milvusStore.ts`  
+- **Проверка:** `search_knowledge_base` без регрессий
+
+**111 · M · memory.ts: локальная vs контекстная сборка** — приор. Low  
+- **Файлы:** `memory.ts` → `memoryStore.ts`, `memoryContext.ts`  
+- **Проверка:** `npm test -- memory`
+
+**112 · M · collectiveMemorySync: pull / push** — приор. Low  
+- **Файлы:** `collectiveMemorySync.ts` — два модуля  
+- **Проверка:** `npm test -- collectiveMemorySync`
+
+**113 · M · agentTools/integrations: GitHub + GitLab** — приор. Low  
+- **Файлы:** `integrationsGitHub.ts`, `integrationsGitLab.ts`  
+- **Проверка:** tool names в `AGENT_TOOL_NAMES` на месте
+
+**114 · M · agentTools/integrations: memory + skills + web** — приор. Low  
+- **Файлы:** `integrationsMemory.ts`, `integrationsWeb.ts`  
+- **Проверка:** typecheck
+
+**115 · M · defaultSkills: данные в JSON** — приор. Low  
+- **Цель:** SKILL markdown из `resources/default-skills/*.md` вместо строк в TS  
+- **Файлы:** `defaultSkills.ts`, `resources/default-skills/`  
+- **Проверка:** `npm test -- defaultSkills`
+
+**116 · M · useMessageQueue: обработчики стрима** — приор. Low  
+- **Файлы:** `useMessageQueue.ts` → `messageQueueHandlers.ts`  
+- **Проверка:** отправка и danger-block работают
+
+**117 · M · ChatPanel: вынести MessagesPane state** — приор. Low  
+- **Цель:** `ChatPanelMessagesPane` + хук `useChatMessagesPane` из `index.tsx`  
+- **Файлы:** `ChatPanel/index.tsx` (~980 строк)  
+- **Проверка:** `index.tsx` < 600 строк
+
+**118 · M · agentContextManager: выбор провайдера** — приор. Low  
+- **Файлы:** `agentContextManager.ts` (~350) → `providerResolver.ts`  
+- **Проверка:** cloud/ollama routing tests
+
+### 🔗 Тесты (продолжение)
+
+**119 · M · Component test MessageRow** — приор. Medium  
+- **Цель:** vitest + @testing-library/react для pin/retry menu  
+- **Файлы:** `tests/MessageRow.test.tsx`, vitest config jsdom  
+- **Проверка:** `npm test -- MessageRow`
+
+**120 · M · E2E: навигация по вкладкам настроек** — приор. Medium  
+- **Файлы:** `e2e/settings.test.ts`  
+- **Проверка:** `npm run test:e2e`
+
+**121 · M · E2E: дерево проекта** — приор. Medium  
+- **Файлы:** `e2e/project-tree.test.ts`  
+- **Действие:** открыть tree → клик файл  
+- **Проверка:** e2e green
+
+**122 · M · E2E: DiffPreviewModal** — приор. Low  
+- **Файлы:** `e2e/diff-preview.test.ts`  
+- **Действие:** mock preview_edit event  
+- **Проверка:** e2e green
+
+### 🔗 CI и документация
+
+**123 · S · Dependabot для npm** — приор. Medium  
+- **Файлы:** `.github/dependabot.yml`  
+- **Действие:** weekly `app/` и root  
+- **Проверка:** файл валиден по schema dependabot
+
+**124 · M · npm audit в CI** — приор. Medium  
+- **Файлы:** `.github/workflows/ci.yml`  
+- **Действие:** `npm audit --audit-level=high` в app/; fail on high  
+- **Проверка:** CI job проходит на чистом lockfile
+
+**125 · S · docs/troubleshooting.md** — приор. Medium  
+- **Цель:** GPUCache, чёрный экран, plugins, portable Node  
+- **Файлы:** `docs/troubleshooting.md`, ссылка в README  
+- **Проверка:** README ссылается на troubleshooting
+
+### 🔗 Терминал и горячие клавиши (продолжение)
+
+**126 · S · Ctrl+` — переключить терминал** — приор. Medium  
+- **Файлы:** `App.tsx`, `KeyboardShortcutsModal.tsx`  
+- **Проверка:** терминал показывается/скрывается
+
+**127 · S · Ctrl+Shift+T — экспорт трейса** — приор. Low  
+- **Файлы:** `App.tsx`, `TracePanel.tsx`  
+- **Действие:** если trace open → export; иначе открыть TracePanel  
+- **Проверка:** shortcut в модалке `?`
+
+**128 · M · Quick Open — палитра файлов Ctrl+P** — приор. Medium  
+- **Цель:** fuzzy search по project tree → открыть превью  
+- **Файлы:** `QuickOpenPalette.tsx`, `App.tsx`  
+- **Проверка:** Ctrl+P → ввод → Enter открывает файл
+
+**129 · S · Кнопка «Очистить» в терминале** — приор. Low  
+- **Файлы:** `TerminalPanel.tsx`  
+- **Проверка:** output сбрасывается
+
+### 🔗 Индексация и RAG
+
+**130 · S · Чип прогресса индексации** — приор. Medium  
+- **Цель:** «Индекс 42%» в `AgentStatusBar` при `index_project`  
+- **Файлы:** `AgentStatusBar.tsx`, stream event `index_progress`  
+- **Проверка:** чип виден во время индексации
+
+**131 · S · Ручная переиндексация** — приор. Medium  
+- **Цель:** кнопка в `ProjectTreePanel` ПКМ → «Переиндексировать»  
+- **Файлы:** `ProjectTreePanel.tsx`, IPC вызов `index_project`  
+- **Проверка:** индексация запускается
+
+**132 · M · Инкрементальная индексация при изменении файлов** — приор. Medium  
+- **Цель:** watcher → debounce → upsert/delete в Qdrant для изменённого файла  
+- **Файлы:** `vectorStore.ts`, `services.ts` watcher, `embeddingQueue.ts`  
+- **Проверка:** правка файла → поиск находит новый контент без full reindex
+
+### 🔗 MCP
+
+**133 · M · Health-check MCP при старте** — приор. Medium  
+- **Цель:** ping каждого сервера из settings; toast при недоступности  
+- **Файлы:** `mcpRegistry.ts`, `index.ts`, `IntegrationsTab.tsx`  
+- **Проверка:** offline server → предупреждение в UI
+
+**134 · M · Вкл/выкл MCP-tools по серверу** — приор. Medium  
+- **Цель:** `mcpServer.enabledTools: string[]` в конфиге  
+- **Файлы:** `mcpRegistry.ts`, `McpIntegrationsSection.tsx`  
+- **Проверка:** отключённый tool не в списке агента
+
+**135 · S · Шаблоны MCP-серверов** — приор. Low  
+- **Цель:** кнопки «+ filesystem», «+ fetch» с готовым JSON конфигом  
+- **Файлы:** `IntegrationsTab.tsx`, `docs/integrations.md`  
+- **Проверка:** шаблон добавляет запись в settings
+
+### 🔗 Память и навыки (UI)
+
+**136 · S · Поиск в MemoryPanel** — приор. Medium  
+- **Файлы:** `MemoryPanel.tsx`  
+- **Действие:** filter по тексту и category  
+- **Проверка:** поиск сужает список
+
+**137 · S · Фильтр по тегам в SkillsPanel** — приор. Low  
+- **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
+- **Действие:** теги из frontmatter SKILL.md  
+- **Проверка:** фильтр по тегу работает
+
+**138 · M · Импорт skill из файла** — приор. Low  
+- **Цель:** кнопка «Импорт .md» → copy в skills dir  
+- **Файлы:** `SkillsPanel.tsx`, IPC `import-skill-file`  
+- **Проверка:** skill появляется в списке
+
+### 🔗 P2P-клиент
+
+**139 · M · Reconnect с backoff** — приор. Medium  
+- **Файлы:** `p2pClient.ts`  
+- **Действие:** exponential delay 1s→30s при обрыве WSS  
+- **Проверка:** unit-тест reconnect attempts
+
+**140 · S · Чип P2P offline** — приор. Low  
+- **Файлы:** `AgentStatusBar.tsx`, `p2pClient.ts`  
+- **Действие:** «P2P offline» при disconnect  
+- **Проверка:** виден при остановленном сервере
+
+**141 · M · История P2P-задач** — приор. Low  
+- **Файлы:** `P2pHistoryPanel.tsx`, local NDJSON или settings  
+- **Проверка:** последние 20 relay в UI
+
+### 🔗 Настройки и миграции
+
+**142 · M · Удалить deprecated cloudApiKey** — приор. Medium  
+- **Цель:** миграция settings → per-provider keys; убрать поле из UI  
+- **Файлы:** `settings.ts`, `ModelTab.tsx`, `agentContextManager.ts`  
+- **Проверка:** старый конфиг мигрирует без потери ключа
+
+**143 · S · Сохранение последнего benchmark** — приор. Low  
+- **Файлы:** `settings.ts`, `ModelTab.tsx`  
+- **Действие:** `lastBenchmark: BenchmarkResult` после прогона  
+- **Проверка:** результат виден после reopen settings
+
+### 🔗 Окна и платформа
+
+**144 · L · Открепить чат в отдельное окно** — приор. Low  
+- **Цель:** второй `BrowserWindow` с тем же chatId через IPC sync  
+- **Файлы:** `index.ts`, `App.tsx`, `registerAppIpc.ts`  
+- **Действие:** «Открыть в новом окне» в меню чата  
+- **Проверка:** два окна — один чат синхронизирован
+
+**145 · M · WSL: перевод путей проекта** — приор. Low  
+- **Цель:** `\\wsl$\...` ↔ `/mnt/...` при выборе папки на Windows  
+- **Файлы:** `fsUtil.ts`, `registerFileIpc.ts`  
+- **Проверка:** unit-тест path normalize
+
+**146 · S · Long paths на Windows** — приор. Low  
+- **Файлы:** `package.json` build manifest / `electron-builder`  
+- **Действие:** `requestedExecutionLevel` + known issue doc  
+- **Проверка:** проект с путём >260 символов открывается
+
+### 🔗 Субагенты и оркестрация
+
+**147 · M · Субагент Reviewer** — приор. Medium  
+- **Цель:** `delegate_to_reviewer` — read-only обзор diff без правок  
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`, `agent.ts`  
+- **Проверка:** unit-тест контракта; чип «Ревью…»
+
+**148 · M · Субагент Tester** — приор. Medium  
+- **Цель:** `delegate_to_tester` — только `run_tests` / `run_command` test  
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`  
+- **Проверка:** не вызывает write_file
 
 ---
 
