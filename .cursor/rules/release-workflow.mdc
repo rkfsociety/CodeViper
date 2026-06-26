@@ -7,20 +7,32 @@ alwaysApply: true
 
 **Release workflow не ждёт CI.** Тег `v*` сразу запускает `.github/workflows/release.yml`.
 
-## Обязательный порядок
+## Автоматический релиз оболочки (блок 0+)
+
+После **зелёного CI** на `master` job `auto-shell-release` в `.github/workflows/ci.yml`:
+
+1. Сравнивает изменения с последним тегом `v*`
+2. **Runtime-only** (handlers, agent, tests, docs) → **без тега**
+3. **Оболочка** (renderer, preload, IPC bootstrap, NSIS, Electron) → bump `version` при необходимости → тег `vX.Y.Z` → `release.yml`
+
+Классификатор: `scripts/shell-release-paths.mjs`. Ручной прогон: `node scripts/auto-shell-release.mjs` (`DRY_RUN=1` — без push).
+
+**Пропуск:** `[skip-release]` в сообщении коммита. **Форс:** `FORCE_SHELL_RELEASE=1` в CI.
+
+## Ручной релиз (если авто не сработал)
 
 ```
-push на master → CI зелёный → bump версии → push → тег vX.Y.Z → push тег
+push на master → CI зелёный → bump version → push → тег vX.Y.Z → push тег
 ```
 
-1. Убедиться, что последний push на `master` прошёл CI (`build` job зелёный).
-2. Поднять `"version"` в `app/package.json` (semver).
+1. Убедиться, что последний push на `master` прошёл CI.
+2. Поднять `"version"` в `app/package.json` (semver), если авто-bump не сделал.
 3. `npm run typecheck` → `npm run build` в `app/`.
 4. Коммит и push на `master`.
-5. Только после зелёного CI на этом коммите: `git tag vX.Y.Z` → `git push origin vX.Y.Z`.
+5. Только после зелёного CI: `git tag vX.Y.Z` → `git push origin vX.Y.Z` (или дождаться `auto-shell-release`).
 
 ## Не делать
 
-- **Не менять `version` в обычных коммитах** — только в релизном прогоне перед тегом.
-- Не пушить тег, пока CI на релизном коммите не зелёный.
-- Не пропускать локальный `npm test` / `typecheck` / `build` перед bump версии.
+- **Не менять `version` в обычных коммитах** — авто-релиз поднимет patch при необходимости.
+- Не пушить тег вручную, пока CI на коммите не зелёный (авто-job ждёт e2e).
+- Не пропускать локальный `npm test` / `typecheck` / `build` перед ручным релизом.

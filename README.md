@@ -35,7 +35,7 @@ cd CodeViper/app && npm install
 
 ## Обновление без переустановки
 
-Установщик клонирует репозиторий в **`%APPDATA%/CodeViper/source`** (нужен **Git for Windows** в PATH). Тонкая оболочка `CodeViper.exe` редко меняется; agent runtime подтягивается с GitHub: `git pull` → сборка в `source/app` → баннер **«Перезапустить для применения»**. Полный релиз `.exe` — только для Electron, NSIS или багов оболочки. Подробнее — [docs/development.md](docs/development.md#обновление-без-переустановки-live-runtime).
+Установщик клонирует репозиторий в **`%APPDATA%/CodeViper/source`** (нужен **Git for Windows** в PATH). Тонкая оболочка `CodeViper.exe` редко меняется; agent runtime подтягивается с GitHub: `git pull` → сборка в `source/app` → баннер **«Перезапустить для применения»**. Новый установщик CI создаёт **автоматически**, только если изменилась оболочка (не каждый push). Подробнее — [docs/development.md](docs/development.md#обновление-без-переустановки-live-runtime).
 
 ## Документация
 

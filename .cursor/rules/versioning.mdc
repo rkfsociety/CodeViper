@@ -9,11 +9,7 @@ alwaysApply: true
 
 ## Когда менять `app/package.json` → `version`
 
-**Только при подготовке релиза** (см. `.cursor/rules/release-workflow.mdc`):
-
-```
-CI зелёный → bump version → commit + push → тег vX.Y.Z → push тег
-```
+**При релизе оболочки** — вручную или **автоматически** job `auto-shell-release` (patch-bump, если версия не выше последнего тега). См. `.cursor/rules/release-workflow.mdc`.
 
 ## Когда НЕ менять версию
 

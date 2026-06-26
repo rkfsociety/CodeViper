@@ -59,6 +59,10 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 Для разработчиков репозитория — **`CodeViper.cmd`** и `npm run build` в локальном `app/`; live runtime из `%APPDATA%/CodeViper/source` используется **только packaged** `.exe`.
 
+### Авто-релиз оболочки (CI)
+
+После зелёного CI на `master` workflow **auto-shell-release** сравнивает коммиты с последним тегом `v*`. Если затронута только логика агента (handlers, tests, docs) — тег не создаётся. Если изменились renderer, preload, IPC bootstrap, Electron/NSIS — автоматически `vX.Y.Z` и сборка установщика. Пропуск: `[skip-release]` в сообщении коммита. Классификатор: `scripts/shell-release-paths.mjs`.
+
 ### Ручное обновление клона
 
 ```powershell

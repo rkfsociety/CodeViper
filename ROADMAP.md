@@ -24,6 +24,8 @@
 | Документация, skills, collective memory | push на GitHub; перезапуск или без него |
 | Обычный коммит разработки | **без** bump `version` и **без** тега |
 
+**Авто-релиз:** после зелёного CI на `master` job `auto-shell-release` ставит тег `vX.Y.Z` только если изменилась **оболочка** (`scripts/shell-release-paths.mjs`). Runtime-коммиты тег не получают.
+
 **Путь клона (уже создаётся установщиком):** `%APPDATA%\CodeViper\source` → `app/` — исходники и `out/main` после build.
 
 ---
@@ -1039,6 +1041,7 @@ N · [S/M/L/XL] · Краткое название — уровень 3…144
 ## ✅ Сделано
 
 **Live runtime (блок 0)**
+- Авто-релиз оболочки: CI job `auto-shell-release` + `scripts/shell-release-paths.mjs` — тег только при изменении renderer/preload/IPC/Electron, не при handlers
 - Тесты bundled source runtime: mock git/fs в bundledSourceSync, build в bundledSourceBuild, getRuntimeMainPath предпочитает клон при валидном out/ в runtimeBootstrap
 - Документация live runtime: README и docs/development.md — «Обновление без переустановки», путь %APPDATA%/CodeViper/source, Git, установка vs live runtime
 - bundledSourceSync: путь %APPDATA%/CodeViper/source, syncBundledSource() с git pull --ff-only, лог в userData/logs
