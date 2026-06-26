@@ -246,14 +246,15 @@ async function createWindow(): Promise<void> {
 
   mainWindow.webContents.on('context-menu', (_e, params) => {
     const menuItems: Electron.MenuItemConstructorOptions[] = []
+    const selectionText = params.selectionText
 
-    if (params.selectionText) {
+    if (selectionText) {
       menuItems.push({ label: 'Копировать', role: 'copy' })
     }
+    if (params.isEditable && selectionText) {
+      menuItems.push({ label: 'Вырезать', role: 'cut' })
+    }
     if (params.isEditable) {
-      if (params.selectionText) {
-        menuItems.push({ label: 'Вырезать', role: 'cut' })
-      }
       menuItems.push({ label: 'Вставить', role: 'paste' })
       menuItems.push({ type: 'separator' })
       menuItems.push({ label: 'Выбрать всё', role: 'selectAll' })

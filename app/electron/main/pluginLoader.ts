@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
 import { homedir } from 'os'
 import { join, extname } from 'path'
 import { createRequire } from 'module'
@@ -55,8 +55,11 @@ export function loadPlugins(): Plugin[] {
   }
 
   try {
-    const files = readdirSync(PLUGINS_DIR)
-    for (const file of files) {
+    const entries = readdirSync(PLUGINS_DIR, { withFileTypes: true })
+    for (const dirent of entries) {
+      if (!dirent.isFile()) continue
+
+      const file = dirent.name
       const ext = extname(file)
 
       if (ext === '.ts') {
@@ -72,9 +75,6 @@ export function loadPlugins(): Plugin[] {
       const filePath = join(PLUGINS_DIR, file)
 
       try {
-        const stat = statSync(filePath)
-        if (!stat.isFile()) continue
-
         const plugin = requirePlugin(filePath)
         const pluginModule = 'default' in plugin ? plugin.default : plugin
 
