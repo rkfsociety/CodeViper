@@ -1,4 +1,5 @@
 import type { AgentSettings, AgentStreamPayload } from '../../src/types'
+import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
 import { getAgentTools, type ToolHandlers } from './agentTools'
 import { createProjectToolHandlers } from './agentHandlersProject'
 import { createGitHubToolHandlers } from './agentHandlersGitHub'
@@ -17,7 +18,7 @@ import { runSubagent } from './subagentRunner'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import type { SelfImprovementItem } from '../../shared/selfImprovement'
 import { toolRequiresConfirm } from '../../shared/permissions'
-import { agentLogger } from './agentLogger'
+import { agentLogger, type AgentLogEntry } from './agentLogger'
 import { createUnifiedDiff } from './diffUtil'
 import { applySelectedHunks } from '../../shared/diffPreview'
 import { getCodeViperSourceRoot, runCodeViperCommand } from './codeviperSource'
@@ -81,6 +82,53 @@ export function toolTouchesRoadmapDocs(name: string, args: Record<string, string
   if (!SELF_EDIT_FILE_TOOLS.has(name) && name !== 'write_codeviper_file') return false
   const p = (args.path ?? args.from ?? '').replace(/\\/g, '/')
   return /ROADMAP\.md/i.test(p) || /README\.md/i.test(p)
+}
+
+export function truncateDebugAgentOutput(output: string): string {
+  if (output.length <= FILE_SIZE_LIMIT_BYTES) return output
+  const omitted = output.length - FILE_SIZE_LIMIT_BYTES
+  return `${output.slice(0, FILE_SIZE_LIMIT_BYTES)}\n… [truncated ${omitted} chars]`
+}
+
+export function buildToolCallLogEntry(
+  debugAgent: boolean,
+  step: number,
+  tool: string,
+  args: Record<string, string>
+): AgentLogEntry {
+  return {
+    event: 'tool_call',
+    step,
+    tool,
+    args,
+    ...(debugAgent ? { debug: true } : {})
+  }
+}
+
+export function buildToolResultLogEntry(
+  debugAgent: boolean,
+  step: number,
+  tool: string,
+  ok: boolean,
+  durationMs: number,
+  output: string
+): AgentLogEntry {
+  const entry: AgentLogEntry = {
+    event: 'tool_result',
+    step,
+    tool,
+    ok,
+    duration_ms: durationMs
+  }
+  if (debugAgent) {
+    entry.debug = true
+    entry.output = truncateDebugAgentOutput(output)
+  } else if (ok) {
+    entry.output_len = output.length
+  } else {
+    entry.error = output
+  }
+  return entry
 }
 
 export function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
@@ -279,32 +327,29 @@ export class ToolExecutor {
     args: Record<string, string>,
     id?: string
   ): Promise<ToolInvocationResult> {
-    void agentLogger.write({ event: 'tool_call', step, tool: name, args })
+    const debug = this.settings.debugAgent === true
+    void agentLogger.write(buildToolCallLogEntry(debug, step, name, args))
+    if (debug) {
+      console.log(`[CodeViper:agent] ▶ ${name}`, args)
+    }
+
     const toolStartMs = Date.now()
     let output = ''
+    let ok = true
     try {
       output = await this.executeTool(name, args)
-      void agentLogger.write({
-        event: 'tool_result',
-        step,
-        tool: name,
-        ok: true,
-        duration_ms: Date.now() - toolStartMs,
-        output_len: output.length
-      })
     } catch (error) {
+      ok = false
       output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
-      void agentLogger.write({
-        event: 'tool_result',
-        step,
-        tool: name,
-        ok: false,
-        duration_ms: Date.now() - toolStartMs,
-        error: output
-      })
     }
 
     output = this.enrichToolOutput(name, args, output)
+    const durationMs = Date.now() - toolStartMs
+
+    void agentLogger.write(buildToolResultLogEntry(debug, step, name, ok, durationMs, output))
+    if (debug) {
+      console.log(`[CodeViper:agent] ◀ ${name} (${durationMs}ms)`, output)
+    }
 
     try {
       await notifyMcpToolResult(name, id, output, this.settings.mcpServers)

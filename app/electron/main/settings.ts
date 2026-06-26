@@ -63,6 +63,7 @@ export const PersistedSettingsSchema = z.object({
   commandBlocklist: z.array(z.string()).optional(),
   commandAllowlist: z.array(z.string()).optional(),
   autoVerifyAfterEdit: z.boolean().optional(),
+  debugAgent: z.boolean().optional(),
   webhookUrl: z.string().optional(),
   autoIndexOnOpen: z.boolean().optional(),
   customSystemPrompt: z.string().optional(),
@@ -220,6 +221,7 @@ function normalize(settings: Partial<AgentSettings>): PersistedSettings {
     ...(settings.commandBlocklist?.length ? { commandBlocklist: settings.commandBlocklist } : {}),
     ...(settings.commandAllowlist?.length ? { commandAllowlist: settings.commandAllowlist } : {}),
     ...(settings.autoVerifyAfterEdit ? { autoVerifyAfterEdit: true } : {}),
+    ...(settings.debugAgent ? { debugAgent: true } : {}),
     ...(settings.webhookUrl?.trim() ? { webhookUrl: settings.webhookUrl.trim() } : {}),
     ...(settings.autoIndexOnOpen ? { autoIndexOnOpen: true } : {}),
     ...(settings.customSystemPrompt?.trim()

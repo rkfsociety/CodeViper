@@ -305,6 +305,24 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
             </span>
           </label>
 
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={settings.debugAgent === true}
+              onChange={(e) => onSettingsChange({ debugAgent: e.target.checked || undefined })}
+            />
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.thumb} />
+            </span>
+            <span className={styles.toggleContent}>
+              <span className={styles.title}>Режим отладки агента</span>
+              <span className={styles.desc}>
+                Подробный вывод в консоль (main process) и полный ввод/вывод инструментов в{' '}
+                <code>logs/agent-*.ndjson</code>
+              </span>
+            </span>
+          </label>
+
           <div style={{ marginTop: '0.75rem' }}>
             <div className={styles.sectionLabel}>Ветка самоулучшения</div>
             <input

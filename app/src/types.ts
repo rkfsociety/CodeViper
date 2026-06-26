@@ -146,6 +146,8 @@ export interface AgentSettings {
   autoPushSelfEdits?: boolean
   /** После успешной правки файлов CodeViper — запустить typecheck и/или test */
   autoVerifyAfterEdit?: boolean
+  /** Подробные console-логи и полный tool I/O в agent-*.ndjson */
+  debugAgent?: boolean
   /** Ветка git для самоулучшения (по умолчанию agent/self-improve) */
   selfImproveBranch?: string
   /** Синхронизировать глобальные знания в docs/collective/ViperMemory.md на GitHub */
