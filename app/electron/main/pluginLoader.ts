@@ -68,10 +68,11 @@ export function loadPlugins(): Plugin[] {
       if (ext !== '.js') continue
 
       const filePath = join(PLUGINS_DIR, file)
-      const stat = statSync(filePath)
-      if (!stat.isFile()) continue
 
       try {
+        const stat = statSync(filePath)
+        if (!stat.isFile()) continue
+
         const plugin = requirePlugin(filePath)
         const pluginModule = 'default' in plugin ? plugin.default : plugin
 
