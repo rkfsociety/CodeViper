@@ -9,39 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  # ── Создать черновик релиза с release notes ──────────────────────────────────
-  prepare:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Create GitHub Release with notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ github.ref_name }}"
-          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
-
-          if [ -n "$PREV_TAG" ]; then
-            NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
-          else
-            NOTES=$(git log --pretty=format:"- %s" --no-merges | head -30)
-          fi
-
-          gh release create "$TAG" \
-            --title "CodeViper $TAG" \
-            --notes "## Что нового
-          ${NOTES}
-
-          ---
-          **Установка:** скачайте \`CodeViper-Setup-*.exe\` (Windows), \`.AppImage\` (Linux) или \`.dmg\` (macOS)." \
-            --draft=false
-
-  # ── Сборка и публикация артефактов ──────────────────────────────────────────
   release:
-    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +25,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -96,3 +66,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      # Только один runner обновляет описание релиза
+      - name: Update release notes
+        if: runner.os == 'Linux'
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            NOTES=$(git log --pretty=format:"- %s" --no-merges | head -30)
+          fi
+          gh release edit "$TAG" \
+            --title "CodeViper $TAG" \
+            --notes "## Что нового
+          ${NOTES}
+
+          ---
+          **Установка:** скачайте \`CodeViper-Setup-*.exe\` (Windows), \`.AppImage\` (Linux) или \`.dmg\` (macOS)."
