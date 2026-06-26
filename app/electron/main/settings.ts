@@ -157,7 +157,27 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   enabledPlugins: []
 }
 
-function normalize(settings: Partial<AgentSettings>): PersistedSettings {
+type LegacySettings = Partial<AgentSettings> & { cloudApiKey?: string }
+
+/** Миграция deprecated cloudApiKey → per-provider keys (не сохраняется). */
+function migrateCloudApiKey(settings: LegacySettings): void {
+  const cloudKey = settings.cloudApiKey?.trim()
+  if (!cloudKey) return
+  const cp = settings.cloudProvider ?? 'openai'
+  if (cp === 'deepseek' && !settings.deepseekApiKey?.trim()) {
+    settings.deepseekApiKey = cloudKey
+  } else if (cp === 'openai' && !settings.openaiApiKey?.trim()) {
+    settings.openaiApiKey = cloudKey
+  } else if (cp === 'openrouter' && !settings.openrouterApiKey?.trim()) {
+    settings.openrouterApiKey = cloudKey
+  } else if (cp === 'gemini' && !settings.geminiApiKey?.trim()) {
+    settings.geminiApiKey = cloudKey
+  }
+}
+
+function normalize(settings: LegacySettings): PersistedSettings {
+  migrateCloudApiKey(settings)
+
   const provider = (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as
     | 'ollama'
     | 'deepseek'
@@ -297,6 +317,16 @@ function encryptApiKey(plaintext: string): string {
   }
 }
 
+function decryptApiKeyPlainFallback(stored: string): string {
+  if (!stored) return ''
+  if (/^(sk-|AIza)/.test(stored)) return stored
+  try {
+    return safeStorage.decryptString(Buffer.from(stored, 'base64'))
+  } catch {
+    return stored
+  }
+}
+
 export async function loadSettings(): Promise<PersistedSettings> {
   const path = storePath()
   if (!existsSync(path)) return { ...DEFAULT_SETTINGS }
@@ -319,6 +349,11 @@ export async function loadSettings(): Promise<PersistedSettings> {
       if (obj.githubToken) obj.githubToken = decryptApiKey(obj.githubToken as string)
       if (obj.jiraToken) obj.jiraToken = decryptApiKey(obj.jiraToken as string)
       if (obj.linearApiKey) obj.linearApiKey = decryptApiKey(obj.linearApiKey as string)
+      if (obj.cloudApiKey && typeof obj.cloudApiKey === 'string') {
+        obj.cloudApiKey = decryptApiKeyPlainFallback(obj.cloudApiKey)
+      }
+      migrateCloudApiKey(obj as LegacySettings)
+      delete obj.cloudApiKey
     }
 
     const result = PersistedSettingsSchema.safeParse(json)

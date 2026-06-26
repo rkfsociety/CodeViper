@@ -240,8 +240,6 @@ export interface AgentSettings {
   cloudEnabled?: boolean
   /** Тип облачного провайдера: deepseek или openai-совместимый */
   cloudProvider?: 'deepseek' | 'openai' | 'openrouter' | 'gemini'
-  /** API ключ облачного провайдера */
-  cloudApiKey?: string
   /** Базовый URL для OpenAI-совместимых облачных провайдеров */
   cloudBaseUrl?: string
   /** Модель облачного провайдера (по умолчанию deepseek-chat) */
