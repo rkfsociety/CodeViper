@@ -46,6 +46,7 @@ let mainWindow: BrowserWindow | null = null
 const agentRunStates = new Map<string, { chatId: string }>()
 const activeAgentAborts = new Map<string, AbortController>()
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
+const pendingClarifies = new Map<string, (answer: string | null) => void>()
 const pendingPreviews = new Map<string, (apply: boolean) => void>()
 const pendingHunkSelections = new Map<string, number[]>()
 
@@ -311,6 +312,7 @@ const ipcContext: IpcContext = {
   agentRunStates,
   activeAgentAborts,
   pendingConfirms,
+  pendingClarifies,
   pendingPreviews,
   pendingHunkSelections,
   syncTrayAgentBadge,

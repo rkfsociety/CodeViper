@@ -42,9 +42,19 @@ export interface AgentRunnerOptions {
   emit: (event: AgentStreamPayload) => void
   signal?: AbortSignal
   confirm?: (toolName: string, toolInput: string) => Promise<boolean>
+  clarify?: (question: string) => Promise<string | null>
   previewFn?: (previewId: string) => Promise<boolean>
   chatId?: string
   hunkSelectionFn?: (previewId: string) => number[] | undefined
+}
+
+function looksLikeQuestion(text: string): boolean {
+  const t = text.trim()
+  if (t.endsWith('?')) return true
+  const lower = t.toLowerCase()
+  return /укажите|уточните|пожалуйста\s+укажи|please\s+(specify|provide|clarify|tell me|indicate)|which file|какой файл|какие файлы/.test(
+    lower
+  )
 }
 export {
   fetchOllamaModels,
@@ -100,6 +110,7 @@ export class AgentRunner {
   private settings: AgentSettings
   private readonly projectPath: string
   private readonly chatId: string | undefined
+  private readonly clarify: ((question: string) => Promise<string | null>) | undefined
 
   private readonly emitter: ResponseEmitter
   private readonly ctx: ContextManager
@@ -112,10 +123,12 @@ export class AgentRunner {
     emit,
     signal,
     confirm,
+    clarify,
     previewFn,
     chatId,
     hunkSelectionFn
   }: AgentRunnerOptions) {
+    this.clarify = clarify
     this.settings = settings
     this.projectPath = projectPath
     this.chatId = chatId
@@ -493,6 +506,29 @@ export class AgentRunner {
             usedTools,
             mutatingToolsUsed
           })
+
+          // Если модель задала вопрос и есть clarify-callback — показать диалог пользователю
+          if (
+            assistantText &&
+            looksLikeQuestion(assistantText) &&
+            this.clarify &&
+            (planAction.kind === 'done' || planAction.kind === 'passthrough')
+          ) {
+            this.emitter.emit({
+              type: 'assistant',
+              content: assistantText,
+              thinking: assistantThinking
+            })
+            const answer = await this.clarify(assistantText)
+            if (answer) {
+              messages.push({ role: 'user', content: answer })
+              continue
+            }
+            // Пользователь отменил диалог — завершаем
+            await taskPlanner.finalize(messages, userMessage, usedTools, this.settings)
+            this.emitter.emit({ type: 'done' })
+            return
+          }
 
           if (planAction.kind === 'done') {
             if (assistantText)

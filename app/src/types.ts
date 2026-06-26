@@ -319,6 +319,11 @@ export interface AgentConfirmRequest {
   toolInput: string
 }
 
+export interface AgentClarifyRequest {
+  id: string
+  question: string
+}
+
 export type MemoryCategory = 'pattern' | 'mistake' | 'preference' | 'project' | 'skill'
 export type MemoryScope = 'global' | 'project'
 
@@ -702,6 +707,8 @@ export interface CodeViperAPI {
   ) => Promise<{ ok: boolean; path?: string; error?: string }>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
+  onAgentClarify: (callback: (request: AgentClarifyRequest) => void) => () => void
+  respondAgentClarify: (id: string, answer: string | null) => void
   respondAgentPreview: (id: string, apply: boolean) => void
   respondAgentPreviewHunkSelection: (id: string, selectedIndices: number[]) => void
   shareAsGist: (

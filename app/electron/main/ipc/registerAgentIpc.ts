@@ -22,6 +22,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
     agentRunStates,
     activeAgentAborts,
     pendingConfirms,
+    pendingClarifies,
     pendingPreviews,
     pendingHunkSelections,
     syncTrayAgentBadge,
@@ -37,6 +38,20 @@ export function registerAgentIpc(ctx: IpcContext): void {
         }
         pendingPreviews.set(previewId, settle)
         signal.addEventListener('abort', () => settle(false), { once: true })
+      })
+  }
+
+  function makeClarifyFn(signal: AbortSignal): (question: string) => Promise<string | null> {
+    return (question) =>
+      new Promise<string | null>((resolve) => {
+        const id = makeId()
+        const settle = (answer: string | null) => {
+          pendingClarifies.delete(id)
+          resolve(answer)
+        }
+        pendingClarifies.set(id, settle)
+        signal.addEventListener('abort', () => settle(null), { once: true })
+        getWindow()?.webContents.send(IPC.AGENT_CLARIFY, { id, question })
       })
   }
 
@@ -84,6 +99,14 @@ export function registerAgentIpc(ctx: IpcContext): void {
     if (resolve) {
       pendingConfirms.delete(id)
       resolve(approved)
+    }
+  })
+
+  ipcMain.on(IPC.AGENT_CLARIFY_RESPONSE, (_e, id: string, answer: string | null) => {
+    const resolve = pendingClarifies.get(id)
+    if (resolve) {
+      pendingClarifies.delete(id)
+      resolve(answer)
     }
   })
 
@@ -197,6 +220,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
           emit: (event) => stream(chatId, event),
           signal: abortCtrl.signal,
           confirm: makeConfirmFn(abortCtrl.signal),
+          clarify: makeClarifyFn(abortCtrl.signal),
           previewFn: makePreviewFn(abortCtrl.signal),
           chatId,
           hunkSelectionFn: (previewId) => {

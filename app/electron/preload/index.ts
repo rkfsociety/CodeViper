@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AgentConfirmRequest,
+  AgentClarifyRequest,
   AgentSettings,
   AgentStreamEvent,
   AppState,
@@ -358,6 +359,15 @@ const codeviper = {
 
   respondAgentConfirm: (id: string, approved: boolean) =>
     ipcRenderer.send(IPC.AGENT_CONFIRM_RESPONSE, id, approved),
+
+  onAgentClarify: (callback: (request: AgentClarifyRequest) => void) => {
+    const handler = (_: unknown, request: AgentClarifyRequest) => callback(request)
+    ipcRenderer.on(IPC.AGENT_CLARIFY, handler)
+    return () => ipcRenderer.removeListener(IPC.AGENT_CLARIFY, handler)
+  },
+
+  respondAgentClarify: (id: string, answer: string | null) =>
+    ipcRenderer.send(IPC.AGENT_CLARIFY_RESPONSE, id, answer),
 
   respondAgentPreview: (id: string, apply: boolean) =>
     ipcRenderer.send(IPC.AGENT_PREVIEW_RESPONSE, id, apply),

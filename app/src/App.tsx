@@ -4,6 +4,7 @@ import { initTraceBuffer } from './traceBuffer'
 import logoUrl from '../resources/icon.png'
 import type {
   AgentConfirmRequest,
+  AgentClarifyRequest,
   AgentSettings,
   AppState,
   ChatMessage,
@@ -24,6 +25,7 @@ import { ProjectTreePanel } from './components/ProjectTreePanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { UpdateBanner } from './components/UpdateBanner'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { PromptDialog } from './components/PromptDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 
 const TerminalPanel = lazy(() =>
@@ -102,6 +104,7 @@ function AppContent() {
   const [installingUpdate, setInstallingUpdate] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
+  const [clarifyReq, setClarifyReq] = useState<AgentClarifyRequest | null>(null)
   const [ollamaFallbackUrl, setOllamaFallbackUrl] = useState<string | null>(null)
   const [lightMode, setLightMode] = useState(false)
   const [incognitoMode, setIncognitoMode] = useState(false)
@@ -341,6 +344,10 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
+    return window.codeviper.onAgentClarify((request) => setClarifyReq(request))
+  }, [])
+
+  useEffect(() => {
     return window.codeviper.onUpdateAvailable((info) => setUpdateInfo(info))
   }, [])
 
@@ -385,6 +392,15 @@ function AppContent() {
       setConfirmReq(null)
     },
     [confirmReq]
+  )
+
+  const resolveClarify = useCallback(
+    (answer: string | null) => {
+      if (!clarifyReq) return
+      window.codeviper.respondAgentClarify(clarifyReq.id, answer)
+      setClarifyReq(null)
+    },
+    [clarifyReq]
   )
 
   useEffect(() => {
@@ -962,6 +978,15 @@ function AppContent() {
           confirmLabel="Выполнить"
           onConfirm={() => resolveConfirm(true)}
           onCancel={() => resolveConfirm(false)}
+        />
+
+        <PromptDialog
+          open={!!clarifyReq}
+          title="Агент уточняет"
+          label={clarifyReq?.question}
+          confirmLabel="Ответить"
+          onConfirm={(answer) => resolveClarify(answer)}
+          onCancel={() => resolveClarify(null)}
         />
 
         <ConfirmDialog

@@ -455,6 +455,7 @@ export const IPC = {
   SAVE_APP_STATE: 'save-app-state',
   LOG_FRONTEND_ERROR: 'log-frontend-error',
   AGENT_CONFIRM_RESPONSE: 'agent-confirm-response',
+  AGENT_CLARIFY_RESPONSE: 'agent-clarify-response',
   AGENT_PREVIEW_RESPONSE: 'agent-preview-response',
   AGENT_PREVIEW_HUNK_SELECTION: 'agent-preview-hunk-selection',
   OPEN_DEVTOOLS: 'open-devtools',
@@ -470,6 +471,7 @@ export const IPC = {
   OLLAMA_PULL_PROGRESS: 'ollama-pull-progress',
   GGUF_DOWNLOAD_PROGRESS: 'gguf-download-progress',
   AGENT_CONFIRM: 'agent-confirm',
+  AGENT_CLARIFY: 'agent-clarify',
   SYSTEM_STATS: 'system-stats',
   PROGRESS_EVENT: 'progress-event',
   UPDATE_AVAILABLE: 'update-available'

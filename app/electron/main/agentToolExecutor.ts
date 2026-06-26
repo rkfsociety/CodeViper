@@ -393,7 +393,8 @@ export class ToolExecutor {
     const { path: filePath, content: newContent } = args
     if (!filePath || newContent === undefined) return 'preview_edit: нужны path и content'
     const { safeReadFilePartial, safeWriteFile, isInsideProject } = await import('./services')
-    if (!isInsideProject(this.projectPath, filePath))
+    const { resolve } = await import('path')
+    if (!isInsideProject(this.projectPath, resolve(this.projectPath, filePath)))
       return `preview_edit: путь вне проекта — ${filePath}`
     let oldContent = ''
     try {
@@ -434,7 +435,8 @@ export class ToolExecutor {
       return 'preview_patch: нужны path, old_string и new_string'
     }
     const { safeReadFilePartial, safeWriteFile, isInsideProject } = await import('./services')
-    if (!isInsideProject(this.projectPath, filePath))
+    const { resolve } = await import('path')
+    if (!isInsideProject(this.projectPath, resolve(this.projectPath, filePath)))
       return `preview_patch: путь вне проекта — ${filePath}`
     let oldContent = ''
     try {
