@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from 'fs'
 import { homedir } from 'os'
 import { join, extname } from 'path'
 import { createRequire } from 'module'
+import { z } from 'zod'
 
 const require = createRequire(import.meta.url)
 
@@ -29,6 +30,25 @@ export interface Plugin {
   author?: string
 }
 
+const PluginToolFunctionSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  parameters: z.record(z.string(), z.unknown())
+})
+
+const PluginToolEntrySchema = z.object({
+  type: z.literal('function'),
+  function: PluginToolFunctionSchema
+})
+
+export const PluginSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tools: z.array(PluginToolEntrySchema),
+  version: z.string().optional(),
+  author: z.string().optional()
+})
+
 const PLUGINS_DIR = join(homedir(), '.codeviper', 'plugins')
 
 /**
@@ -40,22 +60,35 @@ function requirePlugin(filePath: string): Plugin | { default: Plugin } {
   return require(filePath) as Plugin | { default: Plugin }
 }
 
+function parsePluginExport(raw: unknown, fileLabel: string): Plugin | null {
+  const result = PluginSchema.safeParse(raw)
+  if (result.success) {
+    return result.data
+  }
+
+  const details = result.error.issues
+    .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+    .join('; ')
+  console.warn(`[plugins] ${fileLabel}: неверная структура (${details}), пропускаем`)
+  return null
+}
+
 /**
- * Загрузить все плагины из ~/.codeviper/plugins/*.js
+ * Загрузить все плагины из указанной директории (*.js).
  * Плагин должен экспортировать: { name, description, tools: [...] }
  *
  * Примечание: TypeScript-плагины (.ts) не поддерживаются напрямую —
  * скомпилируйте их в .js перед использованием.
  */
-export function loadPlugins(): Plugin[] {
+export function loadPluginsFromDir(pluginsDir: string = PLUGINS_DIR): Plugin[] {
   const plugins: Plugin[] = []
 
-  if (!existsSync(PLUGINS_DIR)) {
+  if (!existsSync(pluginsDir)) {
     return plugins
   }
 
   try {
-    const entries = readdirSync(PLUGINS_DIR, { withFileTypes: true })
+    const entries = readdirSync(pluginsDir, { withFileTypes: true })
     for (const dirent of entries) {
       if (!dirent.isFile()) continue
 
@@ -72,59 +105,39 @@ export function loadPlugins(): Plugin[] {
 
       if (ext !== '.js') continue
 
-      const filePath = join(PLUGINS_DIR, file)
+      const filePath = join(pluginsDir, file)
 
       try {
         const plugin = requirePlugin(filePath)
         const pluginModule = 'default' in plugin ? plugin.default : plugin
+        const parsed = parsePluginExport(pluginModule, file)
+        if (!parsed) continue
 
-        if (
-          !pluginModule ||
-          typeof pluginModule !== 'object' ||
-          !pluginModule.name ||
-          !pluginModule.description ||
-          !Array.isArray(pluginModule.tools)
-        ) {
-          console.warn(`[plugins] ${file}: неверная структура, пропускаем`)
-          continue
-        }
-
-        plugins.push(pluginModule)
-        console.warn(`[plugins] Загружен: ${pluginModule.name}`)
+        plugins.push(parsed)
+        console.warn(`[plugins] Загружен: ${parsed.name}`)
       } catch (err) {
         console.error(`[plugins] Ошибка загрузки ${file}:`, err)
       }
     }
   } catch (err) {
-    console.error(`[plugins] Ошибка чтения директории ${PLUGINS_DIR}:`, err)
+    console.error(`[plugins] Ошибка чтения директории ${pluginsDir}:`, err)
   }
 
   return plugins
 }
 
 /**
+ * Загрузить все плагины из ~/.codeviper/plugins/*.js
+ */
+export function loadPlugins(): Plugin[] {
+  return loadPluginsFromDir(PLUGINS_DIR)
+}
+
+/**
  * Валидировать структуру плагина перед загрузкой
  */
 export function validatePlugin(plugin: unknown): plugin is Plugin {
-  if (!plugin || typeof plugin !== 'object') return false
-
-  const p = plugin as Record<string, unknown>
-  if (typeof p.name !== 'string' || typeof p.description !== 'string') return false
-
-  if (!Array.isArray(p.tools)) return false
-
-  return p.tools.every((tool: unknown) => {
-    if (!tool || typeof tool !== 'object') return false
-    const t = tool as Record<string, unknown>
-    if (t.type !== 'function' || !t.function) return false
-    const f = t.function as Record<string, unknown>
-    return (
-      typeof f.name === 'string' &&
-      typeof f.description === 'string' &&
-      f.parameters &&
-      typeof f.parameters === 'object'
-    )
-  })
+  return PluginSchema.safeParse(plugin).success
 }
 
 /**
