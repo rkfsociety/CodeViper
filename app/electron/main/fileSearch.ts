@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'fs/promises'
 import { join, relative, resolve, sep } from 'path'
 import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
+import { loadIgnorePatterns, shouldIgnorePath } from './ignorePatterns'
 
 const IGNORED_DIRS = new Set([
   'node_modules',
@@ -74,11 +75,13 @@ function matchFileName(name: string, pattern: string): boolean {
 }
 
 async function walkProjectFiles(
+  root: string,
   startDir: string,
   onFile: (absolutePath: string) => Promise<boolean | void>,
   onProgress?: (scanned: number) => void
 ): Promise<number> {
   let visited = 0
+  const ignoreRules = await loadIgnorePatterns(root)
 
   async function walk(dir: string): Promise<boolean> {
     if (visited >= MAX_WALK_FILES) return true
@@ -94,6 +97,7 @@ async function walkProjectFiles(
       if (visited >= MAX_WALK_FILES) return true
       if (entry.name.startsWith('.') && entry.name !== '.codeviper') continue
       if (IGNORED_DIRS.has(entry.name)) continue
+      if (shouldIgnorePath(entry.name, ignoreRules)) continue
 
       const fullPath = join(dir, entry.name)
       if (entry.isDirectory()) {
@@ -130,6 +134,7 @@ export async function grepInTree(
   let truncated = false
 
   const filesScanned = await walkProjectFiles(
+    root,
     startDir,
     async (filePath) => {
       if (matches.length >= maxResults) {
@@ -195,6 +200,7 @@ export async function grepMultiInTree(
   }))
 
   const filesScanned = await walkProjectFiles(
+    root,
     startDir,
     async (filePath) => {
       if (results.every((r, i) => r.matches.length >= maxResultsPerQuery[i])) {
@@ -285,6 +291,7 @@ export async function findFilesInTree(
   let truncated = false
 
   const filesScanned = await walkProjectFiles(
+    root,
     startDir,
     async (filePath) => {
       const name = filePath.split(sep).pop() ?? filePath
@@ -314,6 +321,7 @@ export async function findMultiInTree(
   const results = patterns.map(() => ({ paths: [] as string[], truncated: false, filesScanned: 0 }))
 
   const filesScanned = await walkProjectFiles(
+    root,
     startDir,
     async (filePath) => {
       if (results.every((r, i) => r.paths.length >= maxResultsPerPattern[i])) {

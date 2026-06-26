@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { grepInTree, findFilesInTree, formatGrepResults } from '../electron/main/fileSearch'
+import { clearIgnorePatternsCache } from '../electron/main/ignorePatterns'
 
 describe('fileSearch', () => {
   let root: string
@@ -12,9 +13,11 @@ describe('fileSearch', () => {
     mkdirSync(join(root, 'src'), { recursive: true })
     writeFileSync(join(root, 'src', 'app.ts'), 'export const APP = 1\nexport function hello() {}\n')
     writeFileSync(join(root, 'readme.md'), '# Hello CodeViper\n')
+    clearIgnorePatternsCache()
   })
 
-  afterAll(() => {
+  afterEach(() => {
+    clearIgnorePatternsCache()
     rmSync(root, { recursive: true, force: true })
   })
 
@@ -27,5 +30,25 @@ describe('fileSearch', () => {
   it('находит файлы find_files', async () => {
     const result = await findFilesInTree(root, '*.ts')
     expect(result.paths.some((p) => p.endsWith('app.ts'))).toBe(true)
+  })
+
+  it('файл из .codeviperignore не попадает в grep_files', async () => {
+    writeFileSync(join(root, 'src', 'secret.ts'), 'export const SECRET_MARKER = 42\n')
+    writeFileSync(join(root, '.codeviperignore'), 'secret.ts\n')
+
+    const result = await grepInTree(root, 'SECRET_MARKER')
+    const formatted = formatGrepResults(root, 'SECRET_MARKER', result)
+
+    expect(formatted).not.toContain('secret.ts')
+    expect(formatted).not.toContain('SECRET_MARKER')
+  })
+
+  it('файл из .codeviperignore не попадает в find_files', async () => {
+    writeFileSync(join(root, 'src', 'secret.ts'), 'export {}\n')
+    writeFileSync(join(root, '.codeviperignore'), 'secret.ts\n')
+
+    const result = await findFilesInTree(root, 'secret.ts')
+
+    expect(result.paths.some((p) => p.endsWith('secret.ts'))).toBe(false)
   })
 })
