@@ -15,6 +15,7 @@ import {
   getBundledSourceRoot,
   setGitRunnerForTests,
   syncBundledSource,
+  syncBundledSourceIfEnabled,
   type GitRunResult
 } from '../electron/main/bundledSourceSync'
 
@@ -108,5 +109,34 @@ describe('bundledSourceSync', () => {
     expect(result.updated).toBe(false)
     expect(result.localHead).toBe('beforepull')
     expect(result.error).toMatch(/fast-forward/)
+  })
+
+  it('syncBundledSourceIfEnabled не вызывает git при liveRuntimeFromGit=false', async () => {
+    const root = join(userDataDir, 'source')
+    mkdirSync(join(root, '.git'), { recursive: true })
+    const gitCalls: string[][] = []
+
+    setGitRunnerForTests(async (_cwd, args) => {
+      gitCalls.push(args)
+      return { code: 0, stdout: 'abc\n', stderr: '' }
+    })
+
+    const result = await syncBundledSourceIfEnabled(false)
+    expect(result).toBeNull()
+    expect(gitCalls).toHaveLength(0)
+  })
+
+  it('syncBundledSourceIfEnabled вызывает sync при liveRuntimeFromGit=true', async () => {
+    const root = join(userDataDir, 'source')
+    mkdirSync(join(root, '.git'), { recursive: true })
+
+    setGitRunnerForTests(async (_cwd, args): Promise<GitRunResult> => {
+      if (args[0] === 'rev-parse') return { code: 0, stdout: 'same\n', stderr: '' }
+      if (args[0] === 'pull') return { code: 0, stdout: '', stderr: '' }
+      return { code: 1, stdout: '', stderr: '' }
+    })
+
+    const result = await syncBundledSourceIfEnabled(true)
+    expect(result).toEqual({ updated: false, localHead: 'same' })
   })
 })

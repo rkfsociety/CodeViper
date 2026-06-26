@@ -2,15 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ── Моки (hoisted — поднимаются до импортов) ─────────────────────────────────
 
-const { mockEncryptString, mockDecryptString } = vi.hoisted(() => ({
+const { mockEncryptString, mockDecryptString, mockIsPackaged } = vi.hoisted(() => ({
   mockEncryptString: vi.fn((s: string) => Buffer.from(s)),
-  mockDecryptString: vi.fn((b: Buffer) => b.toString())
+  mockDecryptString: vi.fn((b: Buffer) => b.toString()),
+  mockIsPackaged: vi.fn(() => false)
 }))
 
 vi.mock('electron', () => ({
   app: {
     getPath: () => '/tmp/vitest-settings',
-    getVersion: () => '0.0.0'
+    getVersion: () => '0.0.0',
+    get isPackaged() {
+      return mockIsPackaged()
+    }
   },
   safeStorage: {
     isEncryptionAvailable: vi.fn(() => true),
@@ -39,7 +43,7 @@ vi.mock('fs/promises', async (importOriginal) => {
   }
 })
 
-import { loadSettings, saveSettings } from '../electron/main/settings'
+import { loadSettings, saveSettings, defaultLiveRuntimeFromGit } from '../electron/main/settings'
 import type { AgentSettings } from '../src/types'
 
 // ── Базовые настройки ────────────────────────────────────────────────────────
@@ -186,5 +190,72 @@ describe('cloudApiKey migration', () => {
     const loaded = await loadSettings()
 
     expect(loaded.openaiApiKey).toBe('sk-existing')
+  })
+})
+
+describe('liveRuntimeFromGit', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockExistsSync.mockReturnValue(false)
+    mockWriteFile.mockResolvedValue(undefined)
+    mockIsPackaged.mockReturnValue(false)
+  })
+
+  it('defaultLiveRuntimeFromGit: true для packaged', () => {
+    mockIsPackaged.mockReturnValue(true)
+    expect(defaultLiveRuntimeFromGit()).toBe(true)
+  })
+
+  it('defaultLiveRuntimeFromGit: false в dev', () => {
+    mockIsPackaged.mockReturnValue(false)
+    expect(defaultLiveRuntimeFromGit()).toBe(false)
+  })
+
+  it('сохраняет liveRuntimeFromGit: false в settings.json', async () => {
+    const saved = await saveSettings(makeSettings({ liveRuntimeFromGit: false }))
+    expect(saved.liveRuntimeFromGit).toBe(false)
+
+    const jsonCall = mockWriteFile.mock.calls.find((args: unknown[]) =>
+      String(args[1]).includes('liveRuntimeFromGit')
+    )
+    expect(jsonCall).toBeDefined()
+    const parsed = JSON.parse(String(jsonCall![1])) as Record<string, unknown>
+    expect(parsed.liveRuntimeFromGit).toBe(false)
+  })
+
+  it('при загрузке без поля — default true для packaged', async () => {
+    mockIsPackaged.mockReturnValue(true)
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        ollamaUrl: 'http://127.0.0.1:11434',
+        model: '',
+        selfLearning: true,
+        autoModel: true,
+        permissionMode: 'acceptEdits',
+        clarifyMode: false,
+        deepReasoning: false,
+        excludeThinkingFromHistory: true,
+        autoPushSelfEdits: true,
+        summarizeModel: '',
+        modelProvider: 'ollama',
+        providerApiKey: '',
+        deepseekApiKey: '',
+        openaiApiKey: '',
+        openrouterApiKey: '',
+        geminiApiKey: '',
+        geminiRpm: 5,
+        geminiTier: 'free',
+        claudeApiKey: '',
+        groqApiKey: '',
+        togetherApiKey: '',
+        gitSyncOnStartup: true,
+        gitSyncStrategy: 'stash'
+      })
+    )
+
+    const loaded = await loadSettings()
+    expect(loaded.liveRuntimeFromGit).toBe(true)
   })
 })

@@ -206,6 +206,8 @@ export interface AgentSettings {
   gitSyncOnStartup?: boolean
   /** Стратегия git-синхронизации при запуске; по умолчанию 'stash' */
   gitSyncStrategy?: GitSyncStrategy
+  /** Обновлять agent runtime из клона %APPDATA%/CodeViper/source (packaged); по умолчанию true */
+  liveRuntimeFromGit?: boolean
   /** GitHub Personal Access Token для создания Gist (экспорт памяти и навыков) */
   githubToken?: string
   /** GitLab Personal Access Token (scopes: api) для MR и пайплайнов */

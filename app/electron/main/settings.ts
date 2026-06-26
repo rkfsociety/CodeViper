@@ -49,6 +49,7 @@ export const PersistedSettingsSchema = z.object({
   togetherApiKey: z.string(),
   gitSyncOnStartup: z.boolean(),
   gitSyncStrategy: GitSyncStrategySchema,
+  liveRuntimeFromGit: z.boolean().optional(),
   modelContextLength: z.number().int().positive().optional(),
   qdrantUrl: z.string().optional(),
   qdrantApiKey: z.string().optional(),
@@ -122,6 +123,15 @@ export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
 
 function storePath(): string {
   return join(app.getPath('userData'), 'settings.json')
+}
+
+/** По умолчанию true для packaged .exe, false в dev. */
+export function defaultLiveRuntimeFromGit(): boolean {
+  return app.isPackaged
+}
+
+function resolveLiveRuntimeFromGit(value: boolean | undefined): boolean {
+  return value ?? defaultLiveRuntimeFromGit()
 }
 
 const DEFAULT_SETTINGS: PersistedSettings = {
@@ -227,6 +237,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)
       : DEFAULT_SETTINGS.gitSyncStrategy,
+    liveRuntimeFromGit: resolveLiveRuntimeFromGit(settings.liveRuntimeFromGit),
     ...(settings.modelContextLength ? { modelContextLength: settings.modelContextLength } : {}),
     qdrantUrl: settings.qdrantUrl?.trim() ?? '',
     qdrantApiKey: settings.qdrantApiKey?.trim() ?? '',
@@ -329,7 +340,9 @@ function decryptApiKeyPlainFallback(stored: string): string {
 
 export async function loadSettings(): Promise<PersistedSettings> {
   const path = storePath()
-  if (!existsSync(path)) return { ...DEFAULT_SETTINGS }
+  if (!existsSync(path)) {
+    return { ...DEFAULT_SETTINGS, liveRuntimeFromGit: defaultLiveRuntimeFromGit() }
+  }
 
   try {
     const raw = await readFile(path, 'utf-8')
@@ -357,7 +370,12 @@ export async function loadSettings(): Promise<PersistedSettings> {
     }
 
     const result = PersistedSettingsSchema.safeParse(json)
-    if (result.success) return result.data
+    if (result.success) {
+      return {
+        ...result.data,
+        liveRuntimeFromGit: resolveLiveRuntimeFromGit(result.data.liveRuntimeFromGit)
+      }
+    }
 
     // Схема не прошла — логируем проблемные поля и применяем normalize с дефолтами
     const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')

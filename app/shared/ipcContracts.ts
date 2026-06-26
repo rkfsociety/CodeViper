@@ -175,6 +175,7 @@ export const AgentSettingsSchema = z.object({
   minimizeToTray: z.boolean().optional(),
   gitSyncOnStartup: z.boolean().optional(),
   gitSyncStrategy: GitSyncStrategySchema.optional(),
+  liveRuntimeFromGit: z.boolean().optional(),
   githubToken: z.string().optional(),
   excludeThinkingFromHistory: z.boolean().optional(),
   modelContextLength: z.number().optional(),

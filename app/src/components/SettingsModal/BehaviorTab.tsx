@@ -282,7 +282,7 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
       <SettingItem
         tab="behavior"
         label="Автоматизация"
-        desc="автокоммит git синхронизация push pull стратегия startup запуск stash rebase fast-forward"
+        desc="автокоммит git синхронизация push pull стратегия startup запуск stash rebase fast-forward runtime github live"
       >
         <div className={styles.section}>
           <div className={styles.sectionLabel}>Автоматизация</div>
@@ -392,6 +392,25 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
               <span className={styles.desc}>
                 После успешного push коллективной памяти автоматически создаёт PR. Если PR уже
                 открыт — сообщит об этом без ошибки.
+              </span>
+            </span>
+          </label>
+
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={settings.liveRuntimeFromGit !== false}
+              onChange={(e) => onSettingsChange({ liveRuntimeFromGit: e.target.checked })}
+            />
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.thumb} />
+            </span>
+            <span className={styles.toggleContent}>
+              <span className={styles.title}>Обновлять runtime с GitHub</span>
+              <span className={styles.desc}>
+                Установленный CodeViper подтягивает agent runtime из{' '}
+                <code>%APPDATA%/CodeViper/source</code> (git pull). Dev-режим из исходников не
+                затрагивает
               </span>
             </span>
           </label>

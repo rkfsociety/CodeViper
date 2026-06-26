@@ -126,3 +126,11 @@ export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
   await logBundledSourceSync('sync complete', { root, updated, localHead })
   return { updated, localHead: localHead || undefined }
 }
+
+/** Не вызывает sync при liveRuntimeFromGit === false. */
+export async function syncBundledSourceIfEnabled(
+  liveRuntimeFromGit: boolean
+): Promise<BundledSourceSyncResult | null> {
+  if (!liveRuntimeFromGit) return null
+  return syncBundledSource()
+}
