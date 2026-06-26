@@ -4,8 +4,6 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import {
   isInsideProject,
-  validateCommand,
-  runCommand,
   safeCreateFile,
   safeEditFile,
   safeAppendFile,
@@ -13,6 +11,7 @@ import {
   safeDeleteFile,
   safeMoveFile
 } from '../electron/main/services'
+import { validateCommand, runCommand } from '../electron/main/commandRunner'
 
 describe('isInsideProject', () => {
   it('разрешает сам корень и вложенные пути', () => {
