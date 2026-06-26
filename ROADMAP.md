@@ -1083,6 +1083,7 @@ N · [S/M/L/XL] · Краткое название — блок 0 | уровен
 
 **Live runtime (блок 0)**
 - bundledSourceSync: путь %APPDATA%/CodeViper/source, syncBundledSource() с git pull --ff-only, лог в userData/logs
+- liveRuntimeFromGit: настройка в BehaviorTab «Обновлять runtime с GitHub», default true для packaged; syncBundledSourceIfEnabled
 - MCP enabledTools: выборочное включение инструментов MCP-сервера (`enabledTools` в конфиге, чекбоксы в IntegrationsTab, фильтр в getAgentTools)
 - MUTATING_TOOLS: GitHub и файловые ops — create_issue, create_pr, trigger_github_workflow, copy_file, rename_folder, copy_folder в Set
 - ignore в grep_files / find_files: walkProjectFiles фильтрует по .gitignore/.cursorignore/.codeviperignore как list_directory
