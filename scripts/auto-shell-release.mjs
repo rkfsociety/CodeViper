@@ -128,6 +128,7 @@ function main() {
   }
 
   const newTag = `v${version}`
+  const versionChanged = version !== pkg.version
 
   if (dryRun) {
     console.log(`DRY_RUN: создали бы тег ${newTag}`)
