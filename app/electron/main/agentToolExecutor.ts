@@ -23,6 +23,13 @@ import { applySelectedHunks } from '../../shared/diffPreview'
 import { getCodeViperSourceRoot, runCodeViperCommand } from './codeviperSource'
 import type { OllamaMessage } from './agentContext'
 import type { LoopGuard } from './agentLoopGuard'
+import { normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
+import {
+  isCodeViperSourceRelativePath,
+  READ_FILE_ENOENT_CREATE_HINT,
+  READ_FILE_ALREADY_IN_RUN_HINT,
+  SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT
+} from '../../shared/selfImprovement'
 
 // Read-only инструменты — безопасно запускать параллельно (Promise.all).
 export const PARALLEL_SAFE_TOOLS = new Set([
@@ -70,6 +77,12 @@ export const SELF_EDIT_FILE_TOOLS = new Set([
   'move_codeviper_file'
 ])
 
+export function toolTouchesRoadmapDocs(name: string, args: Record<string, string>): boolean {
+  if (!SELF_EDIT_FILE_TOOLS.has(name) && name !== 'write_codeviper_file') return false
+  const p = (args.path ?? args.from ?? '').replace(/\\/g, '/')
+  return /ROADMAP\.md/i.test(p) || /README\.md/i.test(p)
+}
+
 export function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
   if (typeof args === 'string') {
     try {
@@ -104,6 +117,58 @@ export interface SequentialBatchResult {
 export class ToolExecutor {
   private toolHandlers?: ToolHandlers
   clearEditSnapshots?: () => void
+  private selfImproveMode = false
+  private readonly readPathsThisRun = new Set<string>()
+
+  /** Сброс состояния в начале прогона агента. */
+  beginRun(selfImproveMode: boolean): void {
+    this.selfImproveMode = selfImproveMode
+    this.readPathsThisRun.clear()
+  }
+
+  private enrichToolOutput(name: string, args: Record<string, string>, output: string): string {
+    let result = output
+
+    if (/ENOENT|no such file or directory/i.test(result)) {
+      if (name === 'read_codeviper_file' || name === 'read_file') {
+        result += `\n\n${READ_FILE_ENOENT_CREATE_HINT}`
+      }
+    }
+
+    if (this.selfImproveMode) {
+      const projectFileTools = new Set([
+        'read_file',
+        'write_file',
+        'create_file',
+        'edit_file',
+        'list_directory',
+        'read_multiple_files'
+      ])
+      if (projectFileTools.has(name)) {
+        const pathArg = (args.path ?? args.paths ?? '').trim()
+        if (
+          isCodeViperSourceRelativePath(pathArg) ||
+          /Program Files[\\/]CodeViper/i.test(pathArg) ||
+          /Program Files[\\/]CodeViper/i.test(result)
+        ) {
+          result += `\n\n${SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT}`
+        }
+      }
+    }
+
+    if (name === 'read_file' || name === 'read_codeviper_file') {
+      const key = `${name}:${(args.path ?? '').trim()}`
+      if (!/ENOENT|no such file|Ошибка:/i.test(result)) {
+        if (this.readPathsThisRun.has(key)) {
+          result += `\n\n${READ_FILE_ALREADY_IN_RUN_HINT}`
+        } else {
+          this.readPathsThisRun.add(key)
+        }
+      }
+    }
+
+    return result
+  }
 
   constructor(
     private readonly projectPath: string,
@@ -239,6 +304,8 @@ export class ToolExecutor {
       })
     }
 
+    output = this.enrichToolOutput(name, args, output)
+
     try {
       await notifyMcpToolResult(name, id, output, this.settings.mcpServers)
     } catch (error) {
@@ -341,7 +408,10 @@ export class ToolExecutor {
         output,
         args: parseToolArgs(call.function.arguments ?? {})
       })
-      const toolSignature = `${name}:${JSON.stringify(call.function.arguments)}`
+      const toolSignature = normalizeToolLoopSignature(
+        name,
+        parseToolArgs(call.function.arguments ?? {})
+      )
       const loopNudge =
         loopGuard.checkConsecutive(toolSignature, name) ?? loopGuard.checkTotal(name)
       if (loopNudge) {

@@ -10,6 +10,7 @@ import {
   SELF_IMPROVE_PLAN_STUCK_MESSAGE,
   START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
   buildSelfImprovementContinueNudge,
+  ROADMAP_DOCS_NOT_UPDATED_NUDGE,
   incrementAttempt,
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
@@ -42,6 +43,8 @@ export type SelfImproveNoToolAction =
 export class SelfImprovementOrchestrator {
   private selfImprovePlanNudges = 0
   private currentPlanItemId: string | null = null
+  private roadmapDocsUpdated = false
+  private roadmapItemNum: number | null = null
 
   constructor(
     private readonly plan: SelfImprovementPlanStore,
@@ -51,6 +54,16 @@ export class SelfImprovementOrchestrator {
     private readonly projectPath: string,
     private readonly signal?: AbortSignal
   ) {}
+
+  /** Контекст ROADMAP-задачи на один прогон run(). */
+  setRoadmapContext(itemNum: number | null): void {
+    this.roadmapItemNum = itemNum
+    this.roadmapDocsUpdated = false
+  }
+
+  markRoadmapDocsUpdated(): void {
+    this.roadmapDocsUpdated = true
+  }
 
   emitPlan(plan: SelfImprovementItem[]): void {
     this.emit({ type: 'self_improve_plan', content: formatPlanSummary(plan), planItems: plan })
@@ -83,6 +96,14 @@ export class SelfImprovementOrchestrator {
 
     if (this.plan.isComplete()) {
       if (current) this.emitPlan(current)
+      if (this.roadmapItemNum != null && !this.roadmapDocsUpdated) {
+        return {
+          action: 'continue',
+          nudgeMessage: ROADMAP_DOCS_NOT_UPDATED_NUDGE,
+          requireTool: true,
+          clearDraft: false
+        }
+      }
       return { action: 'done' }
     }
 

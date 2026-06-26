@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   isSelfImprovementTask,
+  isRoadmapSelfImprovementTask,
+  parseRoadmapTaskItemNumber,
+  isCodeViperSourceRelativePath,
+  buildRoadmapSelfImproveHint,
   selfImprovementStepLimit,
   parsePlanItemsJson,
   parsePlanFromAssistantText,
@@ -16,6 +20,26 @@ describe('selfImprovement', () => {
     expect(isSelfImprovementTask('изучи код и начни улучшать себя')).toBe(true)
     expect(isSelfImprovementTask('Улучши себя: добавь skill')).toBe(true)
     expect(isSelfImprovementTask('привет')).toBe(false)
+  })
+
+  it('распознаёт ROADMAP-промпт', () => {
+    const msg = 'Выполни пункт 3 из ROADMAP.md — самоулучшение CodeViper.'
+    expect(isRoadmapSelfImprovementTask(msg)).toBe(true)
+    expect(isSelfImprovementTask(msg)).toBe(true)
+    expect(parseRoadmapTaskItemNumber(msg)).toBe(3)
+  })
+
+  it('определяет пути исходников CodeViper', () => {
+    expect(isCodeViperSourceRelativePath('tests/agent.test.ts')).toBe(true)
+    expect(isCodeViperSourceRelativePath('../ROADMAP.md')).toBe(true)
+    expect(isCodeViperSourceRelativePath('src/App.tsx')).toBe(false)
+  })
+
+  it('строит ROADMAP-hint', () => {
+    const hint = buildRoadmapSelfImproveHint(1, 'F:/github/CodeViper/app')
+    expect(hint).toContain('пункт')
+    expect(hint).toContain('codeviper')
+    expect(hint).toContain('Program Files')
   })
 
   it('увеличивает лимит шагов для самоулучшения', () => {

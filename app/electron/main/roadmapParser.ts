@@ -41,16 +41,16 @@ export async function listRoadmapItems(): Promise<RoadmapItem[]> {
       continue
     }
 
-    // Пункт: **N · SIZE · Title** — приор. PRIORITY
+    // Пункт: **N · SIZE · Title** — приор. PRIORITY | уровень N
     const itemMatch = line.match(
-      /^\*\*(\d+)\s+·\s+(S|M|L|XL)\s+·\s+(.+?)\*\*(?:\s+—\s+приор\.\s+(\S+))?/
+      /^\*\*(\d+)\s+·\s+(S|M|L|XL)\s+·\s+(.+?)\*\*(?:\s+—\s+(?:приор\.\s+(\S+)|уровень\s+(\d+)))?/
     )
     if (itemMatch) {
       items.push({
         num: parseInt(itemMatch[1], 10),
         size: itemMatch[2] as 'S' | 'M' | 'L' | 'XL',
         title: itemMatch[3].trim(),
-        priority: itemMatch[4] ?? 'Low',
+        priority: itemMatch[4] ?? (itemMatch[5] ? `уровень ${itemMatch[5]}` : 'Low'),
         chain: currentChain
       })
     }

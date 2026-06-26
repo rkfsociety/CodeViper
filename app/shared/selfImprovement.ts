@@ -19,15 +19,70 @@ export function resolveSelfImproveBranch(configured?: string): string {
   return raw.toLowerCase()
 }
 
+const ROADMAP_SELF_IMPROVE_RE =
+  /(?:выполни\s+пункт\s+\d+|следующий\s+пункт).*ROADMAP\.md.*самоулучш/iu
+
+/** Промпт «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper». */
+export function isRoadmapSelfImprovementTask(userMessage: string): boolean {
+  return ROADMAP_SELF_IMPROVE_RE.test(userMessage.trim())
+}
+
+/** Номер пункта из ROADMAP-промпта или null. */
+export function parseRoadmapTaskItemNumber(userMessage: string): number | null {
+  const m = userMessage.trim().match(/выполни\s+пункт\s+(\d+)\s+из\s+ROADMAP\.md/iu)
+  if (!m) return null
+  const n = parseInt(m[1], 10)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 /** Запрос на автономное самоулучшение до выполнения всех пунктов плана. */
 export function isSelfImprovementTask(userMessage: string): boolean {
   const text = userMessage.trim()
   if (!text) return false
+  if (isRoadmapSelfImprovementTask(text)) return true
 
   return /(?:улучш[\p{L}]*\s+себя|самоулучш[\p{L}]*|саморедакт[\p{L}]*|изучи\s+код\s+и\s+начни|начни\s+улучш[\p{L}]*\s+себя|улучши\s+свой\s+код|improve\s+yourself|self[\s-]?improve)/iu.test(
     text
   )
 }
+
+/** Путь относительно app/ — исходники CodeViper (для самоулучшения). */
+export function isCodeViperSourceRelativePath(filePath: string): boolean {
+  const p = filePath.trim().replace(/\\/g, '/')
+  if (!p) return false
+  if (/^(\.\.\/)?ROADMAP\.md$/i.test(p)) return true
+  if (/^(\.\.\/)?README\.md$/i.test(p)) return true
+  return (
+    p.startsWith('app/') ||
+    p.startsWith('electron/') ||
+    p.startsWith('shared/') ||
+    p.startsWith('tests/')
+  )
+}
+
+export function buildRoadmapSelfImproveHint(itemNum: number | null, sourceRoot: string): string {
+  const itemLine = itemNum
+    ? `Пункт ROADMAP: **${itemNum}**.`
+    : 'Пункт ROADMAP: следующий из «В планах».'
+  return `## Задача ROADMAP (самоулучшение)
+${itemLine} Корень исходников CodeViper (app/): \`${sourceRoot}\`
+
+**Инструменты:** для \`app/\`, \`tests/\`, \`ROADMAP.md\`, \`README.md\` — только \`*_codeviper_*\` (read_codeviper_file, create_codeviper_file, edit_codeviper_file). **Не** read_file / list_directory / create_file проекта.
+
+**Пути:** относительно корня app/ (например \`tests/foo.test.ts\`, \`../ROADMAP.md\`). **Запрещено:** Program Files, папка .exe, app.asar — это не исходники.
+
+**Файл из «Файлы» отсутствует (ENOENT):** сразу create_codeviper_file с полным содержимым; не повторять read_*.
+
+**План set_self_improvement_plan** обязан включать: реализация → run_codeviper_command (Проверка) → правка ROADMAP.md (удалить пункт, перенумеровать, «✅ Сделано») → README (счётчик задач) → commit_and_push_self_edits.
+
+Не вызывай list_directory «для разведки», если пути уже в ROADMAP.`
+}
+
+export const READ_FILE_ENOENT_CREATE_HINT = `Файл не существует. Если он в ROADMAP «Файлы» как цель работы — вызови create_codeviper_file (полное содержимое). Не повторяй read_file/read_codeviper_file для того же пути.`
+
+export const SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT = `Для исходников CodeViper используй read_codeviper_file / create_codeviper_file / edit_codeviper_file, не инструменты проекта. Корень — в блоке «Исходники CodeViper», не папка установки .exe.`
+
+export const READ_FILE_ALREADY_IN_RUN_HINT = `Этот файл уже читался в текущем прогоне — используй содержимое из предыдущего ответа инструмента, не вызывай read_* снова.`
 
 export function selfImprovementStepLimit(configuredMaxSteps: number): number {
   // Для самообучения снимаем жёсткий потолок — агент должен дойти до конца плана.
@@ -196,26 +251,31 @@ export const SELF_IMPROVEMENT_MODE_PROMPT = `## Самоулучшение (АК
 
 ROADMAP.md — формат пункта:
 «N · [S/M/L/XL] · Название» + Цель / Файлы / Действие / Проверка.
-Промпт пользователя: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
+Промпт: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
+
+**Исходники CodeViper** (app/, tests/, ROADMAP.md): только инструменты \`*_codeviper_*\`. Не read_file/list_directory/create_file проекта. Не пути Program Files / установки .exe.
 
 Алгоритм:
-1. read_codeviper_file ROADMAP.md → найти пункт N; прочитать все пути из «Файлы»
-2. set_self_improvement_plan — шаги строго из «Действие» + «Проверка» (не выдумывать лишнее)
-3. edit_codeviper_file / create_codeviper_file → complete_self_improvement_item(id)
-4. run_codeviper_command — команды из «Проверка» (typecheck, test, UI-сценарий)
-5. Все item done → удалить пункт N из «В планах», перенумеровать с 1, кратко в «✅ Сделано» (тот же коммит)
-6. В цепочке 🔗 — не переходить к следующему номеру ROADMAP, пока текущий не закрыт
+1. read_codeviper_file ../ROADMAP.md → пункт N; read_codeviper_file для путей из «Файлы» (ENOENT → create_codeviper_file)
+2. set_self_improvement_plan — Действие + Проверка + обновление ROADMAP.md + README.md
+3. create_codeviper_file / edit_codeviper_file → complete_self_improvement_item(id)
+4. run_codeviper_command — команды из «Проверка»
+5. edit_codeviper_file ../ROADMAP.md и README.md — удалить пункт N, перенумеровать, «✅ Сделано», счётчик задач
+6. commit_and_push_self_edits в том же прогоне
+7. В цепочке 🔗 — не переходить к следующему номеру, пока текущий не закрыт
 
 Без steps пользователю — только tool_calling.`
 
-export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_improvement_plan по полям ROADMAP (Действие + Проверка).
-[{"id":"1","title":"…из Действие…"},{"id":"2","title":"…из Проверка…"},...]
-Только tool_calling. Первый шаг — read_codeviper_file файлов из «Файлы».`
+export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_improvement_plan по полям ROADMAP (Действие + Проверка + ROADMAP/README).
+[{"id":"1","title":"…Действие…"},{"id":"2","title":"…Проверка npm test…"},{"id":"3","title":"ROADMAP: удалить пункт, Сделано, перенумерация"},{"id":"4","title":"README: счётчик задач"}]
+Только tool_calling. read_codeviper_file ../ROADMAP.md и файлы из «Файлы» (*_codeviper_*, не read_file).`
 
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
   'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'
 
-export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: list_codeviper_directory (обзор структуры) → read_codeviper_file ROADMAP.md (если задан пункт N) → файлы из «Файлы» → set_self_improvement_plan.`
+export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_codeviper_file ../ROADMAP.md → read_codeviper_file файлы из «Файлы» (ENOENT → create_codeviper_file) → set_self_improvement_plan. Не list_directory и не read_file проекта для app/.`
+
+export const ROADMAP_DOCS_NOT_UPDATED_NUDGE = `Код и тесты готовы, но ROADMAP.md/README.md не обновлены. edit_codeviper_file: удалить выполненный пункт из «В планах», перенумеровать с 1, запись в «✅ Сделано», счётчик в README — затем commit_and_push_self_edits.`
 
 export function buildSelfImprovementContinueNudge(plan: SelfImprovementItem[]): string {
   const { done, total, pending } = planProgress(plan)

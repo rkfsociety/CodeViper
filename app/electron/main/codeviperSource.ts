@@ -190,7 +190,10 @@ export function buildSelfEditContext(isPackaged = false): string {
   const buildCmd = !isPackaged ? ', npm run build' : ''
   const buildStep = !isPackaged ? ' && npm run build' : ''
   return `# Исходники CodeViper (саморедактирование)
-Корень: ${root}
+Корень app/: ${root}
+Репозиторий (ROADMAP.md, README.md): ${join(root, '..')}
+
+**Не путать с папкой установки** (Program Files, рядом с CodeViper.exe) — для правок только пути выше и инструменты \`*_codeviper_*\`.
 
 Инструменты для правки **своего** кода (работают независимо от проекта в чате):
 - list_codeviper_directory — структура исходников

@@ -13,7 +13,13 @@ import { agentLogger } from './agentLogger'
 import { TaskPlanner } from './taskPlanner'
 import { CircuitBreakerOpenError } from './modelRuntime'
 import { ensureSelfImproveBranch } from './selfCommit'
-import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
+import {
+  resolveSelfImproveBranch,
+  parseRoadmapTaskItemNumber,
+  isRoadmapSelfImprovementTask,
+  buildRoadmapSelfImproveHint
+} from '../../shared/selfImprovement'
+import { getCodeViperSourceRoot } from './codeviperSource'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
@@ -22,7 +28,12 @@ import { runSubagent } from './subagentRunner'
 import { ResponseEmitter } from './agentResponseEmitter'
 import { LoopGuard } from './agentLoopGuard'
 import { ContextManager } from './agentContextManager'
-import { ToolExecutor, PARALLEL_SAFE_TOOLS, parseToolArgs } from './agentToolExecutor'
+import {
+  ToolExecutor,
+  PARALLEL_SAFE_TOOLS,
+  parseToolArgs,
+  toolTouchesRoadmapDocs
+} from './agentToolExecutor'
 import { SelfImprovementOrchestrator } from './agentSelfImprovementOrchestrator'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
@@ -192,6 +203,12 @@ export class AgentRunner {
     )
 
     const taskMode = TaskPlanner.detectMode(userMessage)
+    this.toolExecutor.beginRun(taskMode === 'self-improve')
+    const roadmapItemNum = isRoadmapSelfImprovementTask(userMessage)
+      ? parseRoadmapTaskItemNumber(userMessage)
+      : null
+    this.selfImproveOrchestrator.setRoadmapContext(roadmapItemNum)
+
     if (taskMode === 'self-improve') {
       this.selfImprovementPlan.reset()
       if (this.settings.autoPushSelfEdits !== false) {
@@ -293,6 +310,9 @@ export class AgentRunner {
     if (orchestratorPlanHint) hintParts.push(`## План оркестратора\n${orchestratorPlanHint}`)
     if (explorerSummary)
       hintParts.push(`## Разведка проекта (субагент-explorer)\n${explorerSummary}`)
+    if (taskMode === 'self-improve' && isRoadmapSelfImprovementTask(userMessage)) {
+      hintParts.push(buildRoadmapSelfImproveHint(roadmapItemNum, getCodeViperSourceRoot()))
+    }
     const customSystemPrompt = hintParts.length
       ? `${baseSystemPrompt}\n\n${hintParts.join('\n\n')}`.trim()
       : baseSystemPrompt
@@ -684,6 +704,11 @@ export class AgentRunner {
           )
           for (const name of batch.mutatingToolNames) {
             if (MUTATING_TOOLS.has(name)) mutatingToolsUsed.add(name)
+          }
+          for (const inv of batch.invocations) {
+            if (toolTouchesRoadmapDocs(inv.name, inv.args)) {
+              this.selfImproveOrchestrator.markRoadmapDocsUpdated()
+            }
           }
           if (batch.selfEdited) selfEdited = true
           for (const msg of batch.toolMessages) messages.push(msg)
