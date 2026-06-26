@@ -68,11 +68,14 @@ describe('bundledSourceSync', () => {
         head = 'bbb2222'
         return { code: 0, stdout: 'Already up to date.\n', stderr: '' }
       }
+      if (args[0] === 'diff') {
+        return { code: 0, stdout: 'app/electron/main/agent.ts\n', stderr: '' }
+      }
       return { code: 1, stdout: '', stderr: 'unexpected' }
     })
 
     const result = await syncBundledSource()
-    expect(result).toEqual({ updated: true, localHead: 'bbb2222' })
+    expect(result).toEqual({ updated: true, localHead: 'bbb2222', appDirChanged: true })
   })
 
   it('если HEAD не изменился — updated: false', async () => {

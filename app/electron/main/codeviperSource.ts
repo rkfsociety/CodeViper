@@ -180,9 +180,14 @@ function prependBundledNodeToPath(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   }
 }
 
+/** Команда в указанном корне app/ (portable Node в PATH). */
+export async function runCommandInAppRoot(appRoot: string, command: string, timeoutMs?: number) {
+  return runCommand(appRoot, command, timeoutMs, undefined, prependBundledNodeToPath(process.env))
+}
+
 export async function runCodeViperCommand(command: string) {
   const root = getCodeViperSourceRoot()
-  return runCommand(root, command, undefined, undefined, prependBundledNodeToPath(process.env))
+  return runCommandInAppRoot(root, command)
 }
 
 export function buildSelfEditContext(isPackaged = false): string {

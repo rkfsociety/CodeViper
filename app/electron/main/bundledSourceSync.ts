@@ -9,6 +9,8 @@ export interface BundledSourceSyncResult {
   updated: boolean
   localHead?: string
   error?: string
+  /** В pull изменились файлы под app/ */
+  appDirChanged?: boolean
 }
 
 export interface GitRunResult {
@@ -91,6 +93,11 @@ function runGit(cwd: string, args: string[]): Promise<GitRunResult> {
   return defaultRunGit(cwd, args)
 }
 
+/** Git в клоне bundled source (тесты — setGitRunnerForTests). */
+export function runBundledGit(cwd: string, args: string[]): Promise<GitRunResult> {
+  return runGit(cwd, args)
+}
+
 /** Абсолютный путь к клону: %APPDATA%/CodeViper/source */
 export function getBundledSourceRoot(): string {
   return join(app.getPath('userData'), BUNDLED_SOURCE_DIR_NAME)
@@ -123,8 +130,18 @@ export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
   const localHead = after.stdout.trim()
   const updated = Boolean(localHead && headBefore && localHead !== headBefore)
 
-  await logBundledSourceSync('sync complete', { root, updated, localHead })
-  return { updated, localHead: localHead || undefined }
+  let appDirChanged = false
+  if (updated && headBefore && localHead) {
+    const diff = await runGit(root, ['diff', '--name-only', headBefore, localHead, '--', 'app/'])
+    appDirChanged = diff.stdout.trim().length > 0
+  }
+
+  await logBundledSourceSync('sync complete', { root, updated, localHead, appDirChanged })
+  return {
+    updated,
+    localHead: localHead || undefined,
+    ...(updated ? { appDirChanged } : {})
+  }
 }
 
 /** Не вызывает sync при liveRuntimeFromGit === false. */
@@ -169,6 +186,13 @@ export async function runBundledSourceStartupSync(
           error: result.error,
           localHead: result.localHead
         })
+      } else {
+        void import('./bundledSourceBuild')
+          .then(({ maybeBuildBundledSourceAfterSync }) => maybeBuildBundledSourceAfterSync(result))
+          .catch(async (err) => {
+            const error = err instanceof Error ? err.message : String(err)
+            await logBundledSourceSync('startup build error — fallback to asar', { error })
+          })
       }
       return result
     })
