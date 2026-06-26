@@ -35,6 +35,8 @@ const PLUGINS_DIR = join(homedir(), '.codeviper', 'plugins')
  * Загрузить плагин из JavaScript файла
  */
 function requirePlugin(filePath: string): Plugin | { default: Plugin } {
+  const resolved = require.resolve(filePath)
+  delete require.cache[resolved]
   return require(filePath) as Plugin | { default: Plugin }
 }
 

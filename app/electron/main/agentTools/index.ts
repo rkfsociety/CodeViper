@@ -33,18 +33,10 @@ export {
   SUBAGENT_TOOLS
 }
 
-// ── Plugin cache ──────────────────────────────────────────────────────────────
-
-let cachedPluginTools: Array<{
-  type: 'function'
-  function: { name: string; description: string; parameters: Record<string, unknown> }
-}> | null = null
+// ── Plugin tools ──────────────────────────────────────────────────────────────
 
 function getPluginTools() {
-  if (!cachedPluginTools) {
-    cachedPluginTools = loadPlugins().flatMap((plugin) => plugin.tools)
-  }
-  return cachedPluginTools
+  return loadPlugins().flatMap((plugin) => plugin.tools)
 }
 
 // ── Общий список инструментов ─────────────────────────────────────────────────
@@ -73,6 +65,11 @@ const transformedToolsCache = new Map<
   string,
   Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
 >()
+
+/** Сбросить кэш схем инструментов (например, после правки .js-плагина). */
+export function invalidatePluginToolsCache(): void {
+  transformedToolsCache.clear()
+}
 
 function transformTools(
   tools: Array<{
@@ -109,16 +106,21 @@ export function getAgentTools(
   const mcpTools = buildMcpAgentTools(mcpServers).filter(
     (tool) => !disabled || !disabled.has(tool.function.name)
   )
-  const allTools = [...filtered, ...getPluginTools(), ...mcpTools]
+  const pluginTools = getPluginTools()
+  const allTools = [...filtered, ...pluginTools, ...mcpTools]
 
-  // Кэш по режиму, отключённым инструментам и MCP-серверам
+  // Кэш по режиму, отключённым инструментам, MCP и содержимому плагинов
   const disabledKey = disabled ? [...disabled].sort().join(',') : ''
   const mcpKey = mcpServers?.length
     ? mcpServers
         .map((server) => `${server.url}:${server.tools.map((tool) => tool.name).join(',')}`)
         .join('|')
     : ''
-  const cacheKey = `${selfImproveMode}_${disabledKey}_${mcpKey}`
+  const pluginKey = pluginTools
+    .map((tool) => `${tool.function.name}:${tool.function.description}`)
+    .sort()
+    .join('|')
+  const cacheKey = `${selfImproveMode}_${disabledKey}_${mcpKey}_${pluginKey}`
   if (!transformedToolsCache.has(cacheKey)) {
     transformedToolsCache.set(cacheKey, transformTools(allTools))
   }

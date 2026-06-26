@@ -21,11 +21,11 @@ N · [S/M/L/XL] · Краткое название
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** нумерация сквозная (1…7); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
+**Правила:** нумерация сквозная (1…6); внутри цепочки — строго по порядку; один пункт = один прогон самоулучшения; после проверки — `complete_self_improvement_item`.
 
 ## 📋 В планах
 
-> Нумерация сквозная **1…7**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
+> Нумерация сквозная **1…6**. Сложность: S / M / L / XL. Приоритет указан в конце пункта. Пустые категории без пунктов не держим — выполненные цепочки (P2P, базовое коллективное обучение) см. в «✅ Сделано».
 
 ### ⚡ Независимые задачи
 
@@ -35,13 +35,7 @@ N · [S/M/L/XL] · Краткое название
 - **Действие:** образ + том исходников + `npm run dev`  
 - **Проверка:** `docker compose up` поднимает приложение
 
-**2 · S · pluginLoader: очищать require.cache перед re-require плагина** — приор. Medium  
-- **Цель:** отредактированный `.js`-плагин загружается свежей версией без перезапуска приложения  
-- **Файлы:** `app/electron/main/pluginLoader.ts`, `app/electron/main/agentTools/index.ts`  
-- **Действие:** в `requirePlugin` добавить `delete require.cache[require.resolve(filePath)]` перед `require(filePath)`; в `agentTools/index.ts` сбрасывать `cachedPluginTools = null` при IPC-событии «перезагрузить плагины» (или при каждом вызове `getPluginTools()`)  
-- **Проверка:** `npm run typecheck`; изменить текст описания в `.js`-плагине → переоткрыть чат → новый текст виден без перезапуска
-
-**3 · S · Чистка кода: pluginLoader + context-menu** — приор. Low  
+**2 · S · Чистка кода: pluginLoader + context-menu** — приор. Low  
 - **Цель:** убрать мелкие замечания ревью: лишние вызовы `statSync` и дублирование в обработчике ПКМ  
 - **Файлы:** `app/electron/main/pluginLoader.ts`, `app/electron/main/index.ts`  
 - **Действие:** (1) в `loadPlugins` заменить `readdirSync` + `statSync` на `readdirSync(PLUGINS_DIR, { withFileTypes: true })` с `dirent.isFile()`; (2) в обработчике `context-menu` убрать дублирующую проверку `params.selectionText` — вынести условие Cut на уровень `isEditable && selectionText` единым блоком  
@@ -51,25 +45,25 @@ N · [S/M/L/XL] · Краткое название
 
 ### 🔗 Далёкое будущее
 
-**4 · L · Голосовой ввод и озвучка** — приор. Low  
+**3 · L · Голосовой ввод и озвучка** — приор. Low  
 - **Цель:** кнопка микрофона (Web Speech API / whisper.cpp); TTS последнего ответа  
 - **Файлы:** `ChatInput.tsx`, `MessageBody.tsx`, опционально `whisperWorker.ts`  
 - **Действие:** STT → текст в поле; TTS по кнопке «Озвучить»  
 - **Проверка:** диктовка вставляет текст; TTS воспроизводит ответ
 
-**5 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
+**4 · L · Встроенный редактор кода (Monaco/CodeMirror)** — приор. Low  
 - **Цель:** ручная правка файла во встроенном просмотре вместо read-only highlight.js  
 - **Файлы:** `app/src/components/` (новый редактор), интеграция в просмотр файла  
 - **Действие:** подключить Monaco/CodeMirror, сохранение через существующий IPC записи файла  
 - **Проверка:** правка файла в UI сохраняется на диск
 
-**6 · XL · LSP в редакторе** — приор. Low  
+**5 · XL · LSP в редакторе** — приор. Low  
 - **Цель:** go-to-definition, hover, diagnostics для открытого файла во встроенном редакторе  
 - **Файлы:** `app/electron/main/lspClient.ts`, интеграция с редактором (п. 16)  
 - **Действие:** запуск typescript-language-server / pyright по типу файла  
 - **Проверка:** Ctrl+click на символ → переход к определению
 
-**7 · L · Skill marketplace** — приор. Low  
+**6 · L · Skill marketplace** — приор. Low  
 - **Цель:** каталог навыков из GitHub (`docs/collective/skills/` или отдельный репо); импорт одной кнопкой  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`, IPC `import-remote-skill`  
 - **Действие:** список remote skills + `git sparse-checkout` или raw fetch  
@@ -80,6 +74,8 @@ N · [S/M/L/XL] · Краткое название
 ---
 
 ## ✅ Сделано
+
+- pluginLoader: `delete require.cache` перед `require` + перезагрузка плагинов при каждом `getPluginTools()`; отпечаток плагинов в ключе `transformedToolsCache` — правки `.js` видны без перезапуска
 
 - pluginLoader: `statSync` внутри `try/catch` — ENOENT при исчезновении файла плагина не прерывает загрузку остальных
 
