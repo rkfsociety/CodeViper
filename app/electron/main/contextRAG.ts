@@ -1,10 +1,9 @@
 import { createHash } from 'crypto'
 import { readFile, readdir } from 'fs/promises'
-import { extname, join, relative } from 'path'
-import { QdrantClient } from '@qdrant/js-client-rest'
+import { extname, join, relative, sep } from 'path'
 import type { OllamaMessage } from './agentContext'
 import { computeEmbedding } from './embeddings'
-import { createVectorStore, LocalVectorStore } from './vectorStore'
+import { createVectorStore, LocalVectorStore, ProjectQdrantIndex } from './vectorStore'
 import type { VectorStoreConfig } from './vectorStore'
 import { emitProgress, clearProgress } from './progress'
 import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
@@ -114,9 +113,8 @@ export async function getRecentRAGMessages(
 }
 
 export const PROJECT_RAG_COLLECTION = 'codeviper_project'
-const AUTO_INDEX_COLLECTION = PROJECT_RAG_COLLECTION
 const AUTO_INDEX_CHUNK_LINES = 500
-const AUTO_INDEX_TEXT_EXTS = new Set([
+export const PROJECT_INDEX_TEXT_EXTS = new Set([
   '.ts',
   '.tsx',
   '.js',
@@ -151,7 +149,8 @@ const AUTO_INDEX_TEXT_EXTS = new Set([
   '.graphql',
   '.gql'
 ])
-const AUTO_INDEX_SKIP_DIRS = new Set([
+const AUTO_INDEX_TEXT_EXTS = PROJECT_INDEX_TEXT_EXTS
+export const PROJECT_INDEX_SKIP_DIRS = new Set([
   'node_modules',
   '.git',
   'dist',
@@ -164,6 +163,90 @@ const AUTO_INDEX_SKIP_DIRS = new Set([
   'venv',
   '.vitest-tmp'
 ])
+const AUTO_INDEX_SKIP_DIRS = PROJECT_INDEX_SKIP_DIRS
+
+export function isProjectIndexableRelPath(relPath: string): boolean {
+  const normalized = relPath.split(sep).join('/')
+  if (!PROJECT_INDEX_TEXT_EXTS.has(extname(normalized).toLowerCase())) return false
+  for (const seg of normalized.split('/')) {
+    if (seg.startsWith('.') && seg !== '.codeviper') return false
+    if (PROJECT_INDEX_SKIP_DIRS.has(seg)) return false
+  }
+  return true
+}
+
+export function makeProjectChunkId(relPath: string, chunkIndex: number): string {
+  const hex = createHash('md5').update(`${relPath}:${chunkIndex}`).digest('hex')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
+}
+
+export async function buildProjectFilePoints(
+  projectPath: string,
+  relPath: string,
+  content: string,
+  ollamaUrl: string
+): Promise<Array<{ id: string; vector: number[]; payload: Record<string, unknown> }>> {
+  const buf = Buffer.from(content, 'utf-8')
+  if (buf.includes(0) || buf.length > FILE_SIZE_LIMIT_BYTES) return []
+
+  const lines = content.split('\n')
+  const points: Array<{ id: string; vector: number[]; payload: Record<string, unknown> }> = []
+
+  for (let ci = 0; ci * AUTO_INDEX_CHUNK_LINES < lines.length; ci++) {
+    const chunkText = `File: ${relPath}\n\n${lines
+      .slice(ci * AUTO_INDEX_CHUNK_LINES, (ci + 1) * AUTO_INDEX_CHUNK_LINES)
+      .join('\n')}`
+    const vec = await computeEmbedding(chunkText, ollamaUrl)
+    if (!vec) continue
+    points.push({
+      id: makeProjectChunkId(relPath, ci),
+      vector: vec,
+      payload: { filePath: relPath, chunkIndex: ci, projectPath }
+    })
+  }
+
+  return points
+}
+
+/** Переиндексировать один файл в Qdrant без полного reindex. */
+export async function reindexSingleProjectFile(
+  projectPath: string,
+  absPath: string,
+  ollamaUrl: string,
+  qdrantUrl: string,
+  qdrantApiKey?: string
+): Promise<void> {
+  const relPath = relative(projectPath, absPath).split(sep).join('/')
+  if (!isProjectIndexableRelPath(relPath)) return
+
+  const index = new ProjectQdrantIndex(qdrantUrl, qdrantApiKey)
+  if (!(await index.ensureCollection())) return
+
+  await index.deleteFile(relPath, projectPath)
+
+  let content: string
+  try {
+    content = await readFile(absPath, 'utf-8')
+  } catch {
+    return
+  }
+
+  const points = await buildProjectFilePoints(projectPath, relPath, content, ollamaUrl)
+  await index.upsertPoints(points)
+}
+
+/** Удалить векторы удалённого файла из Qdrant. */
+export async function removeSingleProjectFileFromIndex(
+  projectPath: string,
+  relPath: string,
+  qdrantUrl: string,
+  qdrantApiKey?: string
+): Promise<void> {
+  const normalized = relPath.split(sep).join('/')
+  if (!isProjectIndexableRelPath(normalized)) return
+  const index = new ProjectQdrantIndex(qdrantUrl, qdrantApiKey)
+  await index.deleteFile(normalized, projectPath)
+}
 
 /**
  * Фоновая индексация файлов проекта в Qdrant.
@@ -176,20 +259,8 @@ export async function runProjectAutoIndex(
   qdrantUrl: string,
   qdrantApiKey?: string
 ): Promise<void> {
-  const client = new QdrantClient({
-    url: qdrantUrl,
-    ...(qdrantApiKey ? { apiKey: qdrantApiKey } : {})
-  })
-
-  try {
-    const cols = await client.getCollections()
-    const exists = cols.collections.some((c) => c.name === AUTO_INDEX_COLLECTION)
-    if (!exists) {
-      await client.createCollection(AUTO_INDEX_COLLECTION, {
-        vectors: { size: 768, distance: 'Cosine' }
-      })
-    }
-  } catch {
+  const index = new ProjectQdrantIndex(qdrantUrl, qdrantApiKey)
+  if (!(await index.ensureCollection())) {
     clearProgress()
     return
   }
@@ -220,33 +291,20 @@ export async function runProjectAutoIndex(
 
   for (let fi = 0; fi < files.length; fi++) {
     const absPath = files[fi]
-    const relPath = relative(projectPath, absPath)
+    const relPath = relative(projectPath, absPath).split(sep).join('/')
     const pct = Math.round(((fi + 1) / files.length) * 100)
     emitProgress(`Индексация: ${relPath}`, pct)
 
-    let buf: Buffer
+    let content: string
     try {
-      buf = await readFile(absPath)
+      content = await readFile(absPath, 'utf-8')
     } catch {
       continue
     }
-    if (buf.includes(0) || buf.length > FILE_SIZE_LIMIT_BYTES) continue
 
-    const lines = buf.toString('utf-8').split('\n')
-    const points: Array<{ id: string; vector: number[]; payload: Record<string, unknown> }> = []
-
-    for (let ci = 0; ci * AUTO_INDEX_CHUNK_LINES < lines.length; ci++) {
-      const chunkText = `File: ${relPath}\n\n${lines.slice(ci * AUTO_INDEX_CHUNK_LINES, (ci + 1) * AUTO_INDEX_CHUNK_LINES).join('\n')}`
-      const vec = await computeEmbedding(chunkText, ollamaUrl)
-      if (!vec) continue
-
-      const hex = createHash('md5').update(`${relPath}:${ci}`).digest('hex')
-      const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
-      points.push({ id, vector: vec, payload: { filePath: relPath, chunkIndex: ci, projectPath } })
-    }
-
+    const points = await buildProjectFilePoints(projectPath, relPath, content, ollamaUrl)
     if (points.length > 0) {
-      await client.upsert(AUTO_INDEX_COLLECTION, { points, wait: false }).catch(() => {})
+      await index.upsertPoints(points).catch(() => {})
     }
   }
 

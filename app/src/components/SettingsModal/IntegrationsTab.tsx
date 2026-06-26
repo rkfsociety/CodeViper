@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import styles from './SettingsModal.module.css'
-import type { AgentSettings } from '../../types'
+import type { AgentSettings, McpHealthResult, McpServerConfig } from '../../types'
 import { SettingItem } from './shared'
 import { P2PConsentModal } from '../P2PConsentModal'
 
@@ -22,9 +22,45 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
   const [mcpUrl, setMcpUrl] = useState('')
   const [mcpBusy, setMcpBusy] = useState(false)
   const [mcpError, setMcpError] = useState<string | null>(null)
+  const [mcpHealth, setMcpHealth] = useState<Record<string, McpHealthResult>>({})
   const [p2pRegistering, setP2pRegistering] = useState(false)
   const [p2pStatus, setP2pStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [p2pConsentOpen, setP2pConsentOpen] = useState(false)
+
+  useEffect(() => {
+    return window.codeviper.onMcpHealthStatus(({ results }) => {
+      setMcpHealth((prev) => {
+        const next = { ...prev }
+        for (const result of results) {
+          next[result.url] = result
+        }
+        return next
+      })
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isActive) return
+    const servers = settings.mcpServers ?? []
+    if (servers.length === 0) {
+      setMcpHealth({})
+      return
+    }
+    let active = true
+    void window.codeviper.checkMcpHealth(settings).then(({ results }) => {
+      if (!active) return
+      setMcpHealth((prev) => {
+        const next = { ...prev }
+        for (const result of results) {
+          next[result.url] = result
+        }
+        return next
+      })
+    })
+    return () => {
+      active = false
+    }
+  }, [isActive, settings])
 
   if (!isActive && !isSearching) return null
 
@@ -88,6 +124,34 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
     }
   }
 
+  function isMcpToolEnabled(server: McpServerConfig, toolName: string): boolean {
+    if (server.enabledTools === undefined) return true
+    return server.enabledTools.includes(toolName)
+  }
+
+  function handleToggleMcpTool(serverUrl: string, toolName: string, enabled: boolean) {
+    const nextServers = (settings.mcpServers ?? []).map((server) => {
+      if (server.url !== serverUrl) return server
+
+      const allNames = server.tools.map((tool) => tool.name)
+      const enabledSet = new Set(server.enabledTools === undefined ? allNames : server.enabledTools)
+
+      if (enabled) {
+        enabledSet.add(toolName)
+      } else {
+        enabledSet.delete(toolName)
+      }
+
+      const enabledTools = [...enabledSet]
+      if (enabledTools.length === allNames.length) {
+        return { ...server, enabledTools: undefined }
+      }
+      return { ...server, enabledTools }
+    })
+
+    onSettingsChange({ mcpServers: nextServers })
+  }
+
   async function handleRegisterP2p() {
     if (p2pRegistering) return
     setP2pRegistering(true)
@@ -125,6 +189,13 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
         : milvusPingState === 'fail'
           ? '❌'
           : '🔌'
+
+  function mcpHealthBadge(url: string): { icon: string; title?: string } {
+    const health = mcpHealth[url]
+    if (!health) return { icon: '⏳', title: 'Проверка подключения…' }
+    if (health.ok) return { icon: '✅', title: 'Сервер доступен' }
+    return { icon: '⚠️', title: health.error ?? 'Сервер недоступен' }
+  }
 
   return (
     <>
@@ -480,28 +551,63 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
 
           {(settings.mcpServers ?? []).length > 0 ? (
             <div className={styles.mcpServerList}>
-              {(settings.mcpServers ?? []).map((server) => (
-                <div key={server.url} className={styles.row}>
-                  <div className={styles.rowContent}>
-                    <span className={styles.mcpServerUrl}>{server.url}</span>
-                    <span className={styles.mcpServerMeta}>
-                      {server.tools.length}{' '}
-                      {server.tools.length === 1 ? 'инструмент' : 'инструментов'}
-                    </span>
+              {(settings.mcpServers ?? []).map((server) => {
+                const healthBadge = mcpHealthBadge(server.url)
+                return (
+                  <div key={server.url} className={styles.mcpServerBlock}>
+                    <div className={styles.row}>
+                      <div className={styles.rowContent}>
+                        <span
+                          className={styles.mcpHealthBadge}
+                          title={healthBadge.title}
+                          aria-label={healthBadge.title}
+                        >
+                          {healthBadge.icon}
+                        </span>
+                        <span className={styles.mcpServerUrl}>{server.url}</span>
+                        <span className={styles.mcpServerMeta}>
+                          {
+                            server.tools.filter((tool) => isMcpToolEnabled(server, tool.name))
+                              .length
+                          }
+                          /{server.tools.length}{' '}
+                          {server.tools.length === 1 ? 'инструмент' : 'инструментов'}
+                        </span>
+                      </div>
+                      <div className={styles.rowRight}>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => void handleRemoveMcpServer(server.url)}
+                          disabled={mcpBusy}
+                          title="Удалить сервер"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
+                    {server.tools.length > 0 && (
+                      <div className={styles.mcpToolList}>
+                        {server.tools.map((tool) => (
+                          <label key={tool.name} className={styles.mcpToolRow}>
+                            <input
+                              type="checkbox"
+                              checked={isMcpToolEnabled(server, tool.name)}
+                              disabled={mcpBusy}
+                              onChange={(e) =>
+                                handleToggleMcpTool(server.url, tool.name, e.target.checked)
+                              }
+                            />
+                            <span className={styles.mcpToolName} title={tool.description}>
+                              {tool.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className={styles.rowRight}>
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={() => void handleRemoveMcpServer(server.url)}
-                      disabled={mcpBusy}
-                      title="Удалить сервер"
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <div className={`${styles.hint} ${styles.hintInline}`}>

@@ -307,6 +307,14 @@ export interface McpToolDefinition {
 export interface McpServerConfig {
   url: string
   tools: McpToolDefinition[]
+  /** Включённые инструменты сервера; пусто/undefined — все из manifest */
+  enabledTools?: string[]
+}
+
+export interface McpHealthResult {
+  url: string
+  ok: boolean
+  error?: string
 }
 
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'
@@ -672,6 +680,8 @@ export interface CodeViperAPI {
   saveSettings: (settings: AgentSettings) => Promise<AgentSettings>
   addMcpServer: (settings: AgentSettings, serverUrl: string) => Promise<AgentSettings>
   removeMcpServer: (settings: AgentSettings, serverUrl: string) => Promise<AgentSettings>
+  checkMcpHealth: (settings: AgentSettings) => Promise<{ results: McpHealthResult[] }>
+  onMcpHealthStatus: (callback: (payload: { results: McpHealthResult[] }) => void) => () => void
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => () => void
   runTerminalCommand: (cwd: string, command: string) => Promise<TerminalResult>
   listMemories: (projectPath: string) => Promise<MemoryEntry[]>

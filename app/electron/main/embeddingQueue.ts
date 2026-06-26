@@ -1,5 +1,6 @@
 import { Worker } from 'worker_threads'
 import { join } from 'path'
+import { PROJECT_INDEX_DEBOUNCE_MS } from '../../shared/constants'
 import { EMBED_MODEL } from './embeddings'
 
 // LRU-кэш эмбеддингов: text → vector
@@ -222,4 +223,31 @@ export function shutdownEmbeddingWorker(): void {
   pending.clear()
   waitQueue.splice(0)
   draining = false
+}
+
+// ── Инкрементальная индексация файлов (debounce) ─────────────────────────────
+
+const incrementalIndexTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+/** Debounce-очередь для переиндексации одного файла (ключ — projectPath + absPath). */
+export function scheduleIncrementalProjectIndex(
+  key: string,
+  run: () => void | Promise<void>,
+  debounceMs = PROJECT_INDEX_DEBOUNCE_MS
+): void {
+  const prev = incrementalIndexTimers.get(key)
+  if (prev) clearTimeout(prev)
+  incrementalIndexTimers.set(
+    key,
+    setTimeout(() => {
+      incrementalIndexTimers.delete(key)
+      void Promise.resolve(run()).catch(() => {})
+    }, debounceMs)
+  )
+}
+
+/** Сброс таймеров (тесты). */
+export function clearIncrementalProjectIndexTimers(): void {
+  for (const timer of incrementalIndexTimers.values()) clearTimeout(timer)
+  incrementalIndexTimers.clear()
 }

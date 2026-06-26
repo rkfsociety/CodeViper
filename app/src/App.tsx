@@ -27,6 +27,7 @@ import { UpdateBanner } from './components/UpdateBanner'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { PromptDialog } from './components/PromptDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
+import { ToastProvider, useToast } from './components/Toast'
 
 const TerminalPanel = lazy(() =>
   import('./components/TerminalPanel').then((m) => ({ default: m.TerminalPanel }))
@@ -71,13 +72,33 @@ const DEFAULT_SETTINGS: AgentSettings = {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AgentProvider>
-        <QueueProvider>
-          <AppContent />
-        </QueueProvider>
-      </AgentProvider>
+      <ToastProvider>
+        <AgentProvider>
+          <QueueProvider>
+            <AppContent />
+          </QueueProvider>
+        </AgentProvider>
+      </ToastProvider>
     </ErrorBoundary>
   )
+}
+
+function McpHealthToastListener() {
+  const { toast } = useToast()
+
+  useEffect(() => {
+    return window.codeviper.onMcpHealthStatus(({ results }) => {
+      const failures = results.filter((r) => !r.ok)
+      if (failures.length === 0) return
+      if (failures.length === 1) {
+        toast(`MCP-сервер недоступен: ${failures[0].url}`, 'error')
+        return
+      }
+      toast(`Недоступно MCP-серверов: ${failures.length}`, 'error')
+    })
+  }, [toast])
+
+  return null
 }
 
 function AppContent() {
@@ -671,6 +692,7 @@ function AppContent() {
 
   return (
     <ChatContext.Provider value={chatContextValue}>
+      <McpHealthToastListener />
       <div className={`app${settings.powerSaveMode ? ' power-save' : ''}`}>
         <header className="topbar">
           <div className="logo">

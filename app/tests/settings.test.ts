@@ -20,18 +20,26 @@ vi.mock('electron', () => ({
 }))
 
 const mockWriteFile = vi.hoisted(() => vi.fn())
+const mockExistsSync = vi.hoisted(() => vi.fn(() => false))
+const mockReadFile = vi.hoisted(() => vi.fn())
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>()
-  return { ...actual, existsSync: () => false }
+  return { ...actual, existsSync: mockExistsSync }
 })
 
 vi.mock('fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs/promises')>()
-  return { ...actual, writeFile: mockWriteFile, mkdir: vi.fn(), rename: vi.fn() }
+  return {
+    ...actual,
+    writeFile: mockWriteFile,
+    readFile: mockReadFile,
+    mkdir: vi.fn(),
+    rename: vi.fn()
+  }
 })
 
-import { saveSettings } from '../electron/main/settings'
+import { loadSettings, saveSettings } from '../electron/main/settings'
 import type { AgentSettings } from '../src/types'
 
 // ── Базовые настройки ────────────────────────────────────────────────────────
@@ -95,5 +103,88 @@ describe('encryptApiKey', () => {
       expect.any(Error)
     )
     consoleSpy.mockRestore()
+  })
+})
+
+// ── Миграция deprecated cloudApiKey ─────────────────────────────────────────
+
+describe('cloudApiKey migration', () => {
+  const enc = (s: string) => Buffer.from(s).toString('base64')
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockExistsSync.mockReturnValue(true)
+    mockDecryptString.mockImplementation((b: Buffer) => b.toString())
+  })
+
+  it('переносит cloudApiKey в openaiApiKey при загрузке старого конфига', async () => {
+    const legacyConfig = {
+      version: 1,
+      ollamaUrl: 'http://127.0.0.1:11434',
+      model: '',
+      selfLearning: true,
+      autoModel: true,
+      permissionMode: 'acceptEdits',
+      clarifyMode: false,
+      deepReasoning: false,
+      excludeThinkingFromHistory: true,
+      autoPushSelfEdits: true,
+      summarizeModel: '',
+      modelProvider: 'ollama',
+      providerApiKey: '',
+      deepseekApiKey: '',
+      openaiApiKey: '',
+      openrouterApiKey: '',
+      geminiApiKey: '',
+      geminiRpm: 5,
+      geminiTier: 'free',
+      claudeApiKey: '',
+      groqApiKey: '',
+      togetherApiKey: '',
+      gitSyncOnStartup: true,
+      gitSyncStrategy: 'stash',
+      cloudApiKey: 'sk-legacy-cloud-key'
+    }
+    mockReadFile.mockResolvedValue(JSON.stringify(legacyConfig))
+
+    const loaded = await loadSettings()
+
+    expect(loaded.openaiApiKey).toBe('sk-legacy-cloud-key')
+    expect(loaded).not.toHaveProperty('cloudApiKey')
+  })
+
+  it('не перезаписывает openaiApiKey если уже задан', async () => {
+    const legacyConfig = {
+      version: 1,
+      ollamaUrl: 'http://127.0.0.1:11434',
+      model: '',
+      selfLearning: true,
+      autoModel: true,
+      permissionMode: 'acceptEdits',
+      clarifyMode: false,
+      deepReasoning: false,
+      excludeThinkingFromHistory: true,
+      autoPushSelfEdits: true,
+      summarizeModel: '',
+      modelProvider: 'ollama',
+      providerApiKey: '',
+      deepseekApiKey: '',
+      openaiApiKey: enc('sk-existing'),
+      openrouterApiKey: '',
+      geminiApiKey: '',
+      geminiRpm: 5,
+      geminiTier: 'free',
+      claudeApiKey: '',
+      groqApiKey: '',
+      togetherApiKey: '',
+      gitSyncOnStartup: true,
+      gitSyncStrategy: 'stash',
+      cloudApiKey: 'sk-legacy-cloud-key'
+    }
+    mockReadFile.mockResolvedValue(JSON.stringify(legacyConfig))
+
+    const loaded = await loadSettings()
+
+    expect(loaded.openaiApiKey).toBe('sk-existing')
   })
 })

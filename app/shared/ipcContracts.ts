@@ -139,6 +139,12 @@ export const OllamaPullProgressSchema = z.object({
   completed: z.number().optional()
 })
 
+const McpHealthResultSchema = z.object({
+  url: z.string(),
+  ok: z.boolean(),
+  error: z.string().optional()
+})
+
 export const AgentSettingsSchema = z.object({
   ollamaUrl: z.string(),
   model: z.string(),
@@ -180,7 +186,6 @@ export const AgentSettingsSchema = z.object({
   prManualRefresh: z.boolean().optional(),
   cloudEnabled: z.boolean().optional(),
   cloudProvider: z.enum(['deepseek', 'openai', 'openrouter', 'gemini']).optional(),
-  cloudApiKey: z.string().optional(),
   cloudBaseUrl: z.string().optional(),
   cloudModel: z.string().optional(),
   qdrantUrl: z.string().optional(),
@@ -438,6 +443,7 @@ export const IPC = {
   READ_FILE_HISTORY: 'read-file-history',
   ADD_MCP_SERVER: 'add-mcp-server',
   REMOVE_MCP_SERVER: 'remove-mcp-server',
+  CHECK_MCP_HEALTH: 'check-mcp-health',
   BENCHMARK_MODEL: 'benchmark-model',
   AUTO_INDEX_PROJECT: 'auto-index-project',
   LIST_ROADMAP_ITEMS: 'list-roadmap-items',
@@ -475,7 +481,8 @@ export const IPC = {
   AGENT_CLARIFY: 'agent-clarify',
   SYSTEM_STATS: 'system-stats',
   PROGRESS_EVENT: 'progress-event',
-  UPDATE_AVAILABLE: 'update-available'
+  UPDATE_AVAILABLE: 'update-available',
+  MCP_HEALTH_STATUS: 'mcp-health-status'
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]
@@ -696,6 +703,10 @@ export const Contracts = {
   [IPC.REMOVE_MCP_SERVER]: {
     args: z.tuple([AgentSettingsSchema, z.string().min(1)]),
     result: AgentSettingsSchema
+  },
+  [IPC.CHECK_MCP_HEALTH]: {
+    args: z.tuple([AgentSettingsSchema]),
+    result: z.object({ results: z.array(McpHealthResultSchema) })
   },
   [IPC.BENCHMARK_MODEL]: {
     args: z.tuple([z.string(), z.string()]),

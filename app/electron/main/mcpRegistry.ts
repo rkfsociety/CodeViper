@@ -1,6 +1,11 @@
 import { z } from 'zod'
-import { MCP_MANIFEST_TIMEOUT_MS } from '../../shared/constants'
-import type { AgentSettings, McpServerConfig } from '../../src/types'
+import { MCP_HEALTH_CHECK_TIMEOUT_MS, MCP_MANIFEST_TIMEOUT_MS } from '../../shared/constants'
+import type {
+  AgentSettings,
+  McpHealthResult,
+  McpServerConfig,
+  McpToolDefinition
+} from '../../src/types'
 import type { PersistedSettings } from './settings'
 import { saveSettings } from './settings'
 
@@ -42,11 +47,15 @@ export function buildMcpManifestUrl(serverUrl: string): string {
   return `${normalizeMcpServerUrl(serverUrl)}/.well-known/mcp`
 }
 
-export async function fetchMcpManifest(serverUrl: string): Promise<McpServerConfig> {
+export async function fetchMcpManifest(
+  serverUrl: string,
+  options?: { timeoutMs?: number }
+): Promise<McpServerConfig> {
   const url = normalizeMcpServerUrl(serverUrl)
   const manifestUrl = buildMcpManifestUrl(url)
+  const timeoutMs = options?.timeoutMs ?? MCP_MANIFEST_TIMEOUT_MS
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), MCP_MANIFEST_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const response = await fetch(manifestUrl, {
@@ -72,13 +81,23 @@ export async function fetchMcpManifest(serverUrl: string): Promise<McpServerConf
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`Таймаут запроса MCP-манифеста (${MCP_MANIFEST_TIMEOUT_MS / 1000} с)`)
+      throw new Error(`Таймаут запроса MCP-манифеста (${timeoutMs / 1000} с)`)
     }
     if (error instanceof Error) throw error
     throw new Error('Не удалось загрузить MCP-манифест')
   } finally {
     clearTimeout(timer)
   }
+}
+
+/** undefined = все включены; явный список = только перечисленные; [] = ни одного */
+export function isMcpToolEnabled(server: McpServerConfig, toolName: string): boolean {
+  if (server.enabledTools === undefined) return true
+  return server.enabledTools.includes(toolName)
+}
+
+export function getEnabledMcpTools(server: McpServerConfig): McpToolDefinition[] {
+  return server.tools.filter((tool) => isMcpToolEnabled(server, tool.name))
 }
 
 function hasMcpServer(settings: AgentSettings, serverUrl: string): boolean {
@@ -123,6 +142,36 @@ export async function removeMcpServer(
   })
 }
 
+export async function pingMcpServer(serverUrl: string): Promise<McpHealthResult> {
+  const url = normalizeMcpServerUrl(serverUrl)
+  try {
+    await fetchMcpManifest(url, { timeoutMs: MCP_HEALTH_CHECK_TIMEOUT_MS })
+    return { url, ok: true }
+  } catch (error) {
+    return {
+      url,
+      ok: false,
+      error: error instanceof Error ? error.message : 'Не удалось подключиться к MCP-серверу'
+    }
+  }
+}
+
+export async function healthCheckMcpServers(
+  servers: McpServerConfig[]
+): Promise<McpHealthResult[]> {
+  if (servers.length === 0) return []
+  const settled = await Promise.allSettled(servers.map((server) => pingMcpServer(server.url)))
+  return settled.map((result, index) => {
+    if (result.status === 'fulfilled') return result.value
+    const url = servers[index]?.url ?? ''
+    return {
+      url,
+      ok: false,
+      error: result.reason instanceof Error ? result.reason.message : 'Ошибка проверки MCP'
+    }
+  })
+}
+
 export async function refreshMcpServer(
   settings: AgentSettings,
   serverUrl: string
@@ -137,9 +186,16 @@ export async function refreshMcpServer(
     throw new Error('MCP-сервер не найден в настройках')
   }
 
-  const nextServers = (settings.mcpServers ?? []).map((entry) =>
-    normalizeMcpServerUrl(entry.url) === normalized ? manifest : entry
-  )
+  const nextServers = (settings.mcpServers ?? []).map((entry) => {
+    if (normalizeMcpServerUrl(entry.url) !== normalized) return entry
+    const enabledTools = entry.enabledTools?.filter((name) =>
+      manifest.tools.some((tool) => tool.name === name)
+    )
+    return {
+      ...manifest,
+      ...(entry.enabledTools !== undefined ? { enabledTools } : {})
+    }
+  })
 
   return saveSettings({
     ...settings,

@@ -819,16 +819,37 @@ export function ModelTab({
                 </label>
               )}
 
-              <label>
-                API ключ
-                <input
-                  type="password"
-                  placeholder="sk-..."
-                  value={settings.cloudApiKey ?? ''}
-                  onChange={(e) => onSettingsChange({ cloudApiKey: e.target.value })}
-                  autoComplete="off"
-                />
-              </label>
+              {(() => {
+                const cp = settings.cloudProvider ?? 'deepseek'
+                const keyField =
+                  cp === 'deepseek'
+                    ? ('deepseekApiKey' as const)
+                    : cp === 'gemini'
+                      ? ('geminiApiKey' as const)
+                      : cp === 'openrouter'
+                        ? ('openrouterApiKey' as const)
+                        : ('openaiApiKey' as const)
+                const keyLabel =
+                  cp === 'deepseek'
+                    ? 'DeepSeek API ключ'
+                    : cp === 'gemini'
+                      ? 'Gemini API ключ'
+                      : cp === 'openrouter'
+                        ? 'OpenRouter API ключ'
+                        : 'OpenAI API ключ'
+                return (
+                  <label>
+                    {keyLabel}
+                    <input
+                      type="password"
+                      placeholder="sk-..."
+                      value={settings[keyField] ?? ''}
+                      onChange={(e) => onSettingsChange({ [keyField]: e.target.value })}
+                      autoComplete="off"
+                    />
+                  </label>
+                )
+              })()}
 
               <label>
                 Модель

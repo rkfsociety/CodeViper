@@ -233,6 +233,13 @@ const codeviper = {
       'removeMcpServer'
     ),
 
+  checkMcpHealth: (settings: AgentSettings) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.CHECK_MCP_HEALTH, settings),
+      IPC_TIMEOUT_MS,
+      'checkMcpHealth'
+    ) as Promise<{ results: import('../../src/types').McpHealthResult[] }>,
+
   onAgentStream: (callback: (event: AgentStreamEvent) => void) => {
     ensureAgentStreamBridge()
     agentStreamListeners.add(callback)
@@ -455,6 +462,17 @@ const codeviper = {
     ) => cb(info)
     ipcRenderer.on(IPC.UPDATE_AVAILABLE, handler)
     return () => ipcRenderer.removeListener(IPC.UPDATE_AVAILABLE, handler)
+  },
+
+  onMcpHealthStatus: (
+    cb: (payload: { results: import('../../src/types').McpHealthResult[] }) => void
+  ) => {
+    const handler = (
+      _e: Electron.IpcRendererEvent,
+      payload: { results: import('../../src/types').McpHealthResult[] }
+    ) => cb(payload)
+    ipcRenderer.on(IPC.MCP_HEALTH_STATUS, handler)
+    return () => ipcRenderer.removeListener(IPC.MCP_HEALTH_STATUS, handler)
   },
 
   restartApp: () => ipcRenderer.send(IPC.RESTART_APP),

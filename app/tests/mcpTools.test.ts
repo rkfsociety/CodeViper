@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { getAgentTools, invalidatePluginToolsCache } from '../electron/main/agentTools'
 import {
   buildMcpAgentToolName,
   buildMcpAgentTools,
@@ -8,6 +9,7 @@ import {
   resolveMcpToolBinding,
   sendMcpToolResult
 } from '../electron/main/mcpTools'
+import { isMcpToolEnabled } from '../electron/main/mcpRegistry'
 
 describe('mcpTools', () => {
   afterEach(() => {
@@ -105,5 +107,61 @@ describe('mcpTools', () => {
     }
     expect(body.result).toBe('ok')
     expect(body.toolCallId).toBeTruthy()
+  })
+
+  it('enabledTools фильтрует инструменты сервера', () => {
+    const multiToolServers = [
+      {
+        url: 'https://mcp.example.com',
+        enabledTools: ['toolA'],
+        tools: [
+          { name: 'toolA', description: 'A', parameters: {} },
+          { name: 'toolB', description: 'B', parameters: {} }
+        ]
+      }
+    ]
+
+    expect(isMcpToolEnabled(multiToolServers[0], 'toolA')).toBe(true)
+    expect(isMcpToolEnabled(multiToolServers[0], 'toolB')).toBe(false)
+
+    const tools = buildMcpAgentTools(multiToolServers)
+    expect(tools).toHaveLength(1)
+    expect(tools[0].function.name).toBe(buildMcpAgentToolName('https://mcp.example.com', 'toolA'))
+    expect(getMcpAgentToolNames(multiToolServers)).toHaveLength(1)
+  })
+
+  it('getAgentTools включает только enabledTools MCP-сервера', () => {
+    invalidatePluginToolsCache()
+    const mcpServers = [
+      {
+        url: 'https://mcp.example.com',
+        enabledTools: ['toolA'],
+        tools: [
+          { name: 'toolA', description: 'A', parameters: {} },
+          { name: 'toolB', description: 'B', parameters: {} }
+        ]
+      }
+    ]
+
+    const toolNames = getAgentTools(false, undefined, mcpServers).map((tool) => tool.name)
+    const toolA = buildMcpAgentToolName('https://mcp.example.com', 'toolA')
+    const toolB = buildMcpAgentToolName('https://mcp.example.com', 'toolB')
+
+    expect(toolNames).toContain(toolA)
+    expect(toolNames).not.toContain(toolB)
+  })
+
+  it('без enabledTools все MCP-инструменты включены', () => {
+    const multiToolServers = [
+      {
+        url: 'https://mcp.example.com',
+        tools: [
+          { name: 'toolA', description: 'A', parameters: {} },
+          { name: 'toolB', description: 'B', parameters: {} }
+        ]
+      }
+    ]
+
+    expect(buildMcpAgentTools(multiToolServers)).toHaveLength(2)
   })
 })

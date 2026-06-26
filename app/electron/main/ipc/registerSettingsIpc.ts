@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { loadSettings, saveSettings } from '../settings'
-import { addMcpServer, removeMcpServer } from '../mcpRegistry'
+import { addMcpServer, healthCheckMcpServers, removeMcpServer } from '../mcpRegistry'
 import { setSourceRootOverride } from '../codeviperSource'
 import type { IpcContext } from './ipcContext'
 
@@ -30,5 +30,11 @@ export function registerSettingsIpc(ctx: IpcContext): void {
   ipcMain.handle(IPC.REMOVE_MCP_SERVER, async (_e, ...a) => {
     const [settings, serverUrl] = parseIpcArgs(Contracts[IPC.REMOVE_MCP_SERVER].args, a)
     return removeMcpServer(settings, serverUrl)
+  })
+
+  ipcMain.handle(IPC.CHECK_MCP_HEALTH, async (_e, ...a) => {
+    const [settings] = parseIpcArgs(Contracts[IPC.CHECK_MCP_HEALTH].args, a)
+    const results = await healthCheckMcpServers(settings.mcpServers ?? [])
+    return { results }
   })
 }

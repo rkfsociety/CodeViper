@@ -35,6 +35,8 @@ import { registerGithubIpc } from './ipc/registerGithubIpc'
 import { registerMiscIpc } from './ipc/registerMiscIpc'
 import { registerAgentIpc } from './ipc/registerAgentIpc'
 import type { IpcContext } from './ipc/ipcContext'
+import { IPC } from '../../shared/ipcContracts'
+import { healthCheckMcpServers } from './mcpRegistry'
 
 if (process.env.CODEVIPER_E2E === '1') {
   const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
@@ -306,7 +308,34 @@ async function installReactDevTools(): Promise<void> {
   }
 }
 
-// Контекст с общим состоянием, передаваемый IPC-регистраторам.
+function broadcastMcpHealthStatus(
+  results: Awaited<ReturnType<typeof healthCheckMcpServers>>
+): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.send(IPC.MCP_HEALTH_STATUS, { results })
+}
+
+function scheduleMcpHealthCheck(settings: AgentSettings): void {
+  const servers = settings.mcpServers ?? []
+  if (servers.length === 0 || process.env.CODEVIPER_E2E) return
+
+  void healthCheckMcpServers(servers)
+    .then((results) => {
+      for (const result of results) {
+        if (!result.ok) {
+          console.warn(`[mcp-health] ${result.url}: ${result.error ?? 'недоступен'}`)
+        }
+      }
+      broadcastMcpHealthStatus(results)
+    })
+    .catch((err) => {
+      console.warn(
+        '[mcp-health] проверка не удалась:',
+        err instanceof Error ? err.message : String(err)
+      )
+    })
+}
+
 const ipcContext: IpcContext = {
   getWindow: () => mainWindow,
   stream,
@@ -351,6 +380,8 @@ app.whenReady().then(async () => {
   }
 
   await createWindow()
+
+  scheduleMcpHealthCheck(settings)
 
   void ensureDefaultSkills().catch((err) => {
     console.warn('[startup] ensureDefaultSkills:', err instanceof Error ? err.message : String(err))

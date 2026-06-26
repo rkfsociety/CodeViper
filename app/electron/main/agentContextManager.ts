@@ -147,10 +147,26 @@ export class ContextManager {
     }
   }
 
+  private cloudProviderApiKey(
+    cloudType: 'deepseek' | 'openai' | 'openrouter' | 'gemini'
+  ): string | undefined {
+    switch (cloudType) {
+      case 'deepseek':
+        return this.settings.deepseekApiKey?.trim() || undefined
+      case 'openai':
+        return this.settings.openaiApiKey?.trim() || undefined
+      case 'openrouter':
+        return this.settings.openrouterApiKey?.trim() || undefined
+      case 'gemini':
+        return this.settings.geminiApiKey?.trim() || undefined
+    }
+  }
+
   private buildSummarizeConfig(): { providerConfig: ProviderConfig; model: string } {
     const primaryIsOllama = this.providerConfig.type === 'ollama'
-    if (primaryIsOllama && this.settings.cloudEnabled && this.settings.cloudApiKey) {
-      const cloudType = this.settings.cloudProvider || 'deepseek'
+    const cloudType = this.settings.cloudProvider || 'deepseek'
+    const cloudApiKey = this.cloudProviderApiKey(cloudType)
+    if (primaryIsOllama && this.settings.cloudEnabled && cloudApiKey) {
       const defaultUrl =
         cloudType === 'deepseek'
           ? DEEPSEEK_API_BASE_URL
@@ -167,7 +183,7 @@ export class ContextManager {
         providerConfig: {
           type: cloudType,
           baseUrl: cloudBaseUrl,
-          apiKey: this.settings.cloudApiKey,
+          apiKey: cloudApiKey,
           model: cloudModel
         },
         model: cloudModel

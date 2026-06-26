@@ -2,7 +2,7 @@ import { createHash } from 'crypto'
 import { MCP_MANIFEST_TIMEOUT_MS } from '../../shared/constants'
 import { makeId } from '../../shared/makeId'
 import type { McpServerConfig } from '../../src/types'
-import { normalizeMcpServerUrl } from './mcpRegistry'
+import { getEnabledMcpTools, normalizeMcpServerUrl } from './mcpRegistry'
 
 export interface McpToolBinding {
   agentToolName: string
@@ -37,7 +37,7 @@ export function buildMcpToolBindings(mcpServers?: McpServerConfig[]): McpToolBin
 
   const bindings: McpToolBinding[] = []
   for (const server of mcpServers) {
-    for (const tool of server.tools) {
+    for (const tool of getEnabledMcpTools(server)) {
       bindings.push({
         agentToolName: buildMcpAgentToolName(server.url, tool.name),
         serverUrl: server.url,
@@ -65,7 +65,7 @@ export function buildMcpAgentTools(mcpServers?: McpServerConfig[]): McpAgentTool
 
   const tools: McpAgentToolDefinition[] = []
   for (const server of mcpServers) {
-    for (const tool of server.tools) {
+    for (const tool of getEnabledMcpTools(server)) {
       tools.push({
         type: 'function',
         function: {

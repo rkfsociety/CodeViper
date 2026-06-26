@@ -87,7 +87,8 @@ export const PersistedSettingsSchema = z.object({
             description: z.string(),
             parameters: z.record(z.string(), z.unknown())
           })
-        )
+        ),
+        enabledTools: z.array(z.string()).optional()
       })
     )
     .optional(),

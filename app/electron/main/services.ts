@@ -10,13 +10,20 @@ import {
   unlink,
   writeFile
 } from 'fs/promises'
-import { constants, watch as fsWatch } from 'fs'
-import { dirname, join, resolve, sep } from 'path'
+import { constants, existsSync, watch as fsWatch } from 'fs'
+import { dirname, join, relative, resolve, sep } from 'path'
 import type { FileNode } from '../../src/types'
 import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
 import { readLargeFileQueued } from './largeFileQueue'
 import { invalidateGrepCache } from './fileSearchInWorker'
 import { loadIgnorePatterns, shouldIgnorePath, clearIgnorePatternsCache } from './ignorePatterns'
+import { scheduleIncrementalProjectIndex } from './embeddingQueue'
+import { loadSettings } from './settings'
+import {
+  isProjectIndexableRelPath,
+  reindexSingleProjectFile,
+  removeSingleProjectFileFromIndex
+} from './contextRAG'
 import {
   FILE_SIZE_LIMIT_BYTES,
   FILE_PREVIEW_THRESHOLD_BYTES,
@@ -68,13 +75,70 @@ export function invalidateFileTreeCache(dirPath?: string): void {
 
 const watchedDirs = new Set<string>()
 
+async function shouldSkipIncrementalIndex(projectPath: string, relPath: string): Promise<boolean> {
+  if (!isProjectIndexableRelPath(relPath)) return true
+  const rules = await loadIgnorePatterns(projectPath)
+  for (const seg of relPath.split(/[/\\]/)) {
+    if (IGNORED.has(seg)) return true
+    if (shouldIgnorePath(seg, rules)) return true
+  }
+  return false
+}
+
+function scheduleIncrementalIndexOnFileChange(
+  projectPath: string,
+  filename: string,
+  eventType: string
+): void {
+  if (!filename) return
+  const absPath = resolve(projectPath, filename)
+  const key = `${projectPath}\0${absPath}`
+  scheduleIncrementalProjectIndex(key, async () => {
+    const settings = await loadSettings()
+    if (!settings.qdrantUrl || !settings.ollamaUrl) return
+
+    const relPath = relative(projectPath, absPath).split(sep).join('/')
+    if (await shouldSkipIncrementalIndex(projectPath, relPath)) return
+
+    if (eventType === 'rename' && !existsSync(absPath)) {
+      await removeSingleProjectFileFromIndex(
+        projectPath,
+        relPath,
+        settings.qdrantUrl,
+        settings.qdrantApiKey
+      )
+      return
+    }
+
+    if (!existsSync(absPath)) return
+    let info
+    try {
+      info = await stat(absPath)
+    } catch {
+      return
+    }
+    if (!info.isFile()) return
+
+    await reindexSingleProjectFile(
+      projectPath,
+      absPath,
+      settings.ollamaUrl,
+      settings.qdrantUrl,
+      settings.qdrantApiKey
+    )
+  })
+}
+
 export function watchProjectForCacheInvalidation(dirPath: string): void {
   if (watchedDirs.has(dirPath)) return
   watchedDirs.add(dirPath)
   try {
-    fsWatch(dirPath, { recursive: true }, () => {
+    fsWatch(dirPath, { recursive: true }, (eventType, filename) => {
       invalidateFileTreeCache(dirPath)
       invalidateGrepCache(dirPath)
+      if (filename) {
+        scheduleIncrementalIndexOnFileChange(dirPath, filename, eventType)
+      }
     })
   } catch {
     // fs.watch may fail on some network drives or permission-restricted paths

@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import { QdrantClient } from '@qdrant/js-client-rest'
 import type { AgentSettings } from '../../src/types'
 
 // ─── Интерфейс ───────────────────────────────────────────────────
@@ -485,5 +486,68 @@ export class MilvusVectorStore implements VectorStore {
       collectionName: MILVUS_COLLECTION,
       filter: `ts < ${cutoff}`
     }).catch(() => {})
+  }
+}
+
+// ─── ProjectQdrantIndex (файлы проекта в codeviper_project) ───────
+
+export const PROJECT_QDRANT_COLLECTION = 'codeviper_project'
+
+export interface ProjectQdrantPoint {
+  id: string
+  vector: number[]
+  payload: Record<string, unknown>
+}
+
+/** Индекс исходников проекта в Qdrant (коллекция codeviper_project). */
+export class ProjectQdrantIndex {
+  private client: QdrantClient
+  private collectionReady = false
+
+  constructor(url: string, apiKey?: string) {
+    this.client = new QdrantClient({
+      url,
+      ...(apiKey ? { apiKey } : {})
+    })
+  }
+
+  async ensureCollection(dim = 768): Promise<boolean> {
+    if (this.collectionReady) return true
+    try {
+      const cols = await this.client.getCollections()
+      const exists = cols.collections.some((c) => c.name === PROJECT_QDRANT_COLLECTION)
+      if (!exists) {
+        await this.client.createCollection(PROJECT_QDRANT_COLLECTION, {
+          vectors: { size: dim, distance: 'Cosine' }
+        })
+      }
+      this.collectionReady = true
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** Удалить все чанки файла из индекса проекта. */
+  async deleteFile(filePath: string, projectPath: string): Promise<void> {
+    try {
+      await this.client.delete(PROJECT_QDRANT_COLLECTION, {
+        wait: false,
+        filter: {
+          must: [
+            { key: 'filePath', match: { value: filePath } },
+            { key: 'projectPath', match: { value: projectPath } }
+          ]
+        }
+      })
+    } catch {
+      // коллекция может отсутствовать до первой индексации
+    }
+  }
+
+  async upsertPoints(points: ProjectQdrantPoint[]): Promise<void> {
+    if (points.length === 0) return
+    if (!(await this.ensureCollection(points[0].vector.length))) return
+    await this.client.upsert(PROJECT_QDRANT_COLLECTION, { points, wait: false })
   }
 }
