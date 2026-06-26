@@ -15,6 +15,7 @@ vi.mock('electron', () => ({
 }))
 
 import {
+  getActiveAgentSourceRootPath,
   getRuntimeMainPath,
   getRuntimeHandlersPath,
   initBundledRuntimeHandlers,
@@ -59,6 +60,16 @@ describe('runtimeBootstrap', () => {
     expect(getRuntimeMainPath({ isPackaged: true })).toBe(cloneMain)
   })
 
+  it('getRuntimeMainPath fallback на asar если клон существует но файл слишком мал', () => {
+    setRuntimeBootstrapTestHooks({
+      existsSync: (p) => p === cloneMain || p === asarMain,
+      statSize: (p) =>
+        p === cloneMain ? 10 : p === asarMain ? BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100 : 0
+    })
+
+    expect(getRuntimeMainPath({ isPackaged: true })).toBe(asarMain)
+  })
+
   it('getRuntimeMainPath fallback на asar если клон невалиден', () => {
     setRuntimeBootstrapTestHooks({
       existsSync: (p) => p === asarMain,
@@ -66,6 +77,16 @@ describe('runtimeBootstrap', () => {
     })
 
     expect(getRuntimeMainPath({ isPackaged: true })).toBe(asarMain)
+  })
+
+  it('getRuntimeMainPath в dev использует out/main из cwd', () => {
+    const devMain = join(process.cwd(), 'out', 'main', 'index.js')
+    setRuntimeBootstrapTestHooks({
+      existsSync: (p) => p === devMain,
+      statSize: () => BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100
+    })
+
+    expect(getRuntimeMainPath({ isPackaged: false })).toBe(devMain)
   })
 
   it('getRuntimeHandlersPath рядом с runtime main', () => {
@@ -106,5 +127,16 @@ describe('runtimeBootstrap', () => {
     expect(loaded).toBe(false)
     expect(isBundledRuntimeFromClone()).toBe(false)
     expect(resolveAgentHandlerFactories()).toBe(asarFactories)
+  })
+
+  it('getActiveAgentSourceRootPath указывает на клон после initBundledRuntimeHandlers', async () => {
+    setRuntimeBootstrapTestHooks({
+      existsSync: (p) => p === cloneMain || p === cloneHandlers,
+      statSize: () => BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100,
+      importModule: async () => asarFactories
+    })
+
+    await initBundledRuntimeHandlers(true, { isPackaged: true })
+    expect(getActiveAgentSourceRootPath()).toBe(cloneApp)
   })
 })

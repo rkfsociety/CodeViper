@@ -20,6 +20,7 @@ import {
   syncBundledSourceIfEnabled,
   type GitRunResult
 } from '../electron/main/bundledSourceSync'
+import { getBundledSourceAppRoot } from '../electron/main/bundledSourceBuild'
 
 describe('bundledSourceSync', () => {
   beforeEach(() => {
@@ -34,6 +35,10 @@ describe('bundledSourceSync', () => {
 
   it('getBundledSourceRoot указывает на userData/source', () => {
     expect(getBundledSourceRoot()).toBe(join(userDataDir, 'source'))
+  })
+
+  it('getBundledSourceAppRoot указывает на userData/source/app', () => {
+    expect(getBundledSourceAppRoot()).toBe(join(userDataDir, 'source', 'app'))
   })
 
   it('без клона возвращает { updated: false }', async () => {
