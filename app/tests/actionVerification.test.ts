@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   claimsActionCompleted,
   looksLikeAdviceInsteadOfAction,
+  MUTATING_TOOLS,
   needsToolVerification,
   shouldRetryForMissingTools,
   taskLikelyNeedsMutation,
@@ -75,5 +76,23 @@ describe('actionVerification', () => {
     expect(taskLikelyNeedsMutation(message)).toBe(true)
     expect(taskLikelyNeedsTools(message)).toBe(true)
     expect(shouldRetryForMissingTools(message, 'A'.repeat(120), new Set(), true)).toBe(true)
+  })
+
+  it('MUTATING_TOOLS: GitHub и файловые ops', () => {
+    for (const tool of [
+      'create_issue',
+      'create_pr',
+      'trigger_github_workflow',
+      'copy_file',
+      'move_file',
+      'rename_folder',
+      'copy_folder'
+    ]) {
+      expect(MUTATING_TOOLS.has(tool)).toBe(true)
+    }
+  })
+
+  it('«создай PR» — задача с изменениями', () => {
+    expect(taskLikelyNeedsMutation('создай PR')).toBe(true)
   })
 })
