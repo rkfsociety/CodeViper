@@ -24,7 +24,7 @@
 
 **Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org) (для запуска из исходников), 8 ГБ RAM.
 
-**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — ярлыки запускают `CodeViper.exe`; при установке запросит **права администратора (UAC)**. Если окно пустое или чёрное после обновления — переустановите **0.3.0+**, удалите `%APPDATA%\codeviper\GPUCache` и `%APPDATA%\codeviper\ShaderCache`, либо временно переименуйте `%USERPROFILE%\.codeviper\plugins`.
+**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — ярлыки запускают `CodeViper.exe`; при установке запросит **права администратора (UAC)** и **[Git for Windows](https://git-scm.com)** в PATH (клон в `%APPDATA%/CodeViper/source`). Если окно пустое или чёрное после обновления — переустановите **0.3.0+**, удалите `%APPDATA%\codeviper\GPUCache` и `%APPDATA%\codeviper\ShaderCache`, либо временно переименуйте `%USERPROFILE%\.codeviper\plugins`.
 
 ```powershell
 git clone https://github.com/rkfsociety/CodeViper.git
@@ -32,6 +32,10 @@ cd CodeViper/app && npm install
 ```
 
 Двойной клик на **`CodeViper.cmd`**. Ошибка — **`CodeViper.cmd console`**. Подробнее — [вики · Быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт).
+
+## Обновление без переустановки
+
+Установщик клонирует репозиторий в **`%APPDATA%/CodeViper/source`** (нужен **Git for Windows** в PATH). Тонкая оболочка `CodeViper.exe` редко меняется; agent runtime подтягивается с GitHub: `git pull` → сборка в `source/app` → баннер **«Перезапустить для применения»**. Полный релиз `.exe` — только для Electron, NSIS или багов оболочки. Подробнее — [docs/development.md](docs/development.md#обновление-без-переустановки-live-runtime).
 
 ## Документация
 
@@ -49,8 +53,8 @@ cd CodeViper/app && npm install
 | | |
 |---|---|
 | [Демонстрации (GIF)](docs/demos.md) | [Примеры запросов](docs/example-prompts.md) |
-| [Интеграции (MCP, P2P, коллективная память)](docs/integrations.md) | [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) |
-| [ROADMAP](ROADMAP.md) (**блок 0** — live runtime, затем 144 задач) | блок 0: `Выполни пункт N из ROADMAP.md — блок 0, live runtime` |
+| [Интеграции (MCP, P2P, коллективная память)](docs/integrations.md) | [Разработка и live runtime](docs/development.md) |
+| [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) | [ROADMAP](ROADMAP.md) (**блок 0** — live runtime, затем 143 задачи) |
 
 ## Участие
 

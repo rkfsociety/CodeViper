@@ -2,7 +2,7 @@
 
 Планы развития и список выполненного. Назад в [README](README.md).
 
-> **Принцип чтения:** сначала **Блок 0 (пункты 1–2)** — live runtime с GitHub; только после него — «📋 В планах» (3…144). Внутри цепочки — строгий порядок.
+> **Принцип чтения:** сначала **Блок 0 (пункт 1)** — live runtime с GitHub; только после него — «📋 В планах» (3…144). Внутри цепочки — строгий порядок.
 
 ## 🚨 Блок 0 — Live runtime с GitHub (ПРИОРИТЕТ №1)
 
@@ -33,13 +33,7 @@
 
 > `.exe` — редко меняемая оболочка. Инструменты и agent runtime — из клона. NSIS уже делает `git clone` / `git pull` при установке; задача блока 0 — заставить **работающий** `.exe` использовать этот клон.
 
-**1 · S · Документация live runtime** — блок 0
-- **Цель:** README и docs: установка vs live runtime; путь клона; нужен Git
-- **Файлы:** `README.md`, `docs/development.md`
-- **Действие:** раздел «Обновление без переустановки»
-- **Проверка:** текст упоминает `%APPDATA%/CodeViper/source`
-
-**2 · M · Тесты bundled source runtime** — блок 0
+**1 · M · Тесты bundled source runtime** — блок 0
 - **Цель:** unit-тесты sync/build/path resolution для live runtime
 - **Файлы:** `app/tests/bundledSourceSync.test.ts`, `app/tests/runtimeBootstrap.test.ts`
 - **Действие:** mock git/fs; `getRuntimeMainPath()` предпочитает клон при валидном out/
@@ -63,7 +57,7 @@ N · [S/M/L/XL] · Краткое название — блок 0 | уровен
 
 **Промпты:** блок 0 → `Выполни пункт N из ROADMAP.md — блок 0, live runtime.` · пункты 3+ → `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** блок **0 (1–2)** — первым; затем **3…144**; внутри цепочки — строго по порядку.
+**Правила:** блок **0 (1)** — первым; затем **3…144**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
@@ -1058,6 +1052,7 @@ N · [S/M/L/XL] · Краткое название — блок 0 | уровен
 ## ✅ Сделано
 
 **Live runtime (блок 0)**
+- Документация live runtime: README и docs/development.md — «Обновление без переустановки», путь %APPDATA%/CodeViper/source, Git, установка vs live runtime
 - bundledSourceSync: путь %APPDATA%/CodeViper/source, syncBundledSource() с git pull --ff-only, лог в userData/logs
 - runtimeUpdate: баннер «Перезапустить для применения» после pull+build, relaunch → bootstrap из клона
 - runtimeBootstrap: dynamic import runtimeHandlers.js из клона, resolveAgentHandlerFactories, fallback asar
