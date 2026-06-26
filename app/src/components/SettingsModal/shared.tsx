@@ -91,6 +91,8 @@ export const TOOL_GROUPS: { id: string; label: string; desc: string; tools: stri
       'git_commit',
       'git_push',
       'git_checkout',
+      'git_stash',
+      'git_stash_pop',
       'recent_changes'
     ]
   },

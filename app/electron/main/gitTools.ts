@@ -253,3 +253,30 @@ export async function gitCheckout(
 
   return formatGitResult(result)
 }
+
+const DEFAULT_STASH_MESSAGE = 'codeviper-stash'
+
+/** git stash push -m внутри projectPath (spawn, без shell). */
+export async function gitStash(projectPath: string, message?: string): Promise<string> {
+  const repoError = await ensureGitRepo(projectPath)
+  if (repoError) return repoError
+
+  const trimmed = message?.trim()
+  const stashMessage = trimmed || DEFAULT_STASH_MESSAGE
+  if (trimmed) {
+    const messageError = validateCommitMessage(trimmed)
+    if (messageError) return messageError
+  }
+
+  const result = await runGit(projectPath, ['stash', 'push', '-m', stashMessage])
+  return formatGitResult(result)
+}
+
+/** git stash pop внутри projectPath (spawn, без shell). */
+export async function gitStashPop(projectPath: string): Promise<string> {
+  const repoError = await ensureGitRepo(projectPath)
+  if (repoError) return repoError
+
+  const result = await runGit(projectPath, ['stash', 'pop'])
+  return formatGitResult(result)
+}

@@ -224,6 +224,8 @@ export interface AgentSettings {
   modelContextLength?: number
   /** Порог суммаризации контекста в процентах (50–85, дефолт 85) */
   contextSummarizeThreshold?: number
+  /** Макс. стоимость облачного прогона в USD (0 = без лимита) */
+  maxCostPerRunUsd?: number
   /** Агрессивное сжатие: суммаризировать при 65% заполнения (экономия 30–40%) */
   aggressiveCompression?: boolean
   /** Режим энергосбережения: батчинг обновлений UI (300 мс), анимации отключены */

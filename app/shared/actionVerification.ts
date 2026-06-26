@@ -35,7 +35,9 @@ export const MUTATING_TOOLS = new Set([
   'delegate_to_editor',
   'git_commit',
   'git_push',
-  'git_checkout'
+  'git_checkout',
+  'git_stash',
+  'git_stash_pop'
 ])
 
 const MUTATION_TASK_PATTERNS: RegExp[] = [

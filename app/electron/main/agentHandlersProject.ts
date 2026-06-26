@@ -7,7 +7,16 @@ import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
 import type { ToolHandlers } from './agentTools'
 import { AgentError } from '../../shared/agentError'
 import { isInsideProject } from './services'
-import { gitStatus, gitDiff, gitLog, gitCommit, gitPush, gitCheckout } from './gitTools'
+import {
+  gitStatus,
+  gitDiff,
+  gitLog,
+  gitCommit,
+  gitPush,
+  gitCheckout,
+  gitStash,
+  gitStashPop
+} from './gitTools'
 import { emitProgress, clearProgress } from './progress'
 import type { ProjectToolOptions } from './agentHandlersProjectContext'
 import { createFileHandlers } from './agentHandlersProjectFile'
@@ -250,6 +259,16 @@ export function createProjectToolHandlers(
     git_checkout: async (args) => {
       if (options?.readonlyMode) throw new AgentError(READONLY_ERROR, 'readonly')
       return gitCheckout(projectPath, { branch: args.branch, force: args.force })
+    },
+
+    git_stash: async (args) => {
+      if (options?.readonlyMode) throw new AgentError(READONLY_ERROR, 'readonly')
+      return gitStash(projectPath, args.message)
+    },
+
+    git_stash_pop: async (_args) => {
+      if (options?.readonlyMode) throw new AgentError(READONLY_ERROR, 'readonly')
+      return gitStashPop(projectPath)
     },
 
     recent_changes: async (args) =>

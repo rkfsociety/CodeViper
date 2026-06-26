@@ -113,7 +113,10 @@ export function getAgentTools(
   const disabledKey = disabled ? [...disabled].sort().join(',') : ''
   const mcpKey = mcpServers?.length
     ? mcpServers
-        .map((server) => `${server.url}:${server.tools.map((tool) => tool.name).join(',')}`)
+        .map(
+          (server) =>
+            `${server.url}:${server.enabledTools?.slice().sort().join('+') ?? '*'}:${server.tools.map((tool) => tool.name).join(',')}`
+        )
         .join('|')
     : ''
   const pluginKey = pluginTools
@@ -185,6 +188,8 @@ export interface ToolArgs {
   git_commit: { message: string }
   git_push: { remote?: string; branch?: string }
   git_checkout: { branch: string; force?: string }
+  git_stash: { message?: string }
+  git_stash_pop: Record<string, never>
   create_issue: { title: string; body?: string; labels?: string }
   create_pr: { title?: string; body?: string }
   list_issues: Record<string, never>

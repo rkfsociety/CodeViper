@@ -25,6 +25,8 @@ export const TOOL_LABELS: Record<string, string> = {
   git_commit: 'Создаю git commit',
   git_push: 'Отправляю git push',
   git_checkout: 'Переключаю ветку git',
+  git_stash: 'Сохраняю в git stash',
+  git_stash_pop: 'Восстанавливаю git stash',
   create_issue: 'Создаю issue',
   create_pr: 'Создаю PR',
   list_issues: 'Смотрю issues',
@@ -119,7 +121,9 @@ export function compactToolChatLine(
       const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
       return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
     }
-    case 'git_checkout': {
+    case 'git_checkout':
+    case 'git_stash':
+    case 'git_stash_pop': {
       const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
       return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
     }

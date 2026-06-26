@@ -20,7 +20,9 @@ const CONFIRM_IN_ACCEPT_EDITS = new Set<string>([
   'create_codeviper_pr',
   'git_commit',
   'git_push',
-  'git_checkout'
+  'git_checkout',
+  'git_stash',
+  'git_stash_pop'
 ])
 
 export function normalizePermissionMode(value: unknown): PermissionMode {

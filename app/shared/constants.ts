@@ -33,6 +33,20 @@ export const COMMAND_TIMEOUT_SEC_MIN = 10
 export const COMMAND_TIMEOUT_SEC_MAX = 600
 
 // ── Агент: таймауты ───────────────────────────────────────────────────────────
+/** Лимит стоимости прогона по умолчанию (USD). 0 = без лимита. */
+export const DEFAULT_MAX_COST_PER_RUN_USD = 0
+
+/** 0 или undefined — лимит отключён. */
+export function resolveMaxCostPerRunUsd(limit: number | undefined | null): number | null {
+  if (limit == null || limit <= 0) return null
+  return limit
+}
+
+/** true, если накопленная стоимость превысила лимит. */
+export function isCostLimitExceeded(estimatedCostUsd: number, maxCostUsd: number | null): boolean {
+  return maxCostUsd != null && estimatedCostUsd > maxCostUsd
+}
+
 /** Таймаут одного LLM-шага (мс). Зависший запрос прерывается и агент сообщает об ошибке. */
 export const AGENT_STEP_TIMEOUT_MS = 120_000
 /** Максимальное суммарное время одного прогона агента (мс). По истечении — ошибка таймаута. */
@@ -99,6 +113,12 @@ export const DEFAULT_MODEL_PROVIDER = 'ollama' as const
 // ── MCP ───────────────────────────────────────────────────────────────────────
 /** Таймаут запроса манифеста MCP-сервера (мс) */
 export const MCP_MANIFEST_TIMEOUT_MS = 15_000
+/** Таймаут ping MCP при старте приложения — не блокировать запуск. */
+export const MCP_HEALTH_CHECK_TIMEOUT_MS = 5_000
+
+// ── Индексация проекта ────────────────────────────────────────────────────────
+/** Debounce переиндексации файла после изменения (мс) */
+export const PROJECT_INDEX_DEBOUNCE_MS = 2_000
 
 // ── Коллективная память ───────────────────────────────────────────────────────
 /** Общие знания агента в репозитории CodeViper (синхронизация через git) */

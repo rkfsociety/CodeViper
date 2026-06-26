@@ -213,6 +213,28 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
             </span>
           </label>
 
+          <label>
+            Лимит стоимости за прогон (USD)
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              placeholder="0 — без лимита"
+              value={settings.maxCostPerRunUsd ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value.trim()
+                onSettingsChange({
+                  maxCostPerRunUsd: raw === '' ? undefined : Math.max(0, parseFloat(raw) || 0)
+                })
+              }}
+            />
+          </label>
+          <div className={`${styles.hint} ${styles.hintInline}`}>
+            Для облачных моделей: прогон останавливается, когда оценочная стоимость (
+            <code>estimatedCostUsd</code>) превышает лимит. Ollama — бесплатно, лимит не
+            применяется.
+          </div>
+
           <label className={styles.toggle}>
             <input
               type="checkbox"

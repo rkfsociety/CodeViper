@@ -640,6 +640,35 @@ export const GIT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'git_stash',
+      description:
+        'Спрятать незакоммиченные изменения в stash (безопаснее run_command git stash). Перед опасными операциями.',
+      parameters: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            description: 'Сообщение stash (-m); по умолчанию codeviper-stash'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'git_stash_pop',
+      description:
+        'Вернуть последний stash на рабочую копию (git stash pop). Может вызвать конфликты слияния.',
+      parameters: {
+        type: 'object',
+        properties: {}
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'recent_changes',
       description: 'Краткая сводка последних изменений git по проекту или папке',
       parameters: {

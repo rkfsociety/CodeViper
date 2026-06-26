@@ -3,7 +3,14 @@ import { execSync } from 'child_process'
 import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { resolve, join } from 'path'
-import { gitStatus, gitDiff, gitLog, gitCommit } from '../electron/main/gitTools'
+import {
+  gitStatus,
+  gitDiff,
+  gitLog,
+  gitCommit,
+  gitStash,
+  gitStashPop
+} from '../electron/main/gitTools'
 
 // Корень репозитория — два уровня вверх от папки app/
 const REPO_ROOT = resolve(__dirname, '../..')
@@ -83,6 +90,50 @@ describe('gitCommit', () => {
     const dir = initTempRepo()
     try {
       const result = await gitCommit(dir, '--allow-empty')
+      expect(result).toMatch(/не может начинаться/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('gitStash / gitStashPop', () => {
+  it('round-trip: stash очищает дерево, pop восстанавливает правки', async () => {
+    const dir = initTempRepo()
+    try {
+      writeFileSync(join(dir, 'base.txt'), 'initial', 'utf8')
+      execSync('git add base.txt', { cwd: dir, stdio: 'ignore' })
+      execSync('git commit -m init', { cwd: dir, stdio: 'ignore' })
+
+      writeFileSync(join(dir, 'base.txt'), 'before stash', 'utf8')
+
+      const dirty = await gitStatus(dir)
+      expect(dirty).toMatch(/base\.txt/)
+
+      const stashResult = await gitStash(dir, 'test stash')
+      expect(stashResult).toMatch(/^exit: 0/)
+
+      const clean = await gitStatus(dir)
+      expect(clean).not.toMatch(/^\s*M\s+base\.txt/m)
+
+      const popResult = await gitStashPop(dir)
+      expect(popResult).toMatch(/^exit: 0/)
+
+      const restored = await gitStatus(dir)
+      expect(restored).toMatch(/base\.txt/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('отклоняет недопустимое сообщение stash', async () => {
+    const dir = initTempRepo()
+    try {
+      writeFileSync(join(dir, 'base.txt'), 'initial', 'utf8')
+      execSync('git add base.txt', { cwd: dir, stdio: 'ignore' })
+      execSync('git commit -m init', { cwd: dir, stdio: 'ignore' })
+      writeFileSync(join(dir, 'base.txt'), 'changed', 'utf8')
+      const result = await gitStash(dir, '--invalid')
       expect(result).toMatch(/не может начинаться/)
     } finally {
       rmSync(dir, { recursive: true, force: true })
