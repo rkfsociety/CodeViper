@@ -2,93 +2,118 @@
 
 Планы развития и список выполненного. Назад в [README](README.md).
 
-> **Принцип чтения:** пункты **1…150** отсортированы по важности (🔴→🟢). Первая цепочка — **live runtime с GitHub (1–8)**. Внутри цепочки — строгий порядок; между несвязанными пунктами — тоже сверху вниз.
+> **Принцип чтения:** сначала **Блок 0 (пункты 1–8)** — live runtime с GitHub; только после него — «📋 В планах» (9…150). Внутри цепочки — строгий порядок.
 
+## 🚨 Блок 0 — Live runtime с GitHub (ПРИОРИТЕТ №1)
+
+> **Сделать в первую очередь**, до остальных пунктов ROADMAP. Пока блок 0 не готов, установленный `.exe` выполняет логику агента из **asar** — каждый фикс инструментов тянет **полный релиз** или ручной `CodeViper.cmd`.
+
+### Когда нужен полный релиз (NSIS, `vX.Y.Z`, переустановка)
+
+| Ситуация | Действие |
+|----------|----------|
+| Первая установка на машине | `CodeViper-Setup-*.exe` |
+| Смена Electron, NSIS, portable Node, подпись, иконка | bump `version` → CI → тег → установщик |
+| Критичный баг **оболочки** (окно не открывается, IPC, трей) | релиз оболочки |
+| Блок 0 ещё **не выполнен** | релиз даёт новый asar; мелкие фиксы агента всё равно в asar |
+
+### Когда релиз **не** нужен (после завершения блока 0)
+
+| Ситуация | Действие |
+|----------|----------|
+| Фикс `list_directory`, handlers, промптов, ROADMAP-логики | `git push` на `master` → у пользователя: pull в `%APPDATA%\CodeViper\source` → build → **перезапуск** `.exe` |
+| Документация, skills, collective memory | push на GitHub; перезапуск или без него |
+| Обычный коммит разработки | **без** bump `version` и **без** тега |
+
+**Путь клона (уже создаётся установщиком):** `%APPDATA%\CodeViper\source` → `app/` — исходники и `out/main` после build.
+
+**Промпт для самоулучшения блока 0:** `Выполни пункт N из ROADMAP.md — блок 0, live runtime.`
+
+### 🔗 Цепочка: тонкая оболочка + runtime с GitHub
+
+> `.exe` — редко меняемая оболочка. Инструменты и agent runtime — из клона. NSIS уже делает `git clone` / `git pull` при установке; задача блока 0 — заставить **работающий** `.exe` использовать этот клон.
+
+**1 · M · bundledSourceSync — пути и git pull** — блок 0
+- **Цель:** модуль знает `%APPDATA%/CodeViper/source`, делает `git pull --ff-only`, возвращает `{ updated, localHead, error? }`
+- **Файлы:** `app/electron/main/bundledSourceSync.ts`, `app/shared/constants.ts` (константа пути)
+- **Действие:** `getBundledSourceRoot()`, `syncBundledSource()`; лог в `userData/logs`; без pull если нет `.git`
+- **Проверка:** unit-тест с mock git; при отсутствии клона — `{ updated: false }`
+
+**2 · S · Настройка liveRuntimeFromGit** — блок 0
+- **Цель:** `liveRuntimeFromGit` в settings (default `true` для packaged); тумблер в BehaviorTab
+- **Файлы:** `app/electron/main/settings.ts`, `app/src/components/SettingsModal/BehaviorTab.tsx`, `app/src/types.ts`
+- **Действие:** Zod optional с default; UI «Обновлять runtime с GitHub»
+- **Проверка:** настройка сохраняется; при `false` sync не вызывается
+
+**3 · M · Startup sync для packaged** — блок 0
+- **Цель:** при `app.isPackaged` и `liveRuntimeFromGit` — `syncBundledSource()` при старте (не блокируя UI дольше 3 с)
+- **Файлы:** `app/electron/main/index.ts`, `bundledSourceSync.ts`
+- **Действие:** фоновый pull; при ошибке — лог, работа из asar
+- **Проверка:** unit/smoke: packaged + mock → sync вызван
+
+**4 · M · Сборка runtime в клоне** — блок 0
+- **Цель:** после pull с изменениями в `app/` — `npm install` при необходимости + `npm run build` в `source/app` через portable Node
+- **Файлы:** `app/electron/main/bundledSourceBuild.ts`, `codeviperSource.ts`
+- **Действие:** проверка stale `out/main`; `runCodeViperCommand` в корне клона; IPC прогресса опционально
+- **Проверка:** integration: после изменения в клоне → build обновляет `out/main/index.js`
+
+**5 · L · Загрузка agent runtime из клона** — блок 0
+- **Цель:** packaged-приложение выполняет tool handlers из `.../source/app/out/main`, не из asar
+- **Файлы:** `app/electron/main/runtimeBootstrap.ts`, `agentToolExecutor.ts`, `agent.ts`, `index.ts`
+- **Действие:** при валидном `out/main` клона — dynamic import модулей handlers; fallback на asar
+- **Проверка:** правка handler в клоне + build → после restart новое поведение без переустановки `.exe`
+
+**6 · M · Relaunch после обновления runtime** — блок 0
+- **Цель:** после pull+build — баннер «Перезапустить для применения»; relaunch с bootstrap из клона
+- **Файлы:** `app/electron/main/runtimeUpdate.ts`, `app/src/App.tsx`, `updateChecker.ts`
+- **Действие:** событие `runtime-update-ready`; кнопка как у release update
+- **Проверка:** UI: баннер → перезапуск → runtime из клона активен
+
+**7 · S · Документация live runtime** — блок 0
+- **Цель:** README и docs: установка vs live runtime; путь клона; нужен Git
+- **Файлы:** `README.md`, `docs/development.md`
+- **Действие:** раздел «Обновление без переустановки»
+- **Проверка:** текст упоминает `%APPDATA%/CodeViper/source`
+
+**8 · M · Тесты bundled source runtime** — блок 0
+- **Цель:** unit-тесты sync/build/path resolution для live runtime
+- **Файлы:** `app/tests/bundledSourceSync.test.ts`, `app/tests/runtimeBootstrap.test.ts`
+- **Действие:** mock git/fs; `getRuntimeMainPath()` предпочитает клон при валидном out/
+- **Проверка:** `npm test -- bundledSource runtimeBootstrap`
+
+---
 
 ### Формат задач для самообучения агента
 
-Каждый пункт в «📋 В планах» следует **одному шаблону** — агент читает `ROADMAP.md` и строит `set_self_improvement_plan` без уточнений.
+Каждый пункт следует **одному шаблону** — агент читает `ROADMAP.md` и строит `set_self_improvement_plan`.
 
 **Шаблон пункта:**
 
 ```text
-N · [S/M/L/XL] · Краткое название — уровень 1…150
+N · [S/M/L/XL] · Краткое название — блок 0 | уровень 9…150
 - Цель: один измеримый результат
 - Файлы: конкретные пути (app/electron/main/…, app/src/…)
 - Действие: одна атомарная правка
 - Проверка: npm run typecheck | npm test -- … | сценарий в UI
 ```
 
-**Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
+**Промпты:** блок 0 → `Выполни пункт N из ROADMAP.md — блок 0, live runtime.` · пункты 9+ → `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** нумерация **1…150 по убыванию важности** (уровень 1 — первым); внутри цепочки — строго по порядку; один пункт = один прогон; после проверки — `complete_self_improvement_item`.
+**Правила:** блок **0 (1–8)** — первым; затем **9…150**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Нумерация сквозная **1…150** — **отсортировано по важности и пользе** (уровни 1→4). Сначала live runtime и надёжность, затем UX, расширения, polish. Сложность: S / M / L / XL. Выполненные цепочки см. «✅ Сделано».
-
-### 🔴 Уровень 1 — критично
-
-> Надёжность агента, **live runtime с GitHub (1–8)**, безопасность, тесты ядра. **Цепочки** (строго по порядку): **live runtime 1–8**, ignore **9–10**, roadmap/github **11–15**, split-view **28–30**, onboarding **41–43**, редактор **65–66**, worktree **70–72**, LSP **94–96**, i18n **150–154**.
+> Пункты **9…150**. **Не начинать, пока блок 0 не в «✅ Сделано»** — иначе каждый фикс агента снова требует релиза.
 
 
+### 🔴 Уровень 1 — критично (с пункта 9)
 
+> **Цепочки:** ignore **9–10**, roadmap/github **11–15**, split-view **28–30**, onboarding **41–43**, редактор **65–66**, worktree **70–72**, LSP **94–96**, i18n **150–154**.
 
 
 
 
 
-### 🔗 Тонкая оболочка + live runtime с GitHub
-
-> Установленный `.exe` — редко меняемая оболочка (окно, IPC, настройки). Логика агента и инструменты — из `%APPDATA%\\CodeViper\\source` (NSIS уже клонирует репо при установке). Мелкие фиксы на GitHub → pull + build + restart, без NSIS и без bump версии.
-
-**1 · M · bundledSourceSync — пути и git pull** — уровень 1
-- **Цель:** модуль знает `%APPDATA%/CodeViper/source`, делает `git pull --ff-only`, возвращает `{ updated, localHead, error? }`
-- **Файлы:** `app/electron/main/bundledSourceSync.ts`, `app/shared/constants.ts` (константа пути)
-- **Действие:** `getBundledSourceRoot()`, `syncBundledSource()`; лог в `userData/logs`; без pull если нет `.git`
-- **Проверка:** unit-тест с mock git; при отсутствии клона — `{ updated: false }`
-
-**2 · S · Настройка liveRuntimeFromGit** — уровень 1
-- **Цель:** `liveRuntimeFromGit` в settings (default `true` для packaged); тумблер в BehaviorTab
-- **Файлы:** `app/electron/main/settings.ts`, `app/src/components/SettingsModal/BehaviorTab.tsx`, `app/src/types.ts`
-- **Действие:** Zod optional с default; UI «Обновлять runtime с GitHub»
-- **Проверка:** настройка сохраняется; при `false` sync не вызывается
-
-**3 · M · Startup sync для packaged** — уровень 1
-- **Цель:** при `app.isPackaged` и `liveRuntimeFromGit` — `syncBundledSource()` при старте (не блокируя UI дольше 3 с)
-- **Файлы:** `app/electron/main/index.ts`, `bundledSourceSync.ts`
-- **Действие:** фоновый pull; при ошибке — лог, работа из asar
-- **Проверка:** unit/smoke: packaged + mock → sync вызван
-
-**4 · M · Сборка runtime в клоне** — уровень 1
-- **Цель:** после pull с изменениями в `app/` — `npm install` при необходимости + `npm run build` в `source/app` через portable Node
-- **Файлы:** `app/electron/main/bundledSourceBuild.ts`, `codeviperSource.ts`
-- **Действие:** проверка stale `out/main`; `runCodeViperCommand` в корне клона; IPC прогресса опционально
-- **Проверка:** integration: после изменения в клоне → build обновляет `out/main/index.js`
-
-**5 · L · Загрузка agent runtime из клона** — уровень 1
-- **Цель:** packaged-приложение выполняет tool handlers из `.../source/app/out/main`, не из asar
-- **Файлы:** `app/electron/main/runtimeBootstrap.ts`, `agentToolExecutor.ts`, `agent.ts`, `index.ts`
-- **Действие:** при валидном `out/main` клона — dynamic import модулей handlers; fallback на asar
-- **Проверка:** правка handler в клоне + build → после restart новое поведение без переустановки `.exe`
-
-**6 · M · Relaunch после обновления runtime** — уровень 1
-- **Цель:** после pull+build — баннер «Перезапустить для применения»; relaunch с bootstrap из клона
-- **Файлы:** `app/electron/main/runtimeUpdate.ts`, `app/src/App.tsx`, `updateChecker.ts`
-- **Действие:** событие `runtime-update-ready`; кнопка как у release update
-- **Проверка:** UI: баннер → перезапуск → runtime из клона активен
-
-**7 · S · Документация live runtime** — уровень 1
-- **Цель:** README и docs: установка vs live runtime; путь клона; нужен Git
-- **Файлы:** `README.md`, `docs/development.md`
-- **Действие:** раздел «Обновление без переустановки»
-- **Проверка:** текст упоминает `%APPDATA%/CodeViper/source`
-
-**8 · M · Тесты bundled source runtime** — уровень 1
-- **Цель:** unit-тесты sync/build/path resolution для live runtime
-- **Файлы:** `app/tests/bundledSourceSync.test.ts`, `app/tests/runtimeBootstrap.test.ts`
-- **Действие:** mock git/fs; `getRuntimeMainPath()` предпочитает клон при валидном out/
-- **Проверка:** `npm test -- bundledSource runtimeBootstrap`
 
 
 

@@ -9,8 +9,8 @@
 
 ## Версионирование
 
-- **`app/package.json` → `version` — только при релизе**, не при каждом коммите. См. `.cursor/rules/versioning.mdc` и `release-workflow.mdc`.
-- Обычный коммит: typecheck → build → ROADMAP/README → commit → push **без** bump версии.
+- **`version` — только при релизе оболочки** (см. `versioning.mdc`, **ROADMAP блок 0**).
+- **Блок 0 (1–8) — первым**; пункты 9+ — после переноса блока 0 в «✅ Сделано».
 
 ## Portable Node.js
 
