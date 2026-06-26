@@ -11,7 +11,9 @@ vi.mock('electron', () => ({
 
 vi.mock('../electron/main/agent', () => ({
   pingOllama: vi.fn(async () => true),
-  fetchOllamaModels: vi.fn(async () => [{ name: 'qwen2.5-coder:7b', size: 1, modifiedAt: '' }])
+  fetchOllamaModelsWithDetails: vi.fn(async () => [
+    { name: 'qwen2.5-coder:7b', size: 1, capabilities: ['tools'] }
+  ])
 }))
 
 import {

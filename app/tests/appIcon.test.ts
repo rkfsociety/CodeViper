@@ -40,9 +40,10 @@ describe('resolveAppIconPath', () => {
       configurable: true
     })
 
+    const firstIcon = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
     const candidates = getAppIconCandidates()
     expect(candidates[0].replace(/\\/g, '/')).toBe(
-      `${appState.resourcesPath}/icon.ico`.replace(/\\/g, '/')
+      `${appState.resourcesPath}/${firstIcon}`.replace(/\\/g, '/')
     )
   })
 })

@@ -26,7 +26,7 @@ describe('nudge при JSON-плане самоулучшения', () => {
   })
 
   it('START_SELF_IMPROVEMENT_EXPLORATION_NUDGE требует изучить код перед планом', () => {
-    expect(START_SELF_IMPROVEMENT_EXPLORATION_NUDGE).toContain('list_codeviper_directory')
+    expect(START_SELF_IMPROVEMENT_EXPLORATION_NUDGE).toContain('read_codeviper_file')
     expect(START_SELF_IMPROVEMENT_EXPLORATION_NUDGE).toContain('set_self_improvement_plan')
   })
 
