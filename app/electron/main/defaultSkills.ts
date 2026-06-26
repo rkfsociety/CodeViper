@@ -38,7 +38,7 @@ ${BUILTIN_VERSION_TAG}
 |---|---|
 | Обзор | \`list_directory\`, \`find_files\`, \`grep_files\` |
 | Чтение/запись | \`read_file\`, \`create_file\`, \`edit_file\`, \`append_file\`, \`write_file\` |
-| Git | \`git_status\`, \`git_diff\`, \`git_log\`, \`git_commit\` |
+| Git | \`git_status\`, \`git_diff\`, \`git_log\`, \`git_commit\`, \`git_push\` |
 | Терминал | \`run_command\` |
 | Память | \`remember\`, \`search_memory\`, \`forget\` |
 | Навыки | \`list_skills\`, \`read_skill\`, \`create_skill\`, \`update_skill\`, \`read_skill_data\`, \`write_skill_data\` |

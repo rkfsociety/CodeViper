@@ -103,6 +103,11 @@ describe('executeTool — git_commit', () => {
     const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
     await expect(handlers.git_commit!({ message: 'blocked' })).rejects.toThrow(/только чтение/i)
   })
+
+  it('readonlyMode блокирует git_push', async () => {
+    const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
+    await expect(handlers.git_push!({ remote: 'origin' })).rejects.toThrow(/только чтение/i)
+  })
 })
 
 // ─── Тесты self-improvement handlers ──────────────────────────────────────

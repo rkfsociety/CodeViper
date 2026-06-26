@@ -596,6 +596,28 @@ export const GIT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'git_push',
+      description:
+        'Отправить коммиты на remote (безопаснее run_command git push). Опционально remote и branch.',
+      parameters: {
+        type: 'object',
+        properties: {
+          remote: {
+            type: 'string',
+            description:
+              'Имя remote (например origin). Без branch — push текущей ветки на этот remote'
+          },
+          branch: {
+            type: 'string',
+            description: 'Имя ветки на remote (требует remote, например main)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'recent_changes',
       description: 'Краткая сводка последних изменений git по проекту или папке',
       parameters: {

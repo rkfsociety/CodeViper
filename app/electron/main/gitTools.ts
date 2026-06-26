@@ -161,3 +161,53 @@ export async function gitCommit(projectPath: string, message: string): Promise<s
   const result = await runGit(projectPath, ['commit', '-m', message.trim()])
   return formatGitResult(result)
 }
+
+const NON_FAST_FORWARD_RE = /non-fast-forward|\[rejected\].*push|failed to push some refs/i
+
+function formatGitPushResult(result: GitResult): string {
+  const combined = `${result.stderr}\n${result.stdout}`
+  if (result.code !== 0 && NON_FAST_FORWARD_RE.test(combined)) {
+    const parts = [
+      `exit: ${result.code}`,
+      'Ошибка: push отклонён (non-fast-forward) — удалённая ветка впереди локальной.',
+      'Сначала git pull --rebase (или merge), разреши конфликты, затем повтори push.',
+      'Не используй git push --force без явного запроса пользователя.'
+    ]
+    if (result.stderr.trim()) parts.push(`stderr:\n${truncateOutput(result.stderr)}`)
+    if (result.stdout.trim()) parts.push(`stdout:\n${truncateOutput(result.stdout)}`)
+    return parts.join('\n')
+  }
+  return formatGitResult(result)
+}
+
+/** git push внутри projectPath; remote/branch опциональны (spawn, без shell). */
+export async function gitPush(
+  projectPath: string,
+  options: { remote?: string; branch?: string } = {}
+): Promise<string> {
+  const repoError = await ensureGitRepo(projectPath)
+  if (repoError) return repoError
+
+  const remote = options.remote?.trim()
+  const branch = options.branch?.trim()
+
+  if (branch && !remote) {
+    return 'Укажи remote вместе с branch (например remote=origin, branch=main)'
+  }
+
+  if (remote) {
+    const remoteError = validateGitRef(remote)
+    if (remoteError) return `Недопустимое имя remote: ${remoteError}`
+  }
+  if (branch) {
+    const branchError = validateGitRef(branch)
+    if (branchError) return `Недопустимое имя branch: ${branchError}`
+  }
+
+  const args = ['push']
+  if (remote) args.push(remote)
+  if (branch) args.push(branch)
+
+  const result = await runGit(projectPath, args)
+  return formatGitPushResult(result)
+}
