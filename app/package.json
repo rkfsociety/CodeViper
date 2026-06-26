@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "codeviper",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Локальный AI-агент с GUI — чат, файлы и терминал через Ollama",
   "main": "out/main/index.js",
   "author": "roman",
@@ -54,6 +54,14 @@
       {
         "from": "resources/node/",
         "to": "node/"
+      },
+      {
+        "from": "resources/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "resources/icon.png",
+        "to": "icon.png"
       }
     ],
     "win": {
