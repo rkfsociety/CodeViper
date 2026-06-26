@@ -9,6 +9,7 @@
 | [example-prompts.md](example-prompts.md) | Промпты для копирования и самоулучшения |
 | [integrations.md](integrations.md) | MCP, P2P — дополнение к вики |
 | [tools-api.md](tools-api.md) | Справочник инструментов для разработчиков |
+| [codeviperignore.md](codeviperignore.md) | Паттерны игнора для `list_directory` |
 | [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) | JSDoc shared-модулей; локально: `cd app && npm run docs` |
 | [collective/ViperMemory.md](collective/ViperMemory.md) | Синхронизация коллективной памяти |
 

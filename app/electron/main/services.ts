@@ -214,7 +214,7 @@ async function buildFileTreeRaw(
     // Проверяем hardcoded ignored
     if (IGNORED.has(entry.name)) continue
 
-    // Проверяем ignore-файлы (.gitignore, .claudeignore, .cursorignore)
+    // Проверяем ignore-файлы (.gitignore, .claudeignore, .cursorignore, .codeviperignore)
     if (ignoreRules && shouldIgnorePath(entry.name, ignoreRules)) continue
 
     const fullPath = join(dirPath, entry.name)

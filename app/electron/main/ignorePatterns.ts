@@ -40,6 +40,9 @@ export async function loadIgnorePatterns(dirPath: string): Promise<IgnoreRules> 
   // .cursorignore — специфично для Cursor IDE
   patterns.push(...(await loadIgnoreFile(dirPath, '.cursorignore')))
 
+  // .codeviperignore — специфично для CodeViper (после cursorignore)
+  patterns.push(...(await loadIgnoreFile(dirPath, '.codeviperignore')))
+
   // Де-дупликация
   const uniquePatterns = [...new Set(patterns)]
 
