@@ -65,6 +65,13 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
+      - name: Sync package version from tag
+        working-directory: app
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          npm pkg set "version=${VERSION}"
+
       - name: Cache electron binaries
         uses: actions/cache@v4
         with:

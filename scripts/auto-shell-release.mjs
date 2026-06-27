@@ -143,7 +143,14 @@ function main() {
   if (versionChanged) {
     run('git add app/package.json')
     run(`git commit -m "chore(release): bump to ${version} [skip-release]"`)
-    run('git push origin HEAD')
+    try {
+      run('git push origin HEAD')
+    } catch (err) {
+      console.warn(
+        '→ Не удалось push версии на master (защищённая ветка?). Тег будет на текущем HEAD; release.yml выставит version из тега.'
+      )
+      if (dryRun) throw err
+    }
   }
 
   if (!runQuiet(`git tag --list ${newTag}`)) {
