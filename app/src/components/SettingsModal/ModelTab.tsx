@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import styles from './SettingsModal.module.css'
 import type { AgentSettings, BenchmarkResult, OllamaModel } from '../../types'
 import {
@@ -6,7 +6,8 @@ import {
   DEEPSEEK_MODEL_DEFAULT,
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
-  GEMINI_FREE_MODELS
+  GEMINI_FREE_MODELS,
+  filterOpenRouterModelsByTier
 } from '../../../shared/constants'
 import { ModelPanel } from '../ModelPanel'
 import { CloudModelSelector } from '../CloudModelSelector'
@@ -59,9 +60,26 @@ export function ModelTab({
     })
   }, [])
 
+  const provider = settings.modelProvider ?? 'ollama'
+
+  const selectorModels = useMemo(() => {
+    if (provider === 'openrouter') {
+      return filterOpenRouterModelsByTier(models, settings.openrouterTier ?? 'free')
+    }
+    return models
+  }, [provider, models, settings.openrouterTier])
+
   if (!isActive && !isSearching) return null
 
-  const provider = settings.modelProvider ?? 'ollama'
+  function pickOpenRouterTier(tier: 'free' | 'paid') {
+    const filtered = filterOpenRouterModelsByTier(models, tier)
+    const currentValid = filtered.some((m) => m.name === settings.model)
+    onSettingsChange({
+      openrouterTier: tier,
+      model: currentValid ? settings.model : (filtered[0]?.name ?? settings.model),
+      ...(filtered[0]?.contextLength ? { modelContextLength: filtered[0].contextLength } : {})
+    })
+  }
 
   function toggleKeyVisible(key: string) {
     setApiKeyVisible((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -457,50 +475,79 @@ export function ModelTab({
         </SettingItem>
       )}
 
-      {provider === 'openrouter' && (
-        <SettingItem
-          tab="model"
-          label="OpenRouter API ключ"
-          desc="openrouter api key sk-or- агрегатор gpt claude llama gemini"
-        >
-          <>
-            <div className={styles.hint}>
-              <strong>OpenRouter</strong> — агрегатор моделей (GPT-4o, Claude, Gemini, Llama и др.).
-              Базовый URL: <code>https://openrouter.ai/api/v1</code>. Получить ключ:{' '}
-              <strong>openrouter.ai/keys</strong>
-            </div>
-            <label>
-              OpenRouter API ключ
-              <div className="settings-api-key-row">
-                <input
-                  type={apiKeyVisible['openrouter'] ? 'text' : 'password'}
-                  placeholder="sk-or-..."
-                  value={settings.openrouterApiKey ?? ''}
-                  onChange={(e) => onSettingsChange({ openrouterApiKey: e.target.value })}
-                  autoComplete="off"
-                />
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={() => toggleKeyVisible('openrouter')}
-                  title={apiKeyVisible['openrouter'] ? 'Скрыть' : 'Показать'}
-                >
-                  {apiKeyVisible['openrouter'] ? '🙈' : '👁'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={() => void handlePing()}
-                  disabled={pingState === 'checking' || !settings.openrouterApiKey}
-                  title="Проверить подключение"
-                >
-                  {pingIcon}
-                </button>
-              </div>
-            </label>
-          </>
-        </SettingItem>
-      )}
+      {provider === 'openrouter' &&
+        (() => {
+          const tier = settings.openrouterTier ?? 'free'
+          const isFree = tier === 'free'
+          return (
+            <SettingItem
+              tab="model"
+              label="OpenRouter API ключ"
+              desc="openrouter api key sk-or- агрегатор gpt claude llama gemini free paid бесплатный платный"
+            >
+              <>
+                <div className={styles.hint}>
+                  <strong>OpenRouter</strong> — агрегатор моделей (GPT-4o, Claude, Gemini, Llama и
+                  др.). Базовый URL: <code>https://openrouter.ai/api/v1</code>. Получить ключ:{' '}
+                  <strong>openrouter.ai/keys</strong>
+                </div>
+
+                <div className={styles.geminiTierRow}>
+                  <button
+                    type="button"
+                    className={`btn${isFree ? ' active' : ''}`}
+                    onClick={() => pickOpenRouterTier('free')}
+                  >
+                    Бесплатный
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn${!isFree ? ' active' : ''}`}
+                    onClick={() => pickOpenRouterTier('paid')}
+                  >
+                    Платный
+                  </button>
+                </div>
+
+                <label>
+                  OpenRouter API ключ
+                  <div className="settings-api-key-row">
+                    <input
+                      type={apiKeyVisible['openrouter'] ? 'text' : 'password'}
+                      placeholder="sk-or-..."
+                      value={settings.openrouterApiKey ?? ''}
+                      onChange={(e) => onSettingsChange({ openrouterApiKey: e.target.value })}
+                      autoComplete="off"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() => toggleKeyVisible('openrouter')}
+                      title={apiKeyVisible['openrouter'] ? 'Скрыть' : 'Показать'}
+                    >
+                      {apiKeyVisible['openrouter'] ? '🙈' : '👁'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() => void handlePing()}
+                      disabled={pingState === 'checking' || !settings.openrouterApiKey}
+                      title="Проверить подключение"
+                    >
+                      {pingIcon}
+                    </button>
+                  </div>
+                </label>
+
+                <span className={styles.hint}>
+                  {isFree
+                    ? 'Бесплатные модели помечены суффиксом :free в каталоге OpenRouter.'
+                    : 'Платные модели — без суффикса :free; список загружается после ввода ключа.'}
+                </span>
+              </>
+            </SettingItem>
+          )
+        })()}
 
       {provider === 'groq' && (
         <SettingItem
@@ -903,7 +950,7 @@ export function ModelTab({
               provider={provider}
               model={settings.model}
               defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
-              models={models}
+              models={selectorModels}
               onChange={(model, contextLength) =>
                 onSettingsChange({
                   model,

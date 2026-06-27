@@ -165,6 +165,7 @@ export const AgentSettingsSchema = z.object({
   geminiApiKey: z.string().optional(),
   geminiRpm: z.number().optional(),
   geminiTier: z.enum(['free', 'paid']).optional(),
+  openrouterTier: z.enum(['free', 'paid']).optional(),
   claudeApiKey: z.string().optional(),
   groqApiKey: z.string().optional(),
   togetherApiKey: z.string().optional(),

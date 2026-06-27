@@ -107,6 +107,21 @@ export const GEMINI_FREE_MODELS = [
 
 export type GeminiFreeModelId = (typeof GEMINI_FREE_MODELS)[number]['id']
 export const OPENROUTER_API_BASE_URL = 'https://openrouter.ai/api/v1'
+/** Суффикс бесплатных моделей OpenRouter в id каталога */
+export const OPENROUTER_FREE_MODEL_SUFFIX = ':free'
+
+export function isOpenRouterFreeModel(modelId: string): boolean {
+  return modelId.includes(OPENROUTER_FREE_MODEL_SUFFIX)
+}
+
+export function filterOpenRouterModelsByTier<T extends { name: string }>(
+  models: T[],
+  tier: 'free' | 'paid'
+): T[] {
+  return tier === 'free'
+    ? models.filter((m) => isOpenRouterFreeModel(m.name))
+    : models.filter((m) => !isOpenRouterFreeModel(m.name))
+}
 /** Провайдер по умолчанию */
 export const DEFAULT_MODEL_PROVIDER = 'ollama' as const
 

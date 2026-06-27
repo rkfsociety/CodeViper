@@ -20,7 +20,7 @@ import type {
 } from '../../types'
 import { filterToolCallingModels } from '../../types'
 import { filterAgentCapableModels } from '../../../shared/recommendedModels'
-import { GEMINI_FREE_MODELS } from '../../../shared/constants'
+import { GEMINI_FREE_MODELS, filterOpenRouterModelsByTier } from '../../../shared/constants'
 import { expandSlashCommand, matchSlashCommands } from '../../../shared/slashCommands'
 import type { SlashCommand } from '../../../shared/slashCommands'
 import styles from '../ChatPanel.module.css'
@@ -197,6 +197,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       return GEMINI_FREE_MODELS.map((m) => ({ name: m.id, size: 0, modifiedAt: '' }))
     }
 
+    if (provider === 'openrouter') {
+      return filterOpenRouterModelsByTier(models, settings.openrouterTier ?? 'free')
+    }
+
     if (isCloud && provider in CLOUD_KNOWN_MODELS) {
       const known = CLOUD_KNOWN_MODELS[provider as keyof typeof CLOUD_KNOWN_MODELS]
       if (known.length > 0) {
@@ -209,7 +213,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       }
     }
     return models
-  }, [settings.modelProvider, settings.geminiTier, models])
+  }, [settings.modelProvider, settings.geminiTier, settings.openrouterTier, models])
 
   // Не фильтровать облачные модели (они всегда поддерживают tool calling)
   // В Code-режиме (settings.chatMode === false) дополнительно скрываем модели < 7B

@@ -180,6 +180,8 @@ export interface AgentSettings {
   geminiRpm?: number
   /** Уровень доступа Gemini API: бесплатный (фиксированные модели/лимиты) или платный */
   geminiTier?: 'free' | 'paid'
+  /** Уровень OpenRouter: бесплатные модели (:free) или платные */
+  openrouterTier?: 'free' | 'paid'
   /** API ключ Claude (Anthropic) */
   claudeApiKey?: string
   /** API ключ Groq */
