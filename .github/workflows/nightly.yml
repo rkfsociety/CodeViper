@@ -2,20 +2,21 @@ name: Nightly Release
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # каждый день в 00:00 UTC
-  workflow_dispatch:        # ручной запуск для проверки
+    - cron: '0 0 * * *' # каждый день в 00:00 UTC
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  # ── Удалить старые nightly-релизы и создать новый тег ───────────────────────
   prepare:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Compute tag name
         id: tag
@@ -36,10 +37,38 @@ jobs:
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git tag "${{ steps.tag.outputs.tag }}"
-          git push origin "${{ steps.tag.outputs.tag }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+          git tag -f "$TAG"
+          git push origin "$TAG" --force
 
-  # ── Сборка и публикация на трёх платформах ──────────────────────────────────
+      - name: Create draft nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          DATE="$(date -u '+%Y-%m-%d %H:%M UTC')"
+          SHA="$(git rev-parse --short HEAD)"
+          NOTES=$(git log -10 --pretty=format:"- %s" --no-merges)
+          gh release create "$TAG" \
+            --title "CodeViper Nightly ${TAG#nightly-}" \
+            --draft \
+            --prerelease \
+            --notes "## Nightly-сборка
+
+          **Дата:** ${DATE} · **коммит** [\`${SHA}\`](https://github.com/${{ github.repository }}/commit/$(git rev-parse HEAD))
+
+          Предрелиз для канала **Beta** в настройках приложения. Не для продакшена — только тестирование свежего \`master\`.
+
+          ### Последние коммиты
+          ${NOTES}
+
+          ---
+          | Платформа | Файл |
+          |-----------|------|
+          | Windows | \`CodeViper-Setup-*.exe\` |
+          | Linux | \`CodeViper-*.AppImage\` |
+          | macOS | \`CodeViper-*.dmg\` |"
+
   release:
     needs: prepare
     strategy:
@@ -56,11 +85,11 @@ jobs:
         working-directory: app
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.tag }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -86,9 +115,29 @@ jobs:
       - name: Build (electron-vite)
         run: npm run build
 
+      - name: Test launcher on Linux/macOS
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x ../CodeViper.sh
+          bash -n ../CodeViper.sh
+          echo "✓ CodeViper.sh syntax OK"
+
       - name: Package and publish to GitHub Releases
         run: npx electron-builder@24 --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          EP_PRE_RELEASE: true
+
+  publish:
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          gh release edit "$TAG" \
+            --repo ${{ github.repository }} \
+            --draft=false \
+            --prerelease

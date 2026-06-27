@@ -74,4 +74,12 @@ npm run build
 
 Затем перезапустите CodeViper из ярлыка.
 
+### Nightly-сборки (Beta)
+
+Каждый день в **00:00 UTC** workflow [`.github/workflows/nightly.yml`](https://github.com/rkfsociety/CodeViper/blob/master/.github/workflows/nightly.yml) собирает установщики **так же**, как стабильный Release: черновик релиза → три платформы → публикация. Тег `nightly-YYYY-MM-DD`, предыдущие nightly удаляются.
+
+В приложении: **Настройки → Beta-версии** — канал `beta` и `allowPrerelease` подхватывают nightly с GitHub Releases.
+
+Ручной прогон: **Actions → Nightly Release → Run workflow**.
+
 Подробности архитектуры — [architecture.md](architecture.md), [вики](https://github.com/rkfsociety/CodeViper/wiki/Архитектура). Назад в [README](../README.md).
