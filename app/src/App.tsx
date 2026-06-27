@@ -58,6 +58,7 @@ import { PanelResizer } from './components/PanelResizer'
 import {
   adjustSidePanelWidth,
   loadSidePanelWidths,
+  mapOuterPanelResizeDelta,
   saveSidePanelWidths
 } from './lib/sidePanelWidths'
 
@@ -131,8 +132,10 @@ function AppContent() {
 
   const resizeMetricsWidth = useCallback((deltaX: number) => {
     setSidePanelWidths((prev) => {
-      // Разделитель слева от панели: тянем влево → панель шире (противоположно deltaX)
-      const next = { ...prev, metrics: adjustSidePanelWidth(prev.metrics, -deltaX) }
+      const next = {
+        ...prev,
+        metrics: adjustSidePanelWidth(prev.metrics, mapOuterPanelResizeDelta(deltaX))
+      }
       saveSidePanelWidths(next)
       return next
     })
@@ -140,7 +143,10 @@ function AppContent() {
 
   const resizeTraceWidth = useCallback((deltaX: number) => {
     setSidePanelWidths((prev) => {
-      const next = { ...prev, trace: adjustSidePanelWidth(prev.trace, -deltaX) }
+      const next = {
+        ...prev,
+        trace: adjustSidePanelWidth(prev.trace, mapOuterPanelResizeDelta(deltaX))
+      }
       saveSidePanelWidths(next)
       return next
     })

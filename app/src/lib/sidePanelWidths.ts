@@ -30,3 +30,8 @@ export function saveSidePanelWidths(widths: SidePanelWidths): void {
 export function adjustSidePanelWidth(current: number, deltaX: number): number {
   return clampWidth(current + deltaX)
 }
+
+/** Разделитель слева от боковой панели: тянем влево (dx<0) → панель шире. */
+export function mapOuterPanelResizeDelta(deltaX: number): number {
+  return -deltaX
+}

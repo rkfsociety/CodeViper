@@ -13,7 +13,8 @@ vi.mock('electron', () => ({
   app: {
     getPath: (name: string) => (name === 'userData' ? userDataDir : process.cwd()),
     getAppPath: () => join(process.cwd(), 'app'),
-    isPackaged: true
+    isPackaged: true,
+    on: vi.fn()
   }
 }))
 

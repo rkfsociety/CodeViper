@@ -39,9 +39,15 @@ export interface AgentHandlerFactories {
   createMcpToolHandlers: typeof asarHandlerFactories.createMcpToolHandlers
 }
 
-type HandlerModuleLoader = (path: string) => Promise<AgentHandlerFactories>
+type HandlerModuleLoader = (
+  path: string
+) => Promise<AgentHandlerFactories & LiveRuntimeHandlerExtras>
 
-let cachedCloneFactories: AgentHandlerFactories | null = null
+type LiveRuntimeHandlerExtras = {
+  ensureLiveRuntimeExtras?: () => void
+}
+
+let cachedCloneFactories: (AgentHandlerFactories & LiveRuntimeHandlerExtras) | null = null
 let runtimeFromClone = false
 let handlerModuleLoaderOverride: HandlerModuleLoader | null = null
 let pathExistsOverride: ((path: string) => boolean) | null = null
@@ -267,9 +273,12 @@ export function getActiveAgentSourceRootPath(): string {
   return getCodeViperSourceRoot()
 }
 
-async function importHandlerModule(handlersPath: string): Promise<AgentHandlerFactories> {
+async function importHandlerModule(
+  handlersPath: string
+): Promise<AgentHandlerFactories & LiveRuntimeHandlerExtras> {
   if (handlerModuleLoaderOverride) return handlerModuleLoaderOverride(handlersPath)
-  const mod = (await import(pathToFileURL(handlersPath).href)) as AgentHandlerFactories
+  const mod = (await import(pathToFileURL(handlersPath).href)) as AgentHandlerFactories &
+    LiveRuntimeHandlerExtras
   if (typeof mod.createProjectToolHandlers !== 'function') {
     throw new Error('runtimeHandlers.js: missing createProjectToolHandlers export')
   }
@@ -316,6 +325,9 @@ export async function initBundledRuntimeHandlers(
 
   try {
     cachedCloneFactories = await importHandlerModule(cloneHandlers)
+    if (typeof cachedCloneFactories.ensureLiveRuntimeExtras === 'function') {
+      cachedCloneFactories.ensureLiveRuntimeExtras()
+    }
     runtimeFromClone = true
     setSourceRootOverride(getBundledSourceAppRoot())
     await logRuntimeBootstrap('loaded runtime from clone', {
