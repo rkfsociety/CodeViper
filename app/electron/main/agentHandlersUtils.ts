@@ -1,3 +1,8 @@
+/** Возвращает текст ошибки, если обязательный строковый аргумент инструмента пуст. */
+export function missingToolArg(label: string): string {
+  return `Не указан параметр ${label}`
+}
+
 /** Разбор глубины дерева файлов из строкового аргумента инструмента. */
 export function parseTreeDepth(value: string | undefined): number {
   const depth = Number(value)

@@ -96,4 +96,10 @@ describe('createProjectToolHandlers — санитизация путей', () =
       rmSync(foreignCwd, { recursive: true, force: true })
     }
   })
+
+  it('grep_files возвращает подсказку без query', async () => {
+    const { handlers } = createProjectToolHandlers(projectDir)
+    const result = await handlers.grep_files!({ query: '' })
+    expect(result).toMatch(/Не указан параметр query/)
+  })
 })

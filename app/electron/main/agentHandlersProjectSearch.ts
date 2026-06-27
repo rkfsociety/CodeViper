@@ -6,6 +6,7 @@ import { findSymbolDeclarations, findSymbolReferences, formatSymbolResults } fro
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { emitProgress, clearProgress } from './progress'
 import type { ProjectHandlerContext } from './agentHandlersProjectContext'
+import { missingToolArg } from './agentHandlersUtils'
 
 function scanPercent(scanned: number): number {
   return Math.min(99, Math.round((scanned / MAX_WALK_FILES) * 100))
@@ -16,30 +17,32 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
 
   return {
     grep_files: async (args) => {
+      const query = args.query?.trim()
+      if (!query) return missingToolArg('query (текст или /regex/i для поиска)')
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
-        emitProgress(`Поиск по коду: ${args.query}`, 0)
-        const result = await grepInTreeWorker(projectPath, args.query, {
+        emitProgress(`Поиск по коду: ${query}`, 0)
+        const result = await grepInTreeWorker(projectPath, query, {
           subpath: args.path?.trim(),
-          onProgress: (scanned) =>
-            emitProgress(`Поиск по коду: ${args.query}`, scanPercent(scanned))
+          onProgress: (scanned) => emitProgress(`Поиск по коду: ${query}`, scanPercent(scanned))
         })
-        return formatGrepResults(projectPath, args.query, result)
+        return formatGrepResults(projectPath, query, result)
       } finally {
         clearProgress()
       }
     },
 
     find_files: async (args) => {
+      const pattern = args.pattern?.trim()
+      if (!pattern) return missingToolArg('pattern (имя или glob, напр. *.ts)')
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
-        emitProgress(`Поиск файлов: ${args.pattern}`, 0)
-        const result = await findFilesInTreeWorker(projectPath, args.pattern, {
+        emitProgress(`Поиск файлов: ${pattern}`, 0)
+        const result = await findFilesInTreeWorker(projectPath, pattern, {
           subpath: args.path?.trim(),
-          onProgress: (scanned) =>
-            emitProgress(`Поиск файлов: ${args.pattern}`, scanPercent(scanned))
+          onProgress: (scanned) => emitProgress(`Поиск файлов: ${pattern}`, scanPercent(scanned))
         })
-        return formatFindResults(projectPath, args.pattern, result)
+        return formatFindResults(projectPath, pattern, result)
       } finally {
         clearProgress()
       }
@@ -74,24 +77,24 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
     },
 
     search_in_project: async (args) => {
+      const query = args.query?.trim()
+      if (!query) return missingToolArg('query')
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
       try {
         if (args.type === 'name') {
-          emitProgress(`Поиск файлов: ${args.query}`, 0)
-          const result = await findFilesInTreeWorker(projectPath, args.query, {
+          emitProgress(`Поиск файлов: ${query}`, 0)
+          const result = await findFilesInTreeWorker(projectPath, query, {
             subpath: args.path?.trim(),
-            onProgress: (scanned) =>
-              emitProgress(`Поиск файлов: ${args.query}`, scanPercent(scanned))
+            onProgress: (scanned) => emitProgress(`Поиск файлов: ${query}`, scanPercent(scanned))
           })
-          return formatFindResults(projectPath, args.query, result)
+          return formatFindResults(projectPath, query, result)
         } else {
-          emitProgress(`Поиск по коду: ${args.query}`, 0)
-          const result = await grepInTreeWorker(projectPath, args.query, {
+          emitProgress(`Поиск по коду: ${query}`, 0)
+          const result = await grepInTreeWorker(projectPath, query, {
             subpath: args.path?.trim(),
-            onProgress: (scanned) =>
-              emitProgress(`Поиск по коду: ${args.query}`, scanPercent(scanned))
+            onProgress: (scanned) => emitProgress(`Поиск по коду: ${query}`, scanPercent(scanned))
           })
-          return formatGrepResults(projectPath, args.query, result)
+          return formatGrepResults(projectPath, query, result)
         }
       } finally {
         clearProgress()
@@ -100,6 +103,8 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
 
     search_in_file: async (args) => {
       assertInsideProject(args.path, 'файл')
+      const query = args.query?.trim()
+      if (!query) return missingToolArg('query (текст или /regex/i для поиска)')
       const absPath = resolve(projectPath, args.path)
       const contextLines = Math.min(5, Math.max(0, parseInt(args.context_lines ?? '0', 10) || 0))
       const MAX_SEARCH_RESULTS = 100
@@ -112,7 +117,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
       if (content.includes('\0')) return `Файл бинарный, поиск невозможен: ${args.path}`
 
-      const trimmed = args.query.trim()
+      const trimmed = query
       let matcher: (line: string) => boolean
       const slash = trimmed.match(/^\/(.+)\/([a-z]*)$/i)
       if (slash) {
@@ -149,13 +154,15 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
 
       if (!results.length) return `Совпадений не найдено в ${args.path} (строк: ${lines.length}).`
-      const header = `Найдено: ${count}${truncated ? '+' : ''} совпадений в ${args.path} (строк в файле: ${lines.length})\nЗапрос: ${args.query}`
+      const header = `Найдено: ${count}${truncated ? '+' : ''} совпадений в ${args.path} (строк в файле: ${lines.length})\nЗапрос: ${query}`
       return `${header}\n\n${results.join('\n')}`
     },
 
     file_search_summary: async (args) => {
+      const query = args.query?.trim()
+      if (!query) return missingToolArg('query (текст или /regex/i для поиска)')
       assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
-      const result = await grepInTreeWorker(projectPath, args.query, {
+      const result = await grepInTreeWorker(projectPath, query, {
         subpath: args.path?.trim()
       })
       const topMatches = result.matches.slice(0, 8).map((m) => {
@@ -163,7 +170,7 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
         return `${rel}:${m.line}`
       })
       return [
-        `Запрос: ${args.query}`,
+        `Запрос: ${query}`,
         `Совпадений: ${result.matches.length}${result.truncated ? '+' : ''}`,
         `Файлов просмотрено: ${result.filesScanned}`,
         ...(result.skippedLargeFiles.length

@@ -35,8 +35,14 @@ export interface GrepResult {
   skippedLargeFiles: string[]
 }
 
-function compileLineMatcher(query: string): (line: string) => boolean {
-  const trimmed = query.trim()
+function resolveSearchStartDir(root: string, subpath?: string): string {
+  const trimmed = subpath?.trim()
+  if (!trimmed) return resolve(root)
+  return resolve(root, trimmed)
+}
+
+function compileLineMatcher(query: string | undefined): (line: string) => boolean {
+  const trimmed = (query ?? '').trim()
   if (!trimmed) return () => false
 
   const slash = trimmed.match(/^\/(.+)\/([a-z]*)$/i)
@@ -53,8 +59,8 @@ function compileLineMatcher(query: string): (line: string) => boolean {
   return (line) => line.toLowerCase().includes(lower)
 }
 
-function matchFileName(name: string, pattern: string): boolean {
-  const p = pattern.trim()
+function matchFileName(name: string, pattern: string | undefined): boolean {
+  const p = (pattern ?? '').trim()
   if (!p) return false
 
   if (p.includes('*') || p.includes('?')) {
@@ -123,10 +129,10 @@ async function walkProjectFiles(
 
 export async function grepInTree(
   root: string,
-  query: string,
+  query: string | undefined,
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<GrepResult> {
-  const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
+  const startDir = resolveSearchStartDir(root, options?.subpath)
   const maxResults = options?.maxResults ?? MAX_GREP_RESULTS
   const matcher = compileLineMatcher(query)
   const matches: GrepMatch[] = []
@@ -190,7 +196,7 @@ export async function grepMultiInTree(
   maxResultsPerQuery: number[],
   options?: { subpath?: string; onProgress?: (scanned: number) => void }
 ): Promise<GrepResult[]> {
-  const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
+  const startDir = resolveSearchStartDir(root, options?.subpath)
   const matchers = queries.map(compileLineMatcher)
   const results: GrepResult[] = queries.map(() => ({
     matches: [],
@@ -282,10 +288,10 @@ export function formatGrepResults(
 
 export async function findFilesInTree(
   root: string,
-  pattern: string,
+  pattern: string | undefined,
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<{ paths: string[]; truncated: boolean; filesScanned: number }> {
-  const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
+  const startDir = resolveSearchStartDir(root, options?.subpath)
   const maxResults = options?.maxResults ?? MAX_FIND_RESULTS
   const paths: string[] = []
   let truncated = false
@@ -317,7 +323,7 @@ export async function findMultiInTree(
   maxResultsPerPattern: number[],
   options?: { subpath?: string; onProgress?: (scanned: number) => void }
 ): Promise<{ paths: string[]; truncated: boolean; filesScanned: number }[]> {
-  const startDir = options?.subpath?.trim() ? resolve(options.subpath) : resolve(root)
+  const startDir = resolveSearchStartDir(root, options?.subpath)
   const results = patterns.map(() => ({ paths: [] as string[], truncated: false, filesScanned: 0 }))
 
   const filesScanned = await walkProjectFiles(

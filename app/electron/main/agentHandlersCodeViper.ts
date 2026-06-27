@@ -10,20 +10,23 @@ import {
   moveCodeViperFile,
   runCodeViperCommand,
   writeCodeViperFile,
-  isAllowedSelfPath
+  isAllowedSelfPath,
+  normalizeCodeViperPath
 } from './codeviperSource'
 import { createCodeViperBranch, pushCodeViperBranch, createCodeViperPr } from './selfCommit'
 import { buildFileTree } from './services'
 import { formatFileTree } from './agentContext'
 import { grepInTree, formatGrepResults, findFilesInTree, formatFindResults } from './fileSearch'
 import { parseToolBool } from '../../shared/fileEdit'
-import { parseTreeDepth, formatCommandResult } from './agentHandlersUtils'
+import { parseTreeDepth, formatCommandResult, missingToolArg } from './agentHandlersUtils'
 
 export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
     list_codeviper_directory: async (args) => {
       const root = getCodeViperSourceRoot()
-      const target = args.path?.trim() ? resolve(root, args.path.trim()) : root
+      const target = args.path?.trim()
+        ? resolve(root, normalizeCodeViperPath(root, args.path.trim()))
+        : root
       if (!isAllowedSelfPath(root, target)) {
         throw new Error('Доступ запрещён: путь вне исходников CodeViper')
       }
@@ -32,23 +35,27 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
     },
 
     grep_codeviper_files: async (args) => {
+      const query = args.query?.trim()
+      if (!query) return missingToolArg('query (текст или /regex/i для поиска)')
       const root = getCodeViperSourceRoot()
-      const subpath = args.path?.trim()
+      const subpath = args.path?.trim() ? normalizeCodeViperPath(root, args.path.trim()) : undefined
       if (subpath && !isAllowedSelfPath(root, subpath)) {
         throw new Error('Доступ запрещён: path вне исходников CodeViper')
       }
-      const result = await grepInTree(root, args.query, { subpath })
-      return formatGrepResults(root, args.query, result)
+      const result = await grepInTree(root, query, { subpath })
+      return formatGrepResults(root, query, result)
     },
 
     find_codeviper_files: async (args) => {
+      const pattern = args.pattern?.trim()
+      if (!pattern) return missingToolArg('pattern (имя или glob, напр. *.ts)')
       const root = getCodeViperSourceRoot()
-      const subpath = args.path?.trim()
+      const subpath = args.path?.trim() ? normalizeCodeViperPath(root, args.path.trim()) : undefined
       if (subpath && !isAllowedSelfPath(root, subpath)) {
         throw new Error('Доступ запрещён: path вне исходников CodeViper')
       }
-      const result = await findFilesInTree(root, args.pattern, { subpath })
-      return formatFindResults(root, args.pattern, result)
+      const result = await findFilesInTree(root, pattern, { subpath })
+      return formatFindResults(root, pattern, result)
     },
 
     read_codeviper_file: async (args) => {

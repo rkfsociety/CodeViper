@@ -51,4 +51,21 @@ describe('fileSearch', () => {
 
     expect(result.paths.some((p) => p.endsWith('secret.ts'))).toBe(false)
   })
+
+  it('grepInTree не падает при пустом query', async () => {
+    const result = await grepInTree(root, undefined)
+    expect(result.matches).toEqual([])
+    expect(formatGrepResults(root, '', result)).toContain('Совпадений не найдено')
+  })
+
+  it('grepInTree ищет в subpath относительно root', async () => {
+    mkdirSync(join(root, 'other'), { recursive: true })
+    writeFileSync(join(root, 'other', 'noise.ts'), 'ONLY_IN_OTHER\n')
+
+    const result = await grepInTree(root, 'ONLY_IN_OTHER', { subpath: 'other' })
+    expect(result.matches.some((m) => m.path.endsWith('noise.ts'))).toBe(true)
+
+    const missed = await grepInTree(root, 'ONLY_IN_OTHER', { subpath: 'src' })
+    expect(missed.matches).toEqual([])
+  })
 })
