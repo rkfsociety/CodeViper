@@ -745,6 +745,8 @@ export class AgentRunner {
             )
           })
 
+        let stepInvocations: Array<{ name: string; args: Record<string, string> }> = []
+
         if (allParallelSafe) {
           const results = await this.toolExecutor.executeParallel(toolCalls, step)
           for (const { id, name, output } of results) {
@@ -757,6 +759,10 @@ export class AgentRunner {
             }
             messages.push(msg)
           }
+          stepInvocations = results.map((r, i) => ({
+            name: r.name,
+            args: parseToolArgs(toolCalls[i]?.function.arguments ?? {})
+          }))
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
@@ -785,6 +791,10 @@ export class AgentRunner {
           }
           if (batch.selfEdited) selfEdited = true
           for (const msg of batch.toolMessages) messages.push(msg)
+          stepInvocations = batch.invocations.map((inv) => ({
+            name: inv.name,
+            args: inv.args
+          }))
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
@@ -797,6 +807,13 @@ export class AgentRunner {
               ragGrepNudged
             )) || ragGrepNudged
           if (batch.breakLoop) continue
+        }
+
+        const scopeNudge = loopGuard.checkTaskScope(userMessage, mutatingToolsUsed, stepInvocations)
+        if (scopeNudge) {
+          messages.push({ role: 'user', content: scopeNudge })
+          requireToolNext = true
+          continue
         }
 
         const stallNudge = loopGuard.checkExplorationStall(

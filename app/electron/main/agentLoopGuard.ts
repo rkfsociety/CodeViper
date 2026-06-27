@@ -12,6 +12,7 @@ import {
   MAX_CONSECUTIVE_SAME_TOOL,
   MAX_SAME_TOOL_TOTAL
 } from '../../shared/constants'
+import { checkTaskScopeViolation } from '../../shared/selfImprovement'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
 import type { ModelRuntime } from './modelRuntime'
@@ -32,6 +33,7 @@ export class LoopGuard {
   private verificationRetries = 0
   private verificationNoticeSent = false
   private explorationStallNudged = false
+  private taskScopeNudged = false
   escalated = false
 
   constructor(
@@ -84,6 +86,23 @@ export class LoopGuard {
     if (currentStep < EXPLORATION_STALL_MIN_STEPS) return null
     this.explorationStallNudged = true
     return EXPLORATION_STALL_NUDGE
+  }
+
+  /** Nudge при чтении файлов вне списка «Файлы:» до первых правок. */
+  checkTaskScope(
+    userMessage: string,
+    mutatingToolsUsed: Set<string>,
+    invocations: Array<{ name: string; args: Record<string, string> }>
+  ): string | null {
+    if (this.taskScopeNudged) return null
+    for (const inv of invocations) {
+      const nudge = checkTaskScopeViolation(userMessage, mutatingToolsUsed, inv.name, inv.args)
+      if (nudge) {
+        this.taskScopeNudged = true
+        return nudge
+      }
+    }
+    return null
   }
 
   /** Определяет что делать когда модель не вызвала инструменты.

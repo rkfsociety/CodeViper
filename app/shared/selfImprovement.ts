@@ -22,17 +22,36 @@ export function resolveSelfImproveBranch(configured?: string): string {
 const ROADMAP_SELF_IMPROVE_RE =
   /(?:выполни\s+пункт\s+\d+|следующий\s+пункт).*ROADMAP\.md.*самоулучш/iu
 
-/** Промпт «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper». */
-export function isRoadmapSelfImprovementTask(userMessage: string): boolean {
-  return ROADMAP_SELF_IMPROVE_RE.test(userMessage.trim())
+/** Тело пункта ROADMAP (копипаст из «В планах»): Цель / Файлы / уровень или Действие+Проверка. */
+export function isRoadmapItemBodyTask(userMessage: string): boolean {
+  const text = userMessage.trim()
+  if (!text) return false
+  if (!/Файлы:\s*\S/iu.test(text) || !/Цель:\s*\S/iu.test(text)) return false
+  return (
+    /уровень\s+\d+/iu.test(text) || (/Действие:\s*\S/iu.test(text) && /Проверка:\s*\S/iu.test(text))
+  )
 }
 
-/** Номер пункта из ROADMAP-промпта или null. */
+/** Промпт «Выполни пункт N из ROADMAP.md — самоулучшение» или тело пункта. */
+export function isRoadmapSelfImprovementTask(userMessage: string): boolean {
+  const text = userMessage.trim()
+  return ROADMAP_SELF_IMPROVE_RE.test(text) || isRoadmapItemBodyTask(text)
+}
+
+/** Номер пункта из ROADMAP-промпта или тела пункта, иначе null. */
 export function parseRoadmapTaskItemNumber(userMessage: string): number | null {
-  const m = userMessage.trim().match(/выполни\s+пункт\s+(\d+)\s+из\s+ROADMAP\.md/iu)
-  if (!m) return null
-  const n = parseInt(m[1], 10)
-  return Number.isFinite(n) && n > 0 ? n : null
+  const text = userMessage.trim()
+  const standard = text.match(/выполни\s+пункт\s+(\d+)\s+из\s+ROADMAP\.md/iu)
+  if (standard) {
+    const n = parseInt(standard[1], 10)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
+  const body = text.match(/(?:^|\n)\*?\*?(\d+)\s*·/u)
+  if (body) {
+    const n = parseInt(body[1], 10)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
+  return null
 }
 
 /** Запрос на автономное самоулучшение до выполнения всех пунктов плана. */
@@ -87,6 +106,67 @@ export const READ_FILE_ENOENT_CREATE_HINT = `Файл не существует.
 export const SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT = `Для исходников CodeViper используй read_codeviper_file / create_codeviper_file / edit_codeviper_file, не инструменты проекта. Корень — в блоке «Исходники CodeViper», не папка установки .exe.`
 
 export const READ_FILE_ALREADY_IN_RUN_HINT = `Этот файл уже читался в текущем прогоне — используй содержимое из предыдущего ответа инструмента, не вызывай read_* снова.`
+
+const PATH_SCOPED_AGENT_TOOLS = new Set([
+  'read_file',
+  'read_codeviper_file',
+  'search_in_file',
+  'read_multiple_files',
+  'find_symbol',
+  'find_references'
+])
+
+function normalizeScopePath(p: string): string {
+  return p.trim().replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase()
+}
+
+/** Пути из поля «Файлы:» в промпте задачи (ROADMAP или копипаст пункта). */
+export function parseTaskScopedFiles(userMessage: string): string[] | null {
+  const m = userMessage.match(/(?:^|\n)-?\s*\*?\*?Файлы:\*?\*?\s*(.+)/iu)
+  if (!m) return null
+  const line = m[1].split('\n')[0].trim()
+  if (!line) return null
+  const files = line
+    .split(/[,;]/)
+    .map((s) => s.trim().replace(/^`+|`+$/g, ''))
+    .filter(Boolean)
+  return files.length > 0 ? files : null
+}
+
+/** Путь инструмента попадает в список «Файлы:» (по полному пути или basename). */
+export function isPathWithinTaskScope(toolPath: string, scopedFiles: string[]): boolean {
+  const norm = normalizeScopePath(toolPath)
+  if (!norm) return false
+  const base = norm.split('/').pop() ?? norm
+  for (const scoped of scopedFiles) {
+    const sn = normalizeScopePath(scoped)
+    if (!sn) continue
+    const sb = sn.split('/').pop() ?? sn
+    if (norm === sn || norm.endsWith(`/${sn}`) || base === sb) return true
+  }
+  return false
+}
+
+export function buildTaskScopeNudge(scopedFiles: string[]): string {
+  return `⚠️ В задаче указаны файлы: ${scopedFiles.join(', ')}. Не читай IPC, preload и другие пути вне списка — сначала edit_file / edit_codeviper_file по этим файлам.`
+}
+
+/** Инструмент с path-аргументом и проверка scope по полю «Файлы:». */
+export function checkTaskScopeViolation(
+  userMessage: string,
+  mutatingToolsUsed: ReadonlySet<string>,
+  toolName: string,
+  args: Record<string, string>
+): string | null {
+  if (mutatingToolsUsed.size > 0) return null
+  if (!PATH_SCOPED_AGENT_TOOLS.has(toolName)) return null
+  const scoped = parseTaskScopedFiles(userMessage)
+  if (!scoped?.length) return null
+  const toolPath = args.path?.trim()
+  if (!toolPath) return null
+  if (isPathWithinTaskScope(toolPath, scoped)) return null
+  return buildTaskScopeNudge(scoped)
+}
 
 export function selfImprovementStepLimit(configuredMaxSteps: number): number {
   // Для самообучения снимаем жёсткий потолок — агент должен дойти до конца плана.

@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest'
 import {
   isSelfImprovementTask,
   isRoadmapSelfImprovementTask,
+  isRoadmapItemBodyTask,
   parseRoadmapTaskItemNumber,
+  parseTaskScopedFiles,
+  isPathWithinTaskScope,
+  checkTaskScopeViolation,
   isCodeViperSourceRelativePath,
   buildRoadmapSelfImproveHint,
   selfImprovementStepLimit,
@@ -27,6 +31,37 @@ describe('selfImprovement', () => {
     expect(isRoadmapSelfImprovementTask(msg)).toBe(true)
     expect(isSelfImprovementTask(msg)).toBe(true)
     expect(parseRoadmapTaskItemNumber(msg)).toBe(3)
+  })
+
+  it('распознаёт тело пункта ROADMAP (копипаст)', () => {
+    const body = `list_pull_requests — уровень 1
+
+Цель: tool list_pull_requests — открытые PR
+Файлы: agentTools/integrations.ts, agentHandlersGitHub.ts, githubPr.ts, toolCalls.ts
+Действие: handler вызывает listPullRequests()
+Проверка: unit-тест mock`
+    expect(isRoadmapItemBodyTask(body)).toBe(true)
+    expect(isRoadmapSelfImprovementTask(body)).toBe(true)
+    expect(isSelfImprovementTask(body)).toBe(true)
+  })
+
+  it('парсит «Файлы:» и проверяет scope путей', () => {
+    const msg = `Цель: x
+Файлы: agentTools/integrations.ts, agentHandlersGitHub.ts`
+    const scoped = parseTaskScopedFiles(msg)
+    expect(scoped).toEqual(['agentTools/integrations.ts', 'agentHandlersGitHub.ts'])
+    expect(isPathWithinTaskScope('app/electron/main/agentHandlersGitHub.ts', scoped!)).toBe(true)
+    expect(isPathWithinTaskScope('app/shared/ipcContracts.ts', scoped!)).toBe(false)
+    expect(
+      checkTaskScopeViolation(msg, new Set(), 'read_file', {
+        path: 'app/shared/ipcContracts.ts'
+      })
+    ).toContain('integrations.ts')
+    expect(
+      checkTaskScopeViolation(msg, new Set(['edit_file']), 'read_file', {
+        path: 'app/shared/ipcContracts.ts'
+      })
+    ).toBeNull()
   })
 
   it('определяет пути исходников CodeViper', () => {
