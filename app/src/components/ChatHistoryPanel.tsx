@@ -112,6 +112,23 @@ function chatMatchesQuery(chat: SavedChat, query: string): boolean {
   return haystack.includes(query)
 }
 
+function getChatIcon(chat: SavedChat): string {
+  if (chat.pinned) return '📌'
+  const title = chat.title.toLowerCase()
+  for (const tpl of CHAT_TEMPLATES) {
+    if (title.includes(tpl.label.toLowerCase())) return tpl.icon
+  }
+  if (title.includes('github') || title.includes('git push') || title.includes('ветк')) return '🐙'
+  if (title.includes('google') || title.includes('диск') || title.includes('drive')) return '📁'
+  if (title.includes('камер') || title.includes('sony') || title.includes('фото')) return '📷'
+  if (title.includes('ремонт') || title.includes('болт') || title.includes('люстр')) return '🔧'
+  if (title.includes('пример') || title.includes('агент') || title.includes('промпт')) return '🧠'
+  if (title.includes('roadmap') || title.includes('самоулучш')) return '🗺️'
+  if (title.includes('тест') || title.includes('bug') || title.includes('ошиб')) return '🐛'
+  if (title.includes('документ') || title.includes('readme')) return '📄'
+  return (chat.mode ?? 'code') === 'chat' ? '💬' : '💻'
+}
+
 export function ChatHistoryPanel({
   mode,
   onModeChange,
@@ -300,8 +317,8 @@ export function ChatHistoryPanel({
     getScrollElement: () => listRef.current,
     estimateSize: (i) => {
       const item = flatItems[i]
-      if (!item || item.kind === 'folder-head' || item.kind === 'project-head') return 28
-      return 52
+      if (!item || item.kind === 'folder-head' || item.kind === 'project-head') return 32
+      return 48
     },
     overscan: 5
   })
@@ -382,9 +399,11 @@ export function ChatHistoryPanel({
         onDragEnd={handleDragEnd}
         onClick={() => !(chatBusy && chat.id === activeChatId) && onSelectChat(chat.id)}
       >
+        <span className={styles.itemIcon} aria-hidden="true">
+          {getChatIcon(chat)}
+        </span>
         <div className={styles.itemMain}>
           <div className={styles.title}>
-            {chat.pinned && <span className={styles.pinIcon}>📌 </span>}
             {busyChats.has(chat.id) && (
               <span
                 className={styles.busyPulse}
@@ -702,7 +721,7 @@ export function ChatHistoryPanel({
                     left: 0,
                     width: '100%',
                     transform: `translateY(${vRow.start}px)`,
-                    paddingBottom: 2
+                    paddingBottom: 6
                   }}
                 >
                   {item.kind === 'folder-head' && renderFolderHead(item.folder)}

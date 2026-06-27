@@ -855,7 +855,12 @@ function AppContent() {
 
         <div className="layout">
           <section className="panel panel-history">
-            <div className="panel-header">История чатов</div>
+            <div className="panel-header panel-header-recent">
+              <span>Недавние</span>
+              <span className="panel-header-recent-icon" aria-hidden="true">
+                ⏰
+              </span>
+            </div>
             <ChatHistoryPanel
               mode={agentMode}
               onModeChange={handleModeChange}

@@ -211,6 +211,10 @@ button {
 
 .panel-history {
   min-width: 0;
+  background: linear-gradient(165deg, rgba(22, 27, 38, 0.94) 0%, rgba(13, 17, 23, 0.9) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .panel-trace {
@@ -361,6 +365,26 @@ button {
   letter-spacing: 0.08em;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
+}
+
+.panel-header-recent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.panel-header-recent-icon {
+  font-size: 16px;
+  opacity: 0.85;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 .terminal-output {
