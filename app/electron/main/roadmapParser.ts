@@ -47,7 +47,7 @@ export async function listRoadmapItems(): Promise<RoadmapItem[]> {
       inPlans = true
       continue
     }
-    if (line.startsWith('## ✅') || line.startsWith('## Сделано')) {
+    if (inPlans && line.startsWith('## ') && !line.startsWith('###')) {
       inPlans = false
       continue
     }

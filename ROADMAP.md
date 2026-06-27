@@ -1,34 +1,6 @@
 # Дорожная карта CodeViper
 
-Планы развития и список выполненного. Назад в [README](README.md).
-
-> **Принцип чтения:** **Блок 0 выполнен** — live runtime с GitHub. Дальше «📋 В планах» (1…140); внутри цепочки 🔗 — строгий порядок.
-
-## ✅ Блок 0 — Live runtime с GitHub (завершён)
-
-> Установленный `.exe` — тонкая оболочка; agent runtime подтягивается из клона `%APPDATA%\CodeViper\source` без переустановки NSIS.
-
-### Когда нужен полный релиз (NSIS, `vX.Y.Z`, переустановка)
-
-| Ситуация | Действие |
-|----------|----------|
-| Первая установка на машине | `CodeViper-Setup-*.exe` |
-| Смена Electron, NSIS, portable Node, подпись, иконка | bump `version` → CI → тег → установщик |
-| Критичный баг **оболочки** (окно не открывается, IPC, трей) | релиз оболочки |
-
-### Когда релиз **не** нужен (блок 0 выполнен)
-
-| Ситуация | Действие |
-|----------|----------|
-| Фикс `list_directory`, handlers, промптов, ROADMAP-логики | `git push` на `master` → у пользователя: pull в `%APPDATA%\CodeViper\source` → build → **перезапуск** `.exe` |
-| Документация, skills, collective memory | push на GitHub; перезапуск или без него |
-| Обычный коммит разработки | **без** bump `version` и **без** тега |
-
-**Авто-релиз:** после зелёного CI на `master` job `auto-shell-release` ставит тег `vX.Y.Z` только если изменилась **оболочка** (`scripts/shell-release-paths.mjs`). Runtime-коммиты тег не получают.
-
-**Путь клона (уже создаётся установщиком):** `%APPDATA%\CodeViper\source` → `app/` — исходники и `out/main` после build.
-
----
+Задачи для самоулучшения агента. Выполненное — [ROADMAP_DONE.md](ROADMAP_DONE.md). Назад в [README](README.md).
 
 ### Формат задач для самообучения агента
 
@@ -999,40 +971,3 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
 - **Действие:** образ + том исходников + `npm run dev`  
 - **Проверка:** `docker compose up` поднимает приложение
-
----
-
-## ✅ Сделано
-
-### Live runtime (блок 0)
-- Авто-релиз оболочки (`auto-shell-release`, `shell-release-paths.mjs`); sync из `%APPDATA%\CodeViper\source`, runtime bootstrap, баннер перезапуска
-- Документация live runtime: README, `docs/development.md`
-
-### Архитектура и рефакторинг
-- IPC → 9 модулей `register*Ipc`; `agentTools` → core/integrations/mcp; `agentHandlersProject` → file/search/terminal
-- `SettingsModal` → 6 вкладок; `ChatPanel/` подкомпоненты; `commandRunner` выделен из `services.ts`
-- Провайдеры Claude/Gemini → `StreamingChatProvider`; агент на 6 модулей; параллельные tool calls; LRU-кэши
-
-### Агент и инструменты
-- Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды, `disabledTools`
-- Субагенты Explorer/Editor; оркестратор node-llama-cpp; checkpoint и откат прогона; `run_tests` с авто-починкой
-- RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
-
-### UX и UI
-- DiffPreviewModal (side-by-side, cherry-pick hunks); ProjectTree; @-mentions; trace export/replay; MetricsPanel
-- Vision-ввод; ErrorBoundary; prompt templates; tray; UpdateBanner; уведомления и звук по завершении агента
-- Коллективная память: рейтинг, AgentLearningPanel, шаблоны чатов, SelfImprovePlanPanel, `.codeviper/rules.md`
-
-### P2P и интеграции
-- `server/p2p`: Fastify, auth, router, TLS, кредиты, согласие в UI, тумблер «Поделиться мощностью»
-- MCP health-check и `enabledTools`; webhooks; режим инкогнито; плагины с hot-reload и Zod-валидацией
-
-### Качество, CI, установщик
-- E2E windows/ubuntu/macos; coverage thresholds; `npm audit` в CI; TypeDoc + GitHub Pages
-- NSIS + POSIX `CodeViper.sh`; CONTRIBUTING, issue/PR templates; `.codeviperignore`
-- `debugAgent`; удалён deprecated `cloudApiKey`; `list_directory` резолвит path от корня проекта
-
-### Надёжность и безопасность
-- Per-step timeout; Ollama fallback при circuit open; лимит буфера `runCommand` (10 МБ)
-- `encryptApiKey` fallback; `normalizeCommand`; collective memory mutex + semantic dedup
-- Песочница `run_script` (Docker); счётчик стоимости облачных запросов в статус-баре

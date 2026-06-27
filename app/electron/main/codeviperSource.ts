@@ -82,7 +82,7 @@ export function isAllowedSelfPath(sourceRoot: string, targetPath: string): boole
   const baseName = absolute.split(sep).pop()?.toLowerCase()
   const parentRoot = resolve(sourceRoot, '..')
   if (
-    (baseName === 'roadmap.md' || baseName === 'readme.md') &&
+    (baseName === 'roadmap.md' || baseName === 'roadmap_done.md' || baseName === 'readme.md') &&
     isInsideProject(parentRoot, absolute)
   ) {
     return true
@@ -105,7 +105,7 @@ function codeViperReadRoot(sourceRoot: string, filePath: string): { root: string
   const baseName = absPath.split(sep).pop()?.toLowerCase()
   const parentRoot = resolve(sourceRoot, '..')
   if (
-    (baseName === 'roadmap.md' || baseName === 'readme.md') &&
+    (baseName === 'roadmap.md' || baseName === 'roadmap_done.md' || baseName === 'readme.md') &&
     isInsideProject(parentRoot, absPath)
   ) {
     return { root: parentRoot, rel: baseName! }
@@ -237,7 +237,7 @@ export function buildSelfEditContext(isPackaged = false): string {
   const buildStep = !isPackaged ? ' && npm run build' : ''
   return `# Исходники CodeViper (саморедактирование)
 Корень app/: ${root}
-Репозиторий (ROADMAP.md, README.md): ${join(root, '..')}
+Репозиторий (ROADMAP.md, ROADMAP_DONE.md, README.md): ${join(root, '..')}
 
 **Не путать с папкой установки** (Program Files, рядом с CodeViper.exe) — для правок только пути выше и инструменты \`*_codeviper_*\`.
 

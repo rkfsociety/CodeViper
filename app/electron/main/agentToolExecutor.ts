@@ -77,7 +77,7 @@ export const SELF_EDIT_FILE_TOOLS = new Set([
 export function toolTouchesRoadmapDocs(name: string, args: Record<string, string>): boolean {
   if (!SELF_EDIT_FILE_TOOLS.has(name) && name !== 'write_codeviper_file') return false
   const p = (args.path ?? args.from ?? '').replace(/\\/g, '/')
-  return /ROADMAP\.md/i.test(p) || /README\.md/i.test(p)
+  return /ROADMAP(_DONE)?\.md/i.test(p) || /README\.md/i.test(p)
 }
 
 export function truncateDebugAgentOutput(output: string): string {

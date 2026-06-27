@@ -309,7 +309,7 @@ N · [S/M/L/XL] · Название — приор. …
 1. \`read_codeviper_file\` ROADMAP.md → пункт N; прочитать «Файлы»
 2. \`set_self_improvement_plan\` по полям пункта
 3. Правки → \`run_codeviper_command\`: \`npm run typecheck\` затем тесты из «Проверка» → \`complete_self_improvement_item\`
-4. Пункт ROADMAP → «✅ Сделано», перенумеровать «В планах» с 1 (тот же коммит)
+4. Пункт удалить из ROADMAP.md; запись в ROADMAP_DONE.md («Сделано»); перенумеровать «В планах» с 1 (тот же коммит)
 5. В цепочке 🔗 не брать следующий номер, пока текущий не закрыт`
 }
 

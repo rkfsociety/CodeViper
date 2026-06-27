@@ -32,7 +32,7 @@
 
 **Вы:** Выполни пункт 6 из ROADMAP.md — самоулучшение CodeViper.
 
-**Агент:** читает пункт (цель / файлы / действие / проверка) → `set_self_improvement_plan` → правки → `npm run typecheck` и `npm run build` → коммит в `agent/self-improve` → перенос пункта в «✅ Сделано».
+**Агент:** читает пункт (цель / файлы / действие / проверка) → `set_self_improvement_plan` → правки → `npm run typecheck` и `npm run build` → коммит в `agent/self-improve` → удаление из `ROADMAP.md`, запись в `ROADMAP_DONE.md`.
 
 ---
 

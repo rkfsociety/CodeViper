@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Версионирование
 
-См. также **ROADMAP → Блок 0**: когда нужен NSIS-релиз оболочки vs обновление runtime через git pull.
+См. также **ROADMAP_DONE → Блок 0**: когда нужен NSIS-релиз оболочки vs обновление runtime через git pull.
 
 ## Когда менять `app/package.json` → `version`
 
