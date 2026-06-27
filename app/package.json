@@ -117,7 +117,8 @@
     "publish": {
       "provider": "github",
       "owner": "rkfsociety",
-      "repo": "CodeViper"
+      "repo": "CodeViper",
+      "releaseType": "release"
     }
   },
   "dependencies": {

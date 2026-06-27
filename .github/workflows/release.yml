@@ -118,7 +118,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
-          ASSETS=$(gh release view "$TAG" --json assets -q '.assets[].name')
+          ASSETS=$(gh release view "$TAG" --repo rkfsociety/CodeViper --json assets -q '.assets[].name')
           echo "$ASSETS"
           echo "$ASSETS" | grep -q 'latest\.yml' || {
             echo "❌ Нет latest.yml (Windows) — не публикуем релиз"
