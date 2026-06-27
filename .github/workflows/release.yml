@@ -32,19 +32,12 @@ jobs:
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
           PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
-          if [ -n "$PREV_TAG" ]; then
-            NOTES=$(git log "${PREV_TAG}..${TAG}" --pretty=format:"- %s" --no-merges)
-          else
-            NOTES=$(git log --pretty=format:"- %s" --no-merges | head -30)
-          fi
+          TITLE=$(node scripts/generate-release-notes.mjs --tag "$TAG" --prev-tag "$PREV_TAG" --title-only)
+          NOTES=$(node scripts/generate-release-notes.mjs --tag "$TAG" --prev-tag "$PREV_TAG")
           gh release create "$TAG" \
-            --title "CodeViper $TAG" \
+            --title "$TITLE" \
             --draft \
-            --notes "## Что нового
-          ${NOTES}
-
-          ---
-          **Установка:** скачайте \`CodeViper-Setup-*.exe\` (Windows), \`.AppImage\` (Linux) или \`.dmg\` (macOS)."
+            --notes "$NOTES"
 
   release:
     needs: prepare
