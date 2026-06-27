@@ -33,29 +33,23 @@ jobs:
                 gh release delete "$old_tag" --repo ${{ github.repository }} --yes --cleanup-tag 2>/dev/null || true
               done
 
-      - name: Create and push nightly tag
-        run: |
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          TAG="${{ steps.tag.outputs.tag }}"
-          git tag -f "$TAG"
-          git push origin "$TAG" --force
-
-      - name: Create draft nightly release
+      - name: Create draft nightly release and tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.tag.outputs.tag }}"
+          SHA="$(git rev-parse HEAD)"
           DATE="$(date -u '+%Y-%m-%d %H:%M UTC')"
-          SHA="$(git rev-parse --short HEAD)"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
           NOTES=$(git log -10 --pretty=format:"- %s" --no-merges)
           gh release create "$TAG" \
+            --target "$SHA" \
             --title "CodeViper Nightly ${TAG#nightly-}" \
             --draft \
             --prerelease \
             --notes "## Nightly-сборка
 
-          **Дата:** ${DATE} · **коммит** [\`${SHA}\`](https://github.com/${{ github.repository }}/commit/$(git rev-parse HEAD))
+          **Дата:** ${DATE} · **коммит** [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${SHA})
 
           Предрелиз для канала **Beta** в настройках приложения. Не для продакшена — только тестирование свежего \`master\`.
 
