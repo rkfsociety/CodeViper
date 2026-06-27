@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { existsSync, statSync } from 'fs'
+import { join } from 'path'
 import {
   resolveLiveShellPathsFromClone,
   installLiveShellRendererReload
@@ -48,7 +49,7 @@ describe('liveShellBootstrap', () => {
   it('resolveLiveShellPathsFromClone принимает index.html <1 KB', () => {
     const paths = resolveLiveShellPathsFromClone()
     expect(paths).not.toBeNull()
-    expect(paths?.rendererIndex).toBe(`${cloneRoot}/out/renderer/index.html`.replace(/\//g, '\\'))
+    expect(paths?.rendererIndex).toBe(join(cloneRoot, 'out', 'renderer', 'index.html'))
     expect(671).toBeGreaterThanOrEqual(BUNDLED_SHELL_RENDERER_MIN_BYTES)
   })
 
