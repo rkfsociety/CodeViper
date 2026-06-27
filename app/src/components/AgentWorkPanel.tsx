@@ -1,0 +1,169 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ChatMessage } from '../types'
+import type { AgentPhase } from './AgentStatusBar'
+import type { AgentWorkTrace } from './ChatPanel/helpers'
+import { computeWorkDurationMs, formatWorkDuration } from './ChatPanel/helpers'
+import toolStyles from './AllToolsGroup.module.css'
+import styles from './AgentWorkPanel.module.css'
+
+interface Props {
+  work: AgentWorkTrace
+  message?: ChatMessage
+  busy: boolean
+  agentPhase: AgentPhase
+  draftMessageId: string | null
+}
+
+function humanizeToolName(name: string): string {
+  const map: Record<string, string> = {
+    read_file: 'Read',
+    write_file: 'Write',
+    edit_file: 'Edit',
+    bash: 'Run',
+    search_files: 'Search',
+    grep_search: 'Search',
+    grep: 'Search',
+    list_directory: 'List',
+    list_files: 'List',
+    create_file: 'Create',
+    delete_file: 'Delete',
+    move_file: 'Move',
+    copy_file: 'Copy',
+    execute_command: 'Run',
+    run_command: 'Run',
+    web_search: 'Search Web',
+    fetch_url: 'Fetch'
+  }
+  if (map[name]) return map[name]
+  return name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function parseToolContent(content: string) {
+  const isRunning = content.startsWith('▶')
+  const isError = content.startsWith('✗') || content.startsWith('❌')
+  const lines = content.split('\n')
+  const firstLine = lines[0].replace(/^[▶✓✗❌]\s*/, '').trim()
+  const result = lines.slice(1).join('\n').trim()
+  return { isRunning, isError, firstLine, result }
+}
+
+function ToolDetail({ m }: { m: ChatMessage }) {
+  const [open, setOpen] = useState(false)
+  const name = m.toolName || 'tool'
+  const { isRunning, isError, firstLine, result } = parseToolContent(m.content)
+  const statusIcon = isRunning ? '…' : isError ? '✗' : '✓'
+  const statusClass = isRunning
+    ? toolStyles.statusRunning
+    : isError
+      ? toolStyles.statusError
+      : toolStyles.statusOk
+  const label = `${humanizeToolName(name)}${firstLine ? ` ${firstLine}` : ''}`
+
+  return (
+    <div className={toolStyles.item}>
+      <button
+        type="button"
+        className={toolStyles.itemRow}
+        onClick={() => result && setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{ cursor: result ? 'pointer' : 'default' }}
+      >
+        <span className={`${toolStyles.itemStatus} ${statusClass}`}>{statusIcon}</span>
+        <span className={toolStyles.itemLabel}>{label}</span>
+        {result && <span className={toolStyles.itemChevron}>{open ? '▾' : '›'}</span>}
+      </button>
+      {open && result && <div className={toolStyles.itemResult}>{result}</div>}
+    </div>
+  )
+}
+
+function LiveTools({ tools }: { tools: ChatMessage[] }) {
+  if (tools.length === 0) return null
+  return (
+    <div className={styles.liveTools}>
+      {tools.map((m) => (
+        <ToolDetail key={m.id} m={m} />
+      ))}
+    </div>
+  )
+}
+
+export function AgentWorkPanel({ work, message, busy, agentPhase, draftMessageId }: Props) {
+  const [expanded, setExpanded] = useState(false)
+  const thinkingScrollRef = useRef<HTMLDivElement>(null)
+  const wasActiveRef = useRef(false)
+  const [frozenDurationMs, setFrozenDurationMs] = useState<number | undefined>()
+
+  const thinkingLive =
+    busy &&
+    agentPhase === 'thinking' &&
+    work.liveAssistantId != null &&
+    draftMessageId === work.liveAssistantId
+  const toolsLive = work.tools.some((m) => m.content.startsWith('▶'))
+  const active = thinkingLive || toolsLive
+
+  useLayoutEffect(() => {
+    if (!thinkingLive) return
+    const el = thinkingScrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [work.thinking, thinkingLive])
+
+  useEffect(() => {
+    if (wasActiveRef.current && !active) {
+      setFrozenDurationMs(computeWorkDurationMs(work, message))
+    }
+    if (active) setFrozenDurationMs(undefined)
+    wasActiveRef.current = active
+  }, [active, work, message])
+
+  const durationMs =
+    frozenDurationMs ??
+    (active ? computeWorkDurationMs(work, message) : computeWorkDurationMs(work, message))
+
+  if (work.tools.length === 0 && !work.thinking.trim()) return null
+
+  if (active) {
+    return (
+      <div className={styles.live} role="status" aria-live="polite">
+        {thinkingLive && work.thinking.trim() && (
+          <div ref={thinkingScrollRef} className={styles.liveThinking}>
+            {work.thinking}
+          </div>
+        )}
+        {toolsLive && <LiveTools tools={work.tools} />}
+      </div>
+    )
+  }
+
+  const durationLabel =
+    durationMs != null && durationMs > 0
+      ? `Выполнено за ${formatWorkDuration(durationMs)}`
+      : 'Выполнено'
+
+  return (
+    <div className={`${styles.settled}${expanded ? ` ${styles.expanded}` : ''}`}>
+      <button
+        type="button"
+        className={styles.summary}
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span className={styles.summaryLabel}>{durationLabel}</span>
+        <span className={styles.summaryChevron}>{expanded ? '▾' : '›'}</span>
+      </button>
+      {expanded && (
+        <div className={styles.details}>
+          {work.thinking.trim() && <div className={styles.detailThinking}>{work.thinking}</div>}
+          {work.tools.length > 0 && (
+            <div className={toolStyles.list}>
+              {work.tools.map((m) => (
+                <ToolDetail key={m.id} m={m} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

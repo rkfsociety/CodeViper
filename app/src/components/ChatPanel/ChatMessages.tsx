@@ -1,14 +1,13 @@
 import { lazy, Suspense } from 'react'
 import type { Virtualizer } from '@tanstack/react-virtual'
 import type { ChatMessage } from '../../types'
-import { ThinkingBlock } from '../ThinkingBlock'
-import { AllToolsGroup } from '../AllToolsGroup'
+import { AgentWorkPanel } from '../AgentWorkPanel'
 import { WelcomePanel } from '../WelcomePanel'
 import { EditPreviewBlock } from '../EditPreviewBlock'
 import { MessageRoleBadge } from '../MessageRoleBadge'
 import { formatElapsed, formatTokenCount } from '../../../shared/generationMetrics'
-import type { DisplayItem } from './helpers'
-import { visibleAssistantContent } from './helpers'
+import type { AgentWorkTrace, DisplayItem } from './helpers'
+import { visibleAssistantContent, workTraceIsEmpty } from './helpers'
 import { MessageRow } from './MessageRow'
 import type { AgentPhase } from '../AgentStatusBar'
 import styles from '../ChatPanel.module.css'
@@ -37,13 +36,25 @@ interface Props {
   onInsertPrompt: (text: string) => void
 }
 
-function isReasoningLive(
-  busy: boolean,
-  agentPhase: AgentPhase,
-  draftMessageIdRef: React.RefObject<string | null>,
-  assistantId: string
-): boolean {
-  return busy && agentPhase === 'thinking' && draftMessageIdRef.current === assistantId
+function renderWorkPanel(
+  work: AgentWorkTrace | undefined,
+  opts: {
+    busy: boolean
+    agentPhase: AgentPhase
+    draftMessageId: string | null
+    message?: ChatMessage
+  }
+) {
+  if (!work || workTraceIsEmpty(work)) return null
+  return (
+    <AgentWorkPanel
+      work={work}
+      message={opts.message}
+      busy={opts.busy}
+      agentPhase={opts.agentPhase}
+      draftMessageId={opts.draftMessageId}
+    />
+  )
 }
 
 export function ChatMessages({
@@ -67,6 +78,9 @@ export function ChatMessages({
   respondPreview,
   onInsertPrompt
 }: Props) {
+  const draftMessageId = draftMessageIdRef.current
+  const workOpts = { busy, agentPhase, draftMessageId }
+
   return (
     <div className={styles.messages} ref={scrollRef}>
       {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
@@ -79,23 +93,12 @@ export function ChatMessages({
         <div className="pinned-messages-section">
           <div className="pinned-messages-title">📌 Закреплённые</div>
           {pinnedDisplayItems.map((item) =>
-            item.kind === 'all-tools' ? (
-              <div key={item.key}>
-                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
-                {item.reasoning && (
-                  <ThinkingBlock
-                    content={item.reasoning.thinking}
-                    live={isReasoningLive(
-                      busy,
-                      agentPhase,
-                      draftMessageIdRef,
-                      item.reasoning.assistant.id
-                    )}
-                  />
-                )}
-              </div>
+            item.kind === 'pending-work' ? (
+              <div key={item.key}>{renderWorkPanel(item.work, workOpts)}</div>
             ) : (
               <div key={item.message.id} className={`message ${item.message.role} pinned`}>
+                {!workTraceIsEmpty(item.work) &&
+                  renderWorkPanel(item.work!, { ...workOpts, message: item.message })}
                 <div className="message-header">
                   <MessageRoleBadge role={item.message.role} toolName={item.message.toolName} />
                   <button
@@ -129,23 +132,8 @@ export function ChatMessages({
           const item = displayItems[vItem.index]!
           let content: React.ReactNode
 
-          if (item.kind === 'all-tools') {
-            content = (
-              <div>
-                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
-                {item.reasoning && (
-                  <ThinkingBlock
-                    content={item.reasoning.thinking}
-                    live={isReasoningLive(
-                      busy,
-                      agentPhase,
-                      draftMessageIdRef,
-                      item.reasoning.assistant.id
-                    )}
-                  />
-                )}
-              </div>
-            )
+          if (item.kind === 'pending-work') {
+            content = renderWorkPanel(item.work, workOpts)
           } else {
             const msg = item.message
             if (msg.previewId && msg.previewDiff !== undefined) {
@@ -163,9 +151,11 @@ export function ChatMessages({
               content = (
                 <MessageRow
                   message={msg}
+                  work={item.work}
                   pinned={pinnedMessageIds.has(msg.id)}
                   busy={busy}
                   agentPhase={agentPhase}
+                  draftMessageId={draftMessageId}
                   isStreaming={msg.id === draftMessageIdRef.current}
                   onPin={togglePinMessage}
                   onRetry={retryUserMessage}

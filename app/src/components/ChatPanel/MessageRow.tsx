@@ -1,17 +1,20 @@
 import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../../types'
 import type { AgentPhase } from '../AgentStatusBar'
+import { AgentWorkPanel } from '../AgentWorkPanel'
 import { MessageCopyButton } from '../MessageCopyButton'
-import { ThinkingBlock } from '../ThinkingBlock'
-import { messageCopyText, visibleAssistantContent } from './helpers'
+import type { AgentWorkTrace } from './helpers'
+import { messageCopyText, visibleAssistantContent, workTraceIsEmpty } from './helpers'
 
 const MessageBody = lazy(() => import('../MessageBody').then((m) => ({ default: m.MessageBody })))
 
 export const MessageRow = memo(function MessageRow({
   message,
+  work,
   pinned,
   busy,
   agentPhase,
+  draftMessageId,
   isStreaming,
   onPin,
   onRetry,
@@ -20,9 +23,11 @@ export const MessageRow = memo(function MessageRow({
   onSaveAsSkill
 }: {
   message: ChatMessage
+  work?: AgentWorkTrace
   pinned: boolean
   busy: boolean
   agentPhase: AgentPhase
+  draftMessageId: string | null
   isStreaming?: boolean
   onPin: (id: string) => void
   onRetry: (message: ChatMessage) => void
@@ -32,6 +37,11 @@ export const MessageRow = memo(function MessageRow({
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const showAnswer = !(
+    isStreaming &&
+    agentPhase === 'thinking' &&
+    !visibleAssistantContent(message.content)
+  )
 
   useEffect(() => {
     if (!menuOpen) return
@@ -90,14 +100,15 @@ export const MessageRow = memo(function MessageRow({
           </div>
         )}
       </div>
-      {message.role === 'assistant' &&
-        message.thinking &&
-        !(isStreaming && agentPhase === 'writing') && (
-          <ThinkingBlock
-            content={message.thinking}
-            live={Boolean(isStreaming && agentPhase === 'thinking')}
-          />
-        )}
+      {!workTraceIsEmpty(work) && (
+        <AgentWorkPanel
+          work={work!}
+          message={message}
+          busy={busy}
+          agentPhase={agentPhase}
+          draftMessageId={draftMessageId}
+        />
+      )}
       {message.images && message.images.length > 0 && (
         <div className="message-images">
           {message.images.map((img) => (
@@ -111,17 +122,19 @@ export const MessageRow = memo(function MessageRow({
           ))}
         </div>
       )}
-      <Suspense fallback={null}>
-        <MessageBody
-          role={message.role}
-          content={
-            message.role === 'assistant'
-              ? visibleAssistantContent(message.content)
-              : message.content
-          }
-          onFileTimeline={onFileTimeline}
-        />
-      </Suspense>
+      {showAnswer && (
+        <Suspense fallback={null}>
+          <MessageBody
+            role={message.role}
+            content={
+              message.role === 'assistant'
+                ? visibleAssistantContent(message.content)
+                : message.content
+            }
+            onFileTimeline={onFileTimeline}
+          />
+        </Suspense>
+      )}
     </div>
   )
 })
