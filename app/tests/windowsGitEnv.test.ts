@@ -1,40 +1,47 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { existsSync } from 'fs'
-
-vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('fs')>()
-  return { ...actual, existsSync: vi.fn(actual.existsSync) }
-})
-
-import { prependWindowsGitToPath } from '../electron/main/windowsGitEnv'
+import { describe, it, expect, afterEach } from 'vitest'
+import { mkdirSync, writeFileSync, rmSync } from 'fs'
+import { join } from 'path'
+import { mkdtempSync } from 'fs'
+import { tmpdir } from 'os'
+import { prependWindowsGitToPath, setWinGitCmdDirsForTests } from '../electron/main/windowsGitEnv'
 
 describe('prependWindowsGitToPath', () => {
   afterEach(() => {
-    vi.mocked(existsSync).mockRestore()
+    setWinGitCmdDirsForTests(null)
   })
 
   it('на non-win32 не меняет env', () => {
-    const originalPlatform = process.platform
-    Object.defineProperty(process, 'platform', { value: 'linux' })
+    if (process.platform === 'win32') return
+
     const env = { PATH: '/usr/bin' }
     expect(prependWindowsGitToPath(env)).toBe(env)
-    Object.defineProperty(process, 'platform', { value: originalPlatform })
   })
 
   it('на win32 добавляет Git cmd в PATH', () => {
-    const originalPlatform = process.platform
-    Object.defineProperty(process, 'platform', { value: 'win32' })
+    if (process.platform !== 'win32') return
 
-    vi.mocked(existsSync).mockImplementation((p) => {
-      const s = String(p)
-      return s.includes('Program Files\\Git\\cmd\\git.exe')
-    })
+    const gitDir = mkdtempSync(join(tmpdir(), 'cv-git-cmd-'))
+    writeFileSync(join(gitDir, 'git.exe'), '')
+    setWinGitCmdDirsForTests([gitDir])
 
     const result = prependWindowsGitToPath({ PATH: 'C:\\Windows' })
-    expect(result.PATH).toContain('C:\\Program Files\\Git\\cmd')
+    expect(result.PATH).toContain(gitDir)
     expect(result.PATH).toContain('C:\\Windows')
     expect(result.Path).toBe(result.PATH)
 
-    Object.defineProperty(process, 'platform', { value: originalPlatform })
+    rmSync(gitDir, { recursive: true, force: true })
+  })
+
+  it('на win32 без git.exe не меняет PATH', () => {
+    if (process.platform !== 'win32') return
+
+    const emptyDir = mkdtempSync(join(tmpdir(), 'cv-git-empty-'))
+    mkdirSync(emptyDir, { recursive: true })
+    setWinGitCmdDirsForTests([emptyDir])
+
+    const env = { PATH: 'C:\\Windows' }
+    expect(prependWindowsGitToPath(env)).toBe(env)
+
+    rmSync(emptyDir, { recursive: true, force: true })
   })
 })
