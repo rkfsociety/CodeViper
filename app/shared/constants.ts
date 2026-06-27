@@ -159,8 +159,10 @@ export const BUNDLED_SOURCE_APP_DIR_NAME = 'app'
 export const BUNDLED_SOURCE_STARTUP_WAIT_MS = 3_000
 /** Первый git clone при автообновлении без NSIS — дольше обычного startup wait */
 export const BUNDLED_SOURCE_FIRST_CLONE_WAIT_MS = 120_000
-/** Минимальный размер out/main/index.js для считания runtime валидным */
+/** Минимальный размер out/main/index.js / runtimeHandlers.js в клоне (защита от пустого stub) */
 export const BUNDLED_RUNTIME_MAIN_MIN_BYTES = 1024
+/** out/renderer/index.html — маленький entrypoint (~650 байт), отдельный порог */
+export const BUNDLED_SHELL_RENDERER_MIN_BYTES = 64
 /** Таймаут npm install / build в клоне (с) */
 export const BUNDLED_SOURCE_BUILD_TIMEOUT_SEC = 600
 

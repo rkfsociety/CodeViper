@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'path'
 import { mkdtempSync } from 'fs'
 import { tmpdir } from 'os'
-import { BUNDLED_RUNTIME_MAIN_MIN_BYTES } from '../shared/constants'
+import {
+  BUNDLED_RUNTIME_MAIN_MIN_BYTES,
+  BUNDLED_SHELL_RENDERER_MIN_BYTES
+} from '../shared/constants'
 
 const userDataDir = mkdtempSync(join(tmpdir(), 'cv-runtime-bootstrap-'))
 
@@ -159,10 +162,12 @@ describe('runtimeBootstrap', () => {
         p === clonePreload ||
         p === asarRenderer ||
         p === asarPreload,
-      statSize: (p) =>
-        [cloneMain, cloneRenderer, clonePreload, asarRenderer, asarPreload].includes(p)
-          ? BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100
-          : 0
+      statSize: (p) => {
+        if (p === cloneRenderer || p === asarRenderer) return 671
+        if ([cloneMain, clonePreload, asarPreload].includes(p))
+          return BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100
+        return 0
+      }
     })
 
     const paths = resolveBundledShellPaths({ liveRuntimeFromGit: true, isPackaged: true })
@@ -192,10 +197,12 @@ describe('runtimeBootstrap', () => {
         p === clonePreload ||
         p === asarRenderer ||
         p === asarPreload,
-      statSize: (p) =>
-        [cloneMain, cloneRenderer, clonePreload, asarRenderer, asarPreload].includes(p)
-          ? BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100
-          : 0
+      statSize: (p) => {
+        if (p === cloneRenderer || p === asarRenderer) return 671
+        if ([cloneMain, clonePreload, asarPreload].includes(p))
+          return BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100
+        return 0
+      }
     })
 
     initBundledShellPaths(true, { isPackaged: true })

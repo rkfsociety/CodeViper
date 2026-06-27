@@ -3,7 +3,10 @@ import { existsSync, statSync } from 'fs'
 import { dirname, join } from 'path'
 import { pathToFileURL } from 'url'
 import { app } from 'electron'
-import { BUNDLED_RUNTIME_MAIN_MIN_BYTES } from '../../shared/constants'
+import {
+  BUNDLED_RUNTIME_MAIN_MIN_BYTES,
+  BUNDLED_SHELL_RENDERER_MIN_BYTES
+} from '../../shared/constants'
 import { getCodeViperSourceRoot, setSourceRootOverride } from './codeviperSource'
 import { getBundledSourceAppRoot } from './bundledSourceBuild'
 import type { AgentSettings } from '../../src/types'
@@ -120,9 +123,14 @@ function devShellPaths(mainDir: string): BundledShellPaths {
   }
 }
 
-function isValidBundledShellArtifact(filePath: string): boolean {
-  if (!pathExists(filePath)) return false
-  return fileSize(filePath) >= BUNDLED_RUNTIME_MAIN_MIN_BYTES
+function isValidBundledRendererIndex(rendererPath: string): boolean {
+  if (!pathExists(rendererPath)) return false
+  return fileSize(rendererPath) >= BUNDLED_SHELL_RENDERER_MIN_BYTES
+}
+
+function isValidBundledPreloadScript(preloadPath: string): boolean {
+  if (!pathExists(preloadPath)) return false
+  return fileSize(preloadPath) >= BUNDLED_RUNTIME_MAIN_MIN_BYTES
 }
 
 /**
@@ -150,8 +158,8 @@ export function resolveBundledShellPaths(options?: {
 
     if (
       isValidBundledRuntimeMain(cloneMain) &&
-      isValidBundledShellArtifact(cloneRenderer) &&
-      isValidBundledShellArtifact(clonePreload)
+      isValidBundledRendererIndex(cloneRenderer) &&
+      isValidBundledPreloadScript(clonePreload)
     ) {
       return {
         rendererIndex: cloneRenderer,
@@ -159,6 +167,14 @@ export function resolveBundledShellPaths(options?: {
         fromClone: true
       }
     }
+
+    void logRuntimeBootstrap('shell fallback to asar', {
+      cloneRenderer,
+      rendererBytes: fileSize(cloneRenderer),
+      clonePreload,
+      preloadBytes: fileSize(clonePreload),
+      mainValid: isValidBundledRuntimeMain(cloneMain)
+    })
   }
 
   return asarShellPaths()
