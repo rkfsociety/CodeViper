@@ -171,6 +171,18 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(result).toMatch(/\d+ · .+ · /)
   })
 
+  it('read_roadmap_item возвращает поля шаблона пункта ROADMAP', async () => {
+    const store = new SelfImprovementPlanStore()
+    const handlers = createSelfImprovementToolHandlers(store, vi.fn())
+
+    const result = await handlers.read_roadmap_item!({ number: '1' })
+
+    expect(result).toContain('Цель:')
+    expect(result).toContain('Файлы:')
+    expect(result).toContain('Действие:')
+    expect(result).toContain('Проверка:')
+  })
+
   it('get_self_improvement_plan возвращает сообщение при отсутствии плана', async () => {
     const store = new SelfImprovementPlanStore()
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())

@@ -272,6 +272,21 @@ export const OLLAMA_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'read_roadmap_item',
+      description:
+        'Полный блок пункта N из ROADMAP.md: цель, файлы, действие, проверка. Сначала list_roadmap для списка номеров.',
+      parameters: {
+        type: 'object',
+        properties: {
+          number: { type: 'string', description: 'Номер пункта из list_roadmap' }
+        },
+        required: ['number']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'set_self_improvement_plan',
       description: 'Задать план самоулучшения (3–8 пунктов) после изучения кода',
       parameters: {

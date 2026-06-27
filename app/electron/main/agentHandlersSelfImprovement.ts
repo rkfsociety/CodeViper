@@ -5,7 +5,12 @@ import {
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
-import { formatRoadmapItemsList, listRoadmapItems } from './roadmapParser'
+import {
+  formatRoadmapItemsList,
+  formatRoadmapItemDetail,
+  listRoadmapItems,
+  readRoadmapItem
+} from './roadmapParser'
 
 export function createSelfImprovementToolHandlers(
   plan: SelfImprovementPlanStore,
@@ -15,6 +20,18 @@ export function createSelfImprovementToolHandlers(
     list_roadmap: async () => {
       const items = await listRoadmapItems()
       return formatRoadmapItemsList(items)
+    },
+
+    read_roadmap_item: async (args) => {
+      const num = parseInt(String(args.number).trim(), 10)
+      if (!Number.isFinite(num) || num < 1) {
+        return 'Укажите number — номер пункта из list_roadmap (целое ≥ 1).'
+      }
+      const item = await readRoadmapItem(num)
+      if (!item) {
+        return `Пункт ${num} не найден в ROADMAP.md (раздел «В планах»).`
+      }
+      return formatRoadmapItemDetail(item)
     },
 
     set_self_improvement_plan: async (args: any) => {

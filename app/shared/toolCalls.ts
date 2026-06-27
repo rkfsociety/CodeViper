@@ -92,6 +92,7 @@ export const AGENT_TOOL_NAMES = [
   'create_ollama_model',
   // Саморазвитие
   'list_roadmap',
+  'read_roadmap_item',
   'set_self_improvement_plan',
   'complete_self_improvement_item',
   'get_self_improvement_plan',
