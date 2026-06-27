@@ -9,6 +9,7 @@ interface Props {
 export function ThinkingBlock({ content, live = false }: Props) {
   const [open, setOpen] = useState(live)
   const wasLiveRef = useRef(live)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (live) {
@@ -19,24 +20,28 @@ export function ThinkingBlock({ content, live = false }: Props) {
     wasLiveRef.current = live
   }, [live])
 
+  useEffect(() => {
+    if (!live || !open) return
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [content, live, open])
+
   if (!content.trim()) return null
 
   return (
-    <div className={`thinking-block${open ? ' open' : ''}${live ? ' live' : ''}`}>
+    <div className={`thinking-stream${open ? ' open' : ''}${live ? ' live' : ''}`}>
       <button
         type="button"
-        className="thinking-summary"
+        className="thinking-stream-toggle"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="thinking-icon" aria-hidden="true">
-          💭
-        </span>
-        <span className="thinking-title">Размышления{live ? '…' : ''}</span>
-        <span className="thinking-toggle-hint" />
+        <span className="thinking-stream-label">Размышления{live ? '…' : ''}</span>
+        <span className="thinking-stream-hint" />
       </button>
-      <div className="thinking-content-wrap">
-        <div className="thinking-content">{content}</div>
+      <div ref={scrollRef} className="thinking-stream-body" hidden={!open}>
+        {content}
       </div>
     </div>
   )

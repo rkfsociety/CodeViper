@@ -70,9 +70,11 @@ export function groupToolMessages(messages: ChatMessage[]): DisplayItem[] {
     if (msg.role === 'tool') {
       pendingTools.push(msg)
     } else if (msg.role === 'assistant') {
-      if (msg.thinking && msg.thinking.trim()) {
+      const hasThinking = Boolean(msg.thinking?.trim())
+      const hasContent = visibleAssistantContent(msg.content).length > 0
+      if (hasThinking && !hasContent) {
         if (pendingReasoning === null) {
-          pendingReasoning = { thinking: msg.thinking, assistant: msg }
+          pendingReasoning = { thinking: msg.thinking!, assistant: msg }
         } else {
           pendingReasoning.thinking += '\n' + msg.thinking
         }

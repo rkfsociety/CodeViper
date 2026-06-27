@@ -77,13 +77,13 @@ export function ChatMessages({
           {pinnedDisplayItems.map((item) =>
             item.kind === 'all-tools' ? (
               <div key={item.key}>
+                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
                 {item.reasoning && (
                   <ThinkingBlock
                     content={item.reasoning.thinking}
                     live={isReasoningLive(busy, draftMessageIdRef, item.reasoning.assistant.id)}
                   />
                 )}
-                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
               </div>
             ) : (
               <div key={item.message.id} className={`message ${item.message.role} pinned`}>
@@ -123,13 +123,13 @@ export function ChatMessages({
           if (item.kind === 'all-tools') {
             content = (
               <div>
+                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
                 {item.reasoning && (
                   <ThinkingBlock
                     content={item.reasoning.thinking}
                     live={isReasoningLive(busy, draftMessageIdRef, item.reasoning.assistant.id)}
                   />
                 )}
-                {item.items.length > 0 && <AllToolsGroup items={item.items} />}
               </div>
             )
           } else {
