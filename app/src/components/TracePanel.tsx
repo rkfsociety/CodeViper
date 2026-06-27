@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { AgentTraceEvent } from '../types'
 import { getTraceEvents, clearTraceEvents, onTraceUpdate } from '../traceBuffer'
-import { PromptDialog } from './PromptDialog'
+import { ConfirmDialog } from './ConfirmDialog'
 import styles from './TracePanel.module.css'
 
 interface Props {
@@ -33,7 +33,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [exporting, setExporting] = useState(false)
   const [reporting, setReporting] = useState(false)
-  const [reportDialogOpen, setReportDialogOpen] = useState(false)
+  const [reportConfirmOpen, setReportConfirmOpen] = useState(false)
   const [reportStatus, setReportStatus] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
@@ -106,20 +106,19 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
 
   function handleReportClick() {
     if (!chatId || events.length === 0 || reporting) return
-    setReportDialogOpen(true)
+    setReportConfirmOpen(true)
   }
 
-  async function submitReport(userNote: string) {
+  async function submitReport() {
     if (!chatId || events.length === 0 || reporting) return
-    setReportDialogOpen(false)
+    setReportConfirmOpen(false)
     setReporting(true)
     setReportStatus(null)
     try {
       const result = await window.codeviper.reportTraceToGithub(
         chatId,
         events,
-        projectPath.trim() || undefined,
-        userNote || undefined
+        projectPath.trim() || undefined
       )
       if (result.ok && result.issueUrl) {
         setReportStatus(`Issue создан: ${result.title ?? ''}`)
@@ -173,14 +172,13 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
         </div>
       </div>
       {reportStatus && <div className={styles.reportStatus}>{reportStatus}</div>}
-      <PromptDialog
-        open={reportDialogOpen}
+      <ConfirmDialog
+        open={reportConfirmOpen}
         title="Отчёт на GitHub"
-        label="Комментарий к отчёту (необязательно). Оставьте пустым, чтобы отправить только автоописание:"
+        message="Создать GitHub Issue с автоописанием по текущей трассе? Полный JSON трейса будет приложен отдельно."
         confirmLabel="Отправить"
-        allowEmpty
-        onConfirm={(value) => void submitReport(value)}
-        onCancel={() => setReportDialogOpen(false)}
+        onConfirm={() => void submitReport()}
+        onCancel={() => setReportConfirmOpen(false)}
       />
       <div
         className={styles.log}
