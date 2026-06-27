@@ -13,6 +13,7 @@ import {
   parsePlanItemsJson,
   parsePlanFromAssistantText,
   parseChecklistAsPlan,
+  parseBulletListAsPlan,
   syncPlanFromChecklist,
   isPlanComplete,
   formatPlanSummary,
@@ -101,6 +102,17 @@ describe('selfImprovement', () => {
     const items = parsePlanItemsJson([{ id: '1', title: 'Шаг A' }])
     expect(items).toHaveLength(1)
     expect(items[0].title).toBe('Шаг A')
+  })
+
+  it('парсит маркированный список вместо JSON (Gemini, fix #20)', () => {
+    const raw = `
+- Реализация: изменить App.tsx
+- Проверка: npm run typecheck
+- Обновление ROADMAP.md: удалить пункт 1`
+    const items = parsePlanItemsJson(raw)
+    expect(items).toHaveLength(3)
+    expect(items[0].title).toContain('Реализация')
+    expect(parseBulletListAsPlan('- один')).toBeNull()
   })
 
   it('парсит JSON план из текста ответа', () => {

@@ -938,6 +938,36 @@ describe('GeminiProvider', () => {
     expect(declarations[1].parameters).toEqual({ type: 'object', properties: {} })
   })
 
+  it('при tool_choice required и >40 tools использует AUTO вместо ANY (fix #20)', async () => {
+    fetchMock.mockResolvedValue(makeResponse(makeStream([geminiSseLine(geminiTextChunk('ok'))])))
+
+    const tools = Array.from({ length: 45 }, (_, i) => ({
+      name: `tool_${i}`,
+      description: `Tool ${i}`,
+      input_schema: { type: 'object', properties: {} }
+    }))
+
+    await collectChunks(provider.chat({ ...BASE_CHAT_OPTIONS, tools, tool_choice: 'required' }))
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(body.toolConfig.functionCallingConfig.mode).toBe('AUTO')
+  })
+
+  it('при tool_choice required и ≤40 tools оставляет ANY', async () => {
+    fetchMock.mockResolvedValue(makeResponse(makeStream([geminiSseLine(geminiTextChunk('ok'))])))
+
+    const tools = Array.from({ length: 3 }, (_, i) => ({
+      name: `tool_${i}`,
+      description: `Tool ${i}`,
+      input_schema: { type: 'object', properties: {} }
+    }))
+
+    await collectChunks(provider.chat({ ...BASE_CHAT_OPTIONS, tools, tool_choice: 'required' }))
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(body.toolConfig.functionCallingConfig.mode).toBe('ANY')
+  })
+
   // ── 3. Ответ 429 ────────────────────────────────────────────────────────────
 
   it('бросает ошибку с понятным текстом при 429', async () => {

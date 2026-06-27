@@ -195,13 +195,42 @@ export function normalizePlanItemsInput(raw: unknown): string {
   return String(raw ?? '')
 }
 
+/** Маркированный список «- пункт» / «1. пункт» (Gemini иногда шлёт вместо JSON). */
+export function parseBulletListAsPlan(text: string): SelfImprovementItem[] | null {
+  const items: SelfImprovementItem[] = []
+
+  for (const line of text.split('\n')) {
+    const match = line.match(/^\s*(?:[-*]|\d+\.)\s+(.+)$/u)
+    if (!match) continue
+
+    const title = match[1].trim()
+    if (!title) continue
+
+    items.push({
+      id: String(items.length + 1),
+      title,
+      done: false,
+      attemptCount: 0
+    })
+  }
+
+  return items.length >= 2 ? items : null
+}
+
 export function parsePlanItemsJson(raw: unknown): SelfImprovementItem[] {
-  const normalized = normalizePlanItemsInput(raw)
+  const normalized = normalizePlanItemsInput(raw).trim()
+  const bulletPlan = parseBulletListAsPlan(normalized)
+  if (bulletPlan) return bulletPlan
+
   let parsed: unknown
   try {
     parsed = JSON.parse(normalized)
   } catch {
-    throw new Error('items должны быть JSON-массивом [{id, title}, ...]')
+    const fallback = parseBulletListAsPlan(normalized)
+    if (fallback) return fallback
+    throw new Error(
+      'items должны быть JSON-массивом [{id, title}, ...] или маркированным списком «- пункт»'
+    )
   }
 
   if (!Array.isArray(parsed) || !parsed.length) {

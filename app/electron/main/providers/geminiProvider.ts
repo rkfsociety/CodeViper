@@ -6,7 +6,7 @@ import type {
   LoadedModel,
   ModelPlacement
 } from '../../../shared/modelProvider'
-import { GEMINI_API_BASE_URL } from '../../../shared/constants'
+import { GEMINI_ANY_MODE_MAX_TOOLS, GEMINI_API_BASE_URL } from '../../../shared/constants'
 import { simplifySchemaForGemini } from '../../../shared/geminiToolSchema'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
@@ -352,7 +352,10 @@ export class GeminiProvider extends StreamingChatProvider implements ModelProvid
           }))
         }
       ]
-      const mode = options.tool_choice === 'required' ? 'ANY' : 'AUTO'
+      let mode: 'AUTO' | 'ANY' = options.tool_choice === 'required' ? 'ANY' : 'AUTO'
+      if (mode === 'ANY' && options.tools.length > GEMINI_ANY_MODE_MAX_TOOLS) {
+        mode = 'AUTO'
+      }
       req.toolConfig = { functionCallingConfig: { mode } }
     }
 

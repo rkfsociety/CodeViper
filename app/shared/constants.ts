@@ -88,6 +88,9 @@ export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1
 /** Модель Gemini по умолчанию */
 export const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash'
 
+/** Режим ANY (tool_choice required) с большим числом declarations даёт 400 branching. */
+export const GEMINI_ANY_MODE_MAX_TOOLS = 40
+
 /** Модели Gemini/Gemma доступные на бесплатном уровне с фиксированными лимитами */
 export const GEMINI_FREE_MODELS = [
   { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', rpm: 20, rpd: 20, tpm: 250_000 },

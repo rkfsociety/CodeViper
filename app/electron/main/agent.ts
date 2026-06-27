@@ -731,9 +731,6 @@ export class AgentRunner {
         }
 
         usedTools = true
-        if (toolCalls.some((call) => call.function.name === 'set_self_improvement_plan')) {
-          requireToolNext = true
-        }
 
         const willMutate = toolCalls.some((call) => MUTATING_TOOLS.has(call.function.name))
         if (willMutate && this.chatId) {
@@ -816,6 +813,13 @@ export class AgentRunner {
               ragGrepNudged
             )) || ragGrepNudged
           if (batch.breakLoop) continue
+        }
+
+        if (
+          toolCalls.some((call) => call.function.name === 'set_self_improvement_plan') &&
+          this.selfImprovementPlan.has()
+        ) {
+          requireToolNext = true
         }
 
         const scopeNudge = loopGuard.checkTaskScope(userMessage, mutatingToolsUsed, stepInvocations)
