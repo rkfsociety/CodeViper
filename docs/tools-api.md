@@ -57,7 +57,7 @@
 
 ### `agentTools/integrations.ts` — GitHub
 
-`check_github_auth`, `create_issue`, `create_pr`, `list_issues`, `list_pull_requests`, `open_issue`, `trigger_github_workflow`
+`check_github_auth`, `create_issue`, `report_trace_to_github`, `create_pr`, `list_issues`, `list_pull_requests`, `open_issue`, `trigger_github_workflow`
 
 ### `agentTools/integrations.ts` — GitLab
 
@@ -343,6 +343,10 @@
 ### `create_issue` / `list_issues` / `open_issue`
 
 Создать, список (до 30), открыть в браузере issue. `create_issue`: `title` (обяз.), `body`, `labels`.
+
+### `report_trace_to_github`
+
+Отправить трейс текущего прогона на GitHub: gist с JSON + issue в `rkfsociety/CodeViper` с автоописанием от агента. Нужен `gh auth login`. Вызывать после ошибки или по запросу пользователя зафиксировать баг. Параметр: `note` (необяз.) — комментарий агента к отчёту. Доступен только во время прогона агента (нужен `chatId`).
 
 ### `create_pr` / `list_pull_requests`
 
