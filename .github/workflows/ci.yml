@@ -117,6 +117,13 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Auto shell release if needed
+        id: auto_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/auto-shell-release.mjs
+
+      - name: Trigger Release workflow
+        if: steps.auto_release.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release.yml --ref "${{ steps.auto_release.outputs.tag }}"

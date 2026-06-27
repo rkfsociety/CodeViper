@@ -11,7 +11,7 @@
  */
 
 import { execSync } from 'child_process'
-import { readFileSync, writeFileSync } from 'fs'
+import { readFileSync, writeFileSync, appendFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { classifyChangedFiles } from './shell-release-paths.mjs'
@@ -32,6 +32,11 @@ function runQuiet(cmd) {
   } catch {
     return ''
   }
+}
+
+function setOutput(name, value) {
+  const file = process.env.GITHUB_OUTPUT
+  if (file) appendFileSync(file, `${name}=${value}\n`)
 }
 
 function parseSemver(v) {
@@ -146,7 +151,8 @@ function main() {
   }
   run(`git push origin ${newTag}`)
 
-  console.log(`✓ Релиз запущен: тег ${newTag} → release.yml`)
+  setOutput('tag', newTag)
+  console.log(`✓ Тег ${newTag} запушен; Release workflow запустит CI (workflow_dispatch)`)
 }
 
 main()
