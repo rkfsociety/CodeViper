@@ -132,12 +132,13 @@ jobs:
             --repo rkfsociety/CodeViper \
             --draft=false
 
-      - name: Prune old stable releases
+      - name: Prune old releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
+          node scripts/prune-github-releases.mjs --tag-pattern '^nightly-' --keep 0
           node scripts/prune-github-releases.mjs \
             --tag-pattern '^v[0-9]' \
-            --keep 5 \
+            --keep 0 \
             --exclude "$TAG"

@@ -61,7 +61,7 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 ### Авто-релиз оболочки (CI)
 
-После зелёного CI на `master` workflow **auto-shell-release** сравнивает коммиты с последним тегом `v*`. Если затронута только логика агента (handlers, tests, docs) — тег не создаётся. Если изменились renderer, preload, IPC bootstrap, Electron/NSIS — автоматически `vX.Y.Z` и сборка установщика. Пропуск: `[skip-release]` в сообщении коммита. Классификатор: `scripts/shell-release-paths.mjs`. После публикации релиза CI оставляет **5 последних** стабильных `v*` на GitHub Releases, остальные удаляются (`scripts/prune-github-releases.mjs`).
+После зелёного CI на `master` workflow **auto-shell-release** сравнивает коммиты с последним тегом `v*`. Если затронута только логика агента (handlers, tests, docs) — тег не создаётся. Если изменились renderer, preload, IPC bootstrap, Electron/NSIS — автоматически `vX.Y.Z` и сборка установщика. Пропуск: `[skip-release]` в сообщении коммита. Классификатор: `scripts/shell-release-paths.mjs`. После публикации на GitHub Releases остаётся **только один** стабильный `v*` — текущий; старые `v*` и любые `nightly-*` удаляются (`scripts/prune-github-releases.mjs`).
 
 ### Ручное обновление клона
 
@@ -73,15 +73,5 @@ npm run build
 ```
 
 Затем перезапустите CodeViper из ярлыка.
-
-### Nightly-сборки (Beta)
-
-Каждый день в **00:00 UTC** workflow [`.github/workflows/nightly.yml`](https://github.com/rkfsociety/CodeViper/blob/master/.github/workflows/nightly.yml) собирает установщики **так же**, как стабильный Release: черновик релиза → три платформы → публикация. Тег `nightly-YYYY-MM-DD`, предыдущие nightly удаляются.
-
-В приложении: **Настройки → Beta-версии** — канал `beta` и `allowPrerelease` подхватывают nightly с GitHub Releases.
-
-Перед сборкой nightly подменяет `app/package.json` → `version: YYYY.MM.DD`; артефакты загружаются в тег `nightly-YYYY.MM.DD` через `gh release upload` (не в стабильный `vX.Y.Z`).
-
-Ручной прогон: **Actions → Nightly Release → Run workflow**.
 
 Подробности архитектуры — [architecture.md](architecture.md), [вики](https://github.com/rkfsociety/CodeViper/wiki/Архитектура). Назад в [README](../README.md).

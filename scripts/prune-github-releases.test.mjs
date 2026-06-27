@@ -13,19 +13,15 @@ describe('prune-github-releases', () => {
     assert.deepEqual(tags, ['v0.3.10', 'v0.3.2', 'v0.3.1', 'v0.2.9'])
   })
 
-  it('оставляет N последних стабильных релизов', () => {
+  it('оставляет только exclude-тег при keep=0', () => {
     const releases = [
       { tagName: 'v0.3.1' },
       { tagName: 'v0.3.2' },
       { tagName: 'v0.3.3' },
-      { tagName: 'v0.3.4' },
-      { tagName: 'v0.3.5' },
-      { tagName: 'v0.3.6' },
-      { tagName: 'v0.3.7' },
-      { tagName: 'nightly-2025.06.27' }
+      { tagName: 'v0.3.7' }
     ]
     const toDelete = selectReleasesToDelete(releases, /^v[0-9]/, DEFAULT_STABLE_KEEP, 'v0.3.7')
-    assert.deepEqual(toDelete, ['v0.3.1'])
+    assert.deepEqual(toDelete, ['v0.3.3', 'v0.3.2', 'v0.3.1'])
   })
 
   it('не удаляет exclude-тег даже при keep=0', () => {

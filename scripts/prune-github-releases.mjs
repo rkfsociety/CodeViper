@@ -3,14 +3,13 @@
  * Удаление старых GitHub Releases по шаблону тега.
  *
  * Usage:
- *   node scripts/prune-github-releases.mjs --tag-pattern '^v[0-9]' --keep 5 [--exclude v0.3.6]
- *   node scripts/prune-github-releases.mjs --tag-pattern '^nightly-' --keep 0
+ *   node scripts/prune-github-releases.mjs --tag-pattern '^v[0-9]' --keep 0 [--exclude v0.3.6]
  *   DRY_RUN=1 node scripts/prune-github-releases.mjs ...
  */
 
 import { execSync } from 'child_process'
 
-export const DEFAULT_STABLE_KEEP = 5
+export const DEFAULT_STABLE_KEEP = 0
 
 /** @param {string} tag */
 export function parseSemverTag(tag) {
@@ -71,7 +70,7 @@ function parseArgs(argv) {
 
 Options:
   --tag-pattern REGEX   Шаблон тега (default: ^v[0-9])
-  --keep N              Сколько последних релизов оставить (default: ${DEFAULT_STABLE_KEEP}, 0 = удалить все)
+  --keep N              Сколько последних релизов оставить кроме --exclude (default: ${DEFAULT_STABLE_KEEP} = только текущий)
   --exclude TAG         Тег, который нельзя удалять
   --repo OWNER/REPO     Репозиторий (default: GITHUB_REPOSITORY)
 `)

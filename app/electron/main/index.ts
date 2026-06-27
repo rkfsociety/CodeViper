@@ -416,7 +416,7 @@ app.whenReady().then(async () => {
   }
 
   if (mainWindow) {
-    startUpdateChecks(mainWindow.webContents, settings.updateChannel === 'beta')
+    startUpdateChecks(mainWindow.webContents)
     startRuntimeUpdateNotifier(mainWindow.webContents)
   }
 
