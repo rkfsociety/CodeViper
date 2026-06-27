@@ -3,10 +3,12 @@ import { tronStorage } from './tron'
 export const SIDE_PANEL_MIN_WIDTH = 220
 export const SIDE_PANEL_MAX_WIDTH = 900
 export const SIDE_PANEL_DEFAULT_WIDTH = 400
+export const SIDE_PANEL_DEFAULT_HISTORY_WIDTH = 280
 
 export const SIDE_PANEL_WIDTHS_KEY = 'cv-side-panel-widths'
 
 export type SidePanelWidths = {
+  history: number
   metrics: number
   trace: number
 }
@@ -18,6 +20,7 @@ function clampWidth(value: number): number {
 export function loadSidePanelWidths(): SidePanelWidths {
   const saved = tronStorage.getItem(SIDE_PANEL_WIDTHS_KEY) as Partial<SidePanelWidths> | null
   return {
+    history: clampWidth(saved?.history ?? SIDE_PANEL_DEFAULT_HISTORY_WIDTH),
     metrics: clampWidth(saved?.metrics ?? SIDE_PANEL_DEFAULT_WIDTH),
     trace: clampWidth(saved?.trace ?? SIDE_PANEL_DEFAULT_WIDTH)
   }

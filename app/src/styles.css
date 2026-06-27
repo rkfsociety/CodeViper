@@ -191,7 +191,7 @@ button {
 }
 
 .layout .panel-history {
-  width: 280px;
+  width: var(--panel-history-width, 280px);
   flex-shrink: 0;
 }
 
@@ -1878,12 +1878,8 @@ button.topbar-pill.topbar-download-error {
    Адаптивность под разные экраны
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Планшеты и узкие окна — сужаем сайдбар истории */
+/* Планшеты и узкие окна — сужаем сайдбар файлов */
 @media (max-width: 900px) {
-  .layout .panel-history {
-    width: 220px;
-  }
-
   .layout .panel-tree {
     width: 220px;
   }
@@ -1911,6 +1907,10 @@ button.topbar-pill.topbar-download-error {
     max-height: 38vh;
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+
+  .layout .panel-resizer-history {
+    display: none;
   }
 
   .panel-history {

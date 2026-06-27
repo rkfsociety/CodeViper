@@ -130,6 +130,17 @@ function AppContent() {
 
   useEffect(() => initTraceBuffer(), [])
 
+  const resizeHistoryWidth = useCallback((deltaX: number) => {
+    setSidePanelWidths((prev) => {
+      const next = {
+        ...prev,
+        history: adjustSidePanelWidth(prev.history, deltaX)
+      }
+      saveSidePanelWidths(next)
+      return next
+    })
+  }, [])
+
   const resizeMetricsWidth = useCallback((deltaX: number) => {
     setSidePanelWidths((prev) => {
       const next = {
@@ -157,7 +168,7 @@ function AppContent() {
       const metrics = adjustSidePanelWidth(prev.metrics, deltaX)
       const trace = adjustSidePanelWidth(prev.trace, -deltaX)
       if (metrics === prev.metrics && trace === prev.trace) return prev
-      const next = { metrics, trace }
+      const next = { ...prev, metrics, trace }
       saveSidePanelWidths(next)
       return next
     })
@@ -853,7 +864,10 @@ function AppContent() {
           />
         )}
 
-        <div className="layout">
+        <div
+          className="layout"
+          style={{ ['--panel-history-width' as string]: `${sidePanelWidths.history}px` }}
+        >
           <section className="panel panel-history">
             <div className="panel-header panel-header-recent">
               <span>Недавние</span>
@@ -877,6 +891,8 @@ function AppContent() {
               onStoreChange={() => void refreshChatStore()}
             />
           </section>
+
+          <PanelResizer onDrag={resizeHistoryWidth} className="panel-resizer-history" />
 
           {activeProjectPath && (
             <section className="panel panel-tree">
