@@ -55,6 +55,7 @@ import { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 import { tronStorage } from './lib/tron'
 import { PanelResizer } from './components/PanelResizer'
+import { loadFileTreeVisible, saveFileTreeVisible } from './lib/fileTreeVisibility'
 import {
   adjustSidePanelWidth,
   loadSidePanelWidths,
@@ -127,8 +128,17 @@ function AppContent() {
   const [tracePanelOpen, setTracePanelOpen] = useState(false)
   const [metricsPanelOpen, setMetricsPanelOpen] = useState(false)
   const [sidePanelWidths, setSidePanelWidths] = useState(loadSidePanelWidths)
+  const [fileTreeOpen, setFileTreeOpen] = useState(loadFileTreeVisible)
 
   useEffect(() => initTraceBuffer(), [])
+
+  const toggleFileTree = useCallback((open?: boolean) => {
+    setFileTreeOpen((prev) => {
+      const next = open ?? !prev
+      saveFileTreeVisible(next)
+      return next
+    })
+  }, [])
 
   const resizeHistoryWidth = useCallback((deltaX: number) => {
     setSidePanelWidths((prev) => {
@@ -776,6 +786,20 @@ function AppContent() {
               Обновить Ollama
             </button>
             <button
+              className={`btn ${fileTreeOpen ? 'active' : ''}`}
+              onClick={() => toggleFileTree()}
+              disabled={!activeProjectPath}
+              title={
+                activeProjectPath
+                  ? fileTreeOpen
+                    ? 'Скрыть дерево файлов'
+                    : 'Показать дерево файлов'
+                  : 'Сначала выберите проект в чате'
+              }
+            >
+              Файлы
+            </button>
+            <button
               className={`btn ${terminalOpen ? 'active' : ''}`}
               onClick={() => setTerminalOpen((open) => !open)}
               disabled={!activeProjectPath}
@@ -894,9 +918,20 @@ function AppContent() {
 
           <PanelResizer onDrag={resizeHistoryWidth} className="panel-resizer-history" />
 
-          {activeProjectPath && (
+          {activeProjectPath && fileTreeOpen && (
             <section className="panel panel-tree">
-              <div className="panel-header">Файлы</div>
+              <div className="panel-header panel-header-tree">
+                <span>Файлы</span>
+                <button
+                  type="button"
+                  className="btn panel-header-tree-toggle"
+                  onClick={() => toggleFileTree(false)}
+                  title="Скрыть дерево файлов"
+                  aria-label="Скрыть дерево файлов"
+                >
+                  ◀
+                </button>
+              </div>
               <ProjectTreePanel
                 projectPath={activeProjectPath}
                 onAskAgent={(path) => chatPanelRef.current?.insertFileMention(path)}

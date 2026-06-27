@@ -387,6 +387,26 @@ button {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
+.panel-header-tree {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-header-tree-toggle {
+  flex-shrink: 0;
+  min-width: 28px;
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.panel-header-tree-toggle:hover {
+  opacity: 1;
+}
+
 .terminal-output {
   overflow: auto;
   padding: 12px;
