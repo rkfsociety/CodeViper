@@ -4,8 +4,10 @@ import { join } from 'path'
 import { mkdtempSync } from 'fs'
 import { tmpdir } from 'os'
 import {
+  ensureWindowsUserEnv,
   prependWindowsGitToPath,
   prependWindowsGhToPath,
+  resolveGhExecutable,
   setWinGitCmdDirsForTests,
   setWinGhDirsForTests
 } from '../electron/main/windowsGitEnv'
@@ -88,6 +90,54 @@ describe('prependWindowsGhToPath', () => {
     const env = { PATH: 'C:\\Windows' }
     expect(prependWindowsGhToPath(env)).toBe(env)
 
+    rmSync(emptyDir, { recursive: true, force: true })
+  })
+})
+
+describe('ensureWindowsUserEnv', () => {
+  it('на non-win32 не меняет env', () => {
+    if (process.platform === 'win32') return
+
+    const env = { PATH: '/usr/bin' }
+    expect(ensureWindowsUserEnv(env)).toBe(env)
+  })
+
+  it('на win32 подставляет USERPROFILE и APPDATA', () => {
+    if (process.platform !== 'win32') return
+
+    const result = ensureWindowsUserEnv({ PATH: 'C:\\Windows' })
+    expect(result.USERPROFILE).toBeTruthy()
+    expect(result.APPDATA).toContain('AppData')
+    expect(result.LOCALAPPDATA).toContain('AppData')
+  })
+})
+
+describe('resolveGhExecutable', () => {
+  afterEach(() => {
+    setWinGhDirsForTests(null)
+  })
+
+  it('на win32 возвращает полный путь к gh.exe', () => {
+    if (process.platform !== 'win32') return
+
+    const ghDir = mkdtempSync(join(tmpdir(), 'cv-gh-bin-'))
+    writeFileSync(join(ghDir, 'gh.exe'), '')
+    setWinGhDirsForTests([ghDir])
+
+    expect(resolveGhExecutable()).toBe(join(ghDir, 'gh.exe'))
+
+    rmSync(ghDir, { recursive: true, force: true })
+  })
+
+  it('без gh.exe возвращает gh', () => {
+    if (process.platform !== 'win32') {
+      expect(resolveGhExecutable()).toBe('gh')
+      return
+    }
+
+    const emptyDir = mkdtempSync(join(tmpdir(), 'cv-gh-miss-'))
+    setWinGhDirsForTests([emptyDir])
+    expect(resolveGhExecutable()).toBe('gh')
     rmSync(emptyDir, { recursive: true, force: true })
   })
 })

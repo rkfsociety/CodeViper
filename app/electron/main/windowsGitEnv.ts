@@ -1,4 +1,5 @@
 import { existsSync } from 'fs'
+import { homedir } from 'os'
 import { join } from 'path'
 
 /** Типичные пути Git for Windows — GUI-приложения часто не наследуют полный PATH. */
@@ -80,5 +81,39 @@ export function prependWindowsGhToPath(env: NodeJS.ProcessEnv = process.env): No
 export function prependWindowsCliToolsToPath(
   env: NodeJS.ProcessEnv = process.env
 ): NodeJS.ProcessEnv {
-  return prependWindowsGhToPath(prependWindowsGitToPath(env))
+  return prependWindowsGhToPath(prependWindowsGitToPath(ensureWindowsUserEnv(env)))
+}
+
+/** USERPROFILE/APPDATA для gh keyring, если GUI-процесс стартовал с урезанным env. */
+export function ensureWindowsUserEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  if (process.platform !== 'win32') return env
+
+  const next = { ...env }
+  if (!next.USERPROFILE?.trim()) next.USERPROFILE = homedir()
+
+  const profile = next.USERPROFILE?.trim()
+  if (!next.APPDATA?.trim() && profile) {
+    next.APPDATA = join(profile, 'AppData', 'Roaming')
+  }
+  if (!next.LOCALAPPDATA?.trim() && profile) {
+    next.LOCALAPPDATA = join(profile, 'AppData', 'Local')
+  }
+
+  return next
+}
+
+/** Полный путь к gh.exe на Windows; иначе `gh` из PATH. */
+export function resolveGhExecutable(): string {
+  if (process.platform === 'win32') {
+    for (const dir of winGhDirs()) {
+      const exe = join(dir, 'gh.exe')
+      if (existsSync(exe)) return exe
+    }
+  }
+  return 'gh'
+}
+
+/** PATH + профиль пользователя — env для spawn gh/git из установленного .exe. */
+export function ghSpawnEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  return prependWindowsCliToolsToPath(env)
 }

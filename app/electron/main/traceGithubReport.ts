@@ -1,8 +1,8 @@
 import { app } from 'electron'
 import type { AgentTraceEvent } from '../../src/types'
+import { CODEVIPER_GITHUB_OWNER, CODEVIPER_GITHUB_REPO } from '../../shared/constants'
 import { buildTraceIssueReport } from '../../shared/traceReport'
-import { createGitHubIssue, getGitHubAuthStatus, resolveGitHubToken } from './githubAuth'
-import { createGist } from './gist'
+import { createGistViaGh, createIssueViaGh, getGhLogin } from './githubTools'
 
 export interface ReportTraceResult {
   ok: boolean
@@ -12,11 +12,18 @@ export interface ReportTraceResult {
   error?: string
 }
 
+const TRACE_REPO = `${CODEVIPER_GITHUB_OWNER}/${CODEVIPER_GITHUB_REPO}`
+
 function appendGistLink(body: string, gistUrl: string): string {
   return body.replace(
     '_Ссылка на JSON будет добавлена после загрузки gist._',
     `[Скачать JSON трейса](${gistUrl})`
   )
+}
+
+function isLabelError(error: string): boolean {
+  const lower = error.toLowerCase()
+  return lower.includes('label') || lower.includes('422')
 }
 
 export async function reportAgentTraceToGithub(
@@ -32,14 +39,6 @@ export async function reportAgentTraceToGithub(
     return { ok: false, error: 'Трейс пуст — нечего отправлять' }
   }
 
-  const token = await resolveGitHubToken()
-  if (!token) {
-    const status = await getGitHubAuthStatus()
-    const hint = status.hints[0] ?? 'Настройте GitHub Token или выполните gh auth login'
-    return { ok: false, error: `Нет авторизации GitHub. ${hint}` }
-  }
-
-  const auth = await getGitHubAuthStatus()
   let appVersion: string | undefined
   try {
     appVersion = app.getVersion()
@@ -47,35 +46,46 @@ export async function reportAgentTraceToGithub(
     /* тесты без electron app */
   }
 
+  const reporterLogin = await getGhLogin()
   const draft = buildTraceIssueReport(events, {
     chatId,
     projectPath,
     appVersion,
-    reporterLogin: auth.login,
+    reporterLogin,
     userNote
   })
 
   try {
-    const gistUrl = await createGist(
-      token,
+    const gist = await createGistViaGh(
       { [`trace-${Date.now()}.json`]: draft.gistJson },
       draft.gistDescription
     )
-    const body = appendGistLink(draft.body, gistUrl)
+    if (!gist.ok) {
+      return { ok: false, error: gist.error ?? 'Не удалось создать gist', title: draft.title }
+    }
 
-    let issue = await createGitHubIssue(token, draft.title, body, ['trace-report'])
-    if (!issue.ok && issue.error.includes('422')) {
-      // Метка может отсутствовать в форке — повтор без labels (см. scripts/ensure-github-labels.mjs)
-      issue = await createGitHubIssue(token, draft.title, body)
+    const body = appendGistLink(draft.body, gist.url!)
+
+    let issue = await createIssueViaGh(draft.title, body, {
+      repo: TRACE_REPO,
+      labels: ['trace-report']
+    })
+    if (!issue.ok && issue.error && isLabelError(issue.error)) {
+      issue = await createIssueViaGh(draft.title, body, { repo: TRACE_REPO })
     }
     if (!issue.ok) {
-      return { ok: false, error: issue.error, gistUrl, title: draft.title }
+      return {
+        ok: false,
+        error: issue.error ?? 'Не удалось создать issue',
+        gistUrl: gist.url,
+        title: draft.title
+      }
     }
 
     return {
       ok: true,
       issueUrl: issue.url,
-      gistUrl,
+      gistUrl: gist.url,
       title: draft.title
     }
   } catch (err) {

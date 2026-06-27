@@ -156,7 +156,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
                 className={styles.reportBtn}
                 onClick={handleReportClick}
                 disabled={!canReport}
-                title="Создать GitHub Issue с автоописанием и полным JSON трейса (нужен GitHub Token или gh auth login)"
+                title="Создать GitHub Issue с автоописанием и полным JSON трейса (нужен gh auth login)"
               >
                 {reporting ? 'Отправка…' : 'На GitHub'}
               </button>
