@@ -127,11 +127,13 @@ jobs:
           bash -n ../CodeViper.sh
           echo "✓ CodeViper.sh syntax OK"
 
-      - name: Package and publish to GitHub Releases
-        run: >-
-          npx electron-builder@24 --publish always
-          -c.publish.vPrefixedTagName=false
-          -c.publish.tagNamePrefix=nightly-
+      - name: Package and upload to nightly release
+        shell: bash
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VER="${TAG#nightly-}"
+          npx electron-builder@24 --publish never
+          gh release upload "$TAG" "release/${VER}/"* --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
