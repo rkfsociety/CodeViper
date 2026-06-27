@@ -48,6 +48,15 @@ describe('actionVerification', () => {
     ).toBe(true)
   })
 
+  it('требует повтор при пустом ответе после read-only на mutation-задаче', () => {
+    const msg = `list_pull_requests
+Цель: tool list_pull_requests
+Файлы: integrations.ts
+Проверка: unit-тест`
+    expect(shouldRetryForMissingTools(msg, '', new Set(), true)).toBe(true)
+    expect(shouldRetryForMissingTools(msg, '', new Set(), false)).toBe(false)
+  })
+
   it('требует повтор на read-обзоре при коротком намерении без инструментов', () => {
     // Регрессия: модель ответила «Давайте изучу…» (<80 симв.) и не вызвала инструменты —
     // раньше повтор не срабатывал из-за порога длины.

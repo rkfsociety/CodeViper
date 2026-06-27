@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { LoopGuard } from '../electron/main/agentLoopGuard'
-import { MAX_CONSECUTIVE_SAME_TOOL, MAX_SAME_TOOL_TOTAL } from '../shared/constants'
+import {
+  EXPLORATION_STALL_MIN_STEPS,
+  MAX_CONSECUTIVE_SAME_TOOL,
+  MAX_SAME_TOOL_TOTAL
+} from '../shared/constants'
+import { EXPLORATION_STALL_NUDGE } from '../shared/actionVerification'
 import type { AgentSettings } from '../src/types'
 import type { ModelRuntime } from '../electron/main/modelRuntime'
 
@@ -63,6 +68,53 @@ describe('LoopGuard', () => {
     expect(result).toContain(`Ты слишком часто используешь инструмент "${toolName}"`)
   })
 
+  describe('checkExplorationStall', () => {
+    const mutationMsg = `list_pull_requests — уровень 1
+Цель: tool list_pull_requests
+Файлы: integrations.ts
+Проверка: unit-тест`
+
+    it('не nudge до EXPLORATION_STALL_MIN_STEPS', () => {
+      expect(
+        loopGuard.checkExplorationStall(
+          mutationMsg,
+          new Set(),
+          EXPLORATION_STALL_MIN_STEPS - 1,
+          true
+        )
+      ).toBeNull()
+    })
+
+    it('nudge после порога без mutating tools', () => {
+      const nudge = loopGuard.checkExplorationStall(
+        mutationMsg,
+        new Set(),
+        EXPLORATION_STALL_MIN_STEPS,
+        true
+      )
+      expect(nudge).toBe(EXPLORATION_STALL_NUDGE)
+      expect(
+        loopGuard.checkExplorationStall(
+          mutationMsg,
+          new Set(),
+          EXPLORATION_STALL_MIN_STEPS + 1,
+          true
+        )
+      ).toBeNull()
+    })
+
+    it('не nudge если уже были mutating tools', () => {
+      expect(
+        loopGuard.checkExplorationStall(
+          mutationMsg,
+          new Set(['edit_file']),
+          EXPLORATION_STALL_MIN_STEPS,
+          true
+        )
+      ).toBeNull()
+    })
+  })
+
   describe('decideNoToolAction', () => {
     it('passthrough для информационного вопроса без инструментов', async () => {
       const result = await loopGuard.decideNoToolAction(
@@ -86,6 +138,18 @@ describe('LoopGuard', () => {
       expect(result.action).toBe('retry')
       if (result.action === 'retry') {
         expect(result.nudgeMessage).toContain('tool')
+      }
+    })
+
+    it('retry при пустом ответе после read-only на mutation-задаче', async () => {
+      const msg = `list_pull_requests
+Цель: tool list_pull_requests
+Файлы: integrations.ts
+Проверка: unit-тест`
+      const result = await loopGuard.decideNoToolAction(msg, '', new Set(), true, false)
+      expect(result.action).toBe('retry')
+      if (result.action === 'retry') {
+        expect(result.nudgeMessage).toBe(EXPLORATION_STALL_NUDGE)
       }
     })
 

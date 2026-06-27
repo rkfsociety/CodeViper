@@ -8,6 +8,8 @@ import {
 import { formatCostUsd } from '../../shared/generationMetrics'
 import {
   MUTATING_TOOLS,
+  EXPLORATION_STALL_NUDGE,
+  taskLikelyNeedsMutation,
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
@@ -645,12 +647,18 @@ export class AgentRunner {
           if (planAction.kind === 'retry') {
             if (assistantText) messages.pop()
             this.emitter.emit({ type: 'clear_draft' })
+            const afterExploration =
+              !assistantText.trim() && usedTools && mutatingToolsUsed.size === 0
             this.emitter.emit({
               type: 'error',
-              content:
-                '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
+              content: afterExploration
+                ? '⚠️ Пустой ответ после разведки — повторяю с требованием правок…'
+                : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
             })
-            messages.push({ role: 'user', content: TOOL_VERIFICATION_NUDGE })
+            messages.push({
+              role: 'user',
+              content: afterExploration ? EXPLORATION_STALL_NUDGE : TOOL_VERIFICATION_NUDGE
+            })
             requireToolNext = true
             continue
           }
@@ -672,14 +680,24 @@ export class AgentRunner {
               thinking: assistantThinking
             })
           } else if (!taskPlanner.isSelfImprove) {
+            const systemMsg = messages.find((m) => m.role === 'system')
+            const systemChars =
+              systemMsg && typeof systemMsg.content === 'string' ? systemMsg.content.length : 0
             const ctxTokensNow = Math.round(ctxChars / 4)
-            const smallModelHint =
-              ctxTokensNow > 2000
-                ? ` Системный промпт занимает ~${ctxTokensNow} токенов — это много для маленьких моделей (3b–7b). Попробуй модель покрупнее (qwen2.5-coder:7b, llama3.1:8b) или облачный провайдер.`
-                : ''
+            const systemTokens = Math.round(systemChars / 4)
+            const isCloudProvider = this.ctx.providerConfig.type !== 'ollama'
+            let hint = ''
+            if (usedTools && mutatingToolsUsed.size === 0 && taskLikelyNeedsMutation(userMessage)) {
+              hint =
+                ' Модель изучала код, но не внесла правок — возможно застряла в разведке; попробуй снова или упрости задачу.'
+            } else if (ctxTokensNow > 12_000) {
+              hint = ` Контекст диалога ~${ctxTokensNow} токенов — модель могла устать; начни новый чат или сократи задачу.`
+            } else if (!isCloudProvider && systemTokens > 4000) {
+              hint = ` Системный промпт ~${systemTokens} токенов — для локальных моделей 3b–7b попробуй покрупнее (qwen2.5-coder:7b, llama3.1:8b).`
+            }
             this.emitter.emit({
               type: 'error',
-              content: `Модель не ответила и не вызвала инструменты.${smallModelHint} Попробуй выбрать другую модель или переформулировать задачу.`
+              content: `Модель не ответила и не вызвала инструменты.${hint} Попробуй выбрать другую модель или переформулировать задачу.`
             })
             runSuccess = false
           }
@@ -730,6 +748,7 @@ export class AgentRunner {
         if (allParallelSafe) {
           const results = await this.toolExecutor.executeParallel(toolCalls, step)
           for (const { id, name, output } of results) {
+            if (MUTATING_TOOLS.has(name)) mutatingToolsUsed.add(name)
             this.emitter.emit({ type: 'tool_end', toolName: name, toolOutput: output })
             const msg = {
               role: 'tool' as const,
@@ -778,6 +797,18 @@ export class AgentRunner {
               ragGrepNudged
             )) || ragGrepNudged
           if (batch.breakLoop) continue
+        }
+
+        const stallNudge = loopGuard.checkExplorationStall(
+          userMessage,
+          mutatingToolsUsed,
+          step,
+          usedTools
+        )
+        if (stallNudge) {
+          messages.push({ role: 'user', content: stallNudge })
+          requireToolNext = true
+          continue
         }
       }
     } catch (error) {

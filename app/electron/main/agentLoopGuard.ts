@@ -3,10 +3,15 @@ import {
   shouldRetryForMissingTools,
   taskMutationLikelihood,
   taskLikelyNeedsMutation,
-  taskLikelyNeedsTools
+  taskLikelyNeedsTools,
+  EXPLORATION_STALL_NUDGE
 } from '../../shared/actionVerification'
 import { escalateModel } from '../../shared/modelRouter'
-import { MAX_CONSECUTIVE_SAME_TOOL, MAX_SAME_TOOL_TOTAL } from '../../shared/constants'
+import {
+  EXPLORATION_STALL_MIN_STEPS,
+  MAX_CONSECUTIVE_SAME_TOOL,
+  MAX_SAME_TOOL_TOTAL
+} from '../../shared/constants'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
 import type { ModelRuntime } from './modelRuntime'
@@ -26,6 +31,7 @@ export class LoopGuard {
   private readonly toolCallCounts = new Map<string, number>()
   private verificationRetries = 0
   private verificationNoticeSent = false
+  private explorationStallNudged = false
   escalated = false
 
   constructor(
@@ -62,6 +68,24 @@ export class LoopGuard {
     return null
   }
 
+  /**
+   * Nudge когда mutation-задача: много шагов с tools, но ни одного mutating.
+   * Ловит «вечную разведку» (read/grep без edit_file).
+   */
+  checkExplorationStall(
+    userMessage: string,
+    mutatingToolsUsed: Set<string>,
+    currentStep: number,
+    usedTools: boolean
+  ): string | null {
+    if (this.explorationStallNudged) return null
+    if (!usedTools || mutatingToolsUsed.size > 0) return null
+    if (!taskLikelyNeedsMutation(userMessage)) return null
+    if (currentStep < EXPLORATION_STALL_MIN_STEPS) return null
+    this.explorationStallNudged = true
+    return EXPLORATION_STALL_NUDGE
+  }
+
   /** Определяет что делать когда модель не вызвала инструменты.
    *  Проверяет рефьюзал → верификацию → завершение. */
   async decideNoToolAction(
@@ -94,14 +118,18 @@ export class LoopGuard {
 
     if (shouldRetry) {
       this.verificationRetries++
+      const afterExploration = !assistantText.trim() && usedTools && mutatingToolsUsed.size === 0
       const notice = this.verificationNoticeSent
         ? undefined
-        : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
+        : afterExploration
+          ? '⚠️ Пустой ответ после разведки — повторяю с требованием правок…'
+          : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
       this.verificationNoticeSent = true
       return {
         action: 'retry',
-        nudgeMessage:
-          notice ?? 'Инструменты обязательны для этой задачи. Вызови нужный инструмент сейчас.'
+        nudgeMessage: afterExploration
+          ? EXPLORATION_STALL_NUDGE
+          : (notice ?? 'Инструменты обязательны для этой задачи. Вызови нужный инструмент сейчас.')
       }
     }
 

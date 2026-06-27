@@ -206,7 +206,10 @@ export function shouldRetryForMissingTools(
   const toolsMissing = mutationTask ? mutatingToolsUsed.size === 0 : !anyToolsUsed
   if (!toolsMissing) return false
 
-  if (!assistantText.trim()) return false
+  if (!assistantText.trim()) {
+    // Пустой ответ после разведки на задаче с правками — повторить с nudge
+    return mutationTask && anyToolsUsed && mutatingToolsUsed.size === 0
+  }
 
   if (acceptTextAfterReadTools(assistantText, mutatingToolsUsed, anyToolsUsed)) {
     return false
@@ -225,6 +228,10 @@ export function shouldRetryForMissingTools(
     assistantText.length > 80
   )
 }
+
+export const EXPLORATION_STALL_NUDGE = `⚠️ Достаточно разведки — несколько шагов подряд только чтение/поиск без правок.
+Задача требует изменения кода: вызови edit_file / search_replace (для исходников CodeViper — edit_codeviper_file).
+Не перечитывай те же файлы и не расширяй scope (IPC, preload) — правь файлы из задачи.`
 
 export const TOOL_VERIFICATION_NUDGE = `STOP. Не давай пользователю пошаговый план и не советуй Figma/Material-UI — это делаешь ТЫ через инструменты.
 Сейчас вызови tool calling: list_directory / read_file или list_codeviper_directory / read_codeviper_file для изучения, затем create_file / edit_file / write_file (или codeviper_* аналоги) для правок.
