@@ -20,7 +20,7 @@ jobs:
 
       - name: Compute tag name
         id: tag
-        run: echo "tag=nightly-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+        run: echo "tag=nightly-$(date -u '+%Y.%m.%d')" >> "$GITHUB_OUTPUT"
 
       - name: Delete previous nightly releases and tags
         env:
@@ -113,10 +113,9 @@ jobs:
         run: sudo apt-get install -y rpm fakeroot
 
       - name: Set nightly version for electron-builder
-        run: |
-          VER="${{ needs.prepare.outputs.tag }}"
-          VER="${VER#nightly-}"
-          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('package.json','utf8'));j.version=process.argv[1];fs.writeFileSync('package.json',JSON.stringify(j,null,2)+'\n')" "$VER"
+        run: node ../scripts/set-nightly-package-version.mjs
+        env:
+          NIGHTLY_TAG: ${{ needs.prepare.outputs.tag }}
 
       - name: Build (electron-vite)
         run: npm run build
