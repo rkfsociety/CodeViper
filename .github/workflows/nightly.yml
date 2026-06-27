@@ -134,9 +134,13 @@ jobs:
           npx electron-builder@24 --publish never
           OUT_DIR=$(find release -mindepth 1 -maxdepth 1 -type d | head -1)
           if [ -z "$OUT_DIR" ]; then echo "Нет каталога release/*"; exit 1; fi
-          mapfile -t files < <(find "$OUT_DIR" -maxdepth 1 -type f)
-          if [ ${#files[@]} -eq 0 ]; then echo "Нет артефактов в $OUT_DIR"; exit 1; fi
-          gh release upload "$TAG" "${files[@]}" --clobber
+          count=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            gh release upload "$TAG" "$f" --clobber
+            count=$((count + 1))
+          done < <(find "$OUT_DIR" -maxdepth 1 -type f)
+          if [ "$count" -eq 0 ]; then echo "Нет артефактов в $OUT_DIR"; exit 1; fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
