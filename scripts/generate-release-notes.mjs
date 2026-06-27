@@ -138,10 +138,8 @@ function pickSubtitle(sections, commits) {
   return ''
 }
 
-export function generateReleaseTitle(tag, commits, sections) {
-  const version = versionFromTag(tag)
-  const subtitle = pickSubtitle(sections, commits)
-  return subtitle ? `CodeViper ${version} — ${subtitle}` : `CodeViper ${version}`
+export function generateReleaseTitle(tag) {
+  return `CodeViper ${versionFromTag(tag)}`
 }
 
 export function generateReleaseNotes(tag, prevTag, commitsInput) {
@@ -211,7 +209,7 @@ function main() {
   const sections = categorize(commits)
 
   if (titleOnly) {
-    console.log(generateReleaseTitle(tag, commits, sections))
+    console.log(generateReleaseTitle(tag))
     return
   }
   console.log(generateReleaseNotes(tag, prevTag, commits))

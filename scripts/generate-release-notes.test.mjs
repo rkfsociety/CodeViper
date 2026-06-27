@@ -35,12 +35,9 @@ describe('generate-release-notes', () => {
     assert.ok(notes.includes('CodeViper-0.3.6.AppImage'))
   })
 
-  it('генерирует заголовок с подзаголовком', () => {
-    const sections = [
-      { heading: '**Обновление без переустановки**', items: ['Live runtime after auto-update'] }
-    ]
-    const title = generateReleaseTitle('v0.3.6', SAMPLE_COMMITS, sections)
-    assert.equal(title, 'CodeViper 0.3.6 — live runtime после автообновления')
+  it('генерирует короткий заголовок релиза', () => {
+    const title = generateReleaseTitle('v0.3.6')
+    assert.equal(title, 'CodeViper 0.3.6')
   })
 
   it('инструкция после обновления для Windows', () => {
