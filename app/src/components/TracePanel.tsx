@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { AgentTraceEvent } from '../types'
 import { getTraceEvents, clearTraceEvents, onTraceUpdate } from '../traceBuffer'
+import { PromptDialog } from './PromptDialog'
 import styles from './TracePanel.module.css'
 
 interface Props {
@@ -32,6 +33,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [exporting, setExporting] = useState(false)
   const [reporting, setReporting] = useState(false)
+  const [reportDialogOpen, setReportDialogOpen] = useState(false)
   const [reportStatus, setReportStatus] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
@@ -102,14 +104,14 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
     }
   }
 
-  async function handleReport() {
+  function handleReportClick() {
     if (!chatId || events.length === 0 || reporting) return
-    const userNote = window.prompt(
-      'Комментарий к отчёту (необязательно). Оставьте пустым, чтобы отправить только автоописание:',
-      ''
-    )
-    if (userNote === null) return
+    setReportDialogOpen(true)
+  }
 
+  async function submitReport(userNote: string) {
+    if (!chatId || events.length === 0 || reporting) return
+    setReportDialogOpen(false)
     setReporting(true)
     setReportStatus(null)
     try {
@@ -117,7 +119,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
         chatId,
         events,
         projectPath.trim() || undefined,
-        userNote.trim() || undefined
+        userNote || undefined
       )
       if (result.ok && result.issueUrl) {
         setReportStatus(`Issue создан: ${result.title ?? ''}`)
@@ -142,7 +144,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
             <>
               <button
                 className={styles.reportBtn}
-                onClick={() => void handleReport()}
+                onClick={handleReportClick}
                 disabled={!canReport}
                 title="Создать GitHub Issue с автоописанием и полным JSON трейса (нужен GitHub Token или gh auth login)"
               >
@@ -171,6 +173,15 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
         </div>
       </div>
       {reportStatus && <div className={styles.reportStatus}>{reportStatus}</div>}
+      <PromptDialog
+        open={reportDialogOpen}
+        title="Отчёт на GitHub"
+        label="Комментарий к отчёту (необязательно). Оставьте пустым, чтобы отправить только автоописание:"
+        confirmLabel="Отправить"
+        allowEmpty
+        onConfirm={(value) => void submitReport(value)}
+        onCancel={() => setReportDialogOpen(false)}
+      />
       <div
         className={styles.log}
         onScroll={(e) => {

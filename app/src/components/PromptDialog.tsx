@@ -8,6 +8,8 @@ interface Props {
   label?: string
   defaultValue?: string
   confirmLabel?: string
+  /** Разрешить подтверждение с пустым значением (по умолчанию — нет) */
+  allowEmpty?: boolean
   onConfirm: (value: string) => void
   onCancel: () => void
 }
@@ -18,6 +20,7 @@ export function PromptDialog({
   label,
   defaultValue = '',
   confirmLabel = 'Сохранить',
+  allowEmpty = false,
   onConfirm,
   onCancel
 }: Props) {
@@ -45,7 +48,7 @@ export function PromptDialog({
 
   function submit() {
     const trimmed = value.trim()
-    if (!trimmed) return
+    if (!trimmed && !allowEmpty) return
     onConfirm(trimmed)
   }
 
@@ -83,7 +86,12 @@ export function PromptDialog({
           <button type="button" className="btn" onClick={onCancel}>
             Отмена
           </button>
-          <button type="button" className="btn primary" onClick={submit} disabled={!value.trim()}>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={submit}
+            disabled={!allowEmpty && !value.trim()}
+          >
             {confirmLabel}
           </button>
         </div>
