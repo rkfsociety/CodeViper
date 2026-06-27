@@ -5,6 +5,7 @@ import { app } from 'electron'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { resolveGitRepoRoot } from './githubAuth'
+import { prependWindowsCliToolsToPath } from './windowsGitEnv'
 
 interface GitResult {
   code: number
@@ -14,7 +15,11 @@ interface GitResult {
 
 function runCmd(cmd: string, cwd: string, args: string[]): Promise<GitResult> {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd, windowsHide: true })
+    const child = spawn(cmd, args, {
+      cwd,
+      windowsHide: true,
+      env: prependWindowsCliToolsToPath(process.env)
+    })
     let stdout = ''
     let stderr = ''
     child.stdout?.on('data', (chunk: Buffer) => {

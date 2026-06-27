@@ -5,6 +5,7 @@ import { CODEVIPER_GITHUB_OWNER, CODEVIPER_GITHUB_REPO } from '../../shared/cons
 import { getBundledSourceRoot, ensureBundledSourceClone } from './bundledSourceSync'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { loadSettings } from './settings'
+import { prependWindowsCliToolsToPath } from './windowsGitEnv'
 
 export interface GitHubAuthStatus {
   ghInstalled: boolean
@@ -40,7 +41,8 @@ function runGh(args: string[], cwd?: string): Promise<GhRunResult> {
   return new Promise((resolveRun) => {
     const child = spawn('gh', args, {
       cwd: cwd ?? getCodeViperSourceRoot(),
-      windowsHide: true
+      windowsHide: true,
+      env: prependWindowsCliToolsToPath(process.env)
     })
     let stdout = ''
     let stderr = ''

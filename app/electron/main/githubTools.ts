@@ -1,5 +1,6 @@
 import { spawn } from 'child_process'
 import { getCodeViperSourceRoot } from './codeviperSource'
+import { prependWindowsCliToolsToPath } from './windowsGitEnv'
 
 export interface GhResult {
   code: number
@@ -9,7 +10,11 @@ export interface GhResult {
 
 function runGh(args: string[]): Promise<GhResult> {
   return new Promise((resolve) => {
-    const child = spawn('gh', args, { cwd: getCodeViperSourceRoot(), windowsHide: true })
+    const child = spawn('gh', args, {
+      cwd: getCodeViperSourceRoot(),
+      windowsHide: true,
+      env: prependWindowsCliToolsToPath(process.env)
+    })
     let stdout = ''
     let stderr = ''
     child.stdout?.on('data', (c: Buffer) => (stdout += c.toString()))
