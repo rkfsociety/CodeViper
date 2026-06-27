@@ -727,6 +727,8 @@ export interface CodeViperAPI {
     events: AgentTraceEvent[],
     projectPath?: string
   ) => Promise<{ ok: boolean; path?: string; error?: string }>
+  loadChatTrace: (chatId: string) => Promise<AgentTraceEvent[]>
+  clearChatTrace: (chatId: string) => Promise<void>
   reportTraceToGithub: (
     chatId: string,
     events: AgentTraceEvent[],

@@ -358,6 +358,12 @@ const codeviper = {
       'exportTrace'
     ),
 
+  loadChatTrace: (chatId: string) =>
+    withTimeout(ipcRenderer.invoke(IPC.LOAD_CHAT_TRACE, chatId), IPC_TIMEOUT_MS, 'loadChatTrace'),
+
+  clearChatTrace: (chatId: string) =>
+    withTimeout(ipcRenderer.invoke(IPC.CLEAR_CHAT_TRACE, chatId), IPC_TIMEOUT_MS, 'clearChatTrace'),
+
   reportTraceToGithub: (
     chatId: string,
     events: unknown[],

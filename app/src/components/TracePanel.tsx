@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { AgentTraceEvent } from '../types'
-import { getTraceEvents, clearTraceEvents, onTraceUpdate } from '../traceBuffer'
+import { getTraceEvents, clearTraceEvents, onTraceUpdate, hydrateTraceEvents } from '../traceBuffer'
 import { ConfirmDialog } from './ConfirmDialog'
 import styles from './TracePanel.module.css'
 
@@ -39,8 +39,19 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   const autoScrollRef = useRef(true)
 
   useEffect(() => {
-    setEvents(chatId ? getTraceEvents(chatId) : [])
+    if (!chatId) {
+      setEvents([])
+      setExpanded(new Set())
+      return
+    }
+    let cancelled = false
+    void hydrateTraceEvents(chatId).then(() => {
+      if (!cancelled) setEvents([...getTraceEvents(chatId)])
+    })
     setExpanded(new Set())
+    return () => {
+      cancelled = true
+    }
   }, [chatId])
 
   useEffect(() => {

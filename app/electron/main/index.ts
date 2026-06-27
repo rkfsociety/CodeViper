@@ -25,7 +25,7 @@ import {
   pullCollectiveSkillsFromRemote
 } from './collectiveMemorySync'
 import { clearAppState } from './appState'
-import type { AgentSettings, AgentStreamPayload } from '../../src/types'
+import { appendChatTraceEvent } from './traceStorage'
 import { registerAppIpc } from './ipc/registerAppIpc'
 import { registerFileIpc } from './ipc/registerFileIpc'
 import { registerModelsIpc } from './ipc/registerModelsIpc'
@@ -36,6 +36,7 @@ import { registerGithubIpc } from './ipc/registerGithubIpc'
 import { registerMiscIpc } from './ipc/registerMiscIpc'
 import { registerAgentIpc } from './ipc/registerAgentIpc'
 import type { IpcContext } from './ipc/ipcContext'
+import type { AgentSettings, AgentStreamPayload } from '../../src/types'
 import { IPC } from '../../shared/ipcContracts'
 import { healthCheckMcpServers } from './mcpRegistry'
 import { runBundledSourceStartupSync } from './bundledSourceSync'
@@ -301,6 +302,9 @@ function stream(chatId: string, event: AgentStreamPayload): void {
   }
   // Перед любым нетокенным событием сбрасываем накопленные токены этого чата.
   flushChatTokens(chatId)
+  if (event.type === 'trace' && event.traceEvent) {
+    void appendChatTraceEvent(chatId, event.traceEvent)
+  }
   mainWindow?.webContents.send('agent-stream', { chatId, ...event })
 }
 

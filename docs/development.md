@@ -15,6 +15,8 @@ npm run lint
 
 Метка **`trace-report`** на GitHub Issues нужна для кнопки «На GitHub» в панели трассы. Создать в репозитории: `node scripts/ensure-github-labels.mjs` (нужен `gh auth login`).
 
+Трасса агента сохраняется в `%APPDATA%/CodeViper/traces/chats/{chatId}.json` и восстанавливается после перезапуска для того же чата (экспорт / отчёт на GitHub).
+
 Интеграционные тесты `nodeLlama` пропускаются без `TEST_GGUF_PATH`:
 
 ```bash
