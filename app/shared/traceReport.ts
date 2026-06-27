@@ -5,12 +5,16 @@ export interface TraceEvent {
   data: Record<string, unknown>
 }
 
+export type TraceReportSource = 'agent-auto' | 'agent-tool' | 'user-ui'
+
 export interface TraceReportMeta {
   chatId: string
   projectPath?: string
   appVersion?: string
   reporterLogin?: string
   userNote?: string
+  /** agent-auto — после ошибки прогона; agent-tool — инструмент; user-ui — кнопка в панели */
+  reportSource?: TraceReportSource
 }
 
 export interface TraceIssueDraft {
@@ -109,22 +113,22 @@ function summarizeTrace(events: TraceEvent[]): TraceSummary {
 }
 
 function buildTitle(summary: TraceSummary): string {
-  const prefix = '[Trace report]'
+  const prefix = '[CodeViper Agent]'
   if (summary.errors.length > 0) {
     const first = summary.errors[0]
     const where =
       first.tool != null
         ? `${first.tool}${first.step != null ? ` (шаг ${first.step})` : ''}`
         : first.kind
-    return truncate(`${prefix} Ошибка: ${where}`, 120)
+    return truncate(`${prefix} Не удалось: ${where}`, 120)
   }
   if (summary.status === 'aborted') {
-    return truncate(`${prefix} Прогон остановлен`, 120)
+    return truncate(`${prefix} Прогон прерван`, 120)
   }
   if (summary.userMessage) {
     return truncate(`${prefix} ${summary.userMessage}`, 120)
   }
-  return `${prefix} Отчёт о прогоне агента`
+  return `${prefix} Отчёт о прогоне`
 }
 
 function formatDuration(durationMs: number | null): string {
@@ -150,21 +154,34 @@ function buildAutoDescription(summary: TraceSummary): string {
   const lines: string[] = []
   if (summary.errors.length > 0) {
     lines.push(
-      `Агент завершил прогон с ${summary.errors.length} ошибкой(ами) после ${summary.stepCount || '—'} шаг(ов).`
+      `Я завершил прогон с ${summary.errors.length} ошибкой(ами) после ${summary.stepCount || '—'} шаг(ов) LLM.`
     )
     const first = summary.errors[0]
     lines.push(`Первая ошибка: ${first.message}`)
   } else if (summary.status === 'aborted') {
-    lines.push('Прогон агента был остановлен до завершения.')
+    lines.push('Мой прогон был прерван до завершения.')
   } else if (summary.status === 'ok') {
-    lines.push('Прогон завершился без явных ошибок в трейсе; отчёт отправлен для анализа.')
+    lines.push('Прогон завершился без явных ошибок в трейсе; отправляю отчёт для анализа.')
   } else {
-    lines.push('Автоматический отчёт по трейсу прогона агента.')
+    lines.push('Отправляю автоматический отчёт по своему трейсу.')
   }
   if (summary.toolsUsed.length > 0) {
-    lines.push(`Инструменты: ${summary.toolsUsed.join(', ')}.`)
+    lines.push(`Использовал инструменты: ${summary.toolsUsed.join(', ')}.`)
   }
   return lines.join(' ')
+}
+
+function reportSourceFooter(source: TraceReportMeta['reportSource']): string {
+  if (source === 'agent-auto') {
+    return '_Issue создан агентом CodeViper автоматически после ошибки прогона._'
+  }
+  if (source === 'agent-tool') {
+    return '_Issue создан агентом CodeViper по запросу через инструмент report_trace_to_github._'
+  }
+  if (source === 'user-ui') {
+    return '_Issue создан по кнопке «На GitHub»; текст сформирован агентом из трейса._'
+  }
+  return '_Отчёт сформирован агентом CodeViper из трейса прогона._'
 }
 
 export function buildTraceIssueReport(
@@ -184,10 +201,10 @@ export function buildTraceIssueReport(
 
   const bodyParts = [
     '<!-- trace-report -->',
-    '## Автоописание',
+    '## Отчёт агента',
     buildAutoDescription(summary),
     '',
-    '## Запрос пользователя',
+    '## Задача пользователя',
     summary.userMessage
       ? `\`\`\`\n${summary.userMessage.slice(0, 4000)}\n\`\`\``
       : '_Не найден в трейсе (run_start)_',
@@ -199,7 +216,7 @@ export function buildTraceIssueReport(
     `- Шагов LLM: ${summary.stepCount || '—'}`,
     `- Chat ID: \`${meta.chatId}\``,
     ...(meta.projectPath?.trim() ? [`- Проект: \`${meta.projectPath.trim()}\``] : []),
-    ...(meta.reporterLogin ? [`- Отправитель: @${meta.reporterLogin}`] : [])
+    ...(meta.reporterLogin ? [`- GitHub (gh): @${meta.reporterLogin}`] : [])
   ]
 
   if (meta.userNote?.trim()) {
@@ -226,11 +243,12 @@ export function buildTraceIssueReport(
   }
 
   bodyParts.push('', '## Полный трейс', '_Ссылка на JSON будет добавлена после загрузки gist._')
+  bodyParts.push('', reportSourceFooter(meta.reportSource))
 
   return {
     title,
     body: bodyParts.join('\n'),
     gistJson: JSON.stringify(gistPayload, null, 2),
-    gistDescription: `CodeViper trace report — ${meta.chatId}`
+    gistDescription: `CodeViper agent trace — ${meta.chatId}`
   }
 }

@@ -4,7 +4,7 @@ import type { AgentSettings, AgentStreamPayload } from '../../../src/types'
 export interface IpcContext {
   getWindow: () => BrowserWindow | null
   stream: (chatId: string, event: AgentStreamPayload) => void
-  agentRunStates: Map<string, { chatId: string }>
+  agentRunStates: Map<string, { chatId: string; projectPath?: string }>
   activeAgentAborts: Map<string, AbortController>
   pendingConfirms: Map<string, (approved: boolean) => void>
   pendingClarifies: Map<string, (answer: string | null) => void>

@@ -178,6 +178,7 @@ export const AgentSettingsSchema = z.object({
   gitSyncStrategy: GitSyncStrategySchema.optional(),
   liveRuntimeFromGit: z.boolean().optional(),
   githubToken: z.string().optional(),
+  autoAgentTraceReportOnError: z.boolean().optional(),
   excludeThinkingFromHistory: z.boolean().optional(),
   modelContextLength: z.number().optional(),
   contextSummarizeThreshold: z.number().optional(),

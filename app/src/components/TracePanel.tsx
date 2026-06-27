@@ -156,7 +156,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
                 className={styles.reportBtn}
                 onClick={handleReportClick}
                 disabled={!canReport}
-                title="Создать GitHub Issue с автоописанием и полным JSON трейса (нужен gh auth login)"
+                title="Создать GitHub Issue от имени агента (gh auth login)"
               >
                 {reporting ? 'Отправка…' : 'На GitHub'}
               </button>
@@ -185,8 +185,8 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
       {reportStatus && <div className={styles.reportStatus}>{reportStatus}</div>}
       <ConfirmDialog
         open={reportConfirmOpen}
-        title="Отчёт на GitHub"
-        message="Создать GitHub Issue с автоописанием по текущей трассе? Полный JSON трейса будет приложен отдельно."
+        title="Отчёт агента на GitHub"
+        message="Создать GitHub Issue от имени агента CodeViper по текущей трассе? Полный JSON будет в gist."
         confirmLabel="Отправить"
         onConfirm={() => void submitReport()}
         onCancel={() => setReportConfirmOpen(false)}

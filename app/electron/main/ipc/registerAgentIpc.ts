@@ -156,7 +156,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
       agentLogger.setIncognito(incognito ?? false)
 
       const abortCtrl = new AbortController()
-      agentRunStates.set(chatId, { chatId })
+      agentRunStates.set(chatId, { chatId, projectPath })
       activeAgentAborts.set(chatId, abortCtrl)
       syncTrayAgentBadge()
       if (!settings.disableSystemStats) startSystemStatsPush(_e.sender)

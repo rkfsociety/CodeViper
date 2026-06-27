@@ -1,0 +1,12 @@
+---
+description: Пользователь работает только с установленным CodeViper
+alwaysApply: true
+---
+
+# Установленная версия (roman)
+
+- Пользователь работает **исключительно** с установленной версией: `c:\Program Files\CodeViper\CodeViper.exe`
+- Любая проверка UI, багов, runtime, «перезапусти и проверь» — только через этот `.exe`, не через dev/`CodeViper.cmd`/сборку из клона
+- **Не предлагать** `CodeViper.cmd` для проверки, отладки или перезапуска после обновления — `.cmd` только для быстрого старта из клонированного репозитория разработчиком
+- Обновление кода: перезапуск `.exe` → git pull в `%APPDATA%\codeviper\source` → live runtime (renderer/main/handlers из клона, IPC частично из asar оболочки)
+- При багах в установленной версии проверять: версию `.exe`, коммит клона, логи `%APPDATA%\CodeViper\logs\bundled-source-*.ndjson`, asar vs live runtime — а не только код в `F:\github\CodeViper`

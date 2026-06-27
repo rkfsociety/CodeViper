@@ -41,13 +41,16 @@ describe('buildTraceIssueReport', () => {
       reporterLogin: 'tester'
     })
 
-    expect(draft.title).toContain('[Trace report]')
+    expect(draft.title).toContain('[CodeViper Agent]')
     expect(draft.title).toContain('read_file')
     expect(draft.body).toContain('<!-- trace-report -->')
+    expect(draft.body).toContain('## Отчёт агента')
+    expect(draft.body).toContain('Я завершил прогон')
     expect(draft.body).toContain('Исправь баг в TracePanel')
     expect(draft.body).toContain('Ошибка: файл не найден')
     expect(draft.body).toContain('0.3.7')
     expect(draft.body).toContain('@tester')
+    expect(draft.body).toContain('сформирован агентом')
     expect(draft.gistJson).toContain('"chatId": "chat-abc"')
     expect(draft.gistDescription).toContain('chat-abc')
   })

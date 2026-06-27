@@ -245,6 +245,22 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
           >
             Проверить GitHub / git
           </button>
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={settings.autoAgentTraceReportOnError !== false}
+              onChange={(e) => onSettingsChange({ autoAgentTraceReportOnError: e.target.checked })}
+            />
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.thumb} />
+            </span>
+            <span className={styles.toggleContent}>
+              <span className={styles.title}>Автоотчёт на GitHub при ошибке</span>
+              <span className={styles.desc}>
+                Агент сам создаёт Issue с трейсом после неудачного прогона (нужен gh auth login)
+              </span>
+            </span>
+          </label>
         </div>
       </SettingItem>
 

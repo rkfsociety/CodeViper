@@ -168,7 +168,8 @@ export class AgentRunner {
       previewFn,
       hunkSelectionFn,
       this.selfImprovementPlan,
-      (items) => this.selfImproveOrchestrator.emitPlan(items)
+      (items) => this.selfImproveOrchestrator.emitPlan(items),
+      chatId
     )
 
     // Нужно зарегистрировать preview_edit/preview_patch через ссылку на методы ToolExecutor.

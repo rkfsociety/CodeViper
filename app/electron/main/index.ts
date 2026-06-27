@@ -26,6 +26,7 @@ import {
 } from './collectiveMemorySync'
 import { clearAppState } from './appState'
 import { appendChatTraceEvent } from './traceStorage'
+import { maybeAutoReportAgentTraceOnRunEnd, trackTraceRunStart } from './autoTraceGithubReport'
 import { registerAppIpc } from './ipc/registerAppIpc'
 import { registerFileIpc } from './ipc/registerFileIpc'
 import { registerModelsIpc } from './ipc/registerModelsIpc'
@@ -54,7 +55,7 @@ if (process.env.CODEVIPER_E2E === '1') {
 }
 
 let mainWindow: BrowserWindow | null = null
-const agentRunStates = new Map<string, { chatId: string }>()
+const agentRunStates = new Map<string, { chatId: string; projectPath?: string }>()
 const activeAgentAborts = new Map<string, AbortController>()
 const pendingConfirms = new Map<string, (approved: boolean) => void>()
 const pendingClarifies = new Map<string, (answer: string | null) => void>()
@@ -304,7 +305,11 @@ function stream(chatId: string, event: AgentStreamPayload): void {
   // Перед любым нетокенным событием сбрасываем накопленные токены этого чата.
   flushChatTokens(chatId)
   if (event.type === 'trace' && event.traceEvent) {
-    void appendChatTraceEvent(chatId, event.traceEvent)
+    void appendChatTraceEvent(chatId, event.traceEvent).then(async () => {
+      trackTraceRunStart(chatId, event.traceEvent!)
+      const run = agentRunStates.get(chatId)
+      await maybeAutoReportAgentTraceOnRunEnd(chatId, event.traceEvent!, run?.projectPath, stream)
+    })
   }
   mainWindow?.webContents.send('agent-stream', { chatId, ...event })
 }

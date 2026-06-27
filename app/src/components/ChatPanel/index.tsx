@@ -31,6 +31,7 @@ import type { ChatInputHandle } from '../ChatInput'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { useContextPreview } from '../../hooks/useContextPreview'
 import { useAgentStream } from '../../hooks/useAgentStream'
+import { useToast } from '../Toast'
 import {
   useMessageQueue,
   type PrerequisiteBlock,
@@ -161,6 +162,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const onActiveModelChangeRef = useRef(onActiveModelChange)
   const onOllamaFallbackOfferRef = useRef(onOllamaFallbackOffer)
   onOllamaFallbackOfferRef.current = onOllamaFallbackOffer
+  const { toast } = useToast()
+  const onTraceReportRef = useRef<
+    ((issueUrl: string, auto: boolean, title?: string) => void) | undefined
+  >(undefined)
+  onTraceReportRef.current = (issueUrl, auto, title) => {
+    toast(
+      auto
+        ? `Агент отправил отчёт на GitHub${title ? `: ${title}` : ''}`
+        : `Отчёт на GitHub${title ? `: ${title}` : ''}`,
+      'info'
+    )
+    void window.codeviper.openExternal(issueUrl)
+  }
   const incognitoRef = useRef(incognito)
   incognitoRef.current = incognito
 
@@ -298,6 +312,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onLearningSavedRef,
     onActiveModelChangeRef,
     onOllamaFallbackOfferRef,
+    onTraceReportRef,
     processNextQueuedRunRef,
     appendMessage,
     upsertMessage,

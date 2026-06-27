@@ -191,6 +191,7 @@ export interface ToolArgs {
   git_stash: { message?: string }
   git_stash_pop: Record<string, never>
   create_issue: { title: string; body?: string; labels?: string }
+  report_trace_to_github: { note?: string }
   create_pr: { title?: string; body?: string }
   list_issues: Record<string, never>
   list_pull_requests: Record<string, never>

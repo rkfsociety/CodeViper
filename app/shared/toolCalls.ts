@@ -42,6 +42,7 @@ export const AGENT_TOOL_NAMES = [
   // GitHub
   'check_github_auth',
   'create_issue',
+  'report_trace_to_github',
   'create_pr',
   'list_issues',
   'list_pull_requests',

@@ -212,6 +212,8 @@ export interface AgentSettings {
   liveRuntimeFromGit?: boolean
   /** GitHub Personal Access Token для создания Gist (экспорт памяти и навыков) */
   githubToken?: string
+  /** Автоотчёт на GitHub при ошибке прогона агента (gh auth); по умолчанию true */
+  autoAgentTraceReportOnError?: boolean
   /** GitLab Personal Access Token (scopes: api) для MR и пайплайнов */
   gitlabToken?: string
   /** GitLab базовый URL (по умолчанию https://gitlab.com); задай для self-hosted инстанса */
@@ -477,6 +479,7 @@ export interface AgentStreamPayload {
     | 'collective_sync'
     | 'run_checkpoint'
     | 'ollama_fallback_offer'
+    | 'trace_report'
   content?: string
   /** Поля события retry_429 */
   retryWaitMs?: number
@@ -525,6 +528,11 @@ export interface AgentStreamPayload {
   error?: string
   /** URL Ollama для предложения fallback при circuit breaker open (type === 'ollama_fallback_offer') */
   ollamaFallbackUrl?: string
+  /** Issue создан из трейса (type === 'trace_report') */
+  traceReportAuto?: boolean
+  traceReportIssueUrl?: string
+  traceReportGistUrl?: string
+  traceReportTitle?: string
 }
 
 export interface AgentStreamEvent extends AgentStreamPayload {

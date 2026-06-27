@@ -29,6 +29,23 @@ export const GITHUB_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'report_trace_to_github',
+      description:
+        'Отправить трейс текущего прогона на GitHub: gist с JSON + issue в rkfsociety/CodeViper с автоописанием от агента. Нужен gh auth login. Вызывай после ошибки или когда пользователь просит зафиксировать баг.',
+      parameters: {
+        type: 'object',
+        properties: {
+          note: {
+            type: 'string',
+            description: 'Дополнительный комментарий агента к отчёту (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'create_pr',
       description: 'Создать GitHub Pull Request через gh CLI',
       parameters: {

@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import type { AgentTraceEvent } from '../../src/types'
 import { CODEVIPER_GITHUB_OWNER, CODEVIPER_GITHUB_REPO } from '../../shared/constants'
-import { buildTraceIssueReport } from '../../shared/traceReport'
+import { buildTraceIssueReport, type TraceReportSource } from '../../shared/traceReport'
 import { createGistViaGh, createIssueViaGh, getGhLogin } from './githubTools'
 
 export interface ReportTraceResult {
@@ -30,7 +30,8 @@ export async function reportAgentTraceToGithub(
   chatId: string,
   events: AgentTraceEvent[],
   projectPath?: string,
-  userNote?: string
+  userNote?: string,
+  reportSource: TraceReportSource = 'user-ui'
 ): Promise<ReportTraceResult> {
   if (!chatId.trim()) {
     return { ok: false, error: 'Чат не выбран' }
@@ -52,7 +53,8 @@ export async function reportAgentTraceToGithub(
     projectPath,
     appVersion,
     reporterLogin,
-    userNote
+    userNote,
+    reportSource
   })
 
   try {

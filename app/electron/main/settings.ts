@@ -72,6 +72,7 @@ export const PersistedSettingsSchema = z.object({
   customSystemPrompt: z.string().optional(),
   gitlabToken: z.string().optional(),
   githubToken: z.string().optional(),
+  autoAgentTraceReportOnError: z.boolean().optional(),
   gitlabUrl: z.string().optional(),
   jiraUrl: z.string().optional(),
   jiraToken: z.string().optional(),
@@ -270,6 +271,9 @@ function normalize(settings: LegacySettings): PersistedSettings {
       : {}),
     ...(settings.gitlabToken?.trim() ? { gitlabToken: settings.gitlabToken.trim() } : {}),
     ...(settings.githubToken?.trim() ? { githubToken: settings.githubToken.trim() } : {}),
+    ...(settings.autoAgentTraceReportOnError === false
+      ? { autoAgentTraceReportOnError: false }
+      : {}),
     ...(settings.gitlabUrl?.trim() ? { gitlabUrl: settings.gitlabUrl.trim() } : {}),
     ...(settings.disabledTools?.length ? { disabledTools: settings.disabledTools } : {}),
     ...(settings.selfImproveBranch?.trim()

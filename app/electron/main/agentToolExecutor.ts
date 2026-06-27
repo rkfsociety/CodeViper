@@ -226,7 +226,8 @@ export class ToolExecutor {
     private readonly previewFn?: (previewId: string) => Promise<boolean>,
     private readonly hunkSelectionFn?: (previewId: string) => number[] | undefined,
     private readonly selfImprovementPlan?: SelfImprovementPlanStore,
-    private readonly onEmitPlan?: (items: SelfImprovementItem[]) => void
+    private readonly onEmitPlan?: (items: SelfImprovementItem[]) => void,
+    private readonly chatId?: string
   ) {}
 
   private getToolHandlers(): ToolHandlers {
@@ -248,7 +249,11 @@ export class ToolExecutor {
     this.clearEditSnapshots = projectResult.clearEditSnapshots
     this.toolHandlers = {
       ...projectResult.handlers,
-      ...factories.createGitHubToolHandlers(),
+      ...factories.createGitHubToolHandlers({
+        projectPath: this.projectPath,
+        chatId: this.chatId,
+        emit: this.emit
+      }),
       ...factories.createGitLabToolHandlers(this.projectPath, this.settings),
       ...factories.createJiraToolHandlers(this.settings),
       ...factories.createLinearToolHandlers(this.settings),
