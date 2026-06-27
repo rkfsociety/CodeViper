@@ -1,25 +1,111 @@
 # API инструментов агента CodeViper
 
-Справочник всех инструментов, доступных агенту. Источник истины — [`app/electron/main/agentTools.ts`](../app/electron/main/agentTools.ts).
+Справочник инструментов агента для разработчиков и самоулучшения.
+
+**Источник истины:**
+
+| Что | Путь |
+|---|---|
+| Схемы инструментов (группы) | [`app/electron/main/agentTools/`](../app/electron/main/agentTools/) — `core.ts`, `integrations.ts`, `mcp.ts` |
+| Сборка списка для модели | [`app/electron/main/agentTools/index.ts`](../app/electron/main/agentTools/index.ts) → `AGENT_TOOLS` (+ MCP, плагины) |
+| Реестр имён (text tool calls) | [`app/shared/toolCalls.ts`](../app/shared/toolCalls.ts) → `AGENT_TOOL_NAMES` |
+| Обработчики | [`app/electron/main/agentHandlers*.ts`](../app/electron/main/) |
 
 ---
 
 ## Содержание
 
+- [Индекс инструментов](#индекс-инструментов)
 - [Файлы проекта](#файлы-проекта)
 - [Git](#git)
-- [Терминал](#терминал)
+- [GitHub](#github)
+- [GitLab](#gitlab)
+- [Терминал и тесты](#терминал)
+- [Зависимости](#зависимости)
 - [Память](#память)
 - [Навыки (Skills)](#навыки-skills)
+- [Todo](#todo)
 - [Саморедактирование (CodeViper)](#саморедактирование-codeviper)
-- [Самоулучшение](#самоулучшение)
+- [ROADMAP и самоулучшение](#самоулучшение)
 - [Модели Ollama](#модели-ollama)
+- [Индексация и веб](#индексация-и-веб)
+- [Субагенты](#субагенты)
 - [Соглашения](#соглашения)
 - [Создание плагина](#создание-плагина)
 
 ---
 
+## Индекс инструментов
+
+Полный реестр: `AGENT_TOOL_NAMES` в [`toolCalls.ts`](../app/shared/toolCalls.ts).
+
+### `agentTools/core.ts` — FILE_TOOLS
+
+`search_knowledge_base`, `list_directory`, `grep_files`, `find_files`, `find_symbol`, `find_references`, `search_in_project`, `read_file`, `read_multiple_files`, `file_info`, `project_stats`, `search_in_file`, `file_search_summary`, `show_file_history`, `copy_file`, `rename_folder`, `copy_folder`, `preview_edit`, `preview_patch`, `write_file`, `create_file`, `edit_file`, `undo_edit`, `append_file`, `delete_file`, `move_file`
+
+### `agentTools/core.ts` — GIT_TOOLS
+
+`git_status`, `git_diff`, `git_log`, `git_commit`, `git_push`, `git_checkout`, `git_stash`, `git_stash_pop`, `recent_changes`
+
+### `agentTools/core.ts` — терминал и тесты
+
+`run_command`, `run_script`, `review_code`, `run_tests`
+
+### `agentTools/core.ts` — PACKAGE_TOOLS
+
+`package_info`, `read_package_lock`, `dependency_summary`, `test_summary`
+
+### `agentTools/integrations.ts` — GitHub
+
+`check_github_auth`, `create_issue`, `create_pr`, `list_issues`, `list_pull_requests`, `open_issue`, `trigger_github_workflow`
+
+### `agentTools/integrations.ts` — GitLab
+
+`list_gitlab_mrs`, `create_gitlab_mr`, `get_gitlab_pipeline`
+
+### `agentTools/integrations.ts` — память, навыки, todo, веб
+
+`remember`, `search_memory`, `forget`, `list_skills`, `read_skill`, `create_skill`, `update_skill`, `delete_skill`, `read_skill_data`, `write_skill_data`, `set_todo_list`, `complete_todo_item`, `clear_todo_list`, `web_fetch`, `web_search`
+
+### `agentTools/mcp.ts` — CodeViper, ROADMAP, Ollama, индекс
+
+`list_codeviper_directory`, `grep_codeviper_files`, `find_codeviper_files`, `read_codeviper_file`, `write_codeviper_file`, `create_codeviper_file`, `edit_codeviper_file`, `append_codeviper_file`, `delete_codeviper_file`, `move_codeviper_file`, `run_codeviper_command`, `create_codeviper_branch`, `push_codeviper_branch`, `create_codeviper_pr`, `list_roadmap`, `read_roadmap_item`, `set_self_improvement_plan`, `complete_self_improvement_item`, `get_self_improvement_plan`, `preview_ollama_modelfile`, `create_ollama_model`, `index_project`, `delegate_to_editor`
+
+---
+
 ## Файлы проекта
+
+### `search_knowledge_base`
+
+Семантический поиск по индексу проекта (Qdrant). Параметры: `query` (обяз.), `collection`, `limit`.
+
+### `find_symbol` / `find_references`
+
+Поиск объявления символа или всех ссылок по AST (ts/js/py). Параметры: `name` (обяз.), `path`.
+
+### `search_in_project`
+
+Универсальный поиск: `type: "content"` — текст в файлах; `type: "name"` — glob по имени.
+
+### `read_multiple_files`
+
+Чтение нескольких файлов за один вызов. Параметр: `paths` (массив).
+
+### `file_info` / `project_stats` / `show_file_history`
+
+Метаданные файла, сводка по проекту, история git по файлу.
+
+### `search_in_file` / `file_search_summary`
+
+Поиск в одном файле (в т.ч. >512 KB) и краткая сводка совпадений по проекту. См. также `grep_files` vs `find_files` в skill `viper-files`.
+
+### `copy_file` / `rename_folder` / `copy_folder`
+
+Копирование файла или папки, переименование папки.
+
+### `preview_edit` / `preview_patch`
+
+Превью правки перед применением (side-by-side diff в UI).
 
 ### `list_directory`
 
@@ -224,6 +310,56 @@
 
 ---
 
+### `git_commit`
+
+Закоммитить staged-изменения. Параметр `message` (обяз.).
+
+### `git_push`
+
+Отправить коммиты на remote. Параметры: `remote`, `branch` (необяз.).
+
+### `git_checkout`
+
+Переключить ветку. Параметры: `branch` (обяз.), `force` (`"true"` — принудительно).
+
+### `git_stash` / `git_stash_pop`
+
+Спрятать незакоммиченные изменения / вернуть из stash.
+
+### `recent_changes`
+
+Список недавно изменённых файлов в проекте (git + mtime).
+
+---
+
+## GitHub
+
+Инструменты через `gh` CLI в корне git-репозитория. Перед push коллективной памяти или при ошибках sync — `check_github_auth`.
+
+### `check_github_auth`
+
+Проверить установку `gh`, авторизацию (CLI или token) и наличие git-клона. Параметров нет.
+
+### `create_issue` / `list_issues` / `open_issue`
+
+Создать, список (до 30), открыть в браузере issue. `create_issue`: `title` (обяз.), `body`, `labels`.
+
+### `create_pr` / `list_pull_requests`
+
+Создать PR или список открытых PR с веткой и статусом CI (как панель PR в UI). `list_pull_requests` — без параметров.
+
+### `trigger_github_workflow`
+
+Запуск GitHub Actions: `workflow_id` (обяз.), `ref`, `fields` (key=value через запятую).
+
+---
+
+## GitLab
+
+`list_gitlab_mrs`, `create_gitlab_mr`, `get_gitlab_pipeline` — через GitLab API и `gitlabToken` в настройках. MR: `source_branch`, `target_branch`, `title`.
+
+---
+
 ## Терминал
 
 ### `run_command`
@@ -241,6 +377,24 @@
 ```
 
 > **Режим readOnly:** В режиме «только чтение» вызов `run_command` заблокирован.
+
+### `run_script`
+
+Запуск скрипта в песочнице Docker (если настроено). Параметры: `script`, `language`.
+
+### `review_code`
+
+Запросить ревью фрагмента кода у модели. Параметры: `path` или `content`, `focus`.
+
+### `run_tests`
+
+Запустить тесты проекта с авто-починкой (vitest/jest и т.п.). Параметры по схеме в `core.ts`.
+
+---
+
+## Зависимости
+
+`package_info` — сведения из `package.json`. `read_package_lock` — фрагмент lock-файла. `dependency_summary` / `test_summary` — сводки по зависимостям и тестам.
 
 ---
 
@@ -386,6 +540,12 @@
 
 ---
 
+## Todo
+
+`set_todo_list` — создать/обновить список задач в UI (`items`, `title`). `complete_todo_item` — отметить по `id`. `clear_todo_list` — скрыть список.
+
+---
+
 ## Саморедактирование (CodeViper)
 
 Эти инструменты работают с исходным кодом самого CodeViper, а не с пользовательским проектом. Доступны только агенту при выполнении задач по улучшению собственного кода.
@@ -405,12 +565,23 @@
 | `delete_codeviper_file` | `delete_file` | Удаление файла |
 | `move_codeviper_file` | `move_file` | Перемещение/переименование |
 | `run_codeviper_command` | `run_command` | Shell-команда в корне исходников |
+| `create_codeviper_branch` | — | Ветка для самоулучшения |
+| `push_codeviper_branch` | — | Push ветки CodeViper |
+| `create_codeviper_pr` | — | PR изменений CodeViper |
 
 Сигнатуры параметров идентичны соответствующим инструментам проекта. Путь передаётся как абсолютный путь внутри директории исходников CodeViper.
 
 ---
 
 ## Самоулучшение
+
+### ROADMAP
+
+`list_roadmap` — список пунктов «В планах» из `ROADMAP.md` (номер · название · цепочка). Без параметров.
+
+`read_roadmap_item` — полный блок пункта N: цель, файлы, действие, проверка. Параметр `number` (обяз.).
+
+### План выполнения
 
 ### `set_self_improvement_plan`
 
@@ -479,6 +650,26 @@
 {"user": "Объясни async/await", "assistant": "async/await — это синтаксический сахар над Promise..."}
 {"user": "Что такое замыкание?", "assistant": "Замыкание — функция, которая захватывает..."}
 ```
+
+---
+
+## Индексация и веб
+
+### `index_project`
+
+Построить или обновить семантический индекс проекта (Qdrant). Параметры по схеме в `mcp.ts`.
+
+### `web_fetch` / `web_search`
+
+Загрузка URL в текст и поиск в интернете (DuckDuckGo). `web_fetch`: `url` (обяз.), `max_chars`. `web_search`: `query` (обяз.), `max_results`.
+
+---
+
+## Субагенты
+
+### `delegate_to_editor`
+
+Делегировать подзадачу субагенту-редактору (изолированный прогон с write-инструментами). Параметры: `task`, `context` — см. `mcp.ts`.
 
 ---
 
@@ -563,7 +754,8 @@ const data = JSON.parse(raw)
 
 ### Полезные ссылки
 
-- [Схемы всех инструментов](../app/electron/main/agentTools.ts)
+- [Схемы инструментов](../app/electron/main/agentTools/index.ts) (`AGENT_TOOLS`)
+- [Реестр имён `AGENT_TOOL_NAMES`](../app/shared/toolCalls.ts)
 - [Обработчики файловых операций](../app/electron/main/agentHandlersProject.ts)
 - [Обработчики памяти и навыков](../app/electron/main/agentHandlersMemory.ts)
 - [Обработчики саморедактирования](../app/electron/main/agentHandlersCodeViper.ts)
