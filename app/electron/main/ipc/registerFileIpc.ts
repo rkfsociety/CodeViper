@@ -4,7 +4,7 @@ import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from '../services'
 import { readFileHistory } from '../fileHistory'
 import { loadSettings } from '../settings'
-import { exportAgentTrace, loadChatTrace, clearChatTrace } from '../traceStorage'
+import { exportAgentTrace } from '../traceStorage'
 import type { IpcContext } from './ipcContext'
 
 const ATTACHMENT_SIZE_LIMIT = 200 * 1024
@@ -88,16 +88,6 @@ export function registerFileIpc(ctx: IpcContext): void {
   ipcMain.handle(IPC.EXPORT_TRACE, async (_e, ...a) => {
     const [chatId, events, projectPath] = parseIpcArgs(Contracts[IPC.EXPORT_TRACE].args, a)
     return exportAgentTrace(chatId, events, projectPath)
-  })
-
-  ipcMain.handle(IPC.LOAD_CHAT_TRACE, async (_e, ...a) => {
-    const [chatId] = parseIpcArgs(Contracts[IPC.LOAD_CHAT_TRACE].args, a)
-    return loadChatTrace(chatId)
-  })
-
-  ipcMain.handle(IPC.CLEAR_CHAT_TRACE, async (_e, ...a) => {
-    const [chatId] = parseIpcArgs(Contracts[IPC.CLEAR_CHAT_TRACE].args, a)
-    await clearChatTrace(chatId)
   })
 
   ipcMain.handle(IPC.RUN_TERMINAL_COMMAND, async (_e, ...a) => {
