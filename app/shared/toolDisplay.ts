@@ -73,15 +73,117 @@ function firstLine(output: string, max = 72): string {
   return `${line.slice(0, max)}…`
 }
 
+const FILE_PATH_TOOLS = new Set([
+  'read_file',
+  'write_file',
+  'create_file',
+  'edit_file',
+  'append_file',
+  'copy_file',
+  'delete_file',
+  'move_file',
+  'undo_edit',
+  'file_info',
+  'read_codeviper_file',
+  'write_codeviper_file',
+  'create_codeviper_file',
+  'edit_codeviper_file',
+  'append_codeviper_file',
+  'read_multiple_files'
+])
+
+function parseToolInput(toolInput?: string): Record<string, unknown> | null {
+  if (!toolInput?.trim()) return null
+  try {
+    return JSON.parse(toolInput) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+function shortenPath(path: string, max = 56): string {
+  const normalized = path.replace(/\\/g, '/').trim()
+  if (normalized.length <= max) return normalized
+  const parts = normalized.split('/')
+  if (parts.length <= 2) return `…${normalized.slice(-(max - 1))}`
+  return `…/${parts.slice(-2).join('/')}`
+}
+
+function pathFromToolInput(input: Record<string, unknown> | null): string | undefined {
+  if (!input) return undefined
+  const path = input.path
+  if (typeof path === 'string' && path.trim()) return shortenPath(path)
+  const paths = input.paths
+  if (Array.isArray(paths)) {
+    const files = paths.filter(
+      (item): item is string => typeof item === 'string' && item.trim().length > 0
+    )
+    if (files.length === 1) return shortenPath(files[0])
+    if (files.length > 1) return `${files.length} файлов`
+  }
+  const from = input.from
+  const to = input.to
+  if (typeof from === 'string' && typeof to === 'string' && from.trim() && to.trim()) {
+    return `${shortenPath(from, 28)} → ${shortenPath(to, 28)}`
+  }
+  return undefined
+}
+
+function pathFromToolOutput(output: string): string | undefined {
+  const body = output.trim()
+  if (!body) return undefined
+
+  const fileHeader = body.match(/^\[Файл:\s*([^\]|]+)/)?.[1]?.trim()
+  if (fileHeader) return shortenPath(fileHeader)
+
+  const statusLine = body
+    .match(/^Файл (?:записан|создан|изменён|восстановлен|удалён):?\s*(.+)$/m)?.[1]
+    ?.trim()
+  if (statusLine) return shortenPath(statusLine.replace(/\s*\(.*\)$/, ''))
+
+  const appended = body.match(/^Добавлено в конец:\s*(.+)$/m)?.[1]?.trim()
+  if (appended) return shortenPath(appended)
+
+  const moved = body.match(/^Файл (?:перемещён|скопирован):\s*(.+)$/m)?.[1]?.trim()
+  if (moved) {
+    const [from, to] = moved.split('→').map((part) => part.trim())
+    if (from && to) return `${shortenPath(from, 28)} → ${shortenPath(to, 28)}`
+    return shortenPath(moved)
+  }
+
+  const infoLine = body.match(/^Файл:\s*(.+)$/m)?.[1]?.trim()
+  if (infoLine && !/^\d/.test(infoLine)) {
+    return shortenPath(infoLine.split('|')[0]?.trim() ?? infoLine)
+  }
+
+  return undefined
+}
+
+export function extractToolFilePath(
+  name: string | undefined,
+  toolInput?: string,
+  output?: string
+): string | undefined {
+  if (!name || !FILE_PATH_TOOLS.has(name)) return undefined
+  return pathFromToolInput(parseToolInput(toolInput)) ?? pathFromToolOutput(output ?? '')
+}
+
+function withFilePath(label: string, filePath: string | undefined, suffix?: string): string {
+  const tail = suffix ? ` — ${suffix}` : ''
+  return filePath ? `${label} — ${filePath}${tail}` : suffix ? `${label}${tail}` : label
+}
+
 export function compactToolChatLine(
   name: string | undefined,
   output: string | undefined,
-  phase: 'start' | 'end'
+  phase: 'start' | 'end',
+  toolInput?: string
 ): string {
   const label = toolLabel(name)
+  const filePath = extractToolFilePath(name, toolInput, output)
 
   if (phase === 'start') {
-    return `▶ ${label}…`
+    return `▶ ${withFilePath(label, filePath)}…`
   }
 
   const body = output ?? ''
@@ -100,15 +202,20 @@ export function compactToolChatLine(
       return count > 0 ? `✓ ${label} — ${count} элементов` : `✓ ${label} — пусто`
     }
     case 'read_file':
-    case 'read_codeviper_file': {
+    case 'read_codeviper_file':
+    case 'read_multiple_files': {
       const lines = body ? body.split('\n').length : 0
-      return `✓ ${label} — ${lines} строк`
+      return `✓ ${withFilePath(label, filePath, `${lines} строк`)}`
     }
     case 'write_file':
     case 'create_file':
     case 'edit_file':
     case 'append_file':
-      return `✓ ${firstLine(body) || label}`
+    case 'delete_file':
+    case 'undo_edit':
+    case 'move_file':
+    case 'copy_file':
+      return filePath ? `✓ ${withFilePath(label, filePath)}` : `✓ ${firstLine(body) || label}`
     case 'run_command': {
       const exit = body.match(/^exit:\s*(-?\d+)/)?.[1]
       return exit !== undefined ? `✓ ${label} — код ${exit}` : `✓ ${label}`
@@ -135,7 +242,9 @@ export function compactToolChatLine(
     case 'create_codeviper_file':
     case 'edit_codeviper_file':
     case 'append_codeviper_file':
-      return `✓ ${firstLine(body) || label}`
+      return filePath ? `✓ ${withFilePath(label, filePath)}` : `✓ ${firstLine(body) || label}`
+    case 'file_info':
+      return filePath ? `✓ ${withFilePath(label, filePath)}` : `✓ ${firstLine(body) || label}`
     case 'remember':
     case 'search_memory':
     case 'forget':

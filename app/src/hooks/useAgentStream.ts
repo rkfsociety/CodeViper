@@ -244,7 +244,7 @@ export function useAgentStream({
         upsertMessageRef.current({
           id,
           role: 'tool',
-          content: compactToolChatLine(event.toolName, undefined, 'start'),
+          content: compactToolChatLine(event.toolName, undefined, 'start', event.toolInput),
           toolName: event.toolName,
           timestamp: Date.now()
         })
@@ -258,7 +258,7 @@ export function useAgentStream({
         upsertMessageRef.current({
           id,
           role: 'tool',
-          content: compactToolChatLine(event.toolName, event.toolOutput, 'end'),
+          content: compactToolChatLine(event.toolName, event.toolOutput, 'end', event.toolInput),
           toolName: event.toolName,
           toolOutput: event.toolOutput,
           timestamp: Date.now()
