@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'path'
-import { mkdtempSync, mkdirSync, rmSync } from 'fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 
 const userDataDir = mkdtempSync(join(tmpdir(), 'cv-bundled-source-'))
@@ -11,8 +11,15 @@ vi.mock('electron', () => ({
   }
 }))
 
+vi.mock('../electron/main/settings', () => ({
+  loadSettings: vi.fn().mockResolvedValue({}),
+  saveSettings: vi.fn().mockResolvedValue({})
+}))
+
 import {
+  ensureBundledSourceClone,
   getBundledSourceRoot,
+  resetBundledSourceCloneStateForTests,
   runBundledSourceStartupSync,
   setGitRunnerForTests,
   shouldRunBundledSourceStartupSync,
@@ -25,6 +32,7 @@ import { getBundledSourceAppRoot } from '../electron/main/bundledSourceBuild'
 describe('bundledSourceSync', () => {
   beforeEach(() => {
     setGitRunnerForTests(null)
+    resetBundledSourceCloneStateForTests()
   })
 
   afterEach(() => {
@@ -41,13 +49,67 @@ describe('bundledSourceSync', () => {
     expect(getBundledSourceAppRoot()).toBe(join(userDataDir, 'source', 'app'))
   })
 
-  it('без клона возвращает { updated: false }', async () => {
+  it('без клона и без git в PATH возвращает { updated: false }', async () => {
+    setGitRunnerForTests(async (_cwd, args) => {
+      if (args[0] === '--version') return { code: 127, stdout: '', stderr: 'not found' }
+      return { code: 1, stdout: '', stderr: '' }
+    })
+
     const result = await syncBundledSource()
     expect(result).toEqual({ updated: false })
   })
 
-  it('без pull если нет .git даже при наличии папки source', async () => {
+  it('без клона пытается git clone и возвращает { updated: false } при неудаче', async () => {
+    setGitRunnerForTests(async (_cwd, args) => {
+      if (args[0] === '--version') return { code: 0, stdout: 'git version 2.0\n', stderr: '' }
+      if (args[0] === 'clone') return { code: 1, stdout: '', stderr: 'network error' }
+      return { code: 1, stdout: '', stderr: 'unexpected' }
+    })
+
+    const result = await syncBundledSource()
+    expect(result).toEqual({ updated: false })
+  })
+
+  it('без pull если clone не удался и папка source не пустая', async () => {
     mkdirSync(join(userDataDir, 'source'), { recursive: true })
+    writeFileSync(join(userDataDir, 'source', 'junk.txt'), 'x')
+    const gitCalls: string[][] = []
+
+    setGitRunnerForTests(async (_cwd, args) => {
+      gitCalls.push(args)
+      if (args[0] === '--version') return { code: 0, stdout: 'git version 2.0\n', stderr: '' }
+      return { code: 0, stdout: '', stderr: '' }
+    })
+
+    const result = await syncBundledSource()
+    expect(result).toEqual({ updated: false })
+    expect(gitCalls.some((args) => args[0] === 'clone')).toBe(false)
+  })
+
+  it('ensureBundledSourceClone создаёт клон и прописывает gitRepoRoot', async () => {
+    const { saveSettings } = await import('../electron/main/settings')
+    const mockedSaveSettings = vi.mocked(saveSettings)
+
+    setGitRunnerForTests(async (_cwd, args) => {
+      if (args[0] === '--version') return { code: 0, stdout: 'git version 2.0\n', stderr: '' }
+      if (args[0] === 'clone') {
+        const root = join(userDataDir, 'source')
+        mkdirSync(join(root, '.git'), { recursive: true })
+        return { code: 0, stdout: '', stderr: '' }
+      }
+      return { code: 1, stdout: '', stderr: 'unexpected' }
+    })
+
+    const root = await ensureBundledSourceClone()
+    expect(root).toBe(join(userDataDir, 'source'))
+    expect(mockedSaveSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ gitRepoRoot: join(userDataDir, 'source') })
+    )
+  })
+
+  it('ensureBundledSourceClone возвращает существующий клон без повторного clone', async () => {
+    const root = join(userDataDir, 'source')
+    mkdirSync(join(root, '.git'), { recursive: true })
     const gitCalls: string[][] = []
 
     setGitRunnerForTests(async (_cwd, args) => {
@@ -55,9 +117,8 @@ describe('bundledSourceSync', () => {
       return { code: 0, stdout: '', stderr: '' }
     })
 
-    const result = await syncBundledSource()
-    expect(result).toEqual({ updated: false })
-    expect(gitCalls).toHaveLength(0)
+    await expect(ensureBundledSourceClone()).resolves.toBe(root)
+    expect(gitCalls.some((args) => args[0] === 'clone')).toBe(false)
   })
 
   it('после успешного pull с новым HEAD — updated: true', async () => {
@@ -154,6 +215,7 @@ describe('bundledSourceSync', () => {
 describe('runBundledSourceStartupSync', () => {
   beforeEach(() => {
     setGitRunnerForTests(null)
+    resetBundledSourceCloneStateForTests()
   })
 
   afterEach(() => {

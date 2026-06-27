@@ -582,8 +582,8 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
           </label>
           <div className={`${styles.hint} ${styles.hintInline}`}>
             Клон репозитория CodeViper (где лежит <code>.git</code> и <code>ROADMAP.md</code>).
-            Нужен для git push знаний; без него — GitHub Token с правом <code>repo</code> в
-            Интеграциях.
+            Обычно заполняется автоматически (<code>%APPDATA%/CodeViper/source</code>); без клона —
+            <code>gh auth login</code> или GitHub Token с правом <code>repo</code> в Интеграциях.
           </div>
         </div>
       </SettingItem>

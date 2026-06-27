@@ -2,7 +2,7 @@ import { spawn } from 'child_process'
 import { existsSync } from 'fs'
 import { join, resolve } from 'path'
 import { CODEVIPER_GITHUB_OWNER, CODEVIPER_GITHUB_REPO } from '../../shared/constants'
-import { getBundledSourceRoot } from './bundledSourceSync'
+import { getBundledSourceRoot, ensureBundledSourceClone } from './bundledSourceSync'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { loadSettings } from './settings'
 
@@ -107,6 +107,13 @@ export async function resolveGitRepoRoot(): Promise<string | null> {
     const root = await tryGitRepoRoot(cwd)
     if (root && existsSync(join(root, '.git'))) return root
   }
+
+  try {
+    return await ensureBundledSourceClone()
+  } catch {
+    /* app не инициализирован (тесты) */
+  }
+
   return null
 }
 

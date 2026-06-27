@@ -20,7 +20,7 @@
 
 Глобальные знания синхронизируются в `docs/collective/ViperMemory.md` на GitHub; в статус-баре — чип **☁️ Память → agent/self-improve**.
 
-**Нужно одно из двух:** git-клон CodeViper (авто: `%APPDATA%/CodeViper/source`, dev-клон, или вручную «Корень git-репозитория» в Поведение) **или** авторизация GitHub — `gh auth login` (scope `repo`) **или** Personal Access Token в Настройки → Интеграции. Из установщика без локального git push идёт через GitHub API по token из настроек или `gh auth token`.
+**Нужно одно из двух:** git-клон CodeViper (авто: при первой синхронизации `git clone` в `%APPDATA%/CodeViper/source`, как установщик; dev-клон; или вручную «Корень git-репозитория») **или** авторизация GitHub — `gh auth login` (scope `repo`) **или** Personal Access Token в Настройки → Интеграции. Путь `gitRepoRoot` прописывается автоматически после успешного clone.
 
 ## Автообновление
 
