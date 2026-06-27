@@ -17,6 +17,7 @@ interface ChatTraceFile {
 const traceCaches = new Map<string, AgentTraceEvent[]>()
 const loadPromises = new Map<string, Promise<AgentTraceEvent[]>>()
 const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const flushInFlight = new Set<Promise<void>>()
 
 export function getAgentTracesDir(): string {
   return join(app.getPath('userData'), 'traces')
@@ -69,7 +70,10 @@ function scheduleChatTraceSave(chatId: string): void {
     chatId,
     setTimeout(() => {
       saveTimers.delete(chatId)
-      void flushChatTrace(chatId)
+      const pending = flushChatTrace(chatId).finally(() => {
+        flushInFlight.delete(pending)
+      })
+      flushInFlight.add(pending)
     }, SAVE_DEBOUNCE_MS)
   )
 }
@@ -125,9 +129,14 @@ export async function flushPendingChatTraceWrites(): Promise<void> {
     const timer = saveTimers.get(chatId)
     if (timer) clearTimeout(timer)
     saveTimers.delete(chatId)
-    await flushChatTrace(chatId)
+    const pending = flushChatTrace(chatId).finally(() => {
+      flushInFlight.delete(pending)
+    })
+    flushInFlight.add(pending)
+    await pending
   }
   await Promise.all([...loadPromises.values()])
+  await Promise.all([...flushInFlight])
 }
 
 export async function exportAgentTrace(
