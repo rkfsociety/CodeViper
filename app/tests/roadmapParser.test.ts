@@ -6,7 +6,11 @@ vi.mock('electron', () => ({
   }
 }))
 
-import { listRoadmapItems, resolveRoadmapPath } from '../electron/main/roadmapParser'
+import {
+  listRoadmapItems,
+  resolveRoadmapPath,
+  formatRoadmapItemsList
+} from '../electron/main/roadmapParser'
 
 describe('roadmapParser', () => {
   it('находит ROADMAP.md в репозитории', () => {
@@ -15,8 +19,14 @@ describe('roadmapParser', () => {
 
   it('парсит пункты «В планах»', async () => {
     const items = await listRoadmapItems()
-    expect(items.length).toBe(140)
+    expect(items.length).toBe(138)
     expect(items[0]?.num).toBe(1)
-    expect(items[0]?.title).toContain('list_pull_requests')
+    expect(items[0]?.title).toContain('read_roadmap_item')
+  })
+
+  it('formatRoadmapItemsList выводит num · title · chain', async () => {
+    const items = await listRoadmapItems()
+    const text = formatRoadmapItemsList(items)
+    expect(text).toContain(`${items[0]!.num} · ${items[0]!.title} · ${items[0]!.chain}`)
   })
 })

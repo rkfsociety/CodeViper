@@ -263,6 +263,15 @@ export const OLLAMA_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'list_roadmap',
+      description:
+        'Список пунктов раздела «В планах» из ROADMAP.md (номер · название · цепочка). Вызывай перед read_roadmap_item или самоулучшением по пункту ROADMAP.',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'set_self_improvement_plan',
       description: 'Задать план самоулучшения (3–8 пунктов) после изучения кода',
       parameters: {

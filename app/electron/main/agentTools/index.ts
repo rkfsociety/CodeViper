@@ -248,6 +248,7 @@ export interface ToolArgs {
   delete_skill: { id: string }
   read_skill_data: { skill_id: string }
   write_skill_data: { skill_id: string; content: string }
+  list_roadmap: Record<string, never>
   set_self_improvement_plan: { items: string }
   complete_self_improvement_item: { id: string }
   get_self_improvement_plan: Record<string, never>

@@ -161,6 +161,16 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(store.isComplete()).toBe(true)
   })
 
+  it('list_roadmap возвращает ≥1 пункт из ROADMAP.md', async () => {
+    const store = new SelfImprovementPlanStore()
+    const handlers = createSelfImprovementToolHandlers(store, vi.fn())
+
+    const result = await handlers.list_roadmap!({})
+
+    expect(result).toContain('Пункты ROADMAP')
+    expect(result).toMatch(/\d+ · .+ · /)
+  })
+
   it('get_self_improvement_plan возвращает сообщение при отсутствии плана', async () => {
     const store = new SelfImprovementPlanStore()
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())

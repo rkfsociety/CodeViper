@@ -77,3 +77,12 @@ export async function listRoadmapItems(): Promise<RoadmapItem[]> {
 
   return items
 }
+
+/** Текстовый список для агента: num · title · chain */
+export function formatRoadmapItemsList(items: RoadmapItem[]): string {
+  if (items.length === 0) {
+    return 'ROADMAP.md не найден или в разделе «В планах» нет пунктов.'
+  }
+  const lines = items.map((it) => `${it.num} · ${it.title} · ${it.chain}`)
+  return `Пункты ROADMAP «В планах» (${items.length}):\n\n${lines.join('\n')}`
+}

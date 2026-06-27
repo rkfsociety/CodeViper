@@ -5,12 +5,18 @@ import {
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
+import { formatRoadmapItemsList, listRoadmapItems } from './roadmapParser'
 
 export function createSelfImprovementToolHandlers(
   plan: SelfImprovementPlanStore,
   emitPlan: (items: SelfImprovementItem[]) => void
 ): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
+    list_roadmap: async () => {
+      const items = await listRoadmapItems()
+      return formatRoadmapItemsList(items)
+    },
+
     set_self_improvement_plan: async (args: any) => {
       const items = plan.set(parsePlanItemsJson(args.items))
       emitPlan(items)

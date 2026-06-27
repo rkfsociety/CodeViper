@@ -40,6 +40,7 @@
 ### Агент и инструменты
 - Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды, `disabledTools`
 - `list_pull_requests` — открытые PR и статус CI через gh (как панель PR в UI)
+- `list_roadmap` — список пунктов «В планах» из ROADMAP.md (num · title · chain)
 - Субагенты Explorer/Editor; оркестратор node-llama-cpp; checkpoint и откат прогона; `run_tests` с авто-починкой
 - RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
 
