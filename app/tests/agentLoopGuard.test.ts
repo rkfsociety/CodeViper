@@ -115,6 +115,17 @@ describe('LoopGuard', () => {
       expect(result).toEqual({ action: 'failed' })
     })
 
+    it('passthrough после read tools и вывода «уже реализовано» (ROADMAP)', async () => {
+      const roadmapMsg = `Валидация схемы tool
+Файлы: app/electron/main/pluginLoader.ts
+Проверка: unit-тест`
+      const answer =
+        'Реализация уже корректна: try-catch в цикле. Дополнительных правок не требуется.'
+
+      const result = await loopGuard.decideNoToolAction(roadmapMsg, answer, new Set(), true, false)
+      expect(result).toEqual({ action: 'passthrough' })
+    })
+
     it('escalate при refusal и autoModel', async () => {
       vi.mocked(fetchOllamaModels).mockResolvedValue([
         { name: 'qwen2.5-coder:7b', size: 4_000_000_000, modifiedAt: '' },

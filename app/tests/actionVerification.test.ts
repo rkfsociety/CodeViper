@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
+  acceptTextAfterReadTools,
   claimsActionCompleted,
   looksLikeAdviceInsteadOfAction,
+  looksLikeAlreadyImplementedConclusion,
   MUTATING_TOOLS,
   needsToolVerification,
   shouldRetryForMissingTools,
@@ -94,5 +96,35 @@ describe('actionVerification', () => {
 
   it('«создай PR» — задача с изменениями', () => {
     expect(taskLikelyNeedsMutation('создай PR')).toBe(true)
+  })
+
+  it('распознаёт вывод «уже реализовано»', () => {
+    expect(
+      looksLikeAlreadyImplementedConclusion(
+        'Текущая реализация уже корректно обрабатывает ошибки. Дополнительных правок не требуется.'
+      )
+    ).toBe(true)
+  })
+
+  it('не требует повтор после read tools и вывода «правки не нужны» (ROADMAP)', () => {
+    const roadmapMsg = `M · Валидация схемы tool при загрузке — уровень 1
+Цель: невалидный плагин логируется и пропускается
+Файлы: app/electron/main/pluginLoader.ts
+Проверка: unit-тест`
+    const answer =
+      'Похоже, логика уже реализована: loadPluginsFromDir использует try-catch. Дополнительных правок не требуется.'
+    expect(acceptTextAfterReadTools(answer, new Set(), true)).toBe(true)
+    expect(shouldRetryForMissingTools(roadmapMsg, answer, new Set(), true)).toBe(false)
+  })
+
+  it('всё ещё требует повтор при заявлении о создании без mutating tools', () => {
+    expect(
+      shouldRetryForMissingTools(
+        'Создай skill для todo',
+        'Я создал skill для todo-листа.',
+        new Set(),
+        true
+      )
+    ).toBe(true)
   })
 })

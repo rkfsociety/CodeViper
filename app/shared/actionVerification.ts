@@ -94,6 +94,17 @@ const COMPLETION_CLAIM_PATTERNS: RegExp[] = [
   /(?:^|[\s.!?])готово[.!]\s*$/i
 ]
 
+/** Вывод «уже сделано / правки не нужны» после изучения кода — не требует mutating tools. */
+const ALREADY_IMPLEMENTED_PATTERNS: RegExp[] = [
+  /уже\s+(?:реализован|корректн|сделан|есть|работает|внедрён|внедрена|внедрено)/iu,
+  /логика\s+уже/iu,
+  /(?:дополнительных?\s+)?правок\s+не\s+требуется/iu,
+  /изменени[яй]\s+не\s+(?:нужн|требу)/iu,
+  /already\s+implemented/i,
+  /no\s+(?:further\s+)?changes?\s+(?:needed|required)/i,
+  /nothing\s+(?:more\s+)?to\s+(?:change|do)/i
+]
+
 export function taskLikelyNeedsMutation(userMessage: string): boolean {
   const text = userMessage.trim()
   if (!text) return false
@@ -149,6 +160,30 @@ export function claimsActionCompleted(assistantText: string): boolean {
   return COMPLETION_CLAIM_PATTERNS.some((pattern) => pattern.test(text))
 }
 
+/** Модель заключила, что код уже соответствует задаче — mutating tools не обязательны. */
+export function looksLikeAlreadyImplementedConclusion(assistantText: string): boolean {
+  const text = assistantText.trim()
+  if (!text) return false
+  return ALREADY_IMPLEMENTED_PATTERNS.some((pattern) => pattern.test(text))
+}
+
+/**
+ * Принять текстовый ответ без mutating tools: агент уже читал код и сделал вывод.
+ * Регрессия: ROADMAP-задача с «Файлы»/«тест» классифицируется как mutation, хотя правки не нужны.
+ */
+export function acceptTextAfterReadTools(
+  assistantText: string,
+  mutatingToolsUsed: ReadonlySet<string>,
+  anyToolsUsed: boolean
+): boolean {
+  if (!anyToolsUsed || mutatingToolsUsed.size > 0) return false
+  const text = assistantText.trim()
+  if (!text) return false
+  if (looksLikeAlreadyImplementedConclusion(text)) return true
+  // Длинный ответ после read_* — обычно обзор/верификация, не застревание
+  return text.length >= 200 && !claimsActionCompleted(text)
+}
+
 export function needsToolVerification(
   userMessage: string,
   assistantText: string,
@@ -173,6 +208,10 @@ export function shouldRetryForMissingTools(
 
   if (!assistantText.trim()) return false
 
+  if (acceptTextAfterReadTools(assistantText, mutatingToolsUsed, anyToolsUsed)) {
+    return false
+  }
+
   // Не-мутационная задача (изучи/перечисли/проанализируй) без вызова инструментов:
   // короткий ответ (<200 симв.) — модель написала намерение и остановилась, повторяем;
   // длинный ответ — облачная/умная модель ответила из знаний, принимаем как есть.
@@ -193,4 +232,4 @@ export const TOOL_VERIFICATION_NUDGE = `STOP. Не давай пользоват
 После успешных инструментов — одно короткое сообщение, что изменено.`
 
 export const TOOL_VERIFICATION_FAILED_MESSAGE =
-  'Не удалось выполнить действие: модель не вызвала инструменты. Проверь модель с tool calling (qwen2.5-coder:7b, llama3.1:8b) или переформулируй задачу.'
+  'Не удалось выполнить действие: модель не вызвала нужные инструменты. Попробуй переформулировать задачу или выбрать другую модель.'

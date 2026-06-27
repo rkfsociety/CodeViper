@@ -1,4 +1,5 @@
 import {
+  acceptTextAfterReadTools,
   shouldRetryForMissingTools,
   taskMutationLikelihood,
   taskLikelyNeedsMutation,
@@ -107,6 +108,9 @@ export class LoopGuard {
     const toolTaskUnfulfilled =
       taskLikelyNeedsTools(userMessage) && (mutationTask ? noMutatingToolsYet : !usedTools)
     if (toolTaskUnfulfilled && this.verificationRetries >= MAX_VERIFICATION_RETRIES) {
+      if (acceptTextAfterReadTools(assistantText, mutatingToolsUsed, usedTools)) {
+        return { action: 'passthrough' }
+      }
       return { action: 'failed' }
     }
 
