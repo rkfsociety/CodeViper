@@ -198,14 +198,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     }
 
     if (isCloud && provider in CLOUD_KNOWN_MODELS) {
-      // Преобразуем строки в OllamaModel для совместимости с рендером
-      return CLOUD_KNOWN_MODELS[provider as keyof typeof CLOUD_KNOWN_MODELS].map(
-        (name: string) => ({
+      const known = CLOUD_KNOWN_MODELS[provider as keyof typeof CLOUD_KNOWN_MODELS]
+      if (known.length > 0) {
+        // Статический список для провайдеров без API каталога
+        return known.map((name: string) => ({
           name,
           size: 0,
           modifiedAt: ''
-        })
-      )
+        }))
+      }
     }
     return models
   }, [settings.modelProvider, settings.geminiTier, models])

@@ -12,8 +12,7 @@ export const CLOUD_KNOWN_MODELS: Record<string, string[]> = {
     'gemini-2.5-flash-lite-preview-06-17',
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite'
-  ],
-  openrouter: []
+  ]
 }
 
 export function formatSize(bytes: number): string {

@@ -158,7 +158,7 @@ export class ModelRuntime {
           'HTTP-Referer': 'https://github.com/rkfsociety/CodeViper',
           'X-OpenRouter-Title': 'CodeViper'
         },
-        `${OPENROUTER_API_BASE_URL}/models?supported_parameters=tools&order=most-popular`
+        `${OPENROUTER_API_BASE_URL}/models?supported_parameters=tools&sort=most-popular`
       )
     }
 
