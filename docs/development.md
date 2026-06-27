@@ -13,7 +13,7 @@ npm run test:e2e    # Playwright + Electron
 npm run lint
 ```
 
-Метка **`trace-report`** на GitHub Issues нужна для кнопки «На GitHub» в панели трассы. Создать в репозитории: `node scripts/ensure-github-labels.mjs` (нужен `gh auth login`). Отправка трейса идёт через `gh gist create` и `gh issue create` (тот же `gh auth`, что в терминале).
+Метка **`trace-report`** на GitHub Issues нужна для кнопки «На GitHub» в панели трассы. Создать в репозитории: `node scripts/ensure-github-labels.mjs` (нужен `gh auth login`). Отправка трейса идёт через `gh gist create` и `gh issue create`. IPC «На GitHub» переопределяется из git-клона (`runtimeHandlers.js`), если установленный `.exe` (asar) старее runtime.
 
 Трасса агента сохраняется в `%APPDATA%/CodeViper/traces/chats/{chatId}.json` и восстанавливается после перезапуска для того же чата (экспорт / отчёт на GitHub).
 

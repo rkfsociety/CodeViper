@@ -213,6 +213,14 @@ export async function maybeBuildBundledSourceAfterSync(
       void import('./runtimeUpdate').then(({ markRuntimeUpdateReady }) =>
         markRuntimeUpdateReady(syncResult.localHead)
       )
+      // Подхватить IPC из свежего runtimeHandlers.js без обязательного relaunch
+      try {
+        const { loadSettings } = await import('./settings')
+        const { initBundledRuntimeFromSettings } = await import('./runtimeBootstrap')
+        await initBundledRuntimeFromSettings(await loadSettings())
+      } catch {
+        /* fallback: пользователь перезапустит по баннеру */
+      }
     }
     return result
   })

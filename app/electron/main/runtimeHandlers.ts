@@ -3,6 +3,7 @@
  * для dynamic import из клона без перезагрузки всего main process bundle.
  */
 import { registerLiveRuntimeTraceIpc } from './ipc/registerLiveRuntimeTraceIpc'
+import { registerLiveRuntimeGithubTraceIpc } from './ipc/registerLiveRuntimeGithubTraceIpc'
 import { installLiveShellRendererReload } from './liveShellBootstrap'
 
 let liveShellExtrasInstalled = false
@@ -12,6 +13,7 @@ export function ensureLiveRuntimeExtras(): void {
   if (liveShellExtrasInstalled) return
   liveShellExtrasInstalled = true
   registerLiveRuntimeTraceIpc()
+  registerLiveRuntimeGithubTraceIpc()
   installLiveShellRendererReload()
 }
 
