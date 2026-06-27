@@ -67,6 +67,7 @@ jobs:
 
       - name: Sync package version from tag
         working-directory: app
+        shell: bash
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
           VERSION="${TAG#v}"
