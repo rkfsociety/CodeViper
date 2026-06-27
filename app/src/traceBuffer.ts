@@ -24,14 +24,19 @@ export function setTraceEvents(chatId: string, events: AgentTraceEvent[]): void 
 }
 
 export async function hydrateTraceEvents(chatId: string): Promise<void> {
-  const loaded = await window.codeviper.loadChatTrace(chatId)
+  let loaded: AgentTraceEvent[] = []
+  try {
+    loaded = await window.codeviper.loadChatTrace(chatId)
+  } catch {
+    // Старый shell без IPC load-chat-trace — только in-memory буфер
+  }
   const current = buffers.get(chatId) ?? []
   setTraceEvents(chatId, mergeTraceEvents(loaded, current))
 }
 
 export function clearTraceEvents(chatId: string): void {
   buffers.set(chatId, [])
-  void window.codeviper.clearChatTrace(chatId)
+  void window.codeviper.clearChatTrace(chatId).catch(() => {})
   listeners.forEach((fn) => fn(chatId))
 }
 

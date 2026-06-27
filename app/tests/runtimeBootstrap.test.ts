@@ -15,6 +15,10 @@ vi.mock('electron', () => ({
     getAppPath: () => join(process.cwd(), 'app'),
     isPackaged: true,
     on: vi.fn()
+  },
+  ipcMain: {
+    removeHandler: vi.fn(),
+    handle: vi.fn()
   }
 }))
 

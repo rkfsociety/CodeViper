@@ -2,6 +2,7 @@
  * Entry для live runtime (блок 0): отдельный chunk `out/main/runtimeHandlers.js`
  * для dynamic import из клона без перезагрузки всего main process bundle.
  */
+import { registerLiveRuntimeTraceIpc } from './ipc/registerLiveRuntimeTraceIpc'
 import { installLiveShellRendererReload } from './liveShellBootstrap'
 
 let liveShellExtrasInstalled = false
@@ -10,6 +11,7 @@ let liveShellExtrasInstalled = false
 export function ensureLiveRuntimeExtras(): void {
   if (liveShellExtrasInstalled) return
   liveShellExtrasInstalled = true
+  registerLiveRuntimeTraceIpc()
   installLiveShellRendererReload()
 }
 

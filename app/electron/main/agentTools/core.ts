@@ -39,7 +39,8 @@ export const FILE_TOOLS = [
     type: 'function',
     function: {
       name: 'grep_files',
-      description: 'Поиск текста в файлах проекта (как ripgrep). Строка или /regex/flags',
+      description:
+        'Поиск текста или regex по содержимому файлов проекта (как ripgrep). Когда: искать строку/символ сразу во многих файлах, точный path неизвестен. Не для имён файлов (find_files), не для одного большого файла >512KB (search_in_file), не для сводки без строк (file_search_summary). Пропускает файлы >512KB.',
       parameters: {
         type: 'object',
         properties: {
@@ -57,7 +58,8 @@ export const FILE_TOOLS = [
     type: 'function',
     function: {
       name: 'find_files',
-      description: 'Найти файлы по имени или шаблону (*.tsx, *test*, agent.ts)',
+      description:
+        'Найти файлы по имени или glob-шаблону (*.tsx, *test*, agent.ts). Когда: знаешь маску имени/расширение, но не ищешь текст внутри. Не для поиска по содержимому (grep_files, search_in_file, file_search_summary).',
       parameters: {
         type: 'object',
         properties: {
@@ -193,7 +195,7 @@ export const FILE_TOOLS = [
     function: {
       name: 'search_in_file',
       description:
-        'Поиск текста внутри одного файла (включая файлы >512KB, которые grep_files пропускает). Возвращает строки с совпадениями и их номера.',
+        'Поиск текста внутри одного известного файла. Когда: path уже есть (из find_files, list_directory и т.п.); особенно файлы >512KB, которые grep_files пропускает. Не для обхода всего проекта (grep_files) или поиска файлов по имени (find_files).',
       parameters: {
         type: 'object',
         properties: {
@@ -213,7 +215,7 @@ export const FILE_TOOLS = [
     function: {
       name: 'file_search_summary',
       description:
-        'Краткая сводка поиска по файлам: сколько совпадений найдено и где они находятся',
+        'Краткая сводка поиска по проекту: сколько совпадений и в каких файлах, без полного текста строк. Когда: быстро оценить масштаб и выбрать файлы перед grep_files или read_file. Не заменяет построчный grep_files.',
       parameters: {
         type: 'object',
         properties: {
