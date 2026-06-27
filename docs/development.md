@@ -27,10 +27,10 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 | Компонент | Где живёт | Как обновляется |
 |-----------|-----------|-----------------|
-| **Оболочка** — окно, IPC, трей, установщик NSIS | `CodeViper.exe` в Program Files | Новый `CodeViper-Setup-*.exe` (релиз `vX.Y.Z`) |
-| **Agent runtime** — tool handlers, промпты, ROADMAP-логика | Клон `%APPDATA%/CodeViper/source/app` | `git pull` на `master` → сборка → **перезапуск** `.exe` |
+| **Оболочка** — Electron bootstrap, IPC, трей, установщик NSIS | `CodeViper.exe` в Program Files | Новый `CodeViper-Setup-*.exe` (релиз `vX.Y.Z`) |
+| **UI + agent runtime** — окно, настройки, tool handlers, промпты | Клон `%APPDATA%/CodeViper/source/app/out` | `git pull` на `master` → сборка → **перезапуск** `.exe` |
 
-Оболочка меняется редко. Исправления агента после блока 0 **не требуют** переустановки — достаточно обновления клона и перезапуска приложения.
+Оболочка `.exe` меняется редко. Исправления интерфейса и агента после push на `master` **не требуют** переустановки — достаточно обновления клона и перезапуска (при включённом **«Обновлять runtime с GitHub»**).
 
 ### Требования
 
@@ -41,7 +41,7 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 1. При старте (если включено **«Обновлять runtime с GitHub»** в Настройки → Поведение → Автоматизация): `git pull --ff-only` в `%APPDATA%/CodeViper/source`.
 2. При изменениях в `app/` — `npm install` (при необходимости) и `npm run build` в `source/app` (portable Node из оболочки).
-3. Баннер **«Перезапустить для применения»** — после перезапуска handlers загружаются из `source/app/out/main/runtimeHandlers.js`, а не из asar.
+3. Баннер **«Перезапустить для применения»** — после перезапуска handlers и **renderer/preload** загружаются из `source/app/out/`, а не из asar.
 4. При ошибке pull/build — лог в `%APPDATA%/CodeViper/logs/`, работа продолжается из встроенного asar (fallback).
 
 ### Когда нужен полный релиз установщика
@@ -52,7 +52,7 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 ### Когда релиз **не** нужен
 
-- Фиксы инструментов агента, handlers, промптов, ROADMAP после push на `master`.
+- Фиксы UI (renderer), инструментов агента, handlers, промптов, ROADMAP после push на `master`.
 - Документация, skills, collective memory (часто без перезапуска).
 
 ### Разработка из исходников

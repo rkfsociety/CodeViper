@@ -39,7 +39,11 @@ import type { IpcContext } from './ipc/ipcContext'
 import { IPC } from '../../shared/ipcContracts'
 import { healthCheckMcpServers } from './mcpRegistry'
 import { runBundledSourceStartupSync } from './bundledSourceSync'
-import { initBundledRuntimeFromSettings } from './runtimeBootstrap'
+import {
+  initBundledRuntimeFromSettings,
+  initBundledShellPaths,
+  getBundledShellPaths
+} from './runtimeBootstrap'
 
 if (process.env.CODEVIPER_E2E === '1') {
   const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
@@ -160,7 +164,7 @@ function loadMainWindowContent(win: BrowserWindow): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'))
+    void win.loadFile(getBundledShellPaths().rendererIndex)
   }
 }
 
@@ -196,13 +200,14 @@ async function createWindow(): Promise<void> {
 
   const icon = appIconPath()
   const windowState = await loadWindowState()
+  const shell = getBundledShellPaths()
   mainWindow = new BrowserWindow({
     ...windowOptionsFromState(windowState),
     title: 'CodeViper',
     backgroundColor: '#0d1117',
     ...(icon ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: shell.preloadScript,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
@@ -379,6 +384,10 @@ app.whenReady().then(async () => {
 
   await runBundledSourceStartupSync(settings.liveRuntimeFromGit ?? false)
   await initBundledRuntimeFromSettings(settings)
+  initBundledShellPaths(settings.liveRuntimeFromGit !== false, {
+    isPackaged: app.isPackaged,
+    mainDir: __dirname
+  })
 
   if (settings.gitSyncOnStartup && !process.env.CODEVIPER_E2E) {
     pullCollectiveMemoryFromRemote(settings.selfImproveBranch).catch(() => {})

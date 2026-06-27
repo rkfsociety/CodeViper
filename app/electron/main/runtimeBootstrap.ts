@@ -11,6 +11,14 @@ import * as asarHandlerFactories from './runtimeHandlers'
 
 const RUNTIME_MAIN_FILE = join('out', 'main', 'index.js')
 const RUNTIME_HANDLERS_FILE = join('out', 'main', 'runtimeHandlers.js')
+const RUNTIME_RENDERER_FILE = join('out', 'renderer', 'index.html')
+const RUNTIME_PRELOAD_FILE = join('out', 'preload', 'index.js')
+
+export interface BundledShellPaths {
+  rendererIndex: string
+  preloadScript: string
+  fromClone: boolean
+}
 
 export interface AgentHandlerFactories {
   createProjectToolHandlers: typeof asarHandlerFactories.createProjectToolHandlers
@@ -94,6 +102,106 @@ async function logRuntimeBootstrap(
 export function isValidBundledRuntimeMain(mainPath: string): boolean {
   if (!pathExists(mainPath)) return false
   return fileSize(mainPath) >= BUNDLED_RUNTIME_MAIN_MIN_BYTES
+}
+
+function asarShellPaths(): BundledShellPaths {
+  return {
+    rendererIndex: join(app.getAppPath(), 'out', 'renderer', 'index.html'),
+    preloadScript: join(app.getAppPath(), 'out', 'preload', 'index.js'),
+    fromClone: false
+  }
+}
+
+function devShellPaths(mainDir: string): BundledShellPaths {
+  return {
+    rendererIndex: join(mainDir, '../renderer/index.html'),
+    preloadScript: join(mainDir, '../preload/index.js'),
+    fromClone: false
+  }
+}
+
+function isValidBundledShellArtifact(filePath: string): boolean {
+  if (!pathExists(filePath)) return false
+  return fileSize(filePath) >= BUNDLED_RUNTIME_MAIN_MIN_BYTES
+}
+
+/**
+ * Packaged: при liveRuntimeFromGit и валидном out/ в клоне — UI из source/app/out,
+ * иначе asar. Dev — относительно out/main.
+ */
+export function resolveBundledShellPaths(options?: {
+  liveRuntimeFromGit?: boolean
+  isPackaged?: boolean
+  mainDir?: string
+}): BundledShellPaths {
+  const isPackaged = options?.isPackaged ?? app.isPackaged
+  const mainDir = options?.mainDir ?? __dirname
+
+  if (!isPackaged) {
+    return devShellPaths(mainDir)
+  }
+
+  const liveRuntime = options?.liveRuntimeFromGit !== false
+  if (liveRuntime) {
+    const cloneRoot = getBundledSourceAppRoot()
+    const cloneMain = join(cloneRoot, RUNTIME_MAIN_FILE)
+    const cloneRenderer = join(cloneRoot, RUNTIME_RENDERER_FILE)
+    const clonePreload = join(cloneRoot, RUNTIME_PRELOAD_FILE)
+
+    if (
+      isValidBundledRuntimeMain(cloneMain) &&
+      isValidBundledShellArtifact(cloneRenderer) &&
+      isValidBundledShellArtifact(clonePreload)
+    ) {
+      return {
+        rendererIndex: cloneRenderer,
+        preloadScript: clonePreload,
+        fromClone: true
+      }
+    }
+  }
+
+  return asarShellPaths()
+}
+
+let cachedShellPaths: BundledShellPaths | null = null
+
+export function initBundledShellPaths(
+  liveRuntimeFromGit: boolean,
+  options?: { isPackaged?: boolean; mainDir?: string }
+): BundledShellPaths {
+  cachedShellPaths = resolveBundledShellPaths({
+    liveRuntimeFromGit,
+    isPackaged: options?.isPackaged,
+    mainDir: options?.mainDir
+  })
+  if (cachedShellPaths.fromClone) {
+    void logRuntimeBootstrap('loaded shell from clone', {
+      rendererIndex: cachedShellPaths.rendererIndex,
+      preloadScript: cachedShellPaths.preloadScript
+    })
+  }
+  return cachedShellPaths
+}
+
+export function getBundledShellPaths(): BundledShellPaths {
+  if (!cachedShellPaths) {
+    cachedShellPaths = resolveBundledShellPaths({
+      liveRuntimeFromGit: false,
+      isPackaged: app.isPackaged,
+      mainDir: __dirname
+    })
+  }
+  return cachedShellPaths
+}
+
+export function isBundledShellFromClone(): boolean {
+  return cachedShellPaths?.fromClone === true
+}
+
+/** Только для unit-тестов. */
+export function resetBundledShellPathsForTests(): void {
+  cachedShellPaths = null
 }
 
 function asarRuntimeMainPath(): string {

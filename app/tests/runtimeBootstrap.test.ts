@@ -16,12 +16,17 @@ vi.mock('electron', () => ({
 
 import {
   getActiveAgentSourceRootPath,
+  getBundledShellPaths,
   getRuntimeMainPath,
   getRuntimeHandlersPath,
   initBundledRuntimeHandlers,
+  initBundledShellPaths,
   isBundledRuntimeFromClone,
+  isBundledShellFromClone,
   isValidBundledRuntimeMain,
   resolveAgentHandlerFactories,
+  resolveBundledShellPaths,
+  resetBundledShellPathsForTests,
   setRuntimeBootstrapTestHooks
 } from '../electron/main/runtimeBootstrap'
 import * as asarFactories from '../electron/main/runtimeHandlers'
@@ -30,14 +35,20 @@ describe('runtimeBootstrap', () => {
   const cloneApp = join(userDataDir, 'source', 'app')
   const cloneMain = join(cloneApp, 'out', 'main', 'index.js')
   const cloneHandlers = join(cloneApp, 'out', 'main', 'runtimeHandlers.js')
+  const cloneRenderer = join(cloneApp, 'out', 'renderer', 'index.html')
+  const clonePreload = join(cloneApp, 'out', 'preload', 'index.js')
   const asarMain = join(process.cwd(), 'app', 'out', 'main', 'index.js')
+  const asarRenderer = join(process.cwd(), 'app', 'out', 'renderer', 'index.html')
+  const asarPreload = join(process.cwd(), 'app', 'out', 'preload', 'index.js')
 
   beforeEach(() => {
     setRuntimeBootstrapTestHooks(null)
+    resetBundledShellPathsForTests()
   })
 
   afterEach(() => {
     setRuntimeBootstrapTestHooks(null)
+    resetBundledShellPathsForTests()
   })
 
   it('isValidBundledRuntimeMain проверяет размер файла', () => {
@@ -138,5 +149,57 @@ describe('runtimeBootstrap', () => {
 
     await initBundledRuntimeHandlers(true, { isPackaged: true })
     expect(getActiveAgentSourceRootPath()).toBe(cloneApp)
+  })
+
+  it('resolveBundledShellPaths предпочитает renderer/preload из клона', () => {
+    setRuntimeBootstrapTestHooks({
+      existsSync: (p) =>
+        p === cloneMain ||
+        p === cloneRenderer ||
+        p === clonePreload ||
+        p === asarRenderer ||
+        p === asarPreload,
+      statSize: (p) =>
+        [cloneMain, cloneRenderer, clonePreload, asarRenderer, asarPreload].includes(p)
+          ? BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100
+          : 0
+    })
+
+    const paths = resolveBundledShellPaths({ liveRuntimeFromGit: true, isPackaged: true })
+    expect(paths.rendererIndex).toBe(cloneRenderer)
+    expect(paths.preloadScript).toBe(clonePreload)
+    expect(paths.fromClone).toBe(true)
+  })
+
+  it('resolveBundledShellPaths fallback на asar без клона', () => {
+    setRuntimeBootstrapTestHooks({
+      existsSync: (p) => p === asarRenderer || p === asarPreload,
+      statSize: (p) =>
+        p === asarRenderer || p === asarPreload ? BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100 : 0
+    })
+
+    const paths = resolveBundledShellPaths({ liveRuntimeFromGit: true, isPackaged: true })
+    expect(paths.rendererIndex).toBe(asarRenderer)
+    expect(paths.preloadScript).toBe(asarPreload)
+    expect(paths.fromClone).toBe(false)
+  })
+
+  it('initBundledShellPaths кэширует пути для getBundledShellPaths', () => {
+    setRuntimeBootstrapTestHooks({
+      existsSync: (p) =>
+        p === cloneMain ||
+        p === cloneRenderer ||
+        p === clonePreload ||
+        p === asarRenderer ||
+        p === asarPreload,
+      statSize: (p) =>
+        [cloneMain, cloneRenderer, clonePreload, asarRenderer, asarPreload].includes(p)
+          ? BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100
+          : 0
+    })
+
+    initBundledShellPaths(true, { isPackaged: true })
+    expect(getBundledShellPaths().rendererIndex).toBe(cloneRenderer)
+    expect(isBundledShellFromClone()).toBe(true)
   })
 })
