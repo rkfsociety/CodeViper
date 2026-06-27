@@ -31,6 +31,8 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   )
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [exporting, setExporting] = useState(false)
+  const [reporting, setReporting] = useState(false)
+  const [reportStatus, setReportStatus] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
 
@@ -100,7 +102,36 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
     }
   }
 
+  async function handleReport() {
+    if (!chatId || events.length === 0 || reporting) return
+    const userNote = window.prompt(
+      'Комментарий к отчёту (необязательно). Оставьте пустым, чтобы отправить только автоописание:',
+      ''
+    )
+    if (userNote === null) return
+
+    setReporting(true)
+    setReportStatus(null)
+    try {
+      const result = await window.codeviper.reportTraceToGithub(
+        chatId,
+        events,
+        projectPath.trim() || undefined,
+        userNote.trim() || undefined
+      )
+      if (result.ok && result.issueUrl) {
+        setReportStatus(`Issue создан: ${result.title ?? ''}`)
+        window.codeviper.openExternal(result.issueUrl)
+      } else {
+        setReportStatus(result.error ?? 'Не удалось создать issue')
+      }
+    } finally {
+      setReporting(false)
+    }
+  }
+
   const canExport = Boolean(chatId && events.length > 0 && !exporting)
+  const canReport = Boolean(chatId && events.length > 0 && !reporting)
 
   return (
     <div className={styles.panel}>
@@ -109,6 +140,14 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
         <div className={styles.headerActions}>
           {events.length > 0 && (
             <>
+              <button
+                className={styles.reportBtn}
+                onClick={() => void handleReport()}
+                disabled={!canReport}
+                title="Создать GitHub Issue с автоописанием и полным JSON трейса (нужен GitHub Token или gh auth login)"
+              >
+                {reporting ? 'Отправка…' : 'На GitHub'}
+              </button>
               <button
                 className={styles.exportBtn}
                 onClick={() => void handleExport()}
@@ -121,6 +160,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
                 className={styles.clearBtn}
                 onClick={() => {
                   if (chatId) clearTraceEvents(chatId)
+                  setReportStatus(null)
                 }}
               >
                 Очистить
@@ -130,6 +170,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
           <span className={styles.count}>{events.length} событий</span>
         </div>
       </div>
+      {reportStatus && <div className={styles.reportStatus}>{reportStatus}</div>}
       <div
         className={styles.log}
         onScroll={(e) => {

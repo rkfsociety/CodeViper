@@ -47,7 +47,7 @@ jobs:
 
       - name: Shell release classifier tests
         working-directory: .
-        run: node --test scripts/shell-release-paths.test.mjs scripts/generate-release-notes.test.mjs
+        run: node --test scripts/shell-release-paths.test.mjs scripts/generate-release-notes.test.mjs scripts/prune-github-releases.test.mjs
 
   e2e:
     needs: build

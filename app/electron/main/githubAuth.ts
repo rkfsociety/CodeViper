@@ -373,3 +373,32 @@ export async function upsertRepoFileViaApi(
 
   return { ok: true, message: `файл ${repoPath} обновлён в ветке ${branch} через GitHub API` }
 }
+
+export async function createGitHubIssue(
+  token: string,
+  title: string,
+  body: string,
+  labels?: string[],
+  owner = CODEVIPER_GITHUB_OWNER,
+  repo = CODEVIPER_GITHUB_REPO
+): Promise<{ ok: true; url: string; number: number } | { ok: false; error: string }> {
+  const payload: Record<string, unknown> = { title, body }
+  if (labels?.length) payload.labels = labels
+
+  const res = await githubFetch(token, `/repos/${owner}/${repo}/issues`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    return { ok: false, error: `GitHub POST issue: ${res.status} ${text}` }
+  }
+
+  const data = (await res.json()) as { html_url?: string; number?: number }
+  if (!data.html_url || data.number == null) {
+    return { ok: false, error: 'GitHub: пустой ответ при создании issue' }
+  }
+
+  return { ok: true, url: data.html_url, number: data.number }
+}

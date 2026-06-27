@@ -1,10 +1,11 @@
 import { ipcMain } from 'electron'
-import { IPC } from '../../../shared/ipcContracts'
+import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { listPullRequests } from '../githubPr'
 import { getGitHubAuthStatus, formatGitHubAuthStatus } from '../githubAuth'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from '../githubTools'
 import { createCodeViperPr } from '../selfCommit'
 import { listRoadmapItems } from '../roadmapParser'
+import { reportAgentTraceToGithub } from '../traceGithubReport'
 
 export function registerGithubIpc(): void {
   ipcMain.handle('list-pull-requests', async () => listPullRequests())
@@ -36,5 +37,13 @@ export function registerGithubIpc(): void {
   ipcMain.handle(IPC.CHECK_GITHUB_AUTH, async () => {
     const status = await getGitHubAuthStatus()
     return { ...status, formatted: formatGitHubAuthStatus(status) }
+  })
+
+  ipcMain.handle(IPC.REPORT_TRACE_TO_GITHUB, async (_e, ...a) => {
+    const [chatId, events, projectPath, userNote] = parseIpcArgs(
+      Contracts[IPC.REPORT_TRACE_TO_GITHUB].args,
+      a
+    )
+    return reportAgentTraceToGithub(chatId, events, projectPath, userNote)
   })
 }

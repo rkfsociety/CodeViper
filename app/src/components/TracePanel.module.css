@@ -56,6 +56,33 @@
   cursor: default;
 }
 
+.reportBtn {
+  background: none;
+  border: 1px solid #6e5494;
+  color: #c9b8ff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.reportBtn:hover:not(:disabled) {
+  background: #2d2540;
+}
+.reportBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.reportStatus {
+  padding: 4px 10px;
+  font-size: 10px;
+  color: #9cdcfe;
+  background: #252525;
+  border-bottom: 1px solid #3c3c3c;
+  flex-shrink: 0;
+  word-break: break-word;
+}
+
 .count {
   color: #666;
 }

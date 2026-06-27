@@ -428,6 +428,7 @@ export const IPC = {
   EXPORT_CHATS: 'export-chats',
   IMPORT_CHATS: 'import-chats',
   EXPORT_TRACE: 'export-trace',
+  REPORT_TRACE_TO_GITHUB: 'report-trace-to-github',
   GET_AGENT_RUN_STATE: 'get-agent-run-state',
   STOP_AGENT: 'stop-agent',
   GET_RUN_CHECKPOINT: 'get-run-checkpoint',
@@ -663,6 +664,21 @@ export const Contracts = {
     result: z.object({
       ok: z.boolean(),
       path: z.string().optional(),
+      error: z.string().optional()
+    })
+  },
+  [IPC.REPORT_TRACE_TO_GITHUB]: {
+    args: z.tuple([
+      z.string(),
+      z.array(AgentTraceEventSchema),
+      z.string().optional(),
+      z.string().optional()
+    ]),
+    result: z.object({
+      ok: z.boolean(),
+      issueUrl: z.string().optional(),
+      gistUrl: z.string().optional(),
+      title: z.string().optional(),
       error: z.string().optional()
     })
   },

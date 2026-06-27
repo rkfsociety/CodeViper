@@ -727,6 +727,18 @@ export interface CodeViperAPI {
     events: AgentTraceEvent[],
     projectPath?: string
   ) => Promise<{ ok: boolean; path?: string; error?: string }>
+  reportTraceToGithub: (
+    chatId: string,
+    events: AgentTraceEvent[],
+    projectPath?: string,
+    userNote?: string
+  ) => Promise<{
+    ok: boolean
+    issueUrl?: string
+    gistUrl?: string
+    title?: string
+    error?: string
+  }>
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => () => void
   respondAgentConfirm: (id: string, approved: boolean) => void
   onAgentClarify: (callback: (request: AgentClarifyRequest) => void) => () => void

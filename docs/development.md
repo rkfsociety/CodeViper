@@ -61,7 +61,7 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 ### Авто-релиз оболочки (CI)
 
-После зелёного CI на `master` workflow **auto-shell-release** сравнивает коммиты с последним тегом `v*`. Если затронута только логика агента (handlers, tests, docs) — тег не создаётся. Если изменились renderer, preload, IPC bootstrap, Electron/NSIS — автоматически `vX.Y.Z` и сборка установщика. Пропуск: `[skip-release]` в сообщении коммита. Классификатор: `scripts/shell-release-paths.mjs`.
+После зелёного CI на `master` workflow **auto-shell-release** сравнивает коммиты с последним тегом `v*`. Если затронута только логика агента (handlers, tests, docs) — тег не создаётся. Если изменились renderer, preload, IPC bootstrap, Electron/NSIS — автоматически `vX.Y.Z` и сборка установщика. Пропуск: `[skip-release]` в сообщении коммита. Классификатор: `scripts/shell-release-paths.mjs`. После публикации релиза CI оставляет **5 последних** стабильных `v*` на GitHub Releases, остальные удаляются (`scripts/prune-github-releases.mjs`).
 
 ### Ручное обновление клона
 

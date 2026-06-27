@@ -25,13 +25,7 @@ jobs:
       - name: Delete previous nightly releases and tags
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release list --repo ${{ github.repository }} --limit 100 --json tagName \
-            | jq -r '.[] | select(.tagName | startswith("nightly-")) | .tagName' \
-            | while read old_tag; do
-                echo "Удаляем: $old_tag"
-                gh release delete "$old_tag" --repo ${{ github.repository }} --yes --cleanup-tag 2>/dev/null || true
-              done
+        run: node scripts/prune-github-releases.mjs --tag-pattern '^nightly-' --keep 0
 
       - name: Create draft nightly release and tag
         env:

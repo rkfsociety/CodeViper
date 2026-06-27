@@ -358,6 +358,18 @@ const codeviper = {
       'exportTrace'
     ),
 
+  reportTraceToGithub: (
+    chatId: string,
+    events: unknown[],
+    projectPath?: string,
+    userNote?: string
+  ) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.REPORT_TRACE_TO_GITHUB, chatId, events, projectPath, userNote),
+      IPC_TIMEOUT_MS * 3,
+      'reportTraceToGithub'
+    ),
+
   onAgentConfirm: (callback: (request: AgentConfirmRequest) => void) => {
     const handler = (_: unknown, request: AgentConfirmRequest) => callback(request)
     ipcRenderer.on(IPC.AGENT_CONFIRM, handler)
