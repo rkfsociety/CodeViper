@@ -1698,19 +1698,69 @@ button.topbar-pill.topbar-download-error {
   background: transparent;
 }
 
-/* Поток «Размышления» (think-модели): фиксированная высота, без отдельного блока */
+/* Поток «Размышления» (think-модели): компактная полупрозрачная секция */
 .thinking-stream {
-  margin: 4px 0 8px;
-  padding-left: 2px;
+  margin: 6px 0 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  background: color-mix(in srgb, var(--bg-overlay) 72%, transparent);
+  overflow: hidden;
+}
+
+.thinking-stream.live {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 44px;
+  max-height: 52px;
+  background: color-mix(in srgb, var(--blue-bright) 8%, var(--bg-overlay) 92%);
+  border-color: color-mix(in srgb, var(--blue-bright) 22%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.thinking-stream.settled {
+  background: color-mix(in srgb, var(--bg-overlay) 65%, transparent);
+}
+
+.thinking-stream-live-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+  background: color-mix(in srgb, var(--blue-bright) 6%, transparent);
+}
+
+.thinking-stream-badge {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue-light);
+  flex-shrink: 0;
+}
+
+.thinking-stream-badge.settled {
+  background: var(--text-faint);
+  opacity: 0.75;
+}
+
+.thinking-stream-live-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .thinking-stream-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  padding: 0;
-  margin: 0 0 4px;
+  padding: 7px 10px;
+  margin: 0;
   cursor: pointer;
   border: 0;
   background: transparent;
@@ -1727,7 +1777,6 @@ button.topbar-pill.topbar-download-error {
 .thinking-stream-label {
   font-weight: 500;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   transition: color 0.15s ease;
 }
 
@@ -1742,22 +1791,34 @@ button.topbar-pill.topbar-download-error {
   content: 'показать';
 }
 
-.thinking-stream.open .thinking-stream-hint::after {
+.thinking-stream.expanded .thinking-stream-hint::after {
   content: 'скрыть';
 }
 
+.thinking-stream.live .thinking-stream-body {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  max-height: 52px;
+  padding: 6px 10px 6px 8px;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
+}
+
 .thinking-stream-body {
-  height: 120px;
   overflow-y: auto;
-  padding: 0 2px 0 0;
-  font-size: 12.5px;
-  line-height: 1.55;
+  padding: 0 10px 8px;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--text-muted);
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  opacity: 0.82;
+  opacity: 0.88;
   scrollbar-width: thin;
+}
+
+.thinking-stream.settled .thinking-stream-body {
+  max-height: 140px;
 }
 
 .thinking-stream-body[hidden] {
@@ -1768,14 +1829,21 @@ button.topbar-pill.topbar-download-error {
   0%,
   100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.45;
+    opacity: 0.35;
+    transform: scale(0.85);
   }
 }
 
-.thinking-stream.live .thinking-stream-label {
+.thinking-stream.live .thinking-stream-badge {
   animation: thinking-pulse 1.2s ease-in-out infinite;
+}
+
+:root.light-mode .thinking-stream.live {
+  background: color-mix(in srgb, var(--blue-bright) 6%, var(--bg-surface) 94%);
+  border-color: color-mix(in srgb, var(--blue-bright) 18%, var(--border) 82%);
 }
 
 /* Task 9: request duration badge */
