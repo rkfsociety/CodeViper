@@ -7,6 +7,7 @@ import type {
   ModelPlacement
 } from '../../../shared/modelProvider'
 import { GEMINI_API_BASE_URL } from '../../../shared/constants'
+import { simplifySchemaForGemini } from '../../../shared/geminiToolSchema'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
 // ── Gemini REST types ──────────────────────────────────────────────────────────
@@ -347,7 +348,7 @@ export class GeminiProvider extends StreamingChatProvider implements ModelProvid
           functionDeclarations: options.tools.map((t) => ({
             name: t.name,
             description: t.description,
-            parameters: t.input_schema
+            parameters: simplifySchemaForGemini(t.input_schema)
           }))
         }
       ]

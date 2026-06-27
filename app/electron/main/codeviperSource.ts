@@ -61,8 +61,24 @@ export function getCodeViperSourceRoot(): string {
   return resolve(join(__dirname, '../..'))
 }
 
+/** Убирает лишний префикс app/, если корень исходников уже .../app */
+export function normalizeCodeViperPath(sourceRoot: string, filePath: string): string {
+  const rel = filePath.trim().replace(/\\/g, '/')
+  if (!rel) return rel
+
+  const rootName = sourceRoot.split(/[/\\]/).filter(Boolean).pop()?.toLowerCase()
+  if (rootName !== 'app') return filePath.trim()
+
+  const stripped = rel.replace(/^\.\//, '')
+  if (stripped === 'app') return '.'
+  if (stripped.startsWith('app/')) return stripped.slice(4)
+
+  return filePath.trim()
+}
+
 export function isAllowedSelfPath(sourceRoot: string, targetPath: string): boolean {
-  const absolute = resolve(sourceRoot, targetPath)
+  const normalized = normalizeCodeViperPath(sourceRoot, targetPath)
+  const absolute = resolve(sourceRoot, normalized)
   const baseName = absolute.split(sep).pop()?.toLowerCase()
   const parentRoot = resolve(sourceRoot, '..')
   if (
@@ -84,7 +100,8 @@ export function isAllowedSelfPath(sourceRoot: string, targetPath: string): boole
 }
 
 function codeViperReadRoot(sourceRoot: string, filePath: string): { root: string; rel: string } {
-  const absPath = resolve(sourceRoot, filePath)
+  const normalized = normalizeCodeViperPath(sourceRoot, filePath)
+  const absPath = resolve(sourceRoot, normalized)
   const baseName = absPath.split(sep).pop()?.toLowerCase()
   const parentRoot = resolve(sourceRoot, '..')
   if (
@@ -93,7 +110,7 @@ function codeViperReadRoot(sourceRoot: string, filePath: string): { root: string
   ) {
     return { root: parentRoot, rel: baseName! }
   }
-  return { root: sourceRoot, rel: filePath }
+  return { root: sourceRoot, rel: normalized }
 }
 
 export async function readCodeViperFile(filePath: string): Promise<string> {
@@ -119,24 +136,22 @@ export async function readCodeViperFilePartial(
 }
 
 export async function writeCodeViperFile(filePath: string, content: string): Promise<void> {
-  const root = getCodeViperSourceRoot()
-  if (!isAllowedSelfPath(root, filePath)) {
-    throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
-  }
-  await safeWriteFile(root, filePath, content)
+  const { root, rel } = assertCodeViperPath(filePath)
+  await safeWriteFile(root, rel, content)
 }
 
-function assertCodeViperPath(filePath: string): string {
+function assertCodeViperPath(filePath: string): { root: string; rel: string } {
   const root = getCodeViperSourceRoot()
-  if (!isAllowedSelfPath(root, filePath)) {
+  const rel = normalizeCodeViperPath(root, filePath)
+  if (!isAllowedSelfPath(root, rel)) {
     throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
   }
-  return root
+  return { root, rel }
 }
 
 export async function createCodeViperFile(filePath: string, content: string): Promise<void> {
-  const root = assertCodeViperPath(filePath)
-  await safeCreateFile(root, filePath, content)
+  const { root, rel } = assertCodeViperPath(filePath)
+  await safeCreateFile(root, rel, content)
 }
 
 export async function editCodeViperFile(
@@ -145,28 +160,29 @@ export async function editCodeViperFile(
   newString: string,
   replaceAll = false
 ): Promise<number> {
-  const root = assertCodeViperPath(filePath)
-  return safeEditFile(root, filePath, oldString, newString, replaceAll)
+  const { root, rel } = assertCodeViperPath(filePath)
+  return safeEditFile(root, rel, oldString, newString, replaceAll)
 }
 
 export async function appendCodeViperFile(filePath: string, content: string): Promise<void> {
-  const root = assertCodeViperPath(filePath)
-  await safeAppendFile(root, filePath, content)
+  const { root, rel } = assertCodeViperPath(filePath)
+  await safeAppendFile(root, rel, content)
 }
 
 export async function deleteCodeViperFile(filePath: string): Promise<void> {
-  const root = assertCodeViperPath(filePath)
-  await safeDeleteFile(root, filePath)
+  const { root, rel } = assertCodeViperPath(filePath)
+  await safeDeleteFile(root, rel)
 }
 
 export async function moveCodeViperFile(fromPath: string, toPath: string): Promise<void> {
-  const root = assertCodeViperPath(fromPath)
-  if (!isAllowedSelfPath(root, toPath)) {
+  const { root, rel: fromRel } = assertCodeViperPath(fromPath)
+  const toRel = normalizeCodeViperPath(root, toPath)
+  if (!isAllowedSelfPath(root, toRel)) {
     throw new Error(
       'Доступ запрещён: целевой путь вне исходников CodeViper или в исключённой папке'
     )
   }
-  await safeMoveFile(root, fromPath, toPath)
+  await safeMoveFile(root, fromRel, toRel)
 }
 
 function bundledNodeBinaryName(): string {

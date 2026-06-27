@@ -20,7 +20,8 @@ import { existsSync } from 'fs'
 import {
   getBundledNodeBin,
   getCodeViperSourceRoot,
-  isAllowedSelfPath
+  isAllowedSelfPath,
+  normalizeCodeViperPath
 } from '../electron/main/codeviperSource'
 
 describe('codeviperSource', () => {
@@ -44,6 +45,16 @@ describe('codeviperSource', () => {
     expect(isAllowedSelfPath(root, '../ROADMAP.md')).toBe(true)
     expect(isAllowedSelfPath(root, '../README.md')).toBe(true)
     expect(isAllowedSelfPath(root, '../../secret/ROADMAP.md')).toBe(false)
+  })
+
+  it('normalizeCodeViperPath убирает app/ при корне app/', () => {
+    const root = getCodeViperSourceRoot()
+    const rootName = root.split(/[/\\]/).pop()?.toLowerCase()
+    if (rootName !== 'app') return
+
+    const normalized = normalizeCodeViperPath(root, 'app/electron/main/agentTools/integrations.ts')
+    expect(isAllowedSelfPath(root, normalized)).toBe(true)
+    expect(normalized).toBe('electron/main/agentTools/integrations.ts')
   })
 
   it('getBundledNodeBin находит node.exe в resources/node', () => {

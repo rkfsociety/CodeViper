@@ -901,6 +901,47 @@ describe('GeminiProvider', () => {
     expect(JSON.parse(withTool!.tool_calls![0].function.arguments)).toEqual({ path: '/tmp/x.txt' })
   })
 
+  it('упрощает JSON-схемы tools (только required-поля)', async () => {
+    fetchMock.mockResolvedValue(makeResponse(makeStream([geminiSseLine(geminiTextChunk('ok'))])))
+
+    const tools = [
+      {
+        name: 'grep_files',
+        description: 'Поиск',
+        input_schema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string' },
+            path: { type: 'string' }
+          },
+          required: ['query']
+        }
+      },
+      {
+        name: 'list_directory',
+        description: 'Дерево',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string' },
+            max_depth: { type: 'string' }
+          }
+        }
+      }
+    ]
+
+    await collectChunks(provider.chat({ ...BASE_CHAT_OPTIONS, tools }))
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    const declarations = body.tools[0].functionDeclarations
+    expect(declarations[0].parameters).toEqual({
+      type: 'object',
+      properties: { query: { type: 'string' } },
+      required: ['query']
+    })
+    expect(declarations[1].parameters).toEqual({ type: 'object', properties: {} })
+  })
+
   // ── 3. Ответ 429 ────────────────────────────────────────────────────────────
 
   it('бросает ошибку с понятным текстом при 429', async () => {
