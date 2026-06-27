@@ -112,6 +112,12 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get install -y rpm fakeroot
 
+      - name: Set nightly version for electron-builder
+        run: |
+          VER="${{ needs.prepare.outputs.tag }}"
+          VER="${VER#nightly-}"
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('package.json','utf8'));j.version=process.argv[1];fs.writeFileSync('package.json',JSON.stringify(j,null,2)+'\n')" "$VER"
+
       - name: Build (electron-vite)
         run: npm run build
 
@@ -123,7 +129,10 @@ jobs:
           echo "✓ CodeViper.sh syntax OK"
 
       - name: Package and publish to GitHub Releases
-        run: npx electron-builder@24 --publish always
+        run: >-
+          npx electron-builder@24 --publish always
+          -c.publish.vPrefixedTagName=false
+          -c.publish.tagNamePrefix=nightly-
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false

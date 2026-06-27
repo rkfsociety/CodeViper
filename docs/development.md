@@ -80,6 +80,8 @@ npm run build
 
 В приложении: **Настройки → Beta-версии** — канал `beta` и `allowPrerelease` подхватывают nightly с GitHub Releases.
 
+Перед сборкой nightly подменяет `app/package.json` → `version: YYYY-MM-DD` и `tagNamePrefix: nightly-`, чтобы артефакты попадали в тег `nightly-YYYY-MM-DD`, а не в стабильный `vX.Y.Z`.
+
 Ручной прогон: **Actions → Nightly Release → Run workflow**.
 
 Подробности архитектуры — [architecture.md](architecture.md), [вики](https://github.com/rkfsociety/CodeViper/wiki/Архитектура). Назад в [README](../README.md).
