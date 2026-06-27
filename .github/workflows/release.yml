@@ -67,11 +67,9 @@ jobs:
 
       - name: Sync package version from tag
         working-directory: app
-        shell: bash
-        run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          VERSION="${TAG#v}"
-          npm pkg set "version=${VERSION}"
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node -e "const fs=require('fs');const v=process.env.RELEASE_TAG.replace(/^v/,'');const p='package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.version=v;fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')"
 
       - name: Cache electron binaries
         uses: actions/cache@v4
