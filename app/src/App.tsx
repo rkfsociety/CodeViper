@@ -131,7 +131,8 @@ function AppContent() {
 
   const resizeMetricsWidth = useCallback((deltaX: number) => {
     setSidePanelWidths((prev) => {
-      const next = { ...prev, metrics: adjustSidePanelWidth(prev.metrics, deltaX) }
+      // Разделитель слева от панели: тянем влево → панель шире (противоположно deltaX)
+      const next = { ...prev, metrics: adjustSidePanelWidth(prev.metrics, -deltaX) }
       saveSidePanelWidths(next)
       return next
     })
@@ -139,7 +140,7 @@ function AppContent() {
 
   const resizeTraceWidth = useCallback((deltaX: number) => {
     setSidePanelWidths((prev) => {
-      const next = { ...prev, trace: adjustSidePanelWidth(prev.trace, deltaX) }
+      const next = { ...prev, trace: adjustSidePanelWidth(prev.trace, -deltaX) }
       saveSidePanelWidths(next)
       return next
     })
