@@ -30,6 +30,11 @@ import { getActiveAgentSourceRootPath } from './runtimeBootstrap'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
+import {
+  isOrchestratorConfigured,
+  resolveOrchestratorBackend,
+  resolveOrchestratorOllamaModel
+} from '../../shared/orchestrator'
 import { runSubagent } from './subagentRunner'
 
 import { ResponseEmitter } from './agentResponseEmitter'
@@ -248,24 +253,26 @@ export class AgentRunner {
       }
     }
 
-    let effectiveMessage = userMessage
     let orchestratorPlanHint = ''
     let orchestratorIsComplex = false
 
     const minLen = this.settings.orchestratorMinMessageLength ?? 30
-    const skipOrchestratorRephrase = taskMode === 'self-improve'
     if (
       this.settings.orchestratorEnabled &&
-      this.settings.orchestratorModelPath &&
+      isOrchestratorConfigured(this.settings) &&
       userMessage.length >= minLen
     ) {
       this.emitter.emit({ type: 'orchestrating', orchestrating: true })
       try {
-        const result = await analyze(userMessage, this.settings.orchestratorModelPath)
+        const backend = resolveOrchestratorBackend(this.settings)
+        const result = await analyze(userMessage, {
+          backend,
+          ggufPath: this.settings.orchestratorModelPath,
+          ollamaUrl: this.settings.ollamaUrl,
+          ollamaModel: resolveOrchestratorOllamaModel(this.settings),
+          signal: this.emitter.abortSignal
+        })
         orchestratorIsComplex = result.isComplex
-        if (result.isComplex && result.rephrased && !skipOrchestratorRephrase) {
-          effectiveMessage = result.rephrased
-        }
         if (result.plan) {
           orchestratorPlanHint = result.plan
         }
@@ -340,7 +347,7 @@ export class AgentRunner {
     const prepared = await prepareAgentRunContext(
       this.projectPath,
       history,
-      effectiveMessage,
+      userMessage,
       this.settings.model,
       taskMode === 'self-improve',
       {

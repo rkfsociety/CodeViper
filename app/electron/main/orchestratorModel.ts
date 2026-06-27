@@ -2,6 +2,8 @@ import { createWriteStream, existsSync } from 'fs'
 import { mkdir, rename, unlink } from 'fs/promises'
 import { join } from 'path'
 import { loadModel, unloadModel } from './nodeLlama'
+import { OllamaProvider } from './providers/ollamaProvider'
+import type { OrchestratorBackend } from '../../shared/orchestrator'
 import {
   ORCHESTRATOR_DEFAULT_GGUF_FILENAME,
   ORCHESTRATOR_DEFAULT_GGUF_URL,
@@ -14,21 +16,27 @@ import {
 export interface OrchestratorResult {
   /** Краткий пошаговый план выполнения на русском */
   plan: string
-  /** Переформулированная, более чёткая версия исходного запроса */
+  /** @deprecated Не подставляется в запрос агента — только для обратной совместимости парсера */
   rephrased: string
   /** true — задача затрагивает 3+ файла или несколько модулей */
   isComplex: boolean
 }
 
+export interface OrchestratorAnalyzeOptions {
+  backend: OrchestratorBackend
+  ggufPath?: string
+  ollamaUrl?: string
+  ollamaModel?: string
+  signal?: AbortSignal
+}
+
 // ─── Промпт ─────────────────────────────────────────────────────────────────
 
-// Промпт для малых GGUF-моделей (1.5B–7B): краткая инструкция + пример формата
-// на одной строке, чтобы модели с коротким контекстом надёжно выдавали JSON.
-function buildPrompt(message: string): string {
+/** Промпт для планировщика: только plan + isComplex (исходный запрос не переписываем). */
+export function buildOrchestratorPrompt(message: string): string {
   return (
     'You are a task planner. Respond with ONLY valid JSON, no markdown, no explanation.\n' +
-    'Fields (all in Russian): "plan" = brief 2-4 step plan, "rephrased" = clearer task statement,\n' +
-    '"isComplex" = true if task needs 3+ files or multiple modules, false otherwise.\n\n' +
+    'Fields (in Russian): "plan" = brief 2-4 step plan, "isComplex" = true if task needs 3+ files or multiple modules, false otherwise.\n\n' +
     `Task: ${message}\n\n` +
     'JSON:'
   )
@@ -36,17 +44,54 @@ function buildPrompt(message: string): string {
 
 // ─── API ────────────────────────────────────────────────────────────────────
 
-/**
- * Анализирует сообщение пользователя через локальную GGUF-модель.
- * Загружает модель (синглтон nodeLlama) и возвращает структурированный результат.
- */
-export async function analyze(message: string, modelPath: string): Promise<OrchestratorResult> {
+export async function analyzeGguf(message: string, modelPath: string): Promise<OrchestratorResult> {
   const handle = await loadModel(modelPath)
-  const raw = await handle.complete(buildPrompt(message), {
+  const raw = await handle.complete(buildOrchestratorPrompt(message), {
     maxTokens: ORCHESTRATOR_MAX_TOKENS,
     temperature: ORCHESTRATOR_TEMPERATURE
   })
   return parseResult(raw)
+}
+
+export async function analyzeOllama(
+  message: string,
+  ollamaUrl: string,
+  model: string,
+  signal?: AbortSignal
+): Promise<OrchestratorResult> {
+  const provider = new OllamaProvider(ollamaUrl)
+  const prompt = buildOrchestratorPrompt(message)
+  let raw = ''
+  for await (const chunk of provider.chat({
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    stream: true,
+    temperature: ORCHESTRATOR_TEMPERATURE,
+    max_tokens: ORCHESTRATOR_MAX_TOKENS,
+    signal
+  })) {
+    raw += chunk.content
+    if (chunk.stop_reason) break
+  }
+  return parseResult(raw)
+}
+
+export async function analyze(
+  message: string,
+  options: OrchestratorAnalyzeOptions | string
+): Promise<OrchestratorResult> {
+  if (typeof options === 'string') {
+    return analyzeGguf(message, options)
+  }
+  if (options.backend === 'ollama') {
+    const url = options.ollamaUrl?.trim() || 'http://127.0.0.1:11434'
+    const model = options.ollamaModel?.trim()
+    if (!model) throw new Error('Не задана Ollama-модель оркестратора')
+    return analyzeOllama(message, url, model, options.signal)
+  }
+  const path = options.ggufPath?.trim()
+  if (!path) throw new Error('Не выбран GGUF-файл оркестратора')
+  return analyzeGguf(message, path)
 }
 
 /** Выгрузить GGUF-модель оркестратора (например, при смене пути в настройках). */
@@ -101,7 +146,6 @@ export async function downloadDefaultGguf(
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        // write() принимает Buffer / Uint8Array без промиса — backpressure здесь не критична
         writer.write(value)
         downloaded += value.length
         onProgress(downloaded, total)
@@ -150,7 +194,7 @@ function extractJsonString(text: string): string | null {
   return text.slice(start, end + 1)
 }
 
-function parseResult(raw: string): OrchestratorResult {
+export function parseOrchestratorResult(raw: string): OrchestratorResult {
   const jsonStr = extractJsonString(raw)
   if (jsonStr) {
     try {
@@ -158,17 +202,19 @@ function parseResult(raw: string): OrchestratorResult {
       return {
         plan: typeof parsed.plan === 'string' ? parsed.plan : '',
         rephrased: typeof parsed.rephrased === 'string' ? parsed.rephrased : '',
-        // Модели иногда возвращают строку "true"/"false" — приводим явно
         isComplex: parsed.isComplex === true || parsed.isComplex === 'true'
       }
     } catch {
       // fallthrough
     }
   }
-  // Fallback: пустой план, исходный текст как rephrased, задача считается простой
   return {
     plan: '',
     rephrased: raw.trim().slice(0, 300),
     isComplex: false
   }
+}
+
+function parseResult(raw: string): OrchestratorResult {
+  return parseOrchestratorResult(raw)
 }

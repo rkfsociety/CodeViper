@@ -106,6 +106,8 @@ export const PersistedSettingsSchema = z.object({
     .optional(),
   enabledPlugins: z.array(z.string()).optional(),
   orchestratorModelPath: z.string().optional(),
+  orchestratorBackend: z.enum(['gguf', 'ollama']).optional(),
+  orchestratorOllamaModel: z.string().optional(),
   orchestratorEnabled: z.boolean().optional(),
   orchestratorMinMessageLength: z.number().optional(),
   explorerEnabled: z.boolean().optional(),
@@ -281,6 +283,12 @@ function normalize(settings: LegacySettings): PersistedSettings {
     ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {}),
     ...(settings.orchestratorModelPath?.trim()
       ? { orchestratorModelPath: settings.orchestratorModelPath.trim() }
+      : {}),
+    ...(settings.orchestratorBackend === 'gguf' || settings.orchestratorBackend === 'ollama'
+      ? { orchestratorBackend: settings.orchestratorBackend }
+      : {}),
+    ...(settings.orchestratorOllamaModel?.trim()
+      ? { orchestratorOllamaModel: settings.orchestratorOllamaModel.trim() }
       : {}),
     ...(settings.orchestratorEnabled === true ? { orchestratorEnabled: true } : {}),
     ...(settings.orchestratorMinMessageLength !== undefined

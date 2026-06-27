@@ -7,8 +7,10 @@ import {
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
   GEMINI_FREE_MODELS,
-  filterOpenRouterModelsByTier
+  filterOpenRouterModelsByTier,
+  ORCHESTRATOR_DEFAULT_OLLAMA_MODEL
 } from '../../../shared/constants'
+import { isOrchestratorConfigured, resolveOrchestratorBackend } from '../../../shared/orchestrator'
 import { ModelPanel } from '../ModelPanel'
 import { CloudModelSelector } from '../CloudModelSelector'
 import { SettingItem } from './shared'
@@ -1029,9 +1031,9 @@ export function ModelTab({
             </div>
           )}
 
-          {/* ── Оркестратор (node-llama-cpp) ── */}
+          {/* ── Оркестратор ── */}
           <div className={styles.section} style={{ marginTop: 12 }}>
-            <div className={styles.sectionLabel}>Оркестратор (node-llama-cpp)</div>
+            <div className={styles.sectionLabel}>Оркестратор (предпланирование)</div>
 
             <label className={styles.toggle}>
               <input
@@ -1042,56 +1044,151 @@ export function ModelTab({
               <span className={styles.track} aria-hidden="true"></span>
               <span className={styles.label}>Включить оркестратор</span>
             </label>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <span
-                style={{
-                  flex: 1,
-                  fontSize: 12,
-                  color: 'var(--text-secondary)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  opacity: settings.orchestratorModelPath ? 1 : 0.45
-                }}
-                title={settings.orchestratorModelPath}
-              >
-                {settings.orchestratorModelPath
-                  ? settings.orchestratorModelPath.split(/[/\\]/).pop()
-                  : 'Файл не выбран'}
-              </span>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() =>
-                  void window.codeviper.selectGgufFile().then((path) => {
-                    if (path) onSettingsChange({ orchestratorModelPath: path })
-                  })
-                }
-              >
-                Выбрать файл…
-              </button>
-              {settings.orchestratorModelPath && (
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{ opacity: 0.6, color: 'var(--red, #e05555)' }}
-                  onClick={() => {
-                    const path = settings.orchestratorModelPath!
-                    void window.codeviper
-                      .deleteGgufFile(path)
-                      .catch(() => undefined)
-                      .then(() => onSettingsChange({ orchestratorModelPath: '' }))
-                  }}
-                  title="Удалить файл модели с диска"
-                >
-                  Удалить модель
-                </button>
-              )}
-            </div>
             <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
-              GGUF-файл для локального предпланирования задач
+              Строит краткий план и помечает сложные задачи. Исходный запрос пользователя не
+              изменяется.
             </div>
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <input
+                  type="radio"
+                  name="orchestrator-backend"
+                  checked={resolveOrchestratorBackend(settings) === 'ollama'}
+                  onChange={() => onSettingsChange({ orchestratorBackend: 'ollama' })}
+                />
+                Ollama (рекомендуется)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <input
+                  type="radio"
+                  name="orchestrator-backend"
+                  checked={resolveOrchestratorBackend(settings) === 'gguf'}
+                  onChange={() => onSettingsChange({ orchestratorBackend: 'gguf' })}
+                />
+                GGUF (node-llama-cpp)
+              </label>
+            </div>
+
+            {resolveOrchestratorBackend(settings) === 'ollama' ? (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
+                    Модель Ollama
+                  </span>
+                  <input
+                    type="text"
+                    className="input input-sm"
+                    style={{ flex: 1, minWidth: 120 }}
+                    placeholder={ORCHESTRATOR_DEFAULT_OLLAMA_MODEL}
+                    value={settings.orchestratorOllamaModel ?? ''}
+                    onChange={(e) => onSettingsChange({ orchestratorOllamaModel: e.target.value })}
+                  />
+                </div>
+                <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
+                  URL: {settings.ollamaUrl}. По умолчанию {ORCHESTRATOR_DEFAULT_OLLAMA_MODEL}.
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 12,
+                      color: 'var(--text-secondary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      opacity: settings.orchestratorModelPath ? 1 : 0.45
+                    }}
+                    title={settings.orchestratorModelPath}
+                  >
+                    {settings.orchestratorModelPath
+                      ? settings.orchestratorModelPath.split(/[/\\]/).pop()
+                      : 'Файл не выбран'}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() =>
+                      void window.codeviper.selectGgufFile().then((path) => {
+                        if (path) onSettingsChange({ orchestratorModelPath: path })
+                      })
+                    }
+                  >
+                    Выбрать файл…
+                  </button>
+                  {settings.orchestratorModelPath && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      style={{ opacity: 0.6, color: 'var(--red, #e05555)' }}
+                      onClick={() => {
+                        const path = settings.orchestratorModelPath!
+                        void window.codeviper
+                          .deleteGgufFile(path)
+                          .catch(() => undefined)
+                          .then(() => onSettingsChange({ orchestratorModelPath: '' }))
+                      }}
+                      title="Удалить файл модели с диска"
+                    >
+                      Удалить модель
+                    </button>
+                  )}
+                </div>
+                {ggufDownloading ? (
+                  <div style={{ marginTop: 8 }}>
+                    <div
+                      style={{
+                        height: 6,
+                        borderRadius: 999,
+                        background: 'var(--bg-element)',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${ggufDownloadPct}%`,
+                          background: 'var(--green, #4caf7d)',
+                          transition: 'width 0.2s'
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginTop: 4
+                      }}
+                    >
+                      <span style={{ fontSize: 11, opacity: 0.65 }}>{ggufDownloadLabel}</span>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{ opacity: 0.7 }}
+                        onClick={() => window.codeviper.cancelGgufDownload()}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  !settings.orchestratorModelPath && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      style={{ marginTop: 6 }}
+                      onClick={() => void handleDownloadGguf()}
+                    >
+                      Скачать Qwen2.5-1.5B (~970 МБ)
+                    </button>
+                  )
+                )}
+              </>
+            )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
@@ -1114,55 +1211,12 @@ export function ModelTab({
               <span style={{ fontSize: 11, opacity: 0.55 }}>символов</span>
             </div>
 
-            {ggufDownloading ? (
-              <div style={{ marginTop: 8 }}>
-                <div
-                  style={{
-                    height: 6,
-                    borderRadius: 999,
-                    background: 'var(--bg-element)',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${ggufDownloadPct}%`,
-                      background: 'var(--green, #4caf7d)',
-                      transition: 'width 0.2s'
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: 4
-                  }}
-                >
-                  <span style={{ fontSize: 11, opacity: 0.65 }}>{ggufDownloadLabel}</span>
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    style={{ opacity: 0.7 }}
-                    onClick={() => window.codeviper.cancelGgufDownload()}
-                  >
-                    Отмена
-                  </button>
-                </div>
+            {settings.orchestratorEnabled && !isOrchestratorConfigured(settings) && (
+              <div style={{ fontSize: 11, color: 'var(--red, #e05555)', marginTop: 6 }}>
+                {resolveOrchestratorBackend(settings) === 'ollama'
+                  ? 'Укажите модель Ollama или включите Ollama на этой машине.'
+                  : 'Выберите или скачайте GGUF-файл.'}
               </div>
-            ) : (
-              !settings.orchestratorModelPath && (
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{ marginTop: 6 }}
-                  onClick={() => void handleDownloadGguf()}
-                >
-                  Скачать Qwen2.5-1.5B (~970 МБ)
-                </button>
-              )
             )}
           </div>
 

@@ -274,6 +274,10 @@ export interface AgentSettings {
   enabledPlugins?: string[]
   /** Путь к GGUF-файлу для локального оркестратора (node-llama-cpp) */
   orchestratorModelPath?: string
+  /** Бэкенд оркестратора: Ollama (рекомендуется) или GGUF */
+  orchestratorBackend?: 'gguf' | 'ollama'
+  /** Имя модели Ollama для оркестратора (например qwen2.5:3b) */
+  orchestratorOllamaModel?: string
   /** Включить оркестратор для предпланирования задач */
   orchestratorEnabled?: boolean
   /** Минимальная длина сообщения для запуска оркестратора (символы) */

@@ -70,6 +70,8 @@ export const ORCHESTRATOR_DEFAULT_GGUF_URL =
   'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf'
 /** Имя файла GGUF-модели по умолчанию */
 export const ORCHESTRATOR_DEFAULT_GGUF_FILENAME = 'qwen2.5-1.5b-instruct-q4_k_m.gguf'
+/** Ollama-модель по умолчанию для оркестратора (быстрая, JSON-стабильнее 1.5B GGUF) */
+export const ORCHESTRATOR_DEFAULT_OLLAMA_MODEL = 'qwen2.5:3b'
 
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
