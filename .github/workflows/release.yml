@@ -61,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'master' || (inputs.tag || github.ref) }}
 
       - uses: actions/setup-node@v4
         with:
@@ -103,7 +103,7 @@ jobs:
           echo "✓ CodeViper.sh syntax OK"
 
       - name: Package and publish to GitHub Releases
-        run: npx electron-builder --publish always -c.publish.releaseType=release
+        run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
