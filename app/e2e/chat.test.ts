@@ -13,11 +13,11 @@ test.describe('Чат', () => {
     }
   })
 
-  test('панель истории чатов присутствует', async () => {
+  test('панель недавних чатов присутствует', async () => {
     const { app, page } = await launchApp()
     try {
-      const historyHeader = page.locator('.panel-header', { hasText: 'История чатов' })
-      await expect(historyHeader).toBeVisible({ timeout: 10_000 })
+      const recentHeader = page.locator('.panel-header', { hasText: 'Недавние' })
+      await expect(recentHeader).toBeVisible({ timeout: 10_000 })
     } finally {
       await closeApp(app)
     }
