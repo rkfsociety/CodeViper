@@ -35,6 +35,7 @@ import { registerSettingsIpc } from './ipc/registerSettingsIpc'
 import { registerGithubIpc } from './ipc/registerGithubIpc'
 import { registerMiscIpc } from './ipc/registerMiscIpc'
 import { registerAgentIpc } from './ipc/registerAgentIpc'
+import { ensureLiveRuntimeExtras } from './runtimeHandlers'
 import type { IpcContext } from './ipc/ipcContext'
 import type { AgentSettings, AgentStreamPayload } from '../../src/types'
 import { IPC } from '../../shared/ipcContracts'
@@ -380,6 +381,7 @@ registerSettingsIpc(ipcContext)
 registerGithubIpc()
 registerMiscIpc()
 registerAgentIpc(ipcContext)
+ensureLiveRuntimeExtras()
 
 app.whenReady().then(async () => {
   if (process.platform === 'win32') {

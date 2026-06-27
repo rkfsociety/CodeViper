@@ -30,6 +30,7 @@ const sampleEvent = {
 describe('traceStorage', () => {
   afterEach(async () => {
     vi.useRealTimers()
+    await flushPendingChatTraceWrites().catch(() => {})
     await clearChatTrace('chat-1').catch(() => {})
     await clearChatTrace('chat-2').catch(() => {})
     rmSync(getAgentTracesDir(), { recursive: true, force: true })

@@ -7,16 +7,12 @@ import { installLiveShellRendererReload } from './liveShellBootstrap'
 
 let liveShellExtrasInstalled = false
 
-/** Вызывается при dynamic import runtimeHandlers из git-клона (в т.ч. packaged 0.3.x). */
+/** Вызывается из index.ts после register*Ipc (и при dynamic import runtimeHandlers из git-клона). */
 export function ensureLiveRuntimeExtras(): void {
   if (liveShellExtrasInstalled) return
   liveShellExtrasInstalled = true
   registerLiveRuntimeTraceIpc()
   installLiveShellRendererReload()
-}
-
-if (process.env.VITEST !== 'true') {
-  ensureLiveRuntimeExtras()
 }
 
 export { createProjectToolHandlers, type ProjectToolOptions } from './agentHandlersProject'
