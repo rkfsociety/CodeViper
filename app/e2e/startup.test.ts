@@ -2,13 +2,13 @@ import { test, expect } from '@playwright/test'
 import { launchApp, closeApp } from './helpers'
 
 test.describe('Запуск приложения', () => {
-  test('окно открывается с заголовком CodeViper', async () => {
+  test('окно открывается с заголовком CodeViper и версией', async () => {
     const { app, page } = await launchApp()
     try {
       const title = await app.evaluate(({ BrowserWindow }) =>
         BrowserWindow.getAllWindows()[0]?.getTitle()
       )
-      expect(title).toContain('CodeViper')
+      expect(title).toMatch(/^CodeViper \d+\.\d+\.\d+$/)
     } finally {
       await closeApp(app)
     }

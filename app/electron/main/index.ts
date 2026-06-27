@@ -160,6 +160,10 @@ function ensureSessionCsp(): void {
   })
 }
 
+function appWindowTitle(): string {
+  return `CodeViper ${app.getVersion()}`
+}
+
 function loadMainWindowContent(win: BrowserWindow): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -203,7 +207,7 @@ async function createWindow(): Promise<void> {
   const shell = getBundledShellPaths()
   mainWindow = new BrowserWindow({
     ...windowOptionsFromState(windowState),
-    title: 'CodeViper',
+    title: appWindowTitle(),
     backgroundColor: '#0d1117',
     ...(icon ? { icon } : {}),
     webPreferences: {
@@ -223,6 +227,11 @@ async function createWindow(): Promise<void> {
   }
 
   trackWindowState(mainWindow)
+
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault()
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setTitle(appWindowTitle())
+  })
 
   mainWindow.on('close', (event) => {
     if (mainWindow) handleMainWindowClose(event, minimizeToTrayEnabled, mainWindow)
