@@ -730,6 +730,7 @@ export const Contracts = {
       ghLoggedIn: z.boolean(),
       tokenConfigured: z.boolean(),
       tokenValid: z.boolean(),
+      authSource: z.enum(['settings', 'gh-cli']).optional(),
       login: z.string().optional(),
       gitRepoRoot: z.string().nullable(),
       hints: z.array(z.string()),

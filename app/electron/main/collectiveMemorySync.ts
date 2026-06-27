@@ -20,7 +20,7 @@ import { getCodeViperSourceRoot } from './codeviperSource'
 import { redactSecrets } from '../../shared/secretRedaction'
 import { maxSemanticSimilarity } from './embeddingQueue'
 import { loadSettings } from './settings'
-import { getRepoFileViaApi, upsertRepoFileViaApi } from './githubAuth'
+import { getRepoFileViaApi, resolveGitHubToken, upsertRepoFileViaApi } from './githubAuth'
 
 function runGitCmd(
   cwd: string,
@@ -191,10 +191,10 @@ async function readCollectiveStoreForMerge(): Promise<MemoryStore> {
     }
   }
 
-  const settings = await loadSettings()
-  const token = settings.githubToken?.trim()
+  const token = await resolveGitHubToken()
   if (!token) return emptyStore()
 
+  const settings = await loadSettings()
   const branch = resolveSelfImproveBranch(settings.selfImproveBranch)
   try {
     const remote = await getRepoFileViaApi(token, COLLECTIVE_MEMORY_REPO_PATH, branch)
@@ -356,13 +356,12 @@ export async function flushCollectiveMemoryToGit(
   const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
 
   if (!repoRoot) {
-    const settings = await loadSettings()
-    const token = settings.githubToken?.trim()
+    const token = await resolveGitHubToken()
     if (!token) {
       return {
         ok: false,
         message:
-          'не git-репозиторий и нет GitHub Token. Настройки → Поведение: «Корень git-репозитория»; Интеграции: token с правом repo. Либо: gh auth login',
+          'Нет доступа к GitHub для синхронизации памяти. Выполните gh auth login (нужен scope repo) или укажите GitHub Token в Настройки → Интеграции.',
         branch,
         syncedCount: 0,
         rejectedCount: rejected.length,

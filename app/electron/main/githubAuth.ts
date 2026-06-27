@@ -2,14 +2,19 @@ import { spawn } from 'child_process'
 import { existsSync } from 'fs'
 import { join, resolve } from 'path'
 import { CODEVIPER_GITHUB_OWNER, CODEVIPER_GITHUB_REPO } from '../../shared/constants'
+import { getBundledSourceRoot } from './bundledSourceSync'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { loadSettings } from './settings'
 
 export interface GitHubAuthStatus {
   ghInstalled: boolean
   ghLoggedIn: boolean
+  /** Token задан вручную в настройках */
   tokenConfigured: boolean
+  /** Есть рабочая авторизация: token в настройках или gh auth token */
   tokenValid: boolean
+  /** Откуда взята рабочая авторизация */
+  authSource?: 'settings' | 'gh-cli'
   login?: string
   gitRepoRoot: string | null
   hints: string[]
@@ -21,7 +26,17 @@ interface GhRunResult {
   stderr: string
 }
 
+type GhRunner = (args: string[], cwd?: string) => Promise<GhRunResult>
+
+let ghRunnerOverride: GhRunner | null = null
+
+/** Только для unit-тестов — подмена вызовов gh. */
+export function setGhRunnerForTests(runner: GhRunner | null): void {
+  ghRunnerOverride = runner
+}
+
 function runGh(args: string[], cwd?: string): Promise<GhRunResult> {
+  if (ghRunnerOverride) return ghRunnerOverride(args, cwd)
   return new Promise((resolveRun) => {
     const child = spawn('gh', args, {
       cwd: cwd ?? getCodeViperSourceRoot(),
@@ -81,6 +96,12 @@ export async function resolveGitRepoRoot(): Promise<string | null> {
     add(join(override, '..'))
   }
 
+  try {
+    add(getBundledSourceRoot())
+  } catch {
+    /* app не инициализирован (тесты) */
+  }
+
   for (const cwd of candidates) {
     if (!existsSync(cwd)) continue
     const root = await tryGitRepoRoot(cwd)
@@ -117,6 +138,35 @@ async function validateGitHubToken(token: string): Promise<{ ok: boolean; login?
   }
 }
 
+async function readGhAuthToken(): Promise<string | null> {
+  const version = await runGh(['--version'])
+  if (version.code !== 0) return null
+  const status = await runGh(['auth', 'status'])
+  if (status.code !== 0) return null
+  const tokenResult = await runGh(['auth', 'token'])
+  if (tokenResult.code !== 0) return null
+  const token = tokenResult.stdout.trim()
+  return token || null
+}
+
+/**
+ * Рабочий GitHub token: сначала из настроек, иначе `gh auth token` (если gh авторизован).
+ */
+export async function resolveGitHubToken(): Promise<string | null> {
+  const settings = await loadSettings()
+  const configured = settings.githubToken?.trim()
+  if (configured) {
+    const check = await validateGitHubToken(configured)
+    if (check.ok) return configured
+  }
+
+  const ghToken = await readGhAuthToken()
+  if (!ghToken) return null
+
+  const ghCheck = await validateGitHubToken(ghToken)
+  return ghCheck.ok ? ghToken : null
+}
+
 export async function getGitHubAuthStatus(): Promise<GitHubAuthStatus> {
   const settings = await loadSettings()
   const hints: string[] = []
@@ -138,25 +188,43 @@ export async function getGitHubAuthStatus(): Promise<GitHubAuthStatus> {
 
   const tokenConfigured = Boolean(settings.githubToken?.trim())
   let tokenValid = false
+  let authSource: GitHubAuthStatus['authSource']
   let login: string | undefined
+
   if (tokenConfigured) {
     const check = await validateGitHubToken(settings.githubToken!.trim())
-    tokenValid = check.ok
-    login = check.login
-    if (!tokenValid) {
+    if (check.ok) {
+      tokenValid = true
+      authSource = 'settings'
+      login = check.login
+    } else {
       hints.push(
         'GitHub Token в настройках недействителен — нужен scope repo (и gist для «Поделиться»)'
       )
     }
-  } else if (!ghLoggedIn) {
+  }
+
+  if (!tokenValid && ghLoggedIn) {
+    const ghToken = await readGhAuthToken()
+    if (ghToken) {
+      const check = await validateGitHubToken(ghToken)
+      if (check.ok) {
+        tokenValid = true
+        authSource = 'gh-cli'
+        login = check.login
+      }
+    }
+  }
+
+  if (!tokenValid && !ghLoggedIn) {
     hints.push(
-      'Добавьте GitHub Token (Настройки → Интеграции) с правом repo — для синхронизации знаний без локального git'
+      'Выполните gh auth login или добавьте GitHub Token (Настройки → Интеграции) с правом repo'
     )
   }
 
-  if (!gitRepoRoot) {
+  if (!gitRepoRoot && !tokenValid) {
     hints.push(
-      'Укажите корень git-клона (Настройки → Поведение → «Корень git-репозитория», например F:\\github\\CodeViper) или app/ в «Путь к исходникам»'
+      'Укажите корень git-клона CodeViper (Настройки → Поведение) или авторизуйтесь в GitHub (gh / token) для API-синхронизации'
     )
   }
 
@@ -165,6 +233,7 @@ export async function getGitHubAuthStatus(): Promise<GitHubAuthStatus> {
     ghLoggedIn,
     tokenConfigured,
     tokenValid,
+    authSource,
     login,
     gitRepoRoot,
     hints
@@ -172,10 +241,24 @@ export async function getGitHubAuthStatus(): Promise<GitHubAuthStatus> {
 }
 
 export function formatGitHubAuthStatus(status: GitHubAuthStatus): string {
+  const authLine = status.tokenValid
+    ? `Авторизация GitHub: OK (${status.login ?? 'user'})${
+        status.authSource === 'gh-cli'
+          ? ' — gh CLI'
+          : status.authSource === 'settings'
+            ? ' — token в настройках'
+            : ''
+      }`
+    : status.tokenConfigured
+      ? 'Авторизация GitHub: token в настройках недействителен'
+      : status.ghLoggedIn
+        ? 'Авторизация GitHub: gh авторизован, но token недоступен (нужен scope repo)'
+        : 'Авторизация GitHub: не настроена'
+
   const lines = [
     `GitHub CLI: ${status.ghInstalled ? (status.ghLoggedIn ? 'авторизован' : 'не авторизован') : 'не установлен'}`,
-    `Token: ${status.tokenConfigured ? (status.tokenValid ? `OK (${status.login ?? 'user'})` : 'недействителен') : 'не задан'}`,
-    `Git-репозиторий: ${status.gitRepoRoot ?? 'не найден'}`
+    authLine,
+    `Git-репозиторий CodeViper: ${status.gitRepoRoot ?? 'не найден (будет GitHub API при авторизации)'}`
   ]
   if (status.hints.length) lines.push('', 'Что сделать:', ...status.hints.map((h) => `• ${h}`))
   return lines.join('\n')
