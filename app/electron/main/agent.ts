@@ -5,7 +5,7 @@ import {
   isCostLimitExceeded,
   resolveMaxCostPerRunUsd
 } from '../../shared/constants'
-import { formatCostUsd } from '../../shared/generationMetrics'
+import { formatCostUsd, getRequestTokenCount } from '../../shared/generationMetrics'
 import {
   MUTATING_TOOLS,
   EXPLORATION_STALL_NUDGE,
@@ -511,12 +511,13 @@ export class AgentRunner {
         }
 
         const durationMs = Date.now() - stepStartMs
+        const requestTokens = getRequestTokenCount(response.metrics)
         void agentLogger.write({
           event: 'llm_response',
           step,
           model: this.settings.model,
           duration_ms: durationMs,
-          tokens: response.metrics?.evalCount,
+          tokens: requestTokens,
           has_tools: (response.message?.tool_calls?.length ?? 0) > 0,
           has_thinking: !!response.message?.thinking
         })
@@ -527,7 +528,7 @@ export class AgentRunner {
 
         {
           const toolNames = toolCalls.map((tc) => tc.function.name)
-          const tokens = response.metrics?.evalCount
+          const tokens = requestTokens
           const tps =
             response.metrics?.tokensPerSec != null
               ? Math.round(response.metrics.tokensPerSec * 10) / 10

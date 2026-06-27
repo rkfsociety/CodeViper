@@ -6,7 +6,11 @@ import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
 import { compressContextMessages } from './contextSummarizer'
 import { agentLogger } from './agentLogger'
-import { parseOllamaGenerationMetrics } from '../../shared/generationMetrics'
+import {
+  buildRequestGenerationMetrics,
+  parseOllamaGenerationMetrics,
+  type GenerationMetrics
+} from '../../shared/generationMetrics'
 import { findModelPricing, estimateRequestCost } from '../../shared/constants'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
@@ -32,7 +36,7 @@ export interface ChatResult {
     thinking?: string
     tool_calls?: ToolCallShape[]
   }
-  metrics: ReturnType<typeof parseOllamaGenerationMetrics>
+  metrics: GenerationMetrics | null
 }
 
 function filterMessagesForCloud(messages: OllamaMessage[]): OllamaMessage[] {
@@ -308,11 +312,19 @@ export class ContextManager {
     const toolCalls: ToolCallShape[] = []
     let evalCount: number | undefined
     let evalDurationNs: number | undefined
+    let promptEvalCount: number | undefined
+    let requestTotalTokens: number | undefined
+    let requestInputTokens = 0
+    let requestOutputTokens = 0
     let nativeToolCalls: ToolCallShape[] | undefined
 
     for await (const chunk of this.modelRuntime.chat(chatOptions)) {
       if (chunk.eval_count != null) evalCount = chunk.eval_count
       if (chunk.eval_duration != null) evalDurationNs = chunk.eval_duration
+      if (chunk.prompt_eval_count != null) promptEvalCount = chunk.prompt_eval_count
+      if (chunk.total_tokens != null) requestTotalTokens = chunk.total_tokens
+      if (chunk.input_tokens != null) requestInputTokens = chunk.input_tokens
+      if (chunk.output_tokens != null) requestOutputTokens = chunk.output_tokens
       if (chunk.thinking) {
         thinking += chunk.thinking
         this.emitter.emit({ type: 'thinking', content: chunk.thinking })
@@ -348,6 +360,14 @@ export class ContextManager {
       }
     }
 
+    const requestMetrics = buildRequestGenerationMetrics(
+      evalCount,
+      evalDurationNs,
+      promptEvalCount,
+      requestTotalTokens,
+      requestInputTokens,
+      requestOutputTokens
+    )
     const ollamaMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
     if (ollamaMetrics) {
       this.emitter.emit({ type: 'generation_metrics', generationMetrics: ollamaMetrics })
@@ -385,7 +405,7 @@ export class ContextManager {
         thinking: thinking.trim() || undefined,
         tool_calls: toolCalls.length ? toolCalls : undefined
       },
-      metrics: parseOllamaGenerationMetrics(evalCount, evalDurationNs)
+      metrics: requestMetrics
     }
   }
 }

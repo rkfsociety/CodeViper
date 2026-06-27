@@ -16,6 +16,49 @@ export interface GenerationMetrics {
   estimatedCostUsd?: number
 }
 
+/** Собирает метрики одного LLM-запроса (Ollama или облако). */
+export function buildRequestGenerationMetrics(
+  evalCount: number | undefined,
+  evalDurationNs: number | undefined,
+  promptEvalCount: number | undefined,
+  requestTotalTokens: number | undefined,
+  requestInputTokens: number,
+  requestOutputTokens: number
+): GenerationMetrics | null {
+  const ollamaMetrics = parseOllamaGenerationMetrics(evalCount, evalDurationNs)
+  if (ollamaMetrics) {
+    const promptTokens = promptEvalCount ?? 0
+    const totalTokens = ollamaMetrics.evalCount + promptTokens
+    return promptTokens > 0 ? { ...ollamaMetrics, totalTokens } : ollamaMetrics
+  }
+
+  const cloudTotal =
+    requestTotalTokens ??
+    (requestInputTokens + requestOutputTokens > 0
+      ? requestInputTokens + requestOutputTokens
+      : undefined)
+  if (cloudTotal != null && cloudTotal > 0) {
+    return {
+      evalCount: 0,
+      evalDurationSec: 0,
+      tokensPerSec: 0,
+      totalTokens: cloudTotal
+    }
+  }
+
+  return null
+}
+
+/** Число токенов для логов и агрегированных метрик (предпочитает totalTokens). */
+export function getRequestTokenCount(
+  metrics: GenerationMetrics | null | undefined
+): number | undefined {
+  if (!metrics) return undefined
+  if (metrics.totalTokens != null && metrics.totalTokens > 0) return metrics.totalTokens
+  if (metrics.evalCount > 0) return metrics.evalCount
+  return undefined
+}
+
 /** Метрики из финального чанка Ollama (`eval_count`, `eval_duration` в наносекундах). */
 export function parseOllamaGenerationMetrics(
   evalCount: number | undefined,
