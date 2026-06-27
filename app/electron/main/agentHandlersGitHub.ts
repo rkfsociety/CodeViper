@@ -1,6 +1,7 @@
 import type { ToolHandlers } from './agentTools'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from './githubTools'
 import { getGitHubAuthStatus, formatGitHubAuthStatus } from './githubAuth'
+import { formatPullRequestListResult, listPullRequests } from './githubPr'
 
 export function createGitHubToolHandlers(): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
@@ -19,6 +20,11 @@ export function createGitHubToolHandlers(): Partial<ToolHandlers> {
 
     list_issues: async () => {
       return listIssues()
+    },
+
+    list_pull_requests: async () => {
+      const result = await listPullRequests()
+      return formatPullRequestListResult(result)
     },
 
     open_issue: async (args) => {

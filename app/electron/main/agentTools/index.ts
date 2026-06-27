@@ -193,6 +193,7 @@ export interface ToolArgs {
   create_issue: { title: string; body?: string; labels?: string }
   create_pr: { title?: string; body?: string }
   list_issues: Record<string, never>
+  list_pull_requests: Record<string, never>
   open_issue: { number: string }
   trigger_github_workflow: { workflow_id: string; ref?: string; fields?: string }
   check_github_auth: Record<string, never>

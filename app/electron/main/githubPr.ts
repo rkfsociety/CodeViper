@@ -92,6 +92,33 @@ function aggregateCi(checks?: RawCheck[] | null): CiStatus {
   return 'none'
 }
 
+const CI_LABEL: Record<CiStatus, string> = {
+  success: 'CI прошёл',
+  failure: 'CI упал',
+  pending: 'CI идёт',
+  none: 'нет CI'
+}
+
+/** Текстовый вывод для агента (как панель PrStatusPanel). */
+export function formatPullRequestListResult(result: PullRequestListResult): string {
+  if (!result.ok) {
+    return result.error ?? 'Не удалось получить список PR.'
+  }
+  const prs = result.prs ?? []
+  if (prs.length === 0) {
+    return 'Открытых PR нет.'
+  }
+  const lines = prs.map((pr) => {
+    const draft = pr.isDraft ? ' [draft]' : ''
+    return (
+      `#${pr.number} ${pr.title}${draft}\n` +
+      `  ветка: ${pr.headRefName} | ${CI_LABEL[pr.ciStatus]}\n` +
+      `  ${pr.url}`
+    )
+  })
+  return `Открытые PR (${prs.length}):\n\n${lines.join('\n\n')}`
+}
+
 export async function listPullRequests(): Promise<PullRequestListResult> {
   const check = await runGh(['--version'])
   if (check.code !== 0) {

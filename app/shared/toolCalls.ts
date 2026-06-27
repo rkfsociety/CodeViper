@@ -44,6 +44,7 @@ export const AGENT_TOOL_NAMES = [
   'create_issue',
   'create_pr',
   'list_issues',
+  'list_pull_requests',
   'open_issue',
   'trigger_github_workflow',
   // GitLab

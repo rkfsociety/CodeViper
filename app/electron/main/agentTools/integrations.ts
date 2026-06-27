@@ -51,6 +51,15 @@ export const GITHUB_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'list_pull_requests',
+      description:
+        'Показать открытые GitHub Pull Request в текущем репозитории (как панель PR в UI): номер, заголовок, ветка, статус CI. Вызывай перед созданием PR или чтобы проверить CI.',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'open_issue',
       description: 'Открыть GitHub Issue в браузере через gh issue view --web',
       parameters: {
