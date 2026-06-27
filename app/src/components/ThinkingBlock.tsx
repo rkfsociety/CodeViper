@@ -1,13 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   content: string
-  /** Идёт стриминг рассуждений — раскрыть по умолчанию */
+  /** Идёт стриминг рассуждений — раскрыть и держать открытым до завершения */
   live?: boolean
 }
 
 export function ThinkingBlock({ content, live = false }: Props) {
   const [open, setOpen] = useState(live)
+  const wasLiveRef = useRef(live)
+
+  useEffect(() => {
+    if (live) {
+      setOpen(true)
+    } else if (wasLiveRef.current) {
+      setOpen(false)
+    }
+    wasLiveRef.current = live
+  }, [live])
+
   if (!content.trim()) return null
 
   return (

@@ -13,5 +13,8 @@ export function isThinkingModel(name: string): boolean {
   return THINKING_MODEL_PATTERNS.some((pattern) => pattern.test(name))
 }
 
+export const THINKING_LANGUAGE_HINT =
+  'Внутренние размышления (thinking) веди на том же языке, что и последнее сообщение пользователя.'
+
 export const DEEP_REASONING_PROMPT = `## Последовательная работа
-Сначала разберись в задаче, потом действуй через инструменты. Не расписывай ход мыслей; просто выполняй шаги аккуратно и кратко.`
+Сначала разберись в задаче, потом действуй через инструменты. ${THINKING_LANGUAGE_HINT} Не расписывай ход мыслей в основном ответе — выполняй шаги аккуратно и кратко.`

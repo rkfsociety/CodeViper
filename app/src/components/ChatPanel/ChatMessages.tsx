@@ -35,6 +35,14 @@ interface Props {
   onInsertPrompt: (text: string) => void
 }
 
+function isReasoningLive(
+  busy: boolean,
+  draftMessageIdRef: React.RefObject<string | null>,
+  assistantId: string
+): boolean {
+  return busy && draftMessageIdRef.current === assistantId
+}
+
 export function ChatMessages({
   chatId,
   projectPath,
@@ -69,7 +77,12 @@ export function ChatMessages({
           {pinnedDisplayItems.map((item) =>
             item.kind === 'all-tools' ? (
               <div key={item.key}>
-                {item.reasoning && <ThinkingBlock content={item.reasoning.thinking} />}
+                {item.reasoning && (
+                  <ThinkingBlock
+                    content={item.reasoning.thinking}
+                    live={isReasoningLive(busy, draftMessageIdRef, item.reasoning.assistant.id)}
+                  />
+                )}
                 {item.items.length > 0 && <AllToolsGroup items={item.items} />}
               </div>
             ) : (
@@ -110,7 +123,12 @@ export function ChatMessages({
           if (item.kind === 'all-tools') {
             content = (
               <div>
-                {item.reasoning && <ThinkingBlock content={item.reasoning.thinking} />}
+                {item.reasoning && (
+                  <ThinkingBlock
+                    content={item.reasoning.thinking}
+                    live={isReasoningLive(busy, draftMessageIdRef, item.reasoning.assistant.id)}
+                  />
+                )}
                 {item.items.length > 0 && <AllToolsGroup items={item.items} />}
               </div>
             )

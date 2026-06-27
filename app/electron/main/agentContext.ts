@@ -16,7 +16,11 @@ import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
 import { getAgentTools, formatAgentToolsSummary } from './agentTools'
 import { SELF_IMPROVEMENT_MODE_PROMPT } from '../../shared/selfImprovement'
-import { DEEP_REASONING_PROMPT, isThinkingModel } from '../../shared/reasoning'
+import {
+  DEEP_REASONING_PROMPT,
+  isThinkingModel,
+  THINKING_LANGUAGE_HINT
+} from '../../shared/reasoning'
 import {
   computeContextUsage,
   computeAdaptiveLimits,
@@ -135,7 +139,7 @@ export interface OllamaMessage {
 
 const BASE_SYSTEM_PROMPT = `Ты CodeViper, локальный AI-агент для программирования.
 Работай только внутри открытого проекта. Если задача про код, сразу используй инструменты.
-Пиши по-русски, если пользователь пишет по-русски. Не показывай tool calls как текст и не рассуждай вслух.
+Отвечай на том же языке, что и пользователь — включая внутренние размышления (thinking). Не показывай tool calls как текст и не дублируй рассуждения в основном ответе.
 Перед правками сначала читай файл. Для точечных правок используй preview_patch (old_string → new_string) — он безопаснее: меняет только указанный фрагмент, не трогая остальное. preview_edit и write_file — только для новых файлов или полного переписывания (передавать ВСЕ содержимое).
 Говори кратко и только по делу. Не утверждай, что действие выполнено, пока инструмент не сработал.
 
@@ -185,7 +189,8 @@ function buildSystemPrompt(
   clarifyMode = false,
   cotReasoning = false,
   chatMode = false,
-  customSystemPrompt = ''
+  customSystemPrompt = '',
+  nativeThinking = false
 ): string {
   // В режиме Chat — только базовый промпт: без инструментов, дерева проекта и памяти.
   if (chatMode) {
@@ -199,6 +204,8 @@ function buildSystemPrompt(
   // Для не-think моделей даём краткую подсказку к последовательной работе.
   if (cotReasoning) {
     parts.push(DEEP_REASONING_PROMPT)
+  } else if (nativeThinking) {
+    parts.push(`## Размышления\n${THINKING_LANGUAGE_HINT}`)
   }
 
   // Уточняющие вопросы несовместимы с автономным самоулучшением.
@@ -442,8 +449,11 @@ export async function buildAgentContextPreview(
   // Для think-моделей рассуждение включается нативно (think:true), промпт не нужен.
   // Для облачных провайдеров (DeepSeek, OpenAI) глубокое рассуждение уже встроено,
   // дополнительный промпт только тратит токены (~500 токенов на CoT).
-  const isCloudProvider = options.providerConfig?.type && options.providerConfig.type !== 'ollama'
+  const isCloudProvider = !!(
+    options.providerConfig?.type && options.providerConfig.type !== 'ollama'
+  )
   const cotReasoning = !!options.deepReasoning && !isThinkingModel(model) && !isCloudProvider
+  const nativeThinking = isThinkingModel(model) || isCloudProvider
   const systemContent = buildSystemPrompt(
     projectPath,
     memorySkillsContext,
@@ -452,7 +462,8 @@ export async function buildAgentContextPreview(
     options.clarifyMode,
     cotReasoning,
     chatMode,
-    options.customSystemPrompt ?? ''
+    options.customSystemPrompt ?? '',
+    nativeThinking
   )
 
   const adaptiveLimits = computeAdaptiveLimits(model, options.modelContextLength)
