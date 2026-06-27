@@ -1,26 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 interface Props {
   content: string
-  /** Идёт стриминг рассуждений — компактная полоска с live-текстом */
+  /** Идёт стриминг рассуждений (фаза thinking) */
   live?: boolean
 }
 
 export function ThinkingBlock({ content, live = false }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const wasLiveRef = useRef(live)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (live) {
-      setExpanded(false)
-    } else if (wasLiveRef.current) {
-      setExpanded(false)
-    }
-    wasLiveRef.current = live
-  }, [live])
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!live) return
     const el = scrollRef.current
     if (!el) return
@@ -32,16 +22,12 @@ export function ThinkingBlock({ content, live = false }: Props) {
   if (live) {
     return (
       <div
-        className="thinking-stream live"
+        className="thinking-stream-ghost"
         role="status"
         aria-live="polite"
         aria-label="Размышления модели"
       >
-        <div className="thinking-stream-live-head">
-          <span className="thinking-stream-badge" aria-hidden="true" />
-          <span className="thinking-stream-live-label">Думает</span>
-        </div>
-        <div ref={scrollRef} className="thinking-stream-body">
+        <div ref={scrollRef} className="thinking-stream-ghost-body">
           {content}
         </div>
       </div>
@@ -49,20 +35,20 @@ export function ThinkingBlock({ content, live = false }: Props) {
   }
 
   return (
-    <div className={`thinking-stream settled${expanded ? ' expanded' : ''}`}>
+    <div className={`thinking-stream-settled${expanded ? ' expanded' : ''}`}>
       <button
         type="button"
-        className="thinking-stream-toggle"
+        className="thinking-stream-settled-toggle"
         aria-expanded={expanded}
         onClick={() => setExpanded((value) => !value)}
       >
-        <span className="thinking-stream-badge settled" aria-hidden="true" />
-        <span className="thinking-stream-label">Размышления</span>
-        <span className="thinking-stream-hint" />
+        {expanded ? 'скрыть размышления' : 'размышления'}
       </button>
-      <div ref={scrollRef} className="thinking-stream-body" hidden={!expanded}>
-        {content}
-      </div>
+      {expanded && (
+        <div ref={scrollRef} className="thinking-stream-settled-body">
+          {content}
+        </div>
+      )}
     </div>
   )
 }

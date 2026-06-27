@@ -166,7 +166,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   // Координационные рефы между хуками — созданы здесь, переданы в оба.
   const dispatch = useAgentDispatch()
-  const { runModel, runStats } = useAgentState()
+  const { runModel, runStats, agentPhase } = useAgentState()
 
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
@@ -922,6 +922,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         messages={messages}
         pinnedMessageIds={pinnedMessageIds}
         busy={busy}
+        agentPhase={agentPhase}
         queueSize={queueSize}
         draftMessageIdRef={draftMessageIdRef}
         runStats={runStats}

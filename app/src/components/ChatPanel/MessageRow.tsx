@@ -1,5 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../../types'
+import type { AgentPhase } from '../AgentStatusBar'
 import { MessageCopyButton } from '../MessageCopyButton'
 import { ThinkingBlock } from '../ThinkingBlock'
 import { messageCopyText, visibleAssistantContent } from './helpers'
@@ -10,6 +11,7 @@ export const MessageRow = memo(function MessageRow({
   message,
   pinned,
   busy,
+  agentPhase,
   isStreaming,
   onPin,
   onRetry,
@@ -20,6 +22,7 @@ export const MessageRow = memo(function MessageRow({
   message: ChatMessage
   pinned: boolean
   busy: boolean
+  agentPhase: AgentPhase
   isStreaming?: boolean
   onPin: (id: string) => void
   onRetry: (message: ChatMessage) => void
@@ -87,9 +90,14 @@ export const MessageRow = memo(function MessageRow({
           </div>
         )}
       </div>
-      {message.role === 'assistant' && message.thinking && (
-        <ThinkingBlock content={message.thinking} live={isStreaming} />
-      )}
+      {message.role === 'assistant' &&
+        message.thinking &&
+        !(isStreaming && agentPhase === 'writing') && (
+          <ThinkingBlock
+            content={message.thinking}
+            live={Boolean(isStreaming && agentPhase === 'thinking')}
+          />
+        )}
       {message.images && message.images.length > 0 && (
         <div className="message-images">
           {message.images.map((img) => (

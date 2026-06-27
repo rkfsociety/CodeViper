@@ -10,6 +10,7 @@ import { formatElapsed, formatTokenCount } from '../../../shared/generationMetri
 import type { DisplayItem } from './helpers'
 import { visibleAssistantContent } from './helpers'
 import { MessageRow } from './MessageRow'
+import type { AgentPhase } from '../AgentStatusBar'
 import styles from '../ChatPanel.module.css'
 
 const MessageBody = lazy(() => import('../MessageBody').then((m) => ({ default: m.MessageBody })))
@@ -24,6 +25,7 @@ interface Props {
   scrollRef: React.RefObject<HTMLDivElement | null>
   virtualizer: Virtualizer<HTMLDivElement, Element>
   busy: boolean
+  agentPhase: AgentPhase
   draftMessageIdRef: React.RefObject<string | null>
   runStats: { tokens: number; elapsedSec: number } | null
   togglePinMessage: (id: string) => void
@@ -37,10 +39,11 @@ interface Props {
 
 function isReasoningLive(
   busy: boolean,
+  agentPhase: AgentPhase,
   draftMessageIdRef: React.RefObject<string | null>,
   assistantId: string
 ): boolean {
-  return busy && draftMessageIdRef.current === assistantId
+  return busy && agentPhase === 'thinking' && draftMessageIdRef.current === assistantId
 }
 
 export function ChatMessages({
@@ -53,6 +56,7 @@ export function ChatMessages({
   scrollRef,
   virtualizer,
   busy,
+  agentPhase,
   draftMessageIdRef,
   runStats,
   togglePinMessage,
@@ -81,7 +85,12 @@ export function ChatMessages({
                 {item.reasoning && (
                   <ThinkingBlock
                     content={item.reasoning.thinking}
-                    live={isReasoningLive(busy, draftMessageIdRef, item.reasoning.assistant.id)}
+                    live={isReasoningLive(
+                      busy,
+                      agentPhase,
+                      draftMessageIdRef,
+                      item.reasoning.assistant.id
+                    )}
                   />
                 )}
               </div>
@@ -127,7 +136,12 @@ export function ChatMessages({
                 {item.reasoning && (
                   <ThinkingBlock
                     content={item.reasoning.thinking}
-                    live={isReasoningLive(busy, draftMessageIdRef, item.reasoning.assistant.id)}
+                    live={isReasoningLive(
+                      busy,
+                      agentPhase,
+                      draftMessageIdRef,
+                      item.reasoning.assistant.id
+                    )}
                   />
                 )}
               </div>
@@ -151,6 +165,7 @@ export function ChatMessages({
                   message={msg}
                   pinned={pinnedMessageIds.has(msg.id)}
                   busy={busy}
+                  agentPhase={agentPhase}
                   isStreaming={msg.id === draftMessageIdRef.current}
                   onPin={togglePinMessage}
                   onRetry={retryUserMessage}

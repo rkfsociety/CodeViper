@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ChatMessage } from '../../types'
 import type { RunStats } from '../../../shared/generationMetrics'
+import type { AgentPhase } from '../AgentStatusBar'
 import { groupToolMessages, shouldShowAssistantMessage } from './helpers'
 import { ChatMessages } from './ChatMessages'
 
@@ -11,6 +12,7 @@ interface Props {
   messages: ChatMessage[]
   pinnedMessageIds: Set<string>
   busy: boolean
+  agentPhase: AgentPhase
   queueSize: number
   draftMessageIdRef: MutableRefObject<string | null>
   runStats: RunStats | null
@@ -31,6 +33,7 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
   messages,
   pinnedMessageIds,
   busy,
+  agentPhase,
   queueSize,
   draftMessageIdRef,
   runStats,
@@ -104,6 +107,7 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
       scrollRef={scrollRef}
       virtualizer={virtualizer}
       busy={busy}
+      agentPhase={agentPhase}
       draftMessageIdRef={draftMessageIdRef}
       runStats={runStats}
       togglePinMessage={togglePinMessage}
