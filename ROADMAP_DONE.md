@@ -50,7 +50,7 @@
 
 ### UX и UI
 - DiffPreviewModal (side-by-side, cherry-pick hunks); ProjectTree; @-mentions; trace export/replay; MetricsPanel
-- Vision-ввод; ErrorBoundary; prompt templates; tray; UpdateBanner; уведомления и звук по завершении агента
+- Vision-ввод; ErrorBoundary; prompt templates; tray; UpdateBanner; уведомления и звук по завершении агента; toast при ожидании подтверждения (preview/danger/диалог), если окно не в фокусе
 - Коллективная память: рейтинг, AgentLearningPanel, шаблоны чатов, SelfImprovePlanPanel, `.codeviper/rules.md`
 
 ### P2P и интеграции

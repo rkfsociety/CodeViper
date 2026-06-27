@@ -71,6 +71,7 @@ interface Props {
   onRefreshOllama?: () => Promise<void>
   incognito?: boolean
   isVisible?: boolean
+  onDangerPendingChange?: (pending: boolean) => void
 }
 
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
@@ -87,7 +88,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onEnqueueModel,
     onRefreshOllama,
     incognito = false,
-    isVisible = true
+    isVisible = true,
+    onDangerPendingChange
   },
   ref
 ) {
@@ -109,6 +111,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [isDragOver, setIsDragOver] = useState(false)
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
   const [dangerBlock, setDangerBlock] = useState<DangerBlock | null>(null)
+
+  useEffect(() => {
+    onDangerPendingChange?.(Boolean(dangerBlock))
+  }, [dangerBlock, onDangerPendingChange])
   const [contextModalOpen, setContextModalOpen] = useState(false)
   const [fileTimelinePath, setFileTimelinePath] = useState<string | null>(null)
   const [pinnedMessageIds, setPinnedMessageIds] = useState<Set<string>>(new Set())

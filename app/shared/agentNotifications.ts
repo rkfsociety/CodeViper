@@ -27,3 +27,10 @@ export function formatAgentDoneNotificationBody(chatTitle: string): string {
   const title = chatTitle.trim() || 'Чат'
   return `${title}: агент завершил задачу`
 }
+
+export const AGENT_WAITING_APPROVAL_MESSAGE = 'Агент ждёт подтверждения'
+
+/** Toast / OS-уведомление, когда окно не в фокусе и агент ждёт preview_edit или danger-dialog. */
+export function shouldNotifyAgentWaitingApproval(windowHasFocus: boolean): boolean {
+  return !windowHasFocus
+}

@@ -28,6 +28,7 @@ import { ConfirmDialog } from './components/ConfirmDialog'
 import { PromptDialog } from './components/PromptDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 import { ToastProvider, useToast } from './components/Toast'
+import { useAgentWaitingApprovalNotify } from './hooks/useAgentWaitingApprovalNotify'
 
 const TerminalPanel = lazy(() =>
   import('./components/TerminalPanel').then((m) => ({ default: m.TerminalPanel }))
@@ -188,6 +189,19 @@ function AppContent() {
   const [settingsReady, setSettingsReady] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const [clarifyReq, setClarifyReq] = useState<AgentClarifyRequest | null>(null)
+  const [dangerApprovalPending, setDangerApprovalPending] = useState(false)
+  const { toast } = useToast()
+
+  const hasPendingPreview = useMemo(
+    () => messages.some((m) => m.previewStatus === 'pending' && m.previewId),
+    [messages]
+  )
+  const pendingApproval = Boolean(
+    confirmReq || clarifyReq || hasPendingPreview || dangerApprovalPending
+  )
+  const notifyWaitingApproval = useCallback((message: string) => toast(message, 'info'), [toast])
+  useAgentWaitingApprovalNotify(pendingApproval, notifyWaitingApproval)
+
   const [ollamaFallbackUrl, setOllamaFallbackUrl] = useState<string | null>(null)
   const [lightMode, setLightMode] = useState(false)
   const [incognitoMode, setIncognitoMode] = useState(false)
@@ -969,6 +983,7 @@ function AppContent() {
                       setSkillsRefreshKey((key) => key + 1)
                     }}
                     onOllamaFallbackOffer={(url) => setOllamaFallbackUrl(url)}
+                    onDangerPendingChange={setDangerApprovalPending}
                     incognito={incognitoChatIds.has(chatId)}
                   />
                 </div>
