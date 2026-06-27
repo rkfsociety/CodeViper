@@ -54,6 +54,12 @@ import { deriveChatTitle } from '../shared/chatTitle'
 import { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 import { tronStorage } from './lib/tron'
+import { PanelResizer } from './components/PanelResizer'
+import {
+  adjustSidePanelWidth,
+  loadSidePanelWidths,
+  saveSidePanelWidths
+} from './lib/sidePanelWidths'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -119,8 +125,36 @@ function AppContent() {
   const [prPanelOpen, setPrPanelOpen] = useState(false)
   const [tracePanelOpen, setTracePanelOpen] = useState(false)
   const [metricsPanelOpen, setMetricsPanelOpen] = useState(false)
+  const [sidePanelWidths, setSidePanelWidths] = useState(loadSidePanelWidths)
 
   useEffect(() => initTraceBuffer(), [])
+
+  const resizeMetricsWidth = useCallback((deltaX: number) => {
+    setSidePanelWidths((prev) => {
+      const next = { ...prev, metrics: adjustSidePanelWidth(prev.metrics, deltaX) }
+      saveSidePanelWidths(next)
+      return next
+    })
+  }, [])
+
+  const resizeTraceWidth = useCallback((deltaX: number) => {
+    setSidePanelWidths((prev) => {
+      const next = { ...prev, trace: adjustSidePanelWidth(prev.trace, deltaX) }
+      saveSidePanelWidths(next)
+      return next
+    })
+  }, [])
+
+  const resizeBetweenMetricsAndTrace = useCallback((deltaX: number) => {
+    setSidePanelWidths((prev) => {
+      const metrics = adjustSidePanelWidth(prev.metrics, deltaX)
+      const trace = adjustSidePanelWidth(prev.trace, -deltaX)
+      if (metrics === prev.metrics && trace === prev.trace) return prev
+      const next = { metrics, trace }
+      saveSidePanelWidths(next)
+      return next
+    })
+  }, [])
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [installingUpdate, setInstallingUpdate] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
@@ -920,43 +954,57 @@ function AppContent() {
           </section>
 
           {metricsPanelOpen && (
-            <section className="panel panel-trace">
-              <Suspense fallback={null}>
-                <MetricsPanel />
-              </Suspense>
-            </section>
+            <>
+              <PanelResizer onDrag={resizeMetricsWidth} />
+              <section className="panel panel-trace" style={{ width: sidePanelWidths.metrics }}>
+                <Suspense fallback={null}>
+                  <MetricsPanel />
+                </Suspense>
+              </section>
+            </>
+          )}
+
+          {metricsPanelOpen && tracePanelOpen && (
+            <PanelResizer onDrag={resizeBetweenMetricsAndTrace} />
           )}
 
           {tracePanelOpen && (
-            <section className="panel panel-trace">
-              <Suspense fallback={null}>
-                <TracePanel
-                  chatId={activeChatId}
-                  projectPath={activeProjectPath}
-                  onReplayFromStep={(stepTs, userMessage) => {
-                    const msgs = messagesRef.current
-                    let userMsgIndex = -1
-                    for (let i = msgs.length - 1; i >= 0; i--) {
-                      const m = msgs[i]
-                      if (m.role === 'user' && m.content === userMessage && m.timestamp <= stepTs) {
-                        userMsgIndex = i
-                        break
+            <>
+              {!metricsPanelOpen && <PanelResizer onDrag={resizeTraceWidth} />}
+              <section className="panel panel-trace" style={{ width: sidePanelWidths.trace }}>
+                <Suspense fallback={null}>
+                  <TracePanel
+                    chatId={activeChatId}
+                    projectPath={activeProjectPath}
+                    onReplayFromStep={(stepTs, userMessage) => {
+                      const msgs = messagesRef.current
+                      let userMsgIndex = -1
+                      for (let i = msgs.length - 1; i >= 0; i--) {
+                        const m = msgs[i]
+                        if (
+                          m.role === 'user' &&
+                          m.content === userMessage &&
+                          m.timestamp <= stepTs
+                        ) {
+                          userMsgIndex = i
+                          break
+                        }
                       }
-                    }
-                    if (userMsgIndex < 0) return
-                    const userMsg = msgs[userMsgIndex]
-                    const preRunHistory = msgs.slice(0, userMsgIndex)
-                    const intermediateMessages = msgs
-                      .slice(userMsgIndex + 1)
-                      .filter((m) => m.timestamp < stepTs)
-                    chatPanelRef.current?.replayFromStep(
-                      [...preRunHistory, ...intermediateMessages],
-                      userMsg.content
-                    )
-                  }}
-                />
-              </Suspense>
-            </section>
+                      if (userMsgIndex < 0) return
+                      const userMsg = msgs[userMsgIndex]
+                      const preRunHistory = msgs.slice(0, userMsgIndex)
+                      const intermediateMessages = msgs
+                        .slice(userMsgIndex + 1)
+                        .filter((m) => m.timestamp < stepTs)
+                      chatPanelRef.current?.replayFromStep(
+                        [...preRunHistory, ...intermediateMessages],
+                        userMsg.content
+                      )
+                    }}
+                  />
+                </Suspense>
+              </section>
+            </>
           )}
         </div>
 
