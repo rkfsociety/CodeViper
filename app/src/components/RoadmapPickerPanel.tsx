@@ -17,12 +17,41 @@ const SIZE_CLASS: Record<string, string> = {
 export function RoadmapPickerPanel({ onSelect, onClose }: Props) {
   const [items, setItems] = useState<RoadmapItem[]>([])
   const [filter, setFilter] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
     void window.codeviper
       .listRoadmapItems()
-      .then(setItems)
-      .catch(() => {})
+      .then((data) => {
+        if (cancelled) return
+        setItems(data)
+        if (data.length === 0) {
+          setError(
+            'ROADMAP.md не найден или пуст. Перезапустите CodeViper — runtime подтянется с GitHub.'
+          )
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setItems([])
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Не удалось загрузить ROADMAP (проверьте обновление runtime)'
+        )
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const filtered = useMemo(() => {
@@ -72,10 +101,10 @@ export function RoadmapPickerPanel({ onSelect, onClose }: Props) {
       </div>
 
       <div className={styles.list}>
-        {groups.length === 0 && (
-          <div className={styles.empty}>
-            {items.length === 0 ? 'Загрузка…' : 'Ничего не найдено'}
-          </div>
+        {loading && <div className={styles.empty}>Загрузка…</div>}
+        {!loading && error && groups.length === 0 && <div className={styles.empty}>{error}</div>}
+        {!loading && !error && groups.length === 0 && (
+          <div className={styles.empty}>Ничего не найдено</div>
         )}
         {groups.map((g) => (
           <div key={g.chain}>

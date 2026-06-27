@@ -1,7 +1,8 @@
 import { readFile } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { getCodeViperSourceRoot } from './codeviperSource'
+import { getBundledSourceRoot } from './bundledSourceSync'
 
 export interface RoadmapItem {
   num: number
@@ -11,10 +12,28 @@ export interface RoadmapItem {
   chain: string
 }
 
+/** ROADMAP.md в корне репозитория — не внутри app/. */
+export function resolveRoadmapPath(): string | null {
+  const candidates = [join(getCodeViperSourceRoot(), '..', 'ROADMAP.md')]
+  try {
+    candidates.push(join(getBundledSourceRoot(), 'ROADMAP.md'))
+  } catch {
+    /* electron app не инициализирован (vitest, node) */
+  }
+
+  const seen = new Set<string>()
+  for (const candidate of candidates) {
+    const path = resolve(candidate)
+    if (seen.has(path)) continue
+    seen.add(path)
+    if (existsSync(path)) return path
+  }
+  return null
+}
+
 export async function listRoadmapItems(): Promise<RoadmapItem[]> {
-  const appRoot = getCodeViperSourceRoot()
-  const roadmapPath = join(appRoot, '..', 'ROADMAP.md')
-  if (!existsSync(roadmapPath)) return []
+  const roadmapPath = resolveRoadmapPath()
+  if (!roadmapPath) return []
 
   const content = await readFile(roadmapPath, 'utf-8')
   const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
@@ -34,8 +53,8 @@ export async function listRoadmapItems(): Promise<RoadmapItem[]> {
     }
     if (!inPlans) continue
 
-    // Заголовок цепочки
-    const chainMatch = line.match(/^###\s+[\u{1F517}⚡]\s+(.+)/u)
+    // Заголовок цепочки или уровня
+    const chainMatch = line.match(/^###\s+[\u{1F517}\u26A1\u{1F7E0}\u{1F7E1}\u{1F7E2}]\s+(.+)/u)
     if (chainMatch) {
       currentChain = chainMatch[1].trim()
       continue
