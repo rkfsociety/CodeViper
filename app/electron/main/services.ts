@@ -296,8 +296,9 @@ export async function safeReadFilePartial(
       const skipped = totalLines - n * 2
       result =
         `[Файл: ${absPath} | ${totalLines} строк, показаны первые ${n} и последние ${n}]\n` +
+        `[Средняя часть скрыта — для правки: read с offset/limit, напр. offset=${n}, limit=80, или grep по символу]\n` +
         head +
-        `\n... (${skipped} строк обрезано) ...\n` +
+        `\n... (${skipped} строк обрезано, строки ${n + 1}–${totalLines - n}) ...\n` +
         tail
     } else {
       result = raw

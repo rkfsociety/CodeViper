@@ -107,6 +107,19 @@ export const SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT = `Для исходников
 
 export const READ_FILE_ALREADY_IN_RUN_HINT = `Этот файл уже читался в текущем прогоне — используй содержимое из предыдущего ответа инструмента, не вызывай read_* снова.`
 
+export const READ_FILE_TRUNCATED_HINT = `Ответ обрезан (средняя часть файла скрыта). Не выдумывай old_string — read_codeviper_file/read_file с offset/limit (например offset=150, limit=80) или grep_* по символу из «Файлы:».`
+
+export const EDIT_OLD_STRING_NOT_FOUND_HINT = `old_string не совпал с файлом. grep_codeviper_files/grep_files по уникальной подстроке (имя переменной, import), затем read_* с offset/limit — не повторяй read без offset, если файл >20KB.`
+
+/** read_file / read_codeviper_file вернули head+tail или chunk с пропуском строк. */
+export function isReadOutputTruncated(output: string): boolean {
+  return (
+    /строк обрезано/i.test(output) ||
+    /показаны первые \d+ и последние \d+/i.test(output) ||
+    /\[Ещё \d+ строк\. Читай дальше: offset=/i.test(output)
+  )
+}
+
 const PATH_SCOPED_AGENT_TOOLS = new Set([
   'read_file',
   'read_codeviper_file',

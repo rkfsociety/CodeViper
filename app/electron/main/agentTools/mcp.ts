@@ -49,7 +49,8 @@ export const CODEVIPER_TOOLS = [
     type: 'function',
     function: {
       name: 'read_codeviper_file',
-      description: 'Читать файл исходников CodeViper (offset/limit для больших)',
+      description:
+        'Читать файл исходников CodeViper. Без offset/limit файлы >20KB — только первые и последние 50 строк; для edit — offset/limit или grep_codeviper_files.',
       parameters: {
         type: 'object',
         properties: {
@@ -95,7 +96,8 @@ export const CODEVIPER_TOOLS = [
     type: 'function',
     function: {
       name: 'edit_codeviper_file',
-      description: 'Точечная замена в файле CodeViper. Перед правкой — read_codeviper_file.',
+      description:
+        'Точечная замена в файле CodeViper. old_string — точная копия из read/grep (не выдумывай). Большие файлы: grep + read с offset/limit.',
       parameters: {
         type: 'object',
         properties: {

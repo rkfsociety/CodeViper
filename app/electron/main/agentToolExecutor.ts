@@ -23,8 +23,11 @@ import { normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
 import { parseReadMultiplePaths } from '../../shared/readMultiplePaths'
 import {
   isCodeViperSourceRelativePath,
+  isReadOutputTruncated,
+  EDIT_OLD_STRING_NOT_FOUND_HINT,
   READ_FILE_ENOENT_CREATE_HINT,
   READ_FILE_ALREADY_IN_RUN_HINT,
+  READ_FILE_TRUNCATED_HINT,
   SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT
 } from '../../shared/selfImprovement'
 
@@ -162,7 +165,7 @@ export class ToolExecutor {
   private toolHandlers?: ToolHandlers
   clearEditSnapshots?: () => void
   private selfImproveMode = false
-  private readonly readPathsThisRun = new Set<string>()
+  private readonly readPathsThisRun = new Map<string, { truncated: boolean }>()
 
   /** Сброс состояния в начале прогона агента. */
   beginRun(selfImproveMode: boolean): void {
@@ -203,13 +206,28 @@ export class ToolExecutor {
       }
     }
 
+    if (
+      (name === 'edit_file' || name === 'edit_codeviper_file') &&
+      /old_string не найден/i.test(result)
+    ) {
+      result += `\n\n${EDIT_OLD_STRING_NOT_FOUND_HINT}`
+    }
+
     if (name === 'read_file' || name === 'read_codeviper_file') {
       const key = `${name}:${(args.path ?? '').trim()}`
+      const hasOffset = Boolean(String(args.offset ?? '').trim())
+      const truncated = isReadOutputTruncated(result)
       if (!/ENOENT|no such file|Ошибка:/i.test(result)) {
-        if (this.readPathsThisRun.has(key)) {
-          result += `\n\n${READ_FILE_ALREADY_IN_RUN_HINT}`
-        } else {
-          this.readPathsThisRun.add(key)
+        const prev = this.readPathsThisRun.get(key)
+        if (prev && !hasOffset) {
+          result += `\n\n${prev.truncated ? READ_FILE_TRUNCATED_HINT : READ_FILE_ALREADY_IN_RUN_HINT}`
+        }
+        if (!prev || hasOffset) {
+          this.readPathsThisRun.set(key, {
+            truncated: prev?.truncated === true || truncated
+          })
+        } else if (truncated) {
+          this.readPathsThisRun.set(key, { truncated: true })
         }
       }
     }

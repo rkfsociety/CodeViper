@@ -22,6 +22,16 @@ describe('applySearchReplace', () => {
     expect(() => applySearchReplace('abc', 'xyz', 'q')).toThrow(/не найден/)
   })
 
+  it('заменяет при CRLF в файле и LF в old_string', () => {
+    const result = applySearchReplace('line1\r\nfoo bar\r\nline3', 'foo bar', 'baz')
+    expect(result.content).toBe('line1\r\nbaz\r\nline3')
+    expect(result.replacements).toBe(1)
+  })
+
+  it('ошибка old_string содержит подсказку про offset/grep', () => {
+    expect(() => applySearchReplace('abc', 'xyz', 'q')).toThrow(/offset\/limit/)
+  })
+
   it('ошибка при пустом old_string', () => {
     expect(() => applySearchReplace('abc', '', 'x')).toThrow(/пустым/)
   })

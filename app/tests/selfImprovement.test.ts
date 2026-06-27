@@ -17,7 +17,8 @@ import {
   syncPlanFromChecklist,
   isPlanComplete,
   formatPlanSummary,
-  buildSelfImprovementContinueNudge
+  buildSelfImprovementContinueNudge,
+  isReadOutputTruncated
 } from '../shared/selfImprovement'
 
 describe('selfImprovement', () => {
@@ -149,5 +150,12 @@ tool_response {"name": "read_codeviper_file", "arguments": {"path": "agent.ts"}}
     ]
     expect(formatPlanSummary(plan)).toContain('1/2')
     expect(buildSelfImprovementContinueNudge(plan)).toContain('B')
+  })
+
+  it('isReadOutputTruncated — head/tail и offset footer', () => {
+    expect(isReadOutputTruncated('... (100 строк обрезано) ...')).toBe(true)
+    expect(isReadOutputTruncated('показаны первые 50 и последние 50')).toBe(true)
+    expect(isReadOutputTruncated('[Ещё 80 строк. Читай дальше: offset=220]')).toBe(true)
+    expect(isReadOutputTruncated('полный файл без обрезки')).toBe(false)
   })
 })
