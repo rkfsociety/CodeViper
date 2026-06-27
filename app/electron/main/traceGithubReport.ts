@@ -65,6 +65,7 @@ export async function reportAgentTraceToGithub(
 
     let issue = await createGitHubIssue(token, draft.title, body, ['trace-report'])
     if (!issue.ok && issue.error.includes('422')) {
+      // Метка может отсутствовать в форке — повтор без labels (см. scripts/ensure-github-labels.mjs)
       issue = await createGitHubIssue(token, draft.title, body)
     }
     if (!issue.ok) {

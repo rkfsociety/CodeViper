@@ -13,6 +13,8 @@ npm run test:e2e    # Playwright + Electron
 npm run lint
 ```
 
+Метка **`trace-report`** на GitHub Issues нужна для кнопки «На GitHub» в панели трассы. Создать в репозитории: `node scripts/ensure-github-labels.mjs` (нужен `gh auth login`).
+
 Интеграционные тесты `nodeLlama` пропускаются без `TEST_GGUF_PATH`:
 
 ```bash
