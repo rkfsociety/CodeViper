@@ -39,6 +39,13 @@ describe('codeviperSource', () => {
     expect(isAllowedSelfPath(root, join(root, 'out', 'main', 'index.js'))).toBe(false)
   })
 
+  it('разрешает ROADMAP.md и README.md в родительской папке app/', () => {
+    const root = getCodeViperSourceRoot()
+    expect(isAllowedSelfPath(root, '../ROADMAP.md')).toBe(true)
+    expect(isAllowedSelfPath(root, '../README.md')).toBe(true)
+    expect(isAllowedSelfPath(root, '../../secret/ROADMAP.md')).toBe(false)
+  })
+
   it('getBundledNodeBin находит node.exe в resources/node', () => {
     const binaryName = process.platform === 'win32' ? 'node.exe' : join('bin', 'node')
     const expected = join(process.cwd(), 'resources', 'node', binaryName)

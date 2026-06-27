@@ -253,6 +253,7 @@ export class AgentRunner {
     let orchestratorIsComplex = false
 
     const minLen = this.settings.orchestratorMinMessageLength ?? 30
+    const skipOrchestratorRephrase = taskMode === 'self-improve'
     if (
       this.settings.orchestratorEnabled &&
       this.settings.orchestratorModelPath &&
@@ -262,7 +263,7 @@ export class AgentRunner {
       try {
         const result = await analyze(userMessage, this.settings.orchestratorModelPath)
         orchestratorIsComplex = result.isComplex
-        if (result.isComplex && result.rephrased) {
+        if (result.isComplex && result.rephrased && !skipOrchestratorRephrase) {
           effectiveMessage = result.rephrased
         }
         if (result.plan) {

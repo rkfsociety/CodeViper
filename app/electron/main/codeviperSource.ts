@@ -62,9 +62,19 @@ export function getCodeViperSourceRoot(): string {
 }
 
 export function isAllowedSelfPath(sourceRoot: string, targetPath: string): boolean {
-  if (!isInsideProject(sourceRoot, targetPath)) return false
+  const absolute = resolve(sourceRoot, targetPath)
+  const baseName = absolute.split(sep).pop()?.toLowerCase()
+  const parentRoot = resolve(sourceRoot, '..')
+  if (
+    (baseName === 'roadmap.md' || baseName === 'readme.md') &&
+    isInsideProject(parentRoot, absolute)
+  ) {
+    return true
+  }
 
-  const relative = resolve(targetPath)
+  if (!isInsideProject(sourceRoot, absolute)) return false
+
+  const relative = absolute
     .slice(resolve(sourceRoot).length)
     .replace(/^[/\\]+/, '')
     .split(sep)
@@ -73,12 +83,26 @@ export function isAllowedSelfPath(sourceRoot: string, targetPath: string): boole
   return !relative.some((part) => BLOCKED_SELF_PARTS.has(part))
 }
 
+function codeViperReadRoot(sourceRoot: string, filePath: string): { root: string; rel: string } {
+  const absPath = resolve(sourceRoot, filePath)
+  const baseName = absPath.split(sep).pop()?.toLowerCase()
+  const parentRoot = resolve(sourceRoot, '..')
+  if (
+    (baseName === 'roadmap.md' || baseName === 'readme.md') &&
+    isInsideProject(parentRoot, absPath)
+  ) {
+    return { root: parentRoot, rel: baseName! }
+  }
+  return { root: sourceRoot, rel: filePath }
+}
+
 export async function readCodeViperFile(filePath: string): Promise<string> {
   const root = getCodeViperSourceRoot()
   if (!isAllowedSelfPath(root, filePath)) {
     throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
   }
-  return safeReadFile(root, filePath)
+  const { root: readRoot, rel } = codeViperReadRoot(root, filePath)
+  return safeReadFile(readRoot, rel)
 }
 
 export async function readCodeViperFilePartial(
@@ -90,7 +114,8 @@ export async function readCodeViperFilePartial(
   if (!isAllowedSelfPath(root, filePath)) {
     throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
   }
-  return safeReadFilePartial(root, filePath, offset, limit)
+  const { root: readRoot, rel } = codeViperReadRoot(root, filePath)
+  return safeReadFilePartial(readRoot, rel, offset, limit)
 }
 
 export async function writeCodeViperFile(filePath: string, content: string): Promise<void> {
