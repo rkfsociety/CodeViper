@@ -198,7 +198,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     }
 
     if (provider === 'openrouter') {
-      return filterOpenRouterModelsByTier(models, settings.openrouterTier ?? 'free')
+      const tier = settings.openrouterTier ?? 'free'
+      let filtered = filterOpenRouterModelsByTier(models, tier)
+      if (filtered.length === 0 && models.length > 0) {
+        filtered = models
+      }
+      const current = settings.model?.trim()
+      if (current && !filtered.some((m) => m.name === current)) {
+        const active = models.find((m) => m.name === current)
+        if (active) filtered = [active, ...filtered]
+      }
+      return filtered
     }
 
     if (isCloud && provider in CLOUD_KNOWN_MODELS) {
@@ -213,7 +223,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       }
     }
     return models
-  }, [settings.modelProvider, settings.geminiTier, settings.openrouterTier, models])
+  }, [settings.modelProvider, settings.geminiTier, settings.openrouterTier, settings.model, models])
 
   // Не фильтровать облачные модели (они всегда поддерживают tool calling)
   // В Code-режиме (settings.chatMode === false) дополнительно скрываем модели < 7B

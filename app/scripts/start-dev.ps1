@@ -217,7 +217,7 @@ function Test-StaleBuild {
   $outMain = Join-Path $root 'out\main\index.js'
   if (-not (Test-Path $outMain)) { return $true }
   $outTime = (Get-Item $outMain).LastWriteTimeUtc
-  foreach ($dir in @('electron', 'shared')) {
+  foreach ($dir in @('electron', 'shared', 'src')) {
     $srcDir = Join-Path $root $dir
     if (-not (Test-Path $srcDir)) { continue }
     $newer = Get-ChildItem -Path $srcDir -Recurse -File -Include *.ts,*.tsx -ErrorAction SilentlyContinue |
