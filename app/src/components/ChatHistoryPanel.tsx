@@ -300,8 +300,8 @@ export function ChatHistoryPanel({
     getScrollElement: () => listRef.current,
     estimateSize: (i) => {
       const item = flatItems[i]
-      if (!item || item.kind === 'folder-head' || item.kind === 'project-head') return 42
-      return 74
+      if (!item || item.kind === 'folder-head' || item.kind === 'project-head') return 28
+      return 52
     },
     overscan: 5
   })
@@ -702,7 +702,7 @@ export function ChatHistoryPanel({
                     left: 0,
                     width: '100%',
                     transform: `translateY(${vRow.start}px)`,
-                    paddingBottom: 4
+                    paddingBottom: 2
                   }}
                 >
                   {item.kind === 'folder-head' && renderFolderHead(item.folder)}
