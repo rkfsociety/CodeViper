@@ -174,10 +174,32 @@ export function selfImprovementStepLimit(configuredMaxSteps: number): number {
   return Math.max(configuredMaxSteps, 200)
 }
 
-export function parsePlanItemsJson(raw: string): SelfImprovementItem[] {
+const PLAN_ITEM_TITLE_KEYS = ['title', 'text', 'item', 'name', 'description', 'label'] as const
+
+export function extractPlanItemTitle(record: Record<string, unknown>): string {
+  for (const key of PLAN_ITEM_TITLE_KEYS) {
+    const value = record[key]
+    if (value == null) continue
+    const text = String(value).trim()
+    if (text) return text
+  }
+  return ''
+}
+
+/** Нормализует args.items из tool call (string | array | object). */
+export function normalizePlanItemsInput(raw: unknown): string {
+  if (typeof raw === 'string') return raw
+  if (Array.isArray(raw) || (raw && typeof raw === 'object')) {
+    return JSON.stringify(raw)
+  }
+  return String(raw ?? '')
+}
+
+export function parsePlanItemsJson(raw: unknown): SelfImprovementItem[] {
+  const normalized = normalizePlanItemsInput(raw)
   let parsed: unknown
   try {
-    parsed = JSON.parse(raw)
+    parsed = JSON.parse(normalized)
   } catch {
     throw new Error('items должны быть JSON-массивом [{id, title}, ...]')
   }
@@ -191,8 +213,13 @@ export function parsePlanItemsJson(raw: string): SelfImprovementItem[] {
       throw new Error(`items[${index}]: ожидается объект`)
     }
     const record = entry as Record<string, unknown>
-    const title = String(record.title ?? record.text ?? '').trim()
-    if (!title) throw new Error(`items[${index}]: пустой title`)
+    const title = extractPlanItemTitle(record)
+    if (!title) {
+      const keys = Object.keys(record).join(', ') || '(пусто)'
+      throw new Error(
+        `items[${index}]: пустой title — используйте поле title (не item). Ключи: ${keys}`
+      )
+    }
 
     return {
       id: String(record.id ?? index + 1),
@@ -249,7 +276,7 @@ export function parsePlanFromAssistantText(text: string): SelfImprovementItem[] 
   if (checklist) return checklist
 
   for (const candidate of extractJsonArrays(text)) {
-    if (!/(?:id|title)/i.test(candidate)) continue
+    if (!/(?:id|title|item)/i.test(candidate)) continue
     try {
       const items = parsePlanItemsJson(candidate)
       if (items.length >= 2) return items

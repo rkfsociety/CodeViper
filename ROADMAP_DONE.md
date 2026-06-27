@@ -42,6 +42,7 @@
 - `list_pull_requests` — открытые PR и статус CI через gh (как панель PR в UI)
 - `list_roadmap` — список пунктов «В планах» из ROADMAP.md (num · title · chain)
 - `read_roadmap_item` — полный блок пункта N: цель, файлы, действие, проверка
+- `set_self_improvement_plan`: алиасы title/item/name; Gemini — минимальные JSON-схемы tools (fix #19)
 - Описания search-инструментов (`grep_files` / `find_files` / `search_in_file` / `file_search_summary`) в tool schema и viper-files
 - `docs/tools-api.md` синхронизирован с `agentTools/` и `AGENT_TOOL_NAMES` (индекс, Git, GitHub, ROADMAP)
 - Субагенты Explorer/Editor; оркестратор node-llama-cpp; checkpoint и откат прогона; `run_tests` с авто-починкой

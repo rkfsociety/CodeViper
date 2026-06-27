@@ -295,7 +295,7 @@ export const OLLAMA_TOOLS = [
           items: {
             type: 'string',
             description:
-              'JSON-массив [{id, title}, ...], напр. [{"id":"1","title":"Добавить skill X"}]'
+              'JSON-массив [{id, title}, ...] — поле title обязательно (не item). Пример: [{"id":"1","title":"Добавить skill X"}]'
           }
         },
         required: ['items']

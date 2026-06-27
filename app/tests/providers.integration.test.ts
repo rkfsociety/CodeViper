@@ -901,7 +901,7 @@ describe('GeminiProvider', () => {
     expect(JSON.parse(withTool!.tool_calls![0].function.arguments)).toEqual({ path: '/tmp/x.txt' })
   })
 
-  it('упрощает JSON-схемы tools (только required-поля)', async () => {
+  it('упрощает JSON-схемы tools до минимальной object-схемы', async () => {
     fetchMock.mockResolvedValue(makeResponse(makeStream([geminiSseLine(geminiTextChunk('ok'))])))
 
     const tools = [
@@ -934,11 +934,7 @@ describe('GeminiProvider', () => {
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
     const declarations = body.tools[0].functionDeclarations
-    expect(declarations[0].parameters).toEqual({
-      type: 'object',
-      properties: { query: { type: 'string' } },
-      required: ['query']
-    })
+    expect(declarations[0].parameters).toEqual({ type: 'object', properties: {} })
     expect(declarations[1].parameters).toEqual({ type: 'object', properties: {} })
   })
 

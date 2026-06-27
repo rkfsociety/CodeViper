@@ -1,47 +1,39 @@
 import { describe, it, expect } from 'vitest'
 import { join } from 'path'
-import { simplifySchemaForGemini } from '../shared/geminiToolSchema'
+import { GEMINI_MINIMAL_TOOL_SCHEMA, simplifySchemaForGemini } from '../shared/geminiToolSchema'
 
 describe('simplifySchemaForGemini', () => {
-  it('оставляет только required-поля', () => {
-    const result = simplifySchemaForGemini({
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'поиск' },
-        path: { type: 'string', description: 'папка' },
-        limit: { type: 'string', description: 'лимит' }
-      },
-      required: ['query']
-    })
-
-    expect(result).toEqual({
-      type: 'object',
-      properties: { query: { type: 'string' } },
-      required: ['query']
-    })
+  it('всегда возвращает минимальную object-схему без properties', () => {
+    expect(
+      simplifySchemaForGemini({
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'поиск' },
+          path: { type: 'string', description: 'папка' },
+          limit: { type: 'string', description: 'лимит' }
+        },
+        required: ['query']
+      })
+    ).toEqual(GEMINI_MINIMAL_TOOL_SCHEMA)
   })
 
-  it('сворачивает вложенные object/array в string', () => {
-    const result = simplifySchemaForGemini({
-      type: 'object',
-      properties: {
-        items: {
-          type: 'array',
+  it('сворачивает вложенные object/array так же в пустую схему', () => {
+    expect(
+      simplifySchemaForGemini({
+        type: 'object',
+        properties: {
           items: {
-            type: 'object',
-            properties: { id: { type: 'string' }, title: { type: 'string' } },
-            required: ['id', 'title']
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { id: { type: 'string' }, title: { type: 'string' } },
+              required: ['id', 'title']
+            }
           }
-        }
-      },
-      required: ['items']
-    })
-
-    expect(result).toEqual({
-      type: 'object',
-      properties: { items: { type: 'string', description: 'JSON-массив' } },
-      required: ['items']
-    })
+        },
+        required: ['items']
+      })
+    ).toEqual(GEMINI_MINIMAL_TOOL_SCHEMA)
   })
 
   it('возвращает пустой object без required', () => {
@@ -53,7 +45,7 @@ describe('simplifySchemaForGemini', () => {
           max_depth: { type: 'string' }
         }
       })
-    ).toEqual({ type: 'object', properties: {} })
+    ).toEqual(GEMINI_MINIMAL_TOOL_SCHEMA)
   })
 })
 

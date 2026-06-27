@@ -35,7 +35,7 @@ export function createSelfImprovementToolHandlers(
     },
 
     set_self_improvement_plan: async (args: any) => {
-      const items = plan.set(parsePlanItemsJson(args.items))
+      const items = plan.set(parsePlanItemsJson(args?.items))
       emitPlan(items)
       return `${formatPlanSummary(items)}\n\nНачни выполнение пункта 1 через инструменты.`
     },

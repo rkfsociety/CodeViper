@@ -91,6 +91,18 @@ describe('selfImprovement', () => {
     expect(items[1].id).toBe('2')
   })
 
+  it('принимает поле item вместо title (Gemini)', () => {
+    const items = parsePlanItemsJson('[{"id":"1","item":"Реализовать toast"}]')
+    expect(items).toHaveLength(1)
+    expect(items[0].title).toBe('Реализовать toast')
+  })
+
+  it('принимает items как массив объектов', () => {
+    const items = parsePlanItemsJson([{ id: '1', title: 'Шаг A' }])
+    expect(items).toHaveLength(1)
+    expect(items[0].title).toBe('Шаг A')
+  })
+
   it('парсит JSON план из текста ответа', () => {
     const text = `План:
 [{"id":"1","title":"Изучить agent.ts"},{"id":"2","title":"Добавить skill"}]
