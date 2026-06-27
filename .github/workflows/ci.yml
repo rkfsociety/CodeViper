@@ -106,6 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -126,4 +127,4 @@ jobs:
         if: steps.auto_release.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run release.yml --ref master -f tag="${{ steps.auto_release.outputs.tag }}"
+        run: gh workflow run release.yml --ref "${{ steps.auto_release.outputs.tag }}" -f tag="${{ steps.auto_release.outputs.tag }}"
