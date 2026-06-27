@@ -153,6 +153,7 @@ export function shouldBuildBundledSourceAfterSync(
   appRoot = getBundledSourceAppRoot()
 ): boolean {
   if (!existsSync(join(appRoot, 'package.json'))) return false
+  if (syncResult.cloneCreated) return true
   if (syncResult.appDirChanged) return true
   return isBundledRuntimeMainStale(appRoot)
 }

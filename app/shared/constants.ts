@@ -140,6 +140,8 @@ export const BUNDLED_SOURCE_DIR_NAME = 'source'
 export const BUNDLED_SOURCE_APP_DIR_NAME = 'app'
 /** Макс. ожидание startup sync перед показом окна (мс) */
 export const BUNDLED_SOURCE_STARTUP_WAIT_MS = 3_000
+/** Первый git clone при автообновлении без NSIS — дольше обычного startup wait */
+export const BUNDLED_SOURCE_FIRST_CLONE_WAIT_MS = 120_000
 /** Минимальный размер out/main/index.js для считания runtime валидным */
 export const BUNDLED_RUNTIME_MAIN_MIN_BYTES = 1024
 /** Таймаут npm install / build в клоне (с) */

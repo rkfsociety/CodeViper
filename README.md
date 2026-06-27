@@ -24,7 +24,7 @@
 
 **Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org) (для запуска из исходников), 8 ГБ RAM.
 
-**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — ярлыки запускают `CodeViper.exe`; при установке запросит **права администратора (UAC)** и **[Git for Windows](https://git-scm.com)** в PATH (клон в `%APPDATA%/CodeViper/source`). Если окно пустое или чёрное после обновления — переустановите **0.3.0+**, удалите `%APPDATA%\codeviper\GPUCache` и `%APPDATA%\codeviper\ShaderCache`, либо временно переименуйте `%USERPROFILE%\.codeviper\plugins`.
+**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — ярлыки запускают `CodeViper.exe`; при установке запросит **права администратора (UAC)** и **[Git for Windows](https://git-scm.com)** в PATH (клон в `%APPDATA%/codeviper/source`). Если окно пустое или чёрное после обновления — переустановите **0.3.0+**, удалите `%APPDATA%\codeviper\GPUCache` и `%APPDATA%\codeviper\ShaderCache`, либо временно переименуйте `%USERPROFILE%\.codeviper\plugins`.
 
 ```powershell
 git clone https://github.com/rkfsociety/CodeViper.git
@@ -35,7 +35,7 @@ cd CodeViper/app && npm install
 
 ## Обновление без переустановки
 
-Установщик клонирует репозиторий в **`%APPDATA%/CodeViper/source`** (нужен **Git for Windows** в PATH). Если клона нет — приложение само выполнит `git clone` при синхронизации памяти или обновлении runtime. Тонкая оболочка `CodeViper.exe` редко меняется; agent runtime подтягивается с GitHub: `git pull` → сборка в `source/app` → баннер **«Перезапустить для применения»**. Новый установщик CI создаёт **автоматически**, только если изменилась оболочка (не каждый push). Подробнее — [docs/development.md](docs/development.md#обновление-без-переустановки-live-runtime).
+Установщик клонирует репозиторий в **`%APPDATA%/codeviper/source`** (нужен **Git for Windows**). При **автообновлении** без полной переустановки приложение само выполнит `git clone` при первом запуске (0.3.6+), если клона ещё нет. Тонкая оболочка `CodeViper.exe` редко меняется; agent runtime подтягивается с GitHub: `git pull` → сборка в `source/app` → баннер **«Перезапустить для применения»**.
 
 ## Документация
 

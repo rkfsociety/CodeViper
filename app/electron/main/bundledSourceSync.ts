@@ -6,10 +6,12 @@ import { app } from 'electron'
 import { Mutex } from 'async-mutex'
 import {
   BUNDLED_SOURCE_DIR_NAME,
+  BUNDLED_SOURCE_FIRST_CLONE_WAIT_MS,
   BUNDLED_SOURCE_STARTUP_WAIT_MS,
   CODEVIPER_GITHUB_CLONE_URL
 } from '../../shared/constants'
 import { loadSettings, saveSettings } from './settings'
+import { prependWindowsGitToPath } from './windowsGitEnv'
 
 export interface BundledSourceSyncResult {
   updated: boolean
@@ -17,6 +19,8 @@ export interface BundledSourceSyncResult {
   error?: string
   /** В pull изменились файлы под app/ */
   appDirChanged?: boolean
+  /** Только что создан git clone (нужна сборка runtime) */
+  cloneCreated?: boolean
 }
 
 export interface GitRunResult {
@@ -81,7 +85,11 @@ function defaultRunGit(
   timeoutMs = GIT_TIMEOUT_MS
 ): Promise<GitRunResult> {
   return new Promise((resolve) => {
-    const child = spawn('git', args, { cwd, windowsHide: true })
+    const child = spawn('git', args, {
+      cwd,
+      windowsHide: true,
+      env: prependWindowsGitToPath(process.env)
+    })
     let stdout = ''
     let stderr = ''
     let settled = false
@@ -193,6 +201,7 @@ export async function ensureBundledSourceClone(): Promise<string | null> {
 /** git pull --ff-only в клоне; при отсутствии клона — попытка git clone. */
 export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
   const root = getBundledSourceRoot()
+  let cloneCreated = false
 
   if (!existsSync(join(root, '.git'))) {
     const ensured = await ensureBundledSourceClone()
@@ -200,6 +209,7 @@ export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
       await logBundledSourceSync('skip: no git clone', { root })
       return { updated: false }
     }
+    cloneCreated = true
   }
 
   const before = await runGit(root, ['rev-parse', 'HEAD'])
@@ -226,10 +236,17 @@ export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
     appDirChanged = diff.stdout.trim().length > 0
   }
 
-  await logBundledSourceSync('sync complete', { root, updated, localHead, appDirChanged })
+  await logBundledSourceSync('sync complete', {
+    root,
+    updated,
+    localHead,
+    appDirChanged,
+    cloneCreated
+  })
   return {
     updated,
     localHead: localHead || undefined,
+    ...(cloneCreated ? { cloneCreated: true } : {}),
     ...(updated ? { appDirChanged } : {})
   }
 }
@@ -246,6 +263,8 @@ export interface BundledSourceStartupOptions {
   isPackaged?: boolean
   /** Переопределение лимита ожидания (только тесты). */
   startupWaitMs?: number
+  /** Переопределение ожидания первого clone (только тесты). */
+  firstCloneWaitMs?: number
 }
 
 export function shouldRunBundledSourceStartupSync(options: {
@@ -267,7 +286,11 @@ export async function runBundledSourceStartupSync(
   const isPackaged = options?.isPackaged ?? app.isPackaged
   if (!shouldRunBundledSourceStartupSync({ isPackaged, liveRuntimeFromGit })) return
 
-  const waitMs = options?.startupWaitMs ?? BUNDLED_SOURCE_STARTUP_WAIT_MS
+  const root = getBundledSourceRoot()
+  const firstClone = !existsSync(join(root, '.git'))
+  const waitMs = firstClone
+    ? (options?.firstCloneWaitMs ?? BUNDLED_SOURCE_FIRST_CLONE_WAIT_MS)
+    : (options?.startupWaitMs ?? BUNDLED_SOURCE_STARTUP_WAIT_MS)
 
   const syncPromise = syncBundledSource()
     .then(async (result) => {

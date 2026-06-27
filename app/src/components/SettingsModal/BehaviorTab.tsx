@@ -409,7 +409,7 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
               <span className={styles.title}>Обновлять runtime с GitHub</span>
               <span className={styles.desc}>
                 Установленный CodeViper подтягивает agent runtime из{' '}
-                <code>%APPDATA%/CodeViper/source</code> (git pull). Dev-режим из исходников не
+                <code>%APPDATA%/codeviper/source</code> (git pull). Dev-режим из исходников не
                 затрагивает
               </span>
             </span>

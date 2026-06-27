@@ -1,5 +1,9 @@
 ; Кастомный NSIS-скрипт для CodeViper installer
 ; electron-builder включает этот файл автоматически через "include" в package.json
+; userData Electron = %APPDATA%\codeviper (имя пакета npm, lowercase)
+
+!define CODEVIPER_USERDATA "$APPDATA\codeviper"
+!define CODEVIPER_SOURCE "${CODEVIPER_USERDATA}\source"
 
 ; ─── Установка ───────────────────────────────────────────────────────────────
 !macro customInstall
@@ -16,17 +20,17 @@
   ${EndIf}
 
   ; Клонируем или обновляем репозиторий
-  ${If} ${FileExists} "$APPDATA\CodeViper\source\.git\HEAD"
+  ${If} ${FileExists} "${CODEVIPER_SOURCE}\.git\HEAD"
     DetailPrint "Репозиторий уже существует — обновляем (git pull)..."
-    nsExec::ExecToLog 'git -C "$APPDATA\CodeViper\source" pull --ff-only'
+    nsExec::ExecToLog 'git -C "${CODEVIPER_SOURCE}" pull --ff-only'
     Pop $0
     ${If} $0 != 0
       DetailPrint "git pull завершился с ошибкой ($0) — продолжаем с текущей версией."
     ${EndIf}
   ${Else}
     DetailPrint "Клонируем репозиторий CodeViper — может занять несколько минут..."
-    CreateDirectory "$APPDATA\CodeViper"
-    nsExec::ExecToLog 'git clone --depth 1 https://github.com/rkfsociety/CodeViper.git "$APPDATA\CodeViper\source"'
+    CreateDirectory "${CODEVIPER_USERDATA}"
+    nsExec::ExecToLog 'git clone --depth 1 https://github.com/rkfsociety/CodeViper.git "${CODEVIPER_SOURCE}"'
     Pop $0
     ${If} $0 != 0
       MessageBox MB_OK|MB_ICONEXCLAMATION \
@@ -54,11 +58,11 @@
   Delete "$DESKTOP\CodeViper.lnk"
   RMDir /r "$SMPROGRAMS\CodeViper"
 
-  ; Предлагаем удалить исходный код (настройки и чаты в %APPDATA%\CodeViper\ остаются)
+  ; Предлагаем удалить исходный код (настройки и чаты в %APPDATA%\codeviper\ остаются)
   MessageBox MB_YESNO|MB_ICONQUESTION \
-    "Удалить исходный код CodeViper из$\n  $APPDATA\CodeViper\source ?$\n$\nНастройки и история чатов будут сохранены." \
+    "Удалить исходный код CodeViper из$\n  ${CODEVIPER_SOURCE} ?$\n$\nНастройки и история чатов будут сохранены." \
     IDNO done_uninstall
-  RMDir /r "$APPDATA\CodeViper\source"
+  RMDir /r "${CODEVIPER_SOURCE}"
   done_uninstall:
 
 !macroend
