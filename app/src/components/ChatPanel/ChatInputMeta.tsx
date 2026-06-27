@@ -1,5 +1,6 @@
 import type { AgentSettings, AgentContextPreview, OllamaModel } from '../../types'
 import { GEMINI_FREE_MODELS } from '../../../shared/constants'
+import { getModelPickerHint } from '../../../shared/recommendedModels'
 import { formatProjectLabel } from './helpers'
 import styles from '../ChatPanel.module.css'
 
@@ -160,14 +161,18 @@ export function ChatInputMeta({
               {displayModels.length > 0 && <div className={styles.modelPickerSep} />}
               {displayModels.map((m: OllamaModel) => {
                 const isActive = settings.autoModel === false && settings.model === m.name
+                const isLocal = (settings.modelProvider ?? 'ollama') === 'ollama'
                 const freeModel =
                   settings.modelProvider === 'gemini' && (settings.geminiTier ?? 'free') === 'free'
                     ? GEMINI_FREE_MODELS.find((f) => f.id === m.name)
                     : undefined
                 const displayName = freeModel ? freeModel.label : m.name.split(':')[0]
+                const hint = isLocal ? getModelPickerHint(m, !settings.chatMode) : undefined
                 const tag = freeModel
                   ? `${freeModel.rpm} RPM · ${freeModel.tpm != null ? `${freeModel.tpm / 1000}K` : '∞'} TPM`
-                  : (m.parameterSize ?? (m.name.includes(':') ? m.name.split(':')[1] : undefined))
+                  : hint
+                    ? undefined
+                    : (m.parameterSize ?? (m.name.includes(':') ? m.name.split(':')[1] : undefined))
                 return (
                   <button
                     key={m.name}
@@ -181,6 +186,7 @@ export function ChatInputMeta({
                     }}
                   >
                     <span className={styles.modelPickerName}>{displayName}</span>
+                    {hint && <span className={styles.modelPickerDesc}>{hint}</span>}
                     {tag && <span className={styles.modelPickerTag}>{tag}</span>}
                     {isActive && <span className={styles.modelPickerCheck}>✓</span>}
                   </button>

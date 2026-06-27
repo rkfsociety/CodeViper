@@ -225,15 +225,38 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     return models
   }, [settings.modelProvider, settings.geminiTier, settings.openrouterTier, settings.model, models])
 
-  // Не фильтровать облачные модели (они всегда поддерживают tool calling)
-  // В Code-режиме (settings.chatMode === false) дополнительно скрываем модели < 7B
+  // Облако: список как есть. Ollama: все установленные модели (рекомендуемые — выше).
   const displayModels = useMemo(() => {
-    const isCloud = settings.modelProvider !== 'ollama'
-    const codeMode = !settings.chatMode
+    const isCloud = (settings.modelProvider ?? 'ollama') !== 'ollama'
     if (isCloud) return pickerModels
+
+    if (pickerModels.length === 0) {
+      const current = settings.model?.trim()
+      return current ? [{ name: current, size: 0, modifiedAt: '' }] : []
+    }
+
     const toolModels = filterToolCallingModels(pickerModels)
-    return codeMode ? filterAgentCapableModels(toolModels) : toolModels
-  }, [pickerModels, settings.modelProvider, settings.chatMode])
+    const codeMode = !settings.chatMode
+    const preferred = codeMode ? filterAgentCapableModels(toolModels) : toolModels
+    const preferredNames = new Set(preferred.map((m) => m.name))
+    const toolNames = new Set(toolModels.map((m) => m.name))
+
+    const sorted = [...pickerModels].sort((a, b) => {
+      const rank = (name: string) => {
+        if (preferredNames.has(name)) return 0
+        if (toolNames.has(name)) return 1
+        return 2
+      }
+      return rank(a.name) - rank(b.name) || a.name.localeCompare(b.name)
+    })
+
+    const current = settings.model?.trim()
+    if (current && !sorted.some((m) => m.name === current)) {
+      sorted.unshift({ name: current, size: 0, modifiedAt: '' })
+    }
+
+    return sorted
+  }, [pickerModels, settings.modelProvider, settings.chatMode, settings.model])
 
   function commitMessages(next: ChatMessage[]) {
     messagesRef.current = next

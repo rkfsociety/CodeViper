@@ -40,6 +40,7 @@ export async function fetchOllamaModelsWithDetails(baseUrl: string) {
           return {
             name: m.name,
             size: m.size,
+            modifiedAt: m.modified_at,
             details: body.details,
             capabilities: body.capabilities
           }
@@ -47,7 +48,7 @@ export async function fetchOllamaModelsWithDetails(baseUrl: string) {
       } catch {
         // пропускаем
       }
-      return { name: m.name, size: m.size }
+      return { name: m.name, size: m.size, modifiedAt: m.modified_at }
     })
   )
   return detailed

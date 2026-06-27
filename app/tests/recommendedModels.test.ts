@@ -3,6 +3,7 @@ import {
   RECOMMENDED_MODELS,
   assertPullableToolModel,
   filterDownloadableRecommendedModels,
+  getModelPickerHint,
   groupRecommendedModelsByTier,
   isToolCallingModel
 } from '../shared/recommendedModels'
@@ -56,5 +57,13 @@ describe('recommendedModels', () => {
     const featured = RECOMMENDED_MODELS.filter((m) => m.featured)
     expect(featured.some((m) => m.name === 'qwen2.5-coder:7b')).toBe(true)
     expect(featured.some((m) => m.name === 'qwen2.5-coder:14b')).toBe(true)
+  })
+
+  it('getModelPickerHint: llama3.2 без tools и мелкие модели в Code', () => {
+    expect(getModelPickerHint({ name: 'llama3.2:latest' }, false)).toBe('без tool calling')
+    expect(getModelPickerHint({ name: 'qwen2.5-coder:7b' }, true)).toBeUndefined()
+    expect(
+      getModelPickerHint({ name: 'llama3.2:3b', parameterSize: '3.2B', supportsTools: true }, true)
+    ).toBe('< 7B · только Chat')
   })
 })

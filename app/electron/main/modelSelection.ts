@@ -2,6 +2,8 @@ import type { SystemCapabilities } from './systemStats'
 
 export interface ModelCapabilities {
   name: string
+  size: number
+  modifiedAt: string
   sizeGB: number
   contextLength: number
   parameterSize: string
@@ -48,6 +50,7 @@ export function enrichModelCapabilities(
   models: Array<{
     name: string
     size: number
+    modifiedAt?: string
     details?: { parameter_size?: string; context_length?: number }
     capabilities?: string[]
   }>,
@@ -81,6 +84,8 @@ export function enrichModelCapabilities(
 
     return {
       name: model.name,
+      size: model.size,
+      modifiedAt: model.modifiedAt ?? '',
       sizeGB: Math.round(sizeGB * 10) / 10,
       contextLength,
       parameterSize: model.details?.parameter_size ?? 'unknown',

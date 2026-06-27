@@ -219,6 +219,23 @@ export function filterAgentCapableModels<T extends { name: string; parameterSize
   })
 }
 
+/** Подсказка в селекторе моделей чата для локальных моделей. */
+export function getModelPickerHint(
+  model: { name: string; supportsTools?: boolean; parameterSize?: string },
+  codeMode: boolean
+): string | undefined {
+  const isTool =
+    model.supportsTools === true ||
+    (model.supportsTools !== false && isToolCallingModel(model.name))
+  if (!isTool) return 'без tool calling'
+
+  const sizeB = parseParamSizeB(model.parameterSize)
+  if (codeMode && sizeB !== null && sizeB < MIN_AGENT_PARAMS_B) {
+    return `< ${MIN_AGENT_PARAMS_B}B · только Chat`
+  }
+  return undefined
+}
+
 export function isRecommendedModelInstalled(
   catalogName: string,
   installed: Array<{ name: string }>
