@@ -14,3 +14,8 @@ declare module '*.png' {
   const url: string
   export default url
 }
+
+declare module 'highlight.js/styles/*.css' {
+  const href: string
+  export default href
+}

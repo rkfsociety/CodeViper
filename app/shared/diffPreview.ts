@@ -286,6 +286,39 @@ function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+export type SourceHighlightFn = (code: string, language: string) => string
+
+/** Подсветка исходника по расширению пути (как в DiffPreviewModal). */
+export function highlightSourceCode(
+  code: string,
+  path: string,
+  highlight: SourceHighlightFn,
+  highlightAuto?: (code: string) => string
+): string {
+  if (!code) return ''
+  const language = languageFromPath(path)
+  try {
+    return highlight(code, language)
+  } catch {
+    if (highlightAuto) return highlightAuto(code)
+    return escapeHtml(code)
+  }
+}
+
+export function splitHighlightedHtmlLines(html: string): string[] {
+  return html.split('\n')
+}
+
+/** Строки HTML для read-only превью файла. */
+export function buildSourcePreviewLines(
+  content: string,
+  path: string,
+  highlight: SourceHighlightFn,
+  highlightAuto?: (code: string) => string
+): string[] {
+  return splitHighlightedHtmlLines(highlightSourceCode(content, path, highlight, highlightAuto))
+}
+
 export interface UnifiedDiffLineWithHtml extends UnifiedDiffLine {
   html?: string
 }

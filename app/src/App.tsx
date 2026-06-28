@@ -22,6 +22,7 @@ import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { CHAT_TEMPLATES } from '../shared/chatTemplates'
 import { ProjectTreePanel } from './components/ProjectTreePanel'
+import { FilePreviewPanel } from './components/FilePreviewPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { UpdateBanner } from './components/UpdateBanner'
 import { ConfirmDialog } from './components/ConfirmDialog'
@@ -131,6 +132,7 @@ function AppContent() {
   const [tracePanelOpen, setTracePanelOpen] = useState(initialLayout.panels.tracePanelOpen)
   const [metricsPanelOpen, setMetricsPanelOpen] = useState(initialLayout.panels.metricsPanelOpen)
   const [previewOpen, setPreviewOpen] = useState(initialLayout.panels.previewOpen)
+  const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [sidePanelWidths, setSidePanelWidths] = useState(initialLayout.sidePanelWidths)
   const [fileTreeOpen, setFileTreeOpen] = useState(initialLayout.panels.fileTreeOpen)
 
@@ -1045,6 +1047,11 @@ function AppContent() {
               <ProjectTreePanel
                 projectPath={activeProjectPath}
                 onAskAgent={(path) => chatPanelRef.current?.insertFileMention(path)}
+                onFileOpen={(path) => {
+                  setPreviewPath(path)
+                  setPreviewOpen(true)
+                  persistLayout({ panels: { previewOpen: true } })
+                }}
               />
             </section>
           )}
@@ -1137,8 +1144,20 @@ function AppContent() {
             <>
               <PanelResizer onDrag={resizePreviewWidth} className="panel-resizer-preview" />
               <section className="panel panel-preview" style={{ width: sidePanelWidths.preview }}>
-                <div className="panel-header">Превью</div>
-                <div className="panel-preview-placeholder hint">Файл не выбран</div>
+                {activeProjectPath && previewPath ? (
+                  <FilePreviewPanel
+                    projectPath={activeProjectPath}
+                    filePath={previewPath}
+                    onClose={() => setPreviewPath(null)}
+                  />
+                ) : (
+                  <>
+                    <div className="panel-header">Превью</div>
+                    <div className="panel-preview-placeholder hint">
+                      Выберите файл в дереве слева
+                    </div>
+                  </>
+                )}
               </section>
             </>
           )}

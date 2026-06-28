@@ -21,9 +21,9 @@ describe('roadmapParser', () => {
 
   it('парсит пункты «В планах»', async () => {
     const items = await listRoadmapItems()
-    expect(items.length).toBe(132)
+    expect(items.length).toBe(130)
     expect(items[0]?.num).toBe(1)
-    expect(items[0]?.title).toMatch(/filepreview|preview/i)
+    expect(items[0]?.title).toMatch(/копировать|messagebody|код/i)
   })
 
   it('formatRoadmapItemsList выводит num · title · chain', async () => {

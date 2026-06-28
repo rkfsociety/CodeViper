@@ -8,6 +8,8 @@ interface Props {
   projectPath: string
   maxDepth?: number
   onAskAgent: (relativePath: string) => void
+  /** Если задан — файл открывается в FilePreviewPanel (split), без встроенного превью в дереве */
+  onFileOpen?: (relativePath: string) => void
 }
 
 interface CtxMenuState {
@@ -99,7 +101,8 @@ function TreeRow({
 export function ProjectTreePanel({
   projectPath,
   maxDepth = LIST_DIRECTORY_DEPTH,
-  onAskAgent
+  onAskAgent,
+  onFileOpen
 }: Props) {
   const [tree, setTree] = useState<FileNode[]>([])
   const [loading, setLoading] = useState(false)
@@ -168,6 +171,10 @@ export function ProjectTreePanel({
   const handleOpenFile = useCallback(
     async (node: FileNode) => {
       const relativePath = toRelativePath(projectPath, node.path)
+      if (onFileOpen) {
+        onFileOpen(relativePath)
+        return
+      }
       setSelectedFile({ path: node.path, relativePath })
       setPreviewLoading(true)
       setPreview(null)
@@ -181,7 +188,7 @@ export function ProjectTreePanel({
         setPreviewLoading(false)
       }
     },
-    [projectPath]
+    [projectPath, onFileOpen]
   )
 
   const handleContextMenu = useCallback((relativePath: string, e: MouseEvent) => {
@@ -233,7 +240,7 @@ export function ProjectTreePanel({
         )}
       </div>
 
-      {selectedFile && (
+      {selectedFile && !onFileOpen && (
         <div className={styles.preview}>
           <div className={styles.previewHeader}>
             <span className={styles.previewPath} title={selectedFile.relativePath}>

@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import hljs from 'highlight.js/lib/common'
 import {
   buildSideBySideRows,
+  buildSourcePreviewLines,
+  highlightSourceCode,
   languageFromPath,
   parseUnifiedDiffLines,
   reconstructDiffSides
@@ -42,5 +45,21 @@ describe('diffPreview', () => {
 
   it('languageFromPath определяет typescript для .tsx', () => {
     expect(languageFromPath('src/App.tsx')).toBe('typescript')
+  })
+
+  it('highlightSourceCode подсвечивает TypeScript', () => {
+    const highlight = (code: string, language: string) =>
+      hljs.highlight(code, { language, ignoreIllegals: true }).value
+    const html = highlightSourceCode('export const answer = 42', 'src/foo.ts', highlight)
+    expect(html).toContain('hljs')
+    expect(html).toMatch(/keyword|export|number/)
+  })
+
+  it('buildSourcePreviewLines разбивает на строки', () => {
+    const highlight = (code: string, language: string) =>
+      hljs.highlight(code, { language, ignoreIllegals: true }).value
+    const lines = buildSourcePreviewLines('const a = 1\nconst b = 2', 'x.ts', highlight)
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toContain('hljs')
   })
 })

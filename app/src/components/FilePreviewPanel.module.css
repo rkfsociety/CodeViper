@@ -1,0 +1,96 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary, #161b22);
+  flex-shrink: 0;
+}
+
+.pathWrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #c9d1d9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pathMuted {
+  font-size: 10px;
+  color: var(--text-muted, #8b949e);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.langChip {
+  font-size: 11px;
+  color: var(--text-muted, #8b949e);
+}
+
+.closeBtn {
+  padding: 2px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-primary, #0d1117);
+}
+
+.hint,
+.error {
+  padding: 12px;
+  font-size: 12px;
+}
+
+.error {
+  color: #f85149;
+}
+
+.code {
+  margin: 0;
+  padding: 8px 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  color: var(--text-primary, #c9d1d9);
+}
+
+.line {
+  display: block;
+  padding: 0 12px;
+}
+
+.line:hover {
+  background: rgba(255, 255, 255, 0.04);
+}

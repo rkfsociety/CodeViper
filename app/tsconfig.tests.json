@@ -4,5 +4,5 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["tests/**/*.test.ts"]
+  "include": ["tests/**/*.test.ts", "src/env.d.ts"]
 }
