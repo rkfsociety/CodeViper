@@ -23,6 +23,9 @@ const SHORTCUTS: ShortcutGroup[] = [
     rows: [
       { keys: ['Ctrl', ','], label: 'Открыть настройки' },
       { keys: ['Ctrl', 'K'], label: 'Фокус на поле ввода' },
+      { keys: ['Ctrl', 'Shift', 'N'], label: 'Новый чат' },
+      { keys: ['Ctrl', 'B'], label: 'Показать / скрыть дерево файлов' },
+      { keys: ['Esc'], label: 'Остановить агента (если выполняется задача)' },
       { keys: ['?'], label: 'Показать шпаргалку горячих клавиш' }
     ]
   },
@@ -36,7 +39,7 @@ const SHORTCUTS: ShortcutGroup[] = [
   },
   {
     title: 'Диалоги и модалки',
-    rows: [{ keys: ['Esc'], label: 'Закрыть диалог / отменить' }]
+    rows: [{ keys: ['Esc'], label: 'Закрыть открытый диалог / модалку' }]
   },
   {
     title: 'Встроенный терминал',

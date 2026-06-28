@@ -463,29 +463,6 @@ function AppContent() {
     document.documentElement.classList.toggle('light-mode', lightMode)
   }, [lightMode])
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.ctrlKey && e.key === ',') {
-        e.preventDefault()
-        setSettingsOpen(true)
-      }
-      if (e.ctrlKey && e.key === 'k') {
-        e.preventDefault()
-        chatPanelRef.current?.focusInput()
-      }
-      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        const tag = (e.target as HTMLElement).tagName
-        const editable = (e.target as HTMLElement).isContentEditable
-        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !editable) {
-          e.preventDefault()
-          setShortcutsOpen((v) => !v)
-        }
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
   const resolveConfirm = useCallback(
     (approved: boolean) => {
       if (!confirmReq) return
@@ -615,6 +592,59 @@ function AppContent() {
     },
     [flushCurrentChat, refreshChatStore]
   )
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === ',') {
+        e.preventDefault()
+        setSettingsOpen(true)
+        return
+      }
+      if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault()
+        chatPanelRef.current?.focusInput()
+        return
+      }
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        void createChat()
+        return
+      }
+      if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault()
+        toggleFileTree()
+        return
+      }
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const tag = (e.target as HTMLElement).tagName
+        const editable = (e.target as HTMLElement).isContentEditable
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !editable) {
+          e.preventDefault()
+          setShortcutsOpen((v) => !v)
+        }
+        return
+      }
+      if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (shortcutsOpen) {
+          e.preventDefault()
+          setShortcutsOpen(false)
+          return
+        }
+        if (settingsOpen) {
+          e.preventDefault()
+          setSettingsOpen(false)
+          return
+        }
+        const chatId = activeChatIdRef.current
+        if (chatId && busyChats.has(chatId)) {
+          e.preventDefault()
+          void window.codeviper.stopAgent(chatId)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [createChat, toggleFileTree, settingsOpen, shortcutsOpen, busyChats])
 
   const createChatFromTemplate = useCallback(
     async (templateId: string, folderId: string | null = null) => {
