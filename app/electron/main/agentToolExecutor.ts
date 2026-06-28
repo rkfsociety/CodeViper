@@ -442,6 +442,14 @@ export class ToolExecutor {
   private preflightSelfImproveTool(toolName: string, args: Record<string, string>): string | null {
     if (!this.selfImproveMode) return null
 
+    if (
+      toolName === 'set_todo_list' ||
+      toolName === 'complete_todo_item' ||
+      toolName === 'clear_todo_list'
+    ) {
+      return 'В режиме самоулучшения используй set_self_improvement_plan и complete_self_improvement_item — не set_todo_list.'
+    }
+
     if (toolName === 'create_codeviper_file' || toolName === 'write_codeviper_file') {
       const contentErr = validateSelfImproveMutatingContent(args.path ?? '', args.content ?? '')
       if (contentErr) return contentErr

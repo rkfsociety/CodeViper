@@ -3,12 +3,10 @@ import type {
   AgentContextPreview,
   OllamaModel,
   ProgressInfo,
-  SelfImprovementPlanItem,
   TodoItem
 } from '../../types'
 import { AgentStatusBar } from '../AgentStatusBar'
 import { TodoPanel } from '../TodoPanel'
-import { SelfImprovePlanPanel } from '../SelfImprovePlanPanel'
 import { AgentLearningPanel } from '../AgentLearningPanel'
 import { ProjectRulesPanel } from '../ProjectRulesPanel'
 import { RoadmapPickerPanel } from '../RoadmapPickerPanel'
@@ -33,7 +31,6 @@ interface Props {
   p2pCredits: number | null
   runModel: string
   displayModels: OllamaModel[]
-  planItems: SelfImprovementPlanItem[] | null
   todoItems: TodoItem[] | null
   todoTitle: string | undefined
   showLearningPanel: boolean
@@ -72,7 +69,6 @@ interface Props {
   onStop: () => void
   onSend: () => void
   // callbacks
-  onSetPlanItems: (items: SelfImprovementPlanItem[] | null) => void
   onSetTodoItems: (items: TodoItem[] | null) => void
   onSetShowLearning: (v: boolean) => void
   onSetShowRules: (v: boolean) => void
@@ -102,7 +98,6 @@ export function ChatStatusBar({
   p2pCredits,
   runModel,
   displayModels,
-  planItems,
   todoItems,
   todoTitle,
   showLearningPanel,
@@ -139,7 +134,6 @@ export function ChatStatusBar({
   chatInputRef,
   onStop,
   onSend,
-  onSetPlanItems,
   onSetTodoItems,
   onSetShowLearning,
   onSetShowRules,
@@ -168,12 +162,12 @@ export function ChatStatusBar({
         />
       )}
 
-      {planItems && planItems.length > 0 && (
-        <SelfImprovePlanPanel items={planItems} onClose={() => onSetPlanItems(null)} />
-      )}
-
       {todoItems && todoItems.length > 0 && (
-        <TodoPanel items={todoItems} title={todoTitle} onClose={() => onSetTodoItems(null)} />
+        <TodoPanel
+          items={todoItems}
+          title={todoTitle ?? 'Todo List'}
+          onClose={() => onSetTodoItems(null)}
+        />
       )}
 
       {showLearningPanel && <AgentLearningPanel onClose={() => onSetShowLearning(false)} />}

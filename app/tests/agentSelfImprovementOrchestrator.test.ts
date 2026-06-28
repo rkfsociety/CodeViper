@@ -56,6 +56,27 @@ describe('SelfImprovementOrchestrator', () => {
     }
   })
 
+  it('emitPlan отправляет todo_update для единого Todo List в UI', () => {
+    const { orchestrator, emit } = createOrchestrator()
+    orchestrator.emitPlan([
+      { id: '1', title: 'Шаг 1', done: false },
+      { id: '2', title: 'Шаг 2', done: true }
+    ])
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'self_improve_plan', content: expect.any(String) })
+    )
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'todo_update',
+        content: 'Todo List',
+        todoItems: [
+          { id: '1', title: 'Шаг 1', done: false, blocked: undefined },
+          { id: '2', title: 'Шаг 2', done: true, blocked: undefined }
+        ]
+      })
+    )
+  })
+
   it('handleNoToolCalls passthrough при симуляции вывода инструмента', () => {
     const { store, orchestrator } = createOrchestrator()
     store.adopt(

@@ -431,6 +431,7 @@ export interface TodoItem {
   id: string
   title: string
   done: boolean
+  blocked?: boolean
 }
 
 export interface AdaptiveLimits {

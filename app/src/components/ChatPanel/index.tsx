@@ -10,14 +10,7 @@ import {
   useState
 } from 'react'
 import { makeId } from '../../../shared/makeId'
-import type {
-  AgentSettings,
-  ChatMessage,
-  OllamaModel,
-  ProgressInfo,
-  SelfImprovementPlanItem,
-  TodoItem
-} from '../../types'
+import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, TodoItem } from '../../types'
 import { filterToolCallingModels } from '../../types'
 import { filterAgentCapableModels } from '../../../shared/recommendedModels'
 import { GEMINI_FREE_MODELS, filterOpenRouterModelsByTier } from '../../../shared/constants'
@@ -163,11 +156,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setTodoItems(items)
     if (title !== undefined) setTodoTitle(title)
   }
-  const [planItems, setPlanItems] = useState<SelfImprovementPlanItem[] | null>(null)
-  const setPlanItemsRef = useRef<((items: SelfImprovementPlanItem[] | null) => void) | undefined>(
-    undefined
-  )
-  setPlanItemsRef.current = (items) => setPlanItems(items)
 
   const chatInputRef = useRef<ChatInputHandle>(null)
   const messagesRef = useRef(messages)
@@ -338,7 +326,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     isVisibleChatRef,
     chatTitleRef,
     setTodoItemsRef,
-    setPlanItemsRef,
     dispatch
   })
 
@@ -528,7 +515,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setContextPreview(null)
     setTodoItems(null)
     setTodoTitle(undefined)
-    setPlanItems(null)
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1062,7 +1048,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         p2pCredits={p2pCredits}
         runModel={runModel}
         displayModels={displayModels}
-        planItems={planItems}
         todoItems={todoItems}
         todoTitle={todoTitle}
         showLearningPanel={showLearningPanel}
@@ -1099,7 +1084,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         chatInputRef={chatInputRef}
         onStop={() => void stopAgent()}
         onSend={() => void send()}
-        onSetPlanItems={setPlanItems}
         onSetTodoItems={setTodoItems}
         onSetShowLearning={setShowLearningPanel}
         onSetShowRules={setShowRulesPanel}

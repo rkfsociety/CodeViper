@@ -808,7 +808,7 @@ ${SELF_IMPROVE_TEST_IMPORTS_HINT}
 
 Алгоритм:
 1. read_roadmap_item number=N (предпочтительно) или read_codeviper_file ../ROADMAP.md → пункт N; read_codeviper_file для путей из «Файлы» (ENOENT → create_codeviper_file)
-2. set_self_improvement_plan — Действие + Проверка + обновление ROADMAP.md, ROADMAP_DONE.md и README.md
+2. set_self_improvement_plan — Действие + Проверка + обновление ROADMAP.md, ROADMAP_DONE.md и README.md (единый Todo List в UI; не set_todo_list)
 3. create_codeviper_file / edit_codeviper_file → complete_self_improvement_item(id)
 4. run_codeviper_command — сначала \`npm run typecheck\`, затем команды из «Проверка» (npm test …)
 5. edit_codeviper_file ../ROADMAP.md — удалить пункт N, перенумеровать; edit_codeviper_file ../ROADMAP_DONE.md — запись в «Сделано»; README — счётчик задач

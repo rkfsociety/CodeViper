@@ -11,7 +11,7 @@ interface TodoPanelProps {
 export const TodoPanel = memo(function TodoPanel({ items, title, onClose }: TodoPanelProps) {
   if (!items.length) return null
 
-  const doneCount = items.filter((i) => i.done).length
+  const doneCount = items.filter((i) => i.done || i.blocked).length
   const total = items.length
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
@@ -35,8 +35,13 @@ export const TodoPanel = memo(function TodoPanel({ items, title, onClose }: Todo
 
       <ul className={styles.list}>
         {items.map((item) => (
-          <li key={item.id} className={item.done ? styles.itemDone : styles.item}>
-            <span className={styles.check}>{item.done ? '✓' : '○'}</span>
+          <li
+            key={item.id}
+            className={
+              item.done ? styles.itemDone : item.blocked ? styles.itemBlocked : styles.item
+            }
+          >
+            <span className={styles.check}>{item.done ? '✓' : item.blocked ? '✗' : '○'}</span>
             <span className={styles.itemTitle}>{item.title}</span>
           </li>
         ))}

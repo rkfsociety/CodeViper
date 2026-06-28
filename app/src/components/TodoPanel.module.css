@@ -90,7 +90,8 @@
 }
 
 .item,
-.itemDone {
+.itemDone,
+.itemBlocked {
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -101,6 +102,10 @@
 
 .itemDone {
   opacity: 0.45;
+}
+
+.itemBlocked {
+  opacity: 0.4;
 }
 
 .check {
@@ -114,6 +119,10 @@
 
 .itemDone .check {
   color: var(--text-secondary);
+}
+
+.itemBlocked .check {
+  color: #e05;
 }
 
 .itemTitle {

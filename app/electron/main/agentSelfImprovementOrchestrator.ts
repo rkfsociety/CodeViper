@@ -151,7 +151,18 @@ export class SelfImprovementOrchestrator {
   }
 
   emitPlan(plan: SelfImprovementItem[]): void {
-    this.emit({ type: 'self_improve_plan', content: formatPlanSummary(plan), planItems: plan })
+    const summary = formatPlanSummary(plan)
+    this.emit({ type: 'self_improve_plan', content: summary })
+    this.emit({
+      type: 'todo_update',
+      todoItems: plan.map((p) => ({
+        id: p.id,
+        title: p.title,
+        done: p.done,
+        blocked: p.blocked
+      })),
+      content: 'Todo List'
+    })
   }
 
   adoptPlanFromText(assistantText: string): boolean {
