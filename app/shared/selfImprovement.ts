@@ -610,10 +610,10 @@ export function parseRoadmapItemFromToolOutput(text: string): RoadmapPlanSource 
 /** Действие/Проверка из текста ответа модели (qwen часто пишет план текстом, не tool call). */
 export function parseRoadmapFieldsFromAssistantText(text: string): RoadmapPlanSource | null {
   const actionMatch = text.match(
-    /(?:^|\n)\*?\*?Действие:?\*?\*?\s*([\s\S]*?)(?=\n\s*\*?\*?(?:Проверка|Инструмент|Редактирование|###)|$)/iu
+    /(?:^|\n)(?:#{1,3}\s*)?\*?\*?Действие:?\*?\*?\s*([\s\S]*?)(?=\n\s*(?:#{1,3}\s*)?\*?\*?(?:Проверка|Инструмент|Редактирование)|$)/iu
   )
   const checkMatch = text.match(
-    /(?:^|\n)\*?\*?Проверка:?\*?\*?\s*([\s\S]*?)(?=\n\s*\*?\*?(?:Действие|Инструмент|Редактирование|###)|$)/iu
+    /(?:^|\n)(?:#{1,3}\s*)?\*?\*?Проверка:?\*?\*?\s*([\s\S]*?)(?=\n\s*(?:#{1,3}\s*)?\*?\*?(?:Действие|Инструмент|Редактирование)|$)/iu
   )
   if (!actionMatch && !checkMatch) return null
 

@@ -6,6 +6,8 @@
 
 ---
 
+
+- **2026-06-28 · trace 1782678329979** — ROADMAP п.1 custom endpoint (qwen2.5-coder:7b): после 2× read openaiProvider модель написала «### Действие» текстом (719 симв.); `acceptTextAfterReadTools` → passthrough → прогон «ok» без правок. Исправлено: не принимать длинный текст при незавершённом плане, парсер `### Действие/Проверка`, паттерны prose-плана в `looksLikeAdviceInsteadOfAction`.
 - **2026-06-28 · trace 1782677161414** — ROADMAP п.1 custom endpoint (qwen2.5-coder:7b): после read openaiProvider — edit README.md с текстом ROADMAP (old_string не найден), затем 3× текст с `grep_codeviper_files` в bash вместо tool call; план появился только на шаге 3. Исправлено: автоплан при `setRoadmapItemDetail`, scope для edit_codeviper_file вне «Файлы:», `looksLikePseudoToolInvocation`, усиленный nudge (TOOL_VERIFICATION) при повторе/pseudo, passthrough «уже реализовано» после read.
 - **2026-06-28 · trace schema v2** — расширен трейс: `context_compress` (before/after usage%, method), `nudge` (source), `llm_request` (estimatedTokens, roles), tool `signature`, `run_start` settings snapshot, `traceSchemaVersion: 2` в экспорте.
 - **2026-06-28 · trace 1782675029046** — ROADMAP п.1 (qwen2.5-coder:7b): шаг 11 ~28k tok, UI «Сжимаю…», затем 120 с timeout — LLM-суммаризация на той же Ollama внутри таймаута шага; tool results не доходили до модели (filter role=tool) → 6× read. Исправлено: сжатие **до** Promise.race шага, Ollama truncate-only без второго LLM, таймаут summarize 45 с, tool→user для Ollama, num_ctx из лимита модели (не 4096).

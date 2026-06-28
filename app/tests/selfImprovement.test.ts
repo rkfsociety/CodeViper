@@ -343,6 +343,20 @@ tool_response {"name": "read_codeviper_file", "arguments": {"path": "agent.ts"}}
     expect(parseRoadmapFieldsFromAssistantText(vague)).toBeNull()
   })
 
+  it('parseRoadmapFieldsFromAssistantText парсит markdown ### Действие / ### Проверка', () => {
+    const prose = `### Действие
+
+1. **Обновление openaiProvider.ts:**
+   - Переиспользовать OpenAI client с custom baseURL.
+
+### Проверка
+
+- Провести ping к mock server.`
+    const fields = parseRoadmapFieldsFromAssistantText(prose)
+    expect(fields?.action).toContain('OpenAI client')
+    expect(fields?.verification).toContain('ping')
+  })
+
   it('isPseudoReadRoadmapItemText распознаёт текстовый echo tool call', () => {
     expect(isPseudoReadRoadmapItemText('read_roadmap_item number=1')).toBe(true)
     expect(isPseudoReadRoadmapItemText('  read_roadmap_item number = 2  ')).toBe(true)

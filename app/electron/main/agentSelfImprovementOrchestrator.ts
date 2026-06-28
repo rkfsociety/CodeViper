@@ -3,7 +3,6 @@ import type { OllamaMessage } from './agentContext'
 import type { ModelRuntime } from './modelRuntime'
 import type { AgentSettings } from '../../src/types'
 import {
-  acceptTextAfterReadTools,
   looksLikeAdviceInsteadOfAction,
   looksLikeFakeToolOutput,
   looksLikePseudoToolInvocation,
@@ -207,13 +206,8 @@ export class SelfImprovementOrchestrator {
         return { action: 'done' }
       }
 
-      if (
-        assistantText &&
-        acceptTextAfterReadTools(assistantText, new Set(), usedTools) &&
-        !looksLikePseudoToolInvocation(assistantText)
-      ) {
-        return { action: 'passthrough' }
-      }
+      // Не принимать длинный текст как финальный ответ при незавершённом плане (trace 1782678329979:
+      // qwen после read_codeviper_file писал «### Действие» текстом и прогон завершался «ok»).
 
       if (assistantText) {
         const normalized = assistantText.trim().slice(0, 400)

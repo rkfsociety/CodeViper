@@ -83,6 +83,35 @@ describe('SelfImprovementOrchestrator', () => {
     expect(store.get()?.[0].title).toContain('OpenAI client')
   })
 
+  it('handleNoToolCalls не завершает прогон при текстовом плане после read (trace 1782678329979)', () => {
+    const { store, orchestrator } = createOrchestrator()
+    orchestrator.setRoadmapContext(1)
+    orchestrator.setRoadmapItemDetail({
+      num: 1,
+      action: 'переиспользовать OpenAI client с custom baseURL',
+      verification: 'ping к mock server'
+    })
+    const prosePlan = `Конечно, давайте начнем с переиспользования OpenAI client с custom baseURL.
+
+### Действие
+
+1. **Обновление openaiProvider.ts:**
+   - Переиспользовать существующий код для работы с OpenAI API.
+
+### Проверка
+
+- Провести ping к mock server и убедиться, что ответ корректен.
+
+Теперь давайте начнем реализацию шаг за шагом.`
+    const result = orchestrator.handleNoToolCalls(prosePlan, undefined, true)
+    expect(result.action).toBe('continue')
+    expect(store.has()).toBe(true)
+    if (result.action === 'continue') {
+      expect(result.requireTool).toBe(true)
+      expect(result.nudgeMessage).toContain('Следующий пункт')
+    }
+  })
+
   it('handleNoToolCalls усиливает nudge при pseudo tool invocation', () => {
     const { store, orchestrator } = createOrchestrator()
     store.adopt(
