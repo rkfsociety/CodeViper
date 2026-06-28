@@ -2,6 +2,7 @@ import { spawn } from 'child_process'
 import { writeFile, readFile } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
+import { CODEVIPER_RUNTIME_SYNC_BRANCH } from '../../shared/constants'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { resolveGitRepoRoot } from './githubAuth'
@@ -33,7 +34,17 @@ function runCmd(cmd: string, cwd: string, args: string[]): Promise<GitResult> {
   })
 }
 
+type GitRunner = (cwd: string, args: string[]) => Promise<GitResult>
+
+let gitRunnerOverride: GitRunner | null = null
+
+/** Только для unit-тестов. */
+export function setSelfCommitGitRunnerForTests(runner: GitRunner | null): void {
+  gitRunnerOverride = runner
+}
+
 function runGit(cwd: string, args: string[]): Promise<GitResult> {
+  if (gitRunnerOverride) return gitRunnerOverride(cwd, args)
   return runCmd(resolveGitExecutable(), cwd, args)
 }
 
@@ -131,9 +142,86 @@ async function localBranchExists(cwd: string, branch: string): Promise<boolean> 
   return result.code === 0
 }
 
+async function remoteBranchExists(cwd: string, remoteRef: string): Promise<boolean> {
+  const result = await runGit(cwd, ['show-ref', '--verify', '--quiet', `refs/remotes/${remoteRef}`])
+  return result.code === 0
+}
+
+export interface SyncSelfImproveBranchResult {
+  ok: boolean
+  rebased: boolean
+  behindCount: number
+  message?: string
+}
+
+/**
+ * Rebase текущей ветки agent/* на origin/master — ROADMAP и runtime не отстают от master.
+ * --autostash: незакоммиченные правки в app/ временно откладываются на время rebase.
+ */
+export async function syncSelfImproveBranchWithOriginMaster(
+  repoRoot: string,
+  baseBranch: string = CODEVIPER_RUNTIME_SYNC_BRANCH
+): Promise<SyncSelfImproveBranchResult> {
+  const remoteRef = `origin/${baseBranch}`
+
+  try {
+    await runGitWithRetry(repoRoot, ['fetch', 'origin', baseBranch, '--quiet'], 'fetch')
+  } catch (err) {
+    return {
+      ok: false,
+      rebased: false,
+      behindCount: 0,
+      message: `fetch ${remoteRef} не удался: ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+
+  if (!(await remoteBranchExists(repoRoot, remoteRef))) {
+    return {
+      ok: false,
+      rebased: false,
+      behindCount: 0,
+      message: `${remoteRef} не найден после fetch`
+    }
+  }
+
+  const behindRes = await runGit(repoRoot, ['rev-list', '--count', `HEAD..${remoteRef}`])
+  const behindCount = parseInt(behindRes.stdout.trim(), 10) || 0
+  if (behindCount === 0) {
+    return { ok: true, rebased: false, behindCount: 0 }
+  }
+
+  try {
+    await runGitWithRetry(
+      repoRoot,
+      ['rebase', '--autostash', remoteRef],
+      'rebase-onto-origin-master'
+    )
+    return { ok: true, rebased: true, behindCount }
+  } catch (err) {
+    await runGit(repoRoot, ['rebase', '--abort'])
+    return {
+      ok: false,
+      rebased: false,
+      behindCount,
+      message: `rebase на ${remoteRef} не удался (конфликт?): ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+}
+
+function formatBranchSyncMessage(
+  branch: string,
+  prefix: string,
+  sync: SyncSelfImproveBranchResult
+): string {
+  if (sync.rebased && sync.behindCount > 0) {
+    return `${prefix} ${branch}, подтянут origin/master (+${sync.behindCount} комм.)`
+  }
+  return `${prefix} ${branch}`
+}
+
 /**
  * Переключает репозиторий на ветку самоулучшения (создаёт agent/* при отсутствии).
- * Незакоммиченные правки переносятся вместе с checkout.
+ * Незакоммиченные правки переносятся вместе с checkout; затем rebase на origin/master.
  */
 export async function ensureSelfImproveBranch(
   configuredBranch?: string,
@@ -141,6 +229,8 @@ export async function ensureSelfImproveBranch(
 ): Promise<SelfCommitResult & { branch?: string }> {
   const source = cwd ?? getCodeViperSourceRoot()
   const branch = resolveSelfImproveBranch(configuredBranch)
+  const baseBranch = CODEVIPER_RUNTIME_SYNC_BRANCH
+  const remoteRef = `origin/${baseBranch}`
 
   if (PROTECTED_BRANCHES.has(branch)) {
     return { ok: false, message: `ветка самоулучшения не может называться «${branch}»` }
@@ -160,14 +250,40 @@ export async function ensureSelfImproveBranch(
 
   const current = await getCurrentBranch(repoRoot)
   if (current === branch) {
-    return { ok: true, message: `уже на ветке ${branch}`, branch }
+    const sync = await syncSelfImproveBranchWithOriginMaster(repoRoot, baseBranch)
+    if (!sync.ok) {
+      return {
+        ok: false,
+        message: sync.message ?? `не удалось подтянуть ${remoteRef}`,
+        branch
+      }
+    }
+    return {
+      ok: true,
+      message: formatBranchSyncMessage(branch, 'уже на ветке', sync),
+      branch
+    }
   }
 
   try {
     if (await localBranchExists(repoRoot, branch)) {
       await runGitWithRetry(repoRoot, ['checkout', branch], 'checkout')
     } else {
-      await runGitWithRetry(repoRoot, ['checkout', '-b', branch], 'checkout')
+      try {
+        await runGitWithRetry(repoRoot, ['fetch', 'origin', baseBranch, '--quiet'], 'fetch')
+      } catch {
+        await runGitWithRetry(repoRoot, ['checkout', '-b', branch], 'checkout')
+        return {
+          ok: true,
+          message: `переключено на новую ветку ${branch} (fetch origin/${baseBranch} недоступен)`,
+          branch
+        }
+      }
+      if (await remoteBranchExists(repoRoot, remoteRef)) {
+        await runGitWithRetry(repoRoot, ['checkout', '-b', branch, remoteRef], 'checkout')
+      } else {
+        await runGitWithRetry(repoRoot, ['checkout', '-b', branch], 'checkout')
+      }
     }
   } catch (err) {
     return {
@@ -176,7 +292,20 @@ export async function ensureSelfImproveBranch(
     }
   }
 
-  return { ok: true, message: `переключено на ветку ${branch}`, branch }
+  const sync = await syncSelfImproveBranchWithOriginMaster(repoRoot, baseBranch)
+  if (!sync.ok) {
+    return {
+      ok: false,
+      message: `переключено на ${branch}, но ${sync.message ?? `не удалось подтянуть ${remoteRef}`}`,
+      branch
+    }
+  }
+
+  return {
+    ok: true,
+    message: formatBranchSyncMessage(branch, 'переключено на ветку', sync),
+    branch
+  }
 }
 
 /** Корень git-репозитория (родитель app/ при разработке из исходников). */
