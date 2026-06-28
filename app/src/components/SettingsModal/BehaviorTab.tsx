@@ -138,10 +138,30 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
       <SettingItem
         tab="behavior"
         label="Поведение агента"
-        desc="уточняющие вопросы глубокое рассуждение reasoning исключать только чтение readonly clarify deep"
+        desc="уточняющие вопросы глубокое рассуждение reasoning исключать только чтение readonly clarify deep план planBeforeExecute оркестратор"
       >
         <div className={styles.section}>
           <div className={styles.sectionLabel}>Поведение агента</div>
+
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={settings.planBeforeExecute === true}
+              onChange={(e) =>
+                onSettingsChange({ planBeforeExecute: e.target.checked || undefined })
+              }
+            />
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.thumb} />
+            </span>
+            <span className={styles.toggleContent}>
+              <span className={styles.title}>Сначала показать план</span>
+              <span className={styles.desc}>
+                Оркестратор формирует план шагов до вызова инструментов; выполнение начинается после
+                подтверждения
+              </span>
+            </span>
+          </label>
 
           <label className={styles.toggle}>
             <input

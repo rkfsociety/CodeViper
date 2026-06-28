@@ -287,6 +287,8 @@ export interface AgentSettings {
   orchestratorOllamaModel?: string
   /** Включить оркестратор для предпланирования задач */
   orchestratorEnabled?: boolean
+  /** Сначала показать план оркестратора перед вызовом инструментов */
+  planBeforeExecute?: boolean
   /** Минимальная длина сообщения для запуска оркестратора (символы) */
   orchestratorMinMessageLength?: number
   /** Запускать субагент-разведчик перед основным прогоном при сложных задачах */

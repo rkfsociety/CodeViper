@@ -122,7 +122,8 @@ export const PersistedSettingsSchema = z.object({
   p2pNodePrivateKey: z.string().optional(),
   p2pNodePublicKey: z.string().optional(),
   uiLightMode: z.boolean().optional(),
-  recentProjects: z.array(z.string()).optional()
+  recentProjects: z.array(z.string()).optional(),
+  planBeforeExecute: z.boolean().optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -323,7 +324,8 @@ function normalize(settings: LegacySettings): PersistedSettings {
             .filter(Boolean)
             .slice(0, 10)
         }
-      : {})
+      : {}),
+    ...(settings.planBeforeExecute === true ? { planBeforeExecute: true } : {})
   }
 }
 

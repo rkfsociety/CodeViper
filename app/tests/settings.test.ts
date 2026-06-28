@@ -289,6 +289,28 @@ describe('liveRuntimeFromGit', () => {
     expect(parsed.recentProjects).toEqual(paths)
   })
 
+  it('сохраняет и загружает planBeforeExecute', async () => {
+    const saved = await saveSettings(makeSettings({ planBeforeExecute: true }))
+    expect(saved.planBeforeExecute).toBe(true)
+
+    const jsonCall = mockWriteFile.mock.calls.find((args: unknown[]) =>
+      String(args[1]).includes('planBeforeExecute')
+    )
+    expect(jsonCall).toBeDefined()
+    const parsed = JSON.parse(String(jsonCall![1])) as Record<string, unknown>
+    expect(parsed.planBeforeExecute).toBe(true)
+
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(String(jsonCall![1]))
+    const loaded = await loadSettings()
+    expect(loaded.planBeforeExecute).toBe(true)
+  })
+
+  it('planBeforeExecute по умолчанию выключен', async () => {
+    const saved = await saveSettings(makeSettings({}))
+    expect(saved.planBeforeExecute).toBeUndefined()
+  })
+
   it('без uiLightMode в файле — тема тёмная (поле отсутствует)', async () => {
     mockExistsSync.mockReturnValue(true)
     mockReadFile.mockResolvedValue(
