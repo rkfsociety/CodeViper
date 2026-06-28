@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, MutableRefObject } from 'react'
 import { makeId } from '../../shared/makeId'
 import { compactToolChatLine } from '../../shared/toolDisplay'
-import { sanitizeAssistantContent } from '../../shared/toolCalls'
+import { sanitizeAssistantContent, visibleAssistantContent } from '../../shared/toolCalls'
 import type { AgentContextPreview, ChatMessage, SelfImprovementPlanItem, TodoItem } from '../types'
 import type { GenerationMetrics } from '../../shared/generationMetrics'
 import type { AgentAction } from '../contexts/AgentContext'
@@ -100,7 +100,7 @@ export function useAgentStream({
     upsertMessageRef.current({
       id,
       role: 'assistant',
-      content: draftRef.current,
+      content: visibleAssistantContent(draftRef.current, true),
       thinking: draftThinkingRef.current || undefined,
       timestamp: Date.now()
     })
@@ -200,8 +200,8 @@ export function useAgentStream({
 
         const id = draftMessageIdRef.current
         if (id) {
-          const cleaned = sanitizeAssistantContent(event.content ?? '')
-          const finalContent = cleaned || draftRef.current
+          const raw = event.content ?? draftRef.current
+          const finalContent = sanitizeAssistantContent(raw)
           const thinking = event.thinking?.trim() || draftThinkingRef.current || undefined
           upsertMessageRef.current({
             id,

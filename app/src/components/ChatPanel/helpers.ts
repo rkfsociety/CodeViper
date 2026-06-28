@@ -1,4 +1,4 @@
-import { sanitizeAssistantContent } from '../../../shared/toolCalls'
+import { visibleAssistantContent as sharedVisibleAssistantContent } from '../../../shared/toolCalls'
 import type { ChatMessage } from '../../types'
 
 export const FILE_LIMIT = 10
@@ -27,8 +27,8 @@ export function formatProjectLabel(path: string): string {
   return parts[parts.length - 1] ?? path
 }
 
-export function visibleAssistantContent(content: string): string {
-  return sanitizeAssistantContent(content)
+export function visibleAssistantContent(content: string, streaming = false): string {
+  return sharedVisibleAssistantContent(content, streaming)
 }
 
 export function shouldShowAssistantMessage(message: ChatMessage): boolean {

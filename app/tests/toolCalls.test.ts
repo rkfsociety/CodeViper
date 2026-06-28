@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   extractEmbeddedToolCalls,
   looksLikeEmbeddedToolCall,
-  sanitizeAssistantContent
+  looksLikePartialToolCallStream,
+  sanitizeAssistantContent,
+  visibleAssistantContent
 } from '../shared/toolCalls'
 
 describe('extractEmbeddedToolCalls', () => {
@@ -91,6 +93,41 @@ describe('looksLikeEmbeddedToolCall', () => {
   })
 })
 
+describe('looksLikePartialToolCallStream', () => {
+  it('распознаёт незавершённый JSON tool call', () => {
+    expect(
+      looksLikePartialToolCallStream('{"name": "edit_codeviper_file", "arguments": {"path": "a.ts"')
+    ).toBe(true)
+  })
+
+  it('распознаёт незакрытый ```json блок', () => {
+    expect(
+      looksLikePartialToolCallStream('```json\n{"name": "read_file", "arguments": {"path": "x"')
+    ).toBe(true)
+  })
+
+  it('не помечает обычный ответ', () => {
+    expect(looksLikePartialToolCallStream('Сейчас посмотрю структуру проекта.')).toBe(false)
+  })
+})
+
+describe('visibleAssistantContent', () => {
+  it('при стриме скрывает незавершённый tool call', () => {
+    expect(
+      visibleAssistantContent('{"name": "edit_codeviper_file", "arguments": {"path": "a.ts"', true)
+    ).toBe('')
+  })
+
+  it('при стриме оставляет prose до JSON', () => {
+    expect(
+      visibleAssistantContent(
+        'Сначала прочитаю файл.\n{"name": "read_file", "arguments": {"path": "a.ts"',
+        true
+      )
+    ).toBe('Сначала прочитаю файл.')
+  })
+})
+
 describe('sanitizeAssistantContent', () => {
   it('убирает битый префикс {"name', () => {
     expect(sanitizeAssistantContent('{"nameКонечно! Я изучил проект.')).toBe(
@@ -106,5 +143,11 @@ describe('sanitizeAssistantContent', () => {
 
   it('убирает валидный tool call JSON', () => {
     expect(sanitizeAssistantContent('{"name": "list_directory", "arguments": {}}')).toBe('')
+  })
+
+  it('убирает незавершённый tool call JSON', () => {
+    expect(
+      sanitizeAssistantContent('{"name": "edit_codeviper_file", "arguments": {"path": "a.ts"')
+    ).toBe('')
   })
 })

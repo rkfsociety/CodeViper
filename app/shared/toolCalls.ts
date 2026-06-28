@@ -327,11 +327,68 @@ function looksLikeToolCallAttempt(obj: unknown): boolean {
   return false
 }
 
+function stripTrailingToolCallDraft(text: string): string {
+  const fenceIdx = text.search(/\n\s*```(?:json)?\b/i)
+  if (fenceIdx !== -1) return text.slice(0, fenceIdx).trim()
+
+  const inlineIdx = text.search(/\n\s*\{\s*"name"\s*:\s*"/)
+  if (inlineIdx !== -1) return text.slice(0, inlineIdx).trim()
+
+  return text
+}
+
+/** Незавершённый JSON/markdown tool call во время стрима модели (qwen, Ollama text-based). */
+export function looksLikePartialToolCallStream(text: string): boolean {
+  const trimmed = text.trim()
+  if (!trimmed) return false
+
+  if (looksLikeEmbeddedToolCall(trimmed)) return true
+
+  if (/^```(?:json)?\s*$/i.test(trimmed)) return true
+  if (/^```(?:json)?[\s\n]*\{/.test(trimmed)) return true
+
+  const fenceOpen = trimmed.match(/```(?:json)?/i)
+  if (fenceOpen) {
+    const afterOpen = trimmed.slice(fenceOpen.index! + fenceOpen[0].length)
+    if (!afterOpen.includes('```')) {
+      const body = afterOpen.trimStart()
+      if (/^\{/.test(body) && (body.includes('"name"') || body.includes('"arguments"'))) {
+        return true
+      }
+    }
+  }
+
+  if (/^\{\s*"name"\s*:\s*"/.test(trimmed)) return true
+  if (/^\}\s*\n?\s*\{\s*"name"/.test(trimmed)) return true
+
+  if (/tool_response\b/i.test(trimmed) && /\{/.test(trimmed)) {
+    const jsonPart = trimmed.replace(/^[\s\S]*?tool_response\s+/i, '').trimStart()
+    if (/^\{/.test(jsonPart) && !extractBalancedJsonObject(jsonPart)) return true
+  }
+
+  if (
+    trimmed.startsWith('{') &&
+    trimmed.includes('"name"') &&
+    !extractBalancedJsonObject(trimmed)
+  ) {
+    return true
+  }
+
+  if (/\n\s*```(?:json)?\b/i.test(trimmed)) return true
+  if (/\n\s*\{\s*"name"\s*:\s*"/.test(trimmed)) return true
+
+  return false
+}
+
 function stripMalformedToolCallPrefix(text: string): string {
   const trimmed = text.trim()
   if (!trimmed.startsWith('{')) return trimmed
 
   if (tryParseToolCallJson(trimmed)) return ''
+
+  if (/^\{\s*"name"\s*:\s*"[^"]+"\s*,/.test(trimmed) && trimmed.includes('"arguments"')) {
+    if (!extractBalancedJsonObject(trimmed)) return ''
+  }
 
   // Скрываем JSON, который выглядит как попытка вызова инструмента с неизвестным именем
   try {
@@ -361,6 +418,16 @@ export function looksLikeEmbeddedToolCall(text: string): boolean {
   if (toolCalls.length > 0 && !content.trim()) return true
 
   return sanitizeAssistantContent(trimmed).length === 0 && trimmed.length > 0
+}
+
+/** Текст ассистента для UI: prose без JSON tool call; при стриме скрывает незавершённые вызовы. */
+export function visibleAssistantContent(content: string, streaming = false): string {
+  let text = content
+  if (streaming && looksLikePartialToolCallStream(text)) {
+    text = stripTrailingToolCallDraft(text)
+    if (looksLikePartialToolCallStream(text)) return ''
+  }
+  return sanitizeAssistantContent(text)
 }
 
 const REFUSAL_PATTERNS: RegExp[] = [

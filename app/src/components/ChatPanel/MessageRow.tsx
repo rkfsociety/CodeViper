@@ -39,11 +39,8 @@ export const MessageRow = memo(function MessageRow({
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const showAnswer = !(
-    isStreaming &&
-    agentPhase === 'thinking' &&
-    !visibleAssistantContent(message.content)
-  )
+  const visibleContent = visibleAssistantContent(message.content, !!isStreaming)
+  const showAnswer = visibleContent.length > 0
 
   useEffect(() => {
     if (!menuOpen) return
@@ -137,11 +134,7 @@ export const MessageRow = memo(function MessageRow({
         <Suspense fallback={null}>
           <MessageBody
             role={message.role}
-            content={
-              message.role === 'assistant'
-                ? visibleAssistantContent(message.content)
-                : message.content
-            }
+            content={message.role === 'assistant' ? visibleContent : message.content}
             onFileTimeline={onFileTimeline}
           />
         </Suspense>
