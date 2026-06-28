@@ -6,7 +6,11 @@ import type {
   LoadedModel,
   ModelPlacement
 } from '../../../shared/modelProvider'
-import { GEMINI_ANY_MODE_MAX_TOOLS, GEMINI_API_BASE_URL } from '../../../shared/constants'
+import {
+  GEMINI_ANY_MODE_MAX_TOOLS,
+  GEMINI_API_BASE_URL,
+  resolveGeminiModelId
+} from '../../../shared/constants'
 import { simplifySchemaForGemini } from '../../../shared/geminiToolSchema'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
@@ -79,13 +83,16 @@ export class GeminiProvider extends StreamingChatProvider implements ModelProvid
 
   constructor(
     private apiKey: string,
-    private modelName: string,
+    modelName: string,
     private baseUrl: string = GEMINI_API_BASE_URL,
     rpm = 5
   ) {
     super()
+    this.modelName = resolveGeminiModelId(modelName)
     this.rateLimiter = new RateLimiter(rpm)
   }
+
+  private modelName: string
 
   /** Ждём слот rate limiter, затем делегируем стриминг базовому классу. */
   override async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {
@@ -94,8 +101,8 @@ export class GeminiProvider extends StreamingChatProvider implements ModelProvid
   }
 
   protected override buildRequest(options: ChatOptions): { url: string; init: FetchInit } {
-    const modelName = options.model || this.modelName
-    const isThinkingModel = /2\.5/.test(modelName)
+    const modelName = resolveGeminiModelId(options.model || this.modelName)
+    const isThinkingModel = /2\.5|3(\.|$)/.test(modelName)
     const body = this.buildBody(options, isThinkingModel)
     const url = `${this.baseUrl}/models/${modelName}:streamGenerateContent?key=${encodeURIComponent(this.apiKey)}&alt=sse`
 
@@ -110,7 +117,7 @@ export class GeminiProvider extends StreamingChatProvider implements ModelProvid
   }
 
   protected override createChunkParser(options: ChatOptions): ChunkParser {
-    const modelName = options.model || this.modelName
+    const modelName = resolveGeminiModelId(options.model || this.modelName)
     const toolCalls: ChatChunk['tool_calls'] = []
     let totalTokens: number | undefined
 

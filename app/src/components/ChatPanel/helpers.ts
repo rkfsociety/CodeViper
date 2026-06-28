@@ -6,13 +6,7 @@ export const FILE_LIMIT = 10
 export const CLOUD_KNOWN_MODELS: Record<string, string[]> = {
   deepseek: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o3-mini'],
-  gemini: [
-    'gemini-2.5-pro',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite-preview-06-17',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite'
-  ]
+  gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite']
 }
 
 export function formatSize(bytes: number): string {

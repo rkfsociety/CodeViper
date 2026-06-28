@@ -103,11 +103,26 @@ export const GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash'
 /** Режим ANY (tool_choice required) с большим числом declarations даёт 400 branching. */
 export const GEMINI_ANY_MODE_MAX_TOOLS = 40
 
+/** Снятые с API id → актуальный stable id (preview с датой, Gemini 2.0 и т.д.). */
+export const GEMINI_DEPRECATED_MODEL_ALIASES: Record<string, string> = {
+  'gemini-2.5-flash-lite-preview-06-17': 'gemini-2.5-flash-lite',
+  'gemini-2.5-flash-lite-preview-09-2025': 'gemini-2.5-flash-lite',
+  'gemini-2.0-flash': 'gemini-2.5-flash',
+  'gemini-2.0-flash-lite': 'gemini-2.5-flash-lite'
+}
+
+/** Подставляет stable id вместо снятого preview/legacy; неизвестные id возвращает как есть. */
+export function resolveGeminiModelId(model: string): string {
+  const trimmed = model.trim()
+  if (!trimmed) return trimmed
+  return GEMINI_DEPRECATED_MODEL_ALIASES[trimmed] ?? trimmed
+}
+
 /** Модели Gemini/Gemma доступные на бесплатном уровне с фиксированными лимитами */
 export const GEMINI_FREE_MODELS = [
   { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', rpm: 20, rpd: 20, tpm: 250_000 },
   {
-    id: 'gemini-2.5-flash-lite-preview-06-17',
+    id: 'gemini-2.5-flash-lite',
     label: 'Gemini 2.5 Flash Lite',
     rpm: 10,
     rpd: 20,
@@ -242,6 +257,7 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   // ── Google Gemini ───────────────────────────────────────────────────────────
   'gemini-2.5-pro': { input: 1.25, output: 10.0 },
   'gemini-2.5-flash': { input: 0.15, output: 0.6 },
+  'gemini-2.5-flash-lite': { input: 0.1, output: 0.4 },
   'gemini-2.0-flash': { input: 0.1, output: 0.4 },
   'gemini-1.5-pro': { input: 1.25, output: 5.0 },
   'gemini-1.5-flash': { input: 0.075, output: 0.3 }

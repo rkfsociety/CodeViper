@@ -1,3 +1,5 @@
+2026-06-29 · trace 1782684505177 — Gemini 404 на `gemini-2.5-flash-lite-preview-06-17` (preview снят Google). Исправлено: stable id `gemini-2.5-flash-lite` в GEMINI_FREE_MODELS, `resolveGeminiModelId` + миграция в settings/modelRuntime/geminiProvider.
+
 2026-06-28 · custom OpenAI endpoint — провайдер `custom` в modelRuntime через `createOpenAiCompatibleProvider`; настройки `customBaseUrl`/`customApiKey`; ping через IPC `ping-provider` и тест `ModelRuntime custom provider` в providers.integration.test.ts.
 
 2026-06-28 · fallbackModels — цепочка запасных моделей в BehaviorTab; loop в AgentRunner при HTTP 429/5xx; `isProviderFallbackRetryableError` в providerErrors.ts; тест modelFallbackChain.test.ts.

@@ -17,6 +17,7 @@ import {
   DEEPSEEK_API_BASE_URL,
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
+  resolveGeminiModelId,
   OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
 import { ProviderBillingError } from '../../shared/providerErrors'
@@ -126,7 +127,7 @@ export class ModelRuntime {
 
     if (config.type === 'gemini') {
       const apiKey = config.apiKey || ''
-      const model = config.model || GEMINI_MODEL_DEFAULT
+      const model = resolveGeminiModelId(config.model || GEMINI_MODEL_DEFAULT)
       const rpm = typeof config.rpm === 'number' ? config.rpm : 5
       return new GeminiProvider(
         apiKey,

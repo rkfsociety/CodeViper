@@ -453,4 +453,39 @@ describe('liveRuntimeFromGit', () => {
     const loaded = await loadSettings()
     expect(loaded.uiLightMode).toBeUndefined()
   })
+
+  it('мигрирует снятый preview Gemini Flash Lite в stable id', async () => {
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        ollamaUrl: 'http://127.0.0.1:11434',
+        model: 'gemini-2.5-flash-lite-preview-06-17',
+        selfLearning: true,
+        autoModel: false,
+        permissionMode: 'bypass',
+        clarifyMode: false,
+        deepReasoning: false,
+        excludeThinkingFromHistory: true,
+        autoPushSelfEdits: true,
+        summarizeModel: '',
+        modelProvider: 'gemini',
+        providerApiKey: '',
+        deepseekApiKey: '',
+        openaiApiKey: '',
+        openrouterApiKey: '',
+        geminiApiKey: 'test-key',
+        geminiRpm: 10,
+        geminiTier: 'free',
+        claudeApiKey: '',
+        groqApiKey: '',
+        togetherApiKey: '',
+        gitSyncOnStartup: true,
+        gitSyncStrategy: 'stash'
+      })
+    )
+
+    const loaded = await loadSettings()
+    expect(loaded.model).toBe('gemini-2.5-flash-lite')
+  })
 })

@@ -6,7 +6,7 @@ import { z } from 'zod'
 import type { AgentSettings, GitSyncStrategy } from '../../src/types'
 import { GIT_SYNC_STRATEGIES } from '../../src/types'
 import { normalizePermissionMode } from '../../shared/permissions'
-import { DEFAULT_MODEL_PROVIDER } from '../../shared/constants'
+import { DEFAULT_MODEL_PROVIDER, resolveGeminiModelId } from '../../shared/constants'
 import { writeJsonAtomic } from './fsUtil'
 
 const PermissionModeSchema = z.enum(['ask', 'acceptEdits', 'bypass'])
@@ -247,10 +247,13 @@ function normalize(settings: LegacySettings): PersistedSettings {
   const claudeApiKey = settings.claudeApiKey?.trim() ?? (provider === 'anthropic' ? legacyKey : '')
   const customApiKey = settings.customApiKey?.trim() ?? (provider === 'custom' ? legacyKey : '')
 
+  const rawModel = settings.model?.trim() ?? ''
+  const model = provider === 'gemini' && rawModel ? resolveGeminiModelId(rawModel) : rawModel
+
   return {
     version: 1,
     ollamaUrl: settings.ollamaUrl?.trim() || DEFAULT_SETTINGS.ollamaUrl,
-    model: settings.model?.trim() ?? '',
+    model,
     selfLearning: settings.selfLearning !== false,
     autoModel: settings.autoModel !== false,
     // Миграция со старого булева confirmActions: true → 'ask'.
