@@ -65,6 +65,7 @@ import {
 import { defaultUiLayoutState, mergeUiLayoutState, type UiLayoutPanels } from '../shared/uiLayout'
 import { loadUiLayoutWithMigration, scheduleSaveUiLayout } from './lib/uiLayoutPersistence'
 import { QuickOpenPalette } from './components/QuickOpenPalette'
+import { touchRecentProject } from '../shared/recentProjects'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -605,13 +606,30 @@ function AppContent() {
     }
   }, [flushCurrentChat])
 
+  const recordRecentProject = useCallback((projectPath: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      recentProjects: touchRecentProject(prev.recentProjects, projectPath)
+    }))
+  }, [])
+
+  const openProjectForActiveChat = useCallback(
+    async (folder: string) => {
+      if (!activeChatId || chatBusy) return
+      if (messages.length > 0) return
+      recordRecentProject(folder)
+      await window.codeviper.updateChat(activeChatId, { projectPath: folder })
+      await refreshChatStore()
+    },
+    [activeChatId, chatBusy, messages.length, recordRecentProject, refreshChatStore]
+  )
+
   const pickProjectForActiveChat = useCallback(async () => {
     if (!activeChatId || chatBusy || messages.length > 0) return
     const folder = await window.codeviper.selectProjectFolder()
     if (!folder) return
-    await window.codeviper.updateChat(activeChatId, { projectPath: folder })
-    await refreshChatStore()
-  }, [activeChatId, chatBusy, messages.length, refreshChatStore])
+    await openProjectForActiveChat(folder)
+  }, [activeChatId, chatBusy, messages.length, openProjectForActiveChat])
 
   const selectChat = useCallback(
     async (id: string) => {
@@ -843,10 +861,11 @@ function AppContent() {
     async (id: string) => {
       const folder = await window.codeviper.selectProjectFolder()
       if (!folder) return
+      recordRecentProject(folder)
       await window.codeviper.updateChatFolder(id, { projectPath: folder })
       await refreshChatStore()
     },
-    [refreshChatStore]
+    [recordRecentProject, refreshChatStore]
   )
 
   const deleteFolder = useCallback(
@@ -1103,6 +1122,7 @@ function AppContent() {
                       chatMode: agentMode === 'chat'
                     }}
                     onPickProject={pickProjectForActiveChat}
+                    onOpenRecentProject={(path) => void openProjectForActiveChat(path)}
                     models={models}
                     onModelChange={(model, auto) =>
                       setSettings((prev) => ({ ...prev, model, autoModel: auto }))

@@ -203,6 +203,8 @@ export interface AgentSettings {
   minimizeToTray?: boolean
   /** Светлая тема интерфейса (☀️ в шапке) */
   uiLightMode?: boolean
+  /** Последние открытые папки проектов (до 10) */
+  recentProjects?: string[]
   /** URL для POST-уведомления при завершении прогона агента (Slack/Discord/n8n) */
   webhookUrl?: string
   /** Автоиндексация проекта в Qdrant при смене projectPath */

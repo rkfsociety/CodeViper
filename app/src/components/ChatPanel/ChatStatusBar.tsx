@@ -85,6 +85,7 @@ interface Props {
   onModelChange?: (model: string, auto: boolean) => void
   onSettingsChange?: (partial: Partial<AgentSettings>) => void
   onPickProject: () => void
+  onOpenRecentProject?: (path: string) => void
   onSummarizeContext: () => Promise<void>
   onRollback: (message: string) => void
 }
@@ -151,6 +152,7 @@ export function ChatStatusBar({
   onModelChange,
   onSettingsChange,
   onPickProject,
+  onOpenRecentProject,
   onSummarizeContext,
   onRollback
 }: Props) {
@@ -269,6 +271,7 @@ export function ChatStatusBar({
       {chatId && (
         <ChatInputMeta
           projectPath={projectPath}
+          recentProjects={settings.recentProjects}
           settings={settings}
           busy={busy}
           runModel={runModel}
@@ -294,6 +297,7 @@ export function ChatStatusBar({
           onSetContextModalOpen={onSetContextModalOpen}
           onModelChange={onModelChange}
           onPickProject={onPickProject}
+          onOpenRecentProject={onOpenRecentProject}
           onSummarizeContext={onSummarizeContext}
         />
       )}

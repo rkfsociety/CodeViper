@@ -121,7 +121,8 @@ export const PersistedSettingsSchema = z.object({
   p2pAuthToken: z.string().optional(),
   p2pNodePrivateKey: z.string().optional(),
   p2pNodePublicKey: z.string().optional(),
-  uiLightMode: z.boolean().optional()
+  uiLightMode: z.boolean().optional(),
+  recentProjects: z.array(z.string()).optional()
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -314,7 +315,15 @@ function normalize(settings: LegacySettings): PersistedSettings {
       : {}),
     ...(settings.soundNotifications === true ? { soundNotifications: true } : {}),
     ...(settings.minimizeToTray === false ? { minimizeToTray: false } : {}),
-    ...(settings.uiLightMode === true ? { uiLightMode: true } : {})
+    ...(settings.uiLightMode === true ? { uiLightMode: true } : {}),
+    ...(settings.recentProjects?.length
+      ? {
+          recentProjects: settings.recentProjects
+            .map((p) => p.trim())
+            .filter(Boolean)
+            .slice(0, 10)
+        }
+      : {})
   }
 }
 

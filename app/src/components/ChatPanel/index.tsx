@@ -68,6 +68,7 @@ interface Props {
   onLearningSaved?: () => void
   onOllamaFallbackOffer?: (ollamaUrl: string) => void
   onPickProject: () => void
+  onOpenRecentProject?: (path: string) => void
   models?: OllamaModel[]
   onModelChange?: (model: string, auto: boolean) => void
   onActiveModelChange?: (model: string) => void
@@ -86,6 +87,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onLearningSaved,
     onOllamaFallbackOffer,
     onPickProject,
+    onOpenRecentProject,
     models = [],
     onModelChange,
     onActiveModelChange,
@@ -1001,6 +1003,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onSaveAsSkill={handleSaveAsSkill}
         respondPreview={respondPreview}
         onInsertPrompt={insertPrompt}
+        recentProjects={settings.recentProjects}
+        onOpenRecentProject={onOpenRecentProject}
+        onBrowseProject={onPickProject}
       />
 
       {awaitingClarification && (
@@ -1072,6 +1077,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onModelChange={onModelChange}
         onSettingsChange={onSettingsChange}
         onPickProject={onPickProject}
+        onOpenRecentProject={onOpenRecentProject}
         onSummarizeContext={handleSummarizeContext}
         onRollback={(message) =>
           appendMessage({

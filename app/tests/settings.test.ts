@@ -276,6 +276,19 @@ describe('liveRuntimeFromGit', () => {
     expect(loaded.uiLightMode).toBe(true)
   })
 
+  it('сохраняет recentProjects в settings.json', async () => {
+    const paths = ['C:/proj-a', 'C:/proj-b']
+    const saved = await saveSettings(makeSettings({ recentProjects: paths }))
+    expect(saved.recentProjects).toEqual(paths)
+
+    const jsonCall = mockWriteFile.mock.calls.find((args: unknown[]) =>
+      String(args[1]).includes('recentProjects')
+    )
+    expect(jsonCall).toBeDefined()
+    const parsed = JSON.parse(String(jsonCall![1])) as Record<string, unknown>
+    expect(parsed.recentProjects).toEqual(paths)
+  })
+
   it('без uiLightMode в файле — тема тёмная (поле отсутствует)', async () => {
     mockExistsSync.mockReturnValue(true)
     mockReadFile.mockResolvedValue(

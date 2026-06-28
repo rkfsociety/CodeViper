@@ -25,6 +25,9 @@ interface Props {
   onSaveAsSkill: (content: string) => void
   respondPreview: (messageId: string, previewId: string, apply: boolean) => void
   onInsertPrompt: (text: string) => void
+  recentProjects?: string[]
+  onOpenRecentProject?: (path: string) => void
+  onBrowseProject?: () => void
 }
 
 /** Список сообщений + virtualizer — изолирован от ре-рендеров поля ввода. */
@@ -46,7 +49,10 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
   onFileTimeline,
   onSaveAsSkill,
   respondPreview,
-  onInsertPrompt
+  onInsertPrompt,
+  recentProjects,
+  onOpenRecentProject,
+  onBrowseProject
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const atBottomRef = useRef(true)
@@ -120,6 +126,9 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
       onSaveAsSkill={onSaveAsSkill}
       respondPreview={respondPreview}
       onInsertPrompt={onInsertPrompt}
+      recentProjects={recentProjects}
+      onOpenRecentProject={onOpenRecentProject}
+      onBrowseProject={onBrowseProject}
     />
   )
 })

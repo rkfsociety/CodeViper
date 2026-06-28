@@ -49,6 +49,7 @@
 - RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
 
 ### UX и UI
+- Недавние проекты: `recentProjects` в settings (до 10), WelcomePanel и меню «Открыть»
 - Ctrl+` — показать/скрыть встроенный терминал
 - Quick Open (Ctrl+P): fuzzy-поиск по дереву проекта → превью файла
 - Светлая тема: `uiLightMode` в settings.json, восстанавливается после перезапуска

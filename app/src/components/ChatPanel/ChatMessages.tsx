@@ -35,6 +35,9 @@ interface Props {
   onSaveAsSkill: (content: string) => void
   respondPreview: (messageId: string, previewId: string, apply: boolean) => void
   onInsertPrompt: (text: string) => void
+  recentProjects?: string[]
+  onOpenRecentProject?: (path: string) => void
+  onBrowseProject?: () => void
 }
 
 function renderWorkPanel(
@@ -78,7 +81,10 @@ export function ChatMessages({
   onFileTimeline,
   onSaveAsSkill,
   respondPreview,
-  onInsertPrompt
+  onInsertPrompt,
+  recentProjects = [],
+  onOpenRecentProject,
+  onBrowseProject
 }: Props) {
   const draftMessageId = draftMessageIdRef.current
   const workOpts = { busy, agentPhase, draftMessageId }
@@ -86,10 +92,16 @@ export function ChatMessages({
   return (
     <div className={styles.messages} ref={scrollRef}>
       {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
-      {chatId && !projectPath && messagesCount === 0 && (
-        <div className="empty">Выбери папку с кодом — кнопка «Выбрать проект» выше.</div>
+      {chatId && messagesCount === 0 && (
+        <WelcomePanel
+          onSelect={onInsertPrompt}
+          hasProject={Boolean(projectPath)}
+          currentProjectPath={projectPath ?? ''}
+          recentProjects={recentProjects}
+          onOpenRecentProject={onOpenRecentProject}
+          onBrowseProject={onBrowseProject}
+        />
       )}
-      {chatId && projectPath && messagesCount === 0 && <WelcomePanel onSelect={onInsertPrompt} />}
 
       {pinnedDisplayItems.length > 0 && (
         <div className="pinned-messages-section">

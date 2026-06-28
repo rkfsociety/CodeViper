@@ -1,11 +1,14 @@
+import { useEffect, useRef, useState } from 'react'
 import type { AgentSettings, AgentContextPreview, OllamaModel } from '../../types'
 import { GEMINI_FREE_MODELS } from '../../../shared/constants'
+import { formatRecentProjectLabel } from '../../../shared/recentProjects'
 import { getModelPickerHint } from '../../../shared/recommendedModels'
 import { formatProjectLabel } from './helpers'
 import styles from '../ChatPanel.module.css'
 
 interface Props {
   projectPath: string | null
+  recentProjects?: string[]
   settings: AgentSettings
   busy: boolean
   runModel: string
@@ -31,6 +34,7 @@ interface Props {
   onSetContextModalOpen: (v: boolean) => void
   onModelChange?: (model: string, auto: boolean) => void
   onPickProject: () => void
+  onOpenRecentProject?: (path: string) => void
   onSummarizeContext: () => Promise<void>
 }
 
@@ -43,6 +47,7 @@ function formatModelShort(model: string): string {
 
 export function ChatInputMeta({
   projectPath,
+  recentProjects = [],
   settings,
   busy,
   runModel,
@@ -68,26 +73,92 @@ export function ChatInputMeta({
   onSetContextModalOpen,
   onModelChange,
   onPickProject,
+  onOpenRecentProject,
   onSummarizeContext
 }: Props) {
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const projectMenuRef = useRef<HTMLDivElement>(null)
+  const recents = recentProjects.filter((path) => path.trim())
+
+  useEffect(() => {
+    if (!projectMenuOpen) return
+    function handleOutside(e: MouseEvent) {
+      if (projectMenuRef.current && !projectMenuRef.current.contains(e.target as Node)) {
+        setProjectMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [projectMenuOpen])
+
   return (
     <div className={styles.inputMeta}>
       <div className={styles.metaLeft}>
-        <button
-          type="button"
-          className={styles.metaBtn}
-          title={
-            projectLocked
-              ? `Проект зафиксирован — чат уже содержит сообщения (${projectPath})`
-              : projectPath || 'Выбрать проект'
-          }
-          onClick={!projectLocked ? onPickProject : undefined}
-          style={projectLocked ? { cursor: 'default' } : undefined}
-          disabled={busy && !projectLocked}
-        >
-          📁 {projectPath ? formatProjectLabel(projectPath) : 'Выбрать проект'}
-          {projectLocked && <span style={{ opacity: 0.45, fontSize: 9, marginLeft: 2 }}>🔒</span>}
-        </button>
+        <div className={styles.projectPicker} ref={projectMenuRef}>
+          <button
+            type="button"
+            className={styles.metaBtn}
+            title={
+              projectLocked
+                ? `Проект зафиксирован — чат уже содержит сообщения (${projectPath})`
+                : projectPath || 'Открыть проект'
+            }
+            onClick={!projectLocked ? () => setProjectMenuOpen((open) => !open) : undefined}
+            style={projectLocked ? { cursor: 'default' } : undefined}
+            disabled={busy && !projectLocked}
+            aria-haspopup={!projectLocked ? 'menu' : undefined}
+            aria-expanded={!projectLocked ? projectMenuOpen : undefined}
+          >
+            📁 {projectPath ? formatProjectLabel(projectPath) : 'Открыть'}
+            {!projectLocked && (
+              <span className={styles.modelChevron}>{projectMenuOpen ? '▴' : '▾'}</span>
+            )}
+            {projectLocked && <span style={{ opacity: 0.45, fontSize: 9, marginLeft: 2 }}>🔒</span>}
+          </button>
+          {projectMenuOpen && !projectLocked && (
+            <div className={styles.projectMenu} role="menu">
+              {recents.length > 0 && (
+                <>
+                  <div className={styles.projectMenuTitle}>Недавние</div>
+                  {recents.map((path) => {
+                    const isCurrent = path === projectPath
+                    return (
+                      <button
+                        key={path}
+                        type="button"
+                        role="menuitem"
+                        className={`${styles.projectMenuItem}${isCurrent ? ` ${styles.projectMenuItemActive}` : ''}`}
+                        title={path}
+                        disabled={isCurrent}
+                        onClick={() => {
+                          setProjectMenuOpen(false)
+                          onOpenRecentProject?.(path)
+                        }}
+                      >
+                        <span className={styles.projectMenuName}>
+                          {formatRecentProjectLabel(path)}
+                        </span>
+                        <span className={styles.projectMenuPath}>{path}</span>
+                      </button>
+                    )
+                  })}
+                  <div className={styles.projectMenuSep} />
+                </>
+              )}
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.projectMenuBrowse}
+                onClick={() => {
+                  setProjectMenuOpen(false)
+                  onPickProject()
+                }}
+              >
+                Обзор папок…
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={styles.metaRight}>
