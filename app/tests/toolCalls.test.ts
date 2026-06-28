@@ -51,6 +51,15 @@ describe('extractEmbeddedToolCalls', () => {
       ]
     })
   })
+
+  it('парсит JSON tool call после prose (qwen text-based)', () => {
+    const raw =
+      'Для начала выполню `read_roadmap_item` number=1 для получения деталей задания.\n\n{"name": "read_roadmap_item", "arguments": {"number": 1}}'
+    expect(extractEmbeddedToolCalls(raw)).toEqual({
+      content: 'Для начала выполню `read_roadmap_item` number=1 для получения деталей задания.',
+      toolCalls: [{ name: 'read_roadmap_item', arguments: { number: 1 } }]
+    })
+  })
 })
 
 describe('looksLikeEmbeddedToolCall', () => {

@@ -186,6 +186,39 @@ function extractBalancedJsonObject(text: string): string | null {
   return null
 }
 
+/** JSON `{"name":"…","arguments":{…}}` внутри prose (qwen часто пишет пояснение, затем JSON). */
+function extractInlineJsonToolCalls(
+  content: string,
+  extraToolNames?: readonly string[]
+): {
+  content: string
+  toolCalls: ParsedToolCall[]
+} {
+  const toolCalls: ParsedToolCall[] = []
+  let remaining = content
+  const needle = '{"name"'
+  let searchFrom = 0
+
+  while (searchFrom < remaining.length) {
+    const idx = remaining.indexOf(needle, searchFrom)
+    if (idx === -1) break
+
+    const json = extractBalancedJsonObject(remaining.slice(idx))
+    if (json) {
+      const parsed = tryParseToolCallJson(json, extraToolNames)
+      if (parsed) {
+        toolCalls.push(...parsed)
+        remaining = (remaining.slice(0, idx) + remaining.slice(idx + json.length)).trim()
+        searchFrom = Math.max(0, idx - 1)
+        continue
+      }
+    }
+    searchFrom = idx + needle.length
+  }
+
+  return { content: remaining.trim(), toolCalls }
+}
+
 function extractToolResponseCalls(
   content: string,
   extraToolNames?: readonly string[]
@@ -246,6 +279,11 @@ export function extractEmbeddedToolCalls(
   const parsed = tryParseToolCallJson(remaining.trim(), extraToolNames)
   if (parsed) {
     return { content: '', toolCalls: parsed }
+  }
+
+  const inline = extractInlineJsonToolCalls(remaining, extraToolNames)
+  if (inline.toolCalls.length) {
+    return inline
   }
 
   return { content: remaining, toolCalls: [] }
