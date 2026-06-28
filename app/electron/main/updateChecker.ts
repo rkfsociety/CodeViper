@@ -12,7 +12,11 @@ import {
 } from '../../shared/checkForUpdatesResult'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { peekBundledSourceUpdate } from './bundledSourceSync'
-import { isRuntimeUpdatePending, relaunchForRuntimeUpdate } from './runtimeUpdate'
+import {
+  isRuntimeUpdatePending,
+  relaunchForRuntimeUpdate,
+  consumeRuntimeUpdateForShellInstall
+} from './runtimeUpdate'
 import { runShutdownHooks } from './appShutdown'
 import { shutdownEmbeddingWorker } from './embeddingQueue'
 import { shutdownLargeFileWorker } from './largeFileQueue'
@@ -382,6 +386,31 @@ function launchQuitAndInstall(): void {
 export function installPendingUpdate(): void {
   if (installInProgress) return
 
+  if (!app.isPackaged) {
+    installInProgress = true
+    app.relaunch()
+    app.exit(0)
+    return
+  }
+
+  if (updateDownloadReady) {
+    installInProgress = true
+    if (isRuntimeUpdatePending()) {
+      consumeRuntimeUpdateForShellInstall()
+    }
+    void (async () => {
+      await logUpdate('install-start', { version: pendingReleaseVersion })
+      await prepareForInstall()
+      launchQuitAndInstall()
+
+      setTimeout(() => {
+        void logUpdate('install-timeout-fallback')
+        runWindowsInstallerFallback()
+      }, 12_000).unref()
+    })()
+    return
+  }
+
   if (isRuntimeUpdatePending()) {
     installInProgress = true
     void relaunchForRuntimeUpdate().catch((err) => {
@@ -393,29 +422,16 @@ export function installPendingUpdate(): void {
     return
   }
 
+  void logUpdate('install-skipped-not-ready')
+}
+
+export function installRuntimeUpdateOnly(): void {
+  if (installInProgress || !isRuntimeUpdatePending()) return
   installInProgress = true
-
-  if (!app.isPackaged) {
-    app.relaunch()
-    app.exit(0)
-    return
-  }
-
-  if (!updateDownloadReady) {
-    void logUpdate('install-skipped-not-ready')
+  void relaunchForRuntimeUpdate().catch((err) => {
     installInProgress = false
-    return
-  }
-
-  void (async () => {
-    await logUpdate('install-start', { version: pendingReleaseVersion })
-    await prepareForInstall()
-    launchQuitAndInstall()
-
-    // Если quitAndInstall не завершил процесс — запускаем установщик вручную (Windows).
-    setTimeout(() => {
-      void logUpdate('install-timeout-fallback')
-      runWindowsInstallerFallback()
-    }, 12_000).unref()
-  })()
+    void logUpdate('runtime-only-relaunch-failed', {
+      error: err instanceof Error ? err.message : String(err)
+    })
+  })
 }

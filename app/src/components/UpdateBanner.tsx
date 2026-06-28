@@ -1,4 +1,10 @@
+import type { PendingUpdates, ReleaseUpdateInfo } from '../shared/updateBannerView'
 import type { UpdateInfo } from '../types'
+import {
+  buildUpdateBannerView,
+  mergePendingUpdate,
+  type UpdateBannerView
+} from '../../shared/updateBannerView'
 import {
   estimateRemainingSeconds,
   formatBytes,
@@ -8,28 +14,33 @@ import {
 import styles from './UpdateBanner.module.css'
 
 interface Props {
-  info: UpdateInfo
+  updates: PendingUpdates
   installing?: boolean
   onInstall: () => void
+  onInstallRuntime?: () => void
   onDismiss: () => void
 }
 
-function releaseProgressLine(info: Extract<UpdateInfo, { source: 'release' }>): string | null {
-  if (info.ready) return null
+function releaseProgressLine(release: ReleaseUpdateInfo | null): string | null {
+  if (!release || release.ready) return null
 
   const parts: string[] = []
-  const transferred = formatBytes(info.transferred)
-  const total = formatBytes(info.total)
+  const transferred = formatBytes(release.transferred)
+  const total = formatBytes(release.total)
   if (transferred && total) {
     parts.push(`${transferred} / ${total}`)
-  } else if (info.percent != null) {
-    parts.push(`${Math.round(info.percent)}%`)
+  } else if (release.percent != null) {
+    parts.push(`${Math.round(release.percent)}%`)
   }
 
-  const speed = formatSpeed(info.bytesPerSecond)
+  const speed = formatSpeed(release.bytesPerSecond)
   if (speed) parts.push(speed)
 
-  const remainingSecs = estimateRemainingSeconds(info.transferred, info.total, info.bytesPerSecond)
+  const remainingSecs = estimateRemainingSeconds(
+    release.transferred,
+    release.total,
+    release.bytesPerSecond
+  )
   if (remainingSecs != null) {
     parts.push(formatRemaining(remainingSecs))
   }
@@ -37,75 +48,79 @@ function releaseProgressLine(info: Extract<UpdateInfo, { source: 'release' }>): 
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-export function UpdateBanner({ info, installing = false, onInstall, onDismiss }: Props) {
-  const releaseProgress = info.source === 'release' ? releaseProgressLine(info) : null
-  const releasePercent =
-    info.source === 'release' && !info.ready && info.percent != null
-      ? Math.min(100, Math.max(0, info.percent))
-      : null
+function withReleaseProgress(
+  view: UpdateBannerView,
+  release: ReleaseUpdateInfo | null
+): UpdateBannerView {
+  const progress = releaseProgressLine(release)
+  if (!progress) return view
+  return { ...view, releaseProgress: progress }
+}
+
+export function applyUpdateInfo(current: PendingUpdates, incoming: UpdateInfo): PendingUpdates {
+  return mergePendingUpdate(current, incoming)
+}
+
+export function getUpdateBannerView(updates: PendingUpdates): UpdateBannerView {
+  return withReleaseProgress(buildUpdateBannerView(updates), updates.release)
+}
+
+export function UpdateBanner({
+  updates,
+  installing = false,
+  onInstall,
+  onInstallRuntime,
+  onDismiss
+}: Props) {
+  const view = getUpdateBannerView(updates)
+  if (!view.visible) return null
+
+  const showRuntimeOnly =
+    view.hasRuntime &&
+    view.hasRelease &&
+    updates.release != null &&
+    !updates.release.ready &&
+    onInstallRuntime != null
 
   return (
     <div className={styles.banner} role="status">
       <div className={styles.body}>
-        <span className={styles.title}>
-          {info.source === 'release' ? (
-            info.ready ? (
-              <>
-                🔄 Доступна новая версия <strong>{info.version}</strong>. Скачано — перезапустите
-                для установки.
-              </>
-            ) : (
-              <>
-                🔄 Загружается версия <strong>{info.version}</strong> с GitHub Releases…
-              </>
-            )
-          ) : info.source === 'runtime' ? (
-            <>
-              🔄 Обновление agent runtime готово
-              {info.localHead ? (
-                <>
-                  {' '}
-                  (<code>{info.localHead.slice(0, 7)}</code>)
-                </>
-              ) : null}
-              . Перезапустите для применения.
-            </>
-          ) : (
-            <>
-              🔄 Доступно обновление исходников:{' '}
-              {info.commits === 1 ? '1 коммит' : `${info.commits} коммит(ов)`} на GitHub.
-              Перезапустите для пересборки.
-            </>
-          )}
-        </span>
+        <span className={styles.title}>🔄 {view.title}</span>
 
-        {releasePercent != null && (
+        {view.releasePercent != null && (
           <div className={styles.progressWrap}>
             <div className={styles.progressBar}>
-              <div className={styles.progressFill} style={{ width: `${releasePercent}%` }} />
+              <div className={styles.progressFill} style={{ width: `${view.releasePercent}%` }} />
             </div>
-            <span className={styles.progressPct}>{Math.round(releasePercent)}%</span>
+            <span className={styles.progressPct}>{Math.round(view.releasePercent)}%</span>
           </div>
         )}
 
-        {releaseProgress && <span className={styles.progressMeta}>{releaseProgress}</span>}
+        {view.releaseProgress && (
+          <span className={styles.progressMeta}>{view.releaseProgress}</span>
+        )}
       </div>
 
       <div className={styles.actions}>
         <button
           type="button"
           className="btn primary"
-          disabled={installing || (info.source === 'release' && !info.ready)}
+          disabled={installing || !view.canInstall}
           onClick={onInstall}
         >
-          {installing
-            ? 'Перезапускаем…'
-            : info.source === 'release' && info.ready
-              ? 'Перезапустить и обновить'
-              : info.source === 'runtime'
-                ? 'Перезапустить для применения'
-                : 'Перезапустить'}
+          {installing ? 'Перезапускаем…' : view.installLabel}
         </button>
+        {showRuntimeOnly && (
+          <button
+            type="button"
+            className="btn"
+            disabled={installing}
+            onClick={onInstallRuntime}
+            title="Перезапустить без ожидания загрузки установщика"
+          >
+            Только runtime
+          </button>
+        )}
         <button type="button" className="btn" onClick={onDismiss}>
           Позже
         </button>

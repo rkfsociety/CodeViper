@@ -93,6 +93,19 @@ export function stopRuntimeUpdateNotifier(): void {
   targetWebContents = null
 }
 
+/** Установщик перезапустит приложение — runtime из клона подхватится при старте. */
+export function consumeRuntimeUpdateForShellInstall(): void {
+  const head = pendingLocalHead
+  if (!pendingRuntimeUpdate) return
+  clearRuntimeUpdatePending()
+  if (head) {
+    void import('./runtimeUpdateState').then(({ recordRuntimeAppliedHead }) =>
+      recordRuntimeAppliedHead(head)
+    )
+    void logRuntimeUpdate('runtime consumed by shell install', { localHead: head })
+  }
+}
+
 export function dismissRuntimeUpdate(): void {
   const head = pendingLocalHead
   clearRuntimeUpdatePending()

@@ -822,6 +822,7 @@ export interface CodeViperAPI {
   dismissRuntimeUpdate: () => void
   restartApp: () => void
   installUpdate: () => void
+  installRuntimeUpdate: () => void
   openDevTools: () => void
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void

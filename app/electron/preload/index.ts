@@ -533,6 +533,7 @@ const codeviper = {
 
   restartApp: () => ipcRenderer.send(IPC.RESTART_APP),
   installUpdate: () => ipcRenderer.send(IPC.INSTALL_UPDATE),
+  installRuntimeUpdate: () => ipcRenderer.send(IPC.INSTALL_RUNTIME_UPDATE),
 
   openDevTools: () => ipcRenderer.send(IPC.OPEN_DEVTOOLS),
 

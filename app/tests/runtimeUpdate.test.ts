@@ -117,4 +117,16 @@ describe('runtimeUpdate', () => {
     expect(relaunchMock).toHaveBeenCalled()
     expect(exitMock).toHaveBeenCalledWith(0)
   })
+
+  it('consumeRuntimeUpdateForShellInstall сбрасывает pending и записывает HEAD', async () => {
+    const { consumeRuntimeUpdateForShellInstall } = await import('../electron/main/runtimeUpdate')
+    const { recordRuntimeAppliedHead } = await import('../electron/main/runtimeUpdateState')
+
+    markRuntimeUpdateReady('abc123')
+    await vi.waitFor(() => expect(isRuntimeUpdatePending()).toBe(true))
+
+    consumeRuntimeUpdateForShellInstall()
+    expect(isRuntimeUpdatePending()).toBe(false)
+    await vi.waitFor(() => expect(recordRuntimeAppliedHead).toHaveBeenCalledWith('abc123'))
+  })
 })

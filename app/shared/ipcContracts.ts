@@ -490,6 +490,7 @@ export const IPC = {
   OPEN_DEVTOOLS: 'open-devtools',
   RESTART_APP: 'restart-app',
   INSTALL_UPDATE: 'install-update',
+  INSTALL_RUNTIME_UPDATE: 'install-runtime-update',
   OPEN_EXTERNAL: 'open-external',
   SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
   GET_COLLECTIVE_SYNC_STATUS: 'get-collective-sync-status',

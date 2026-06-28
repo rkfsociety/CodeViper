@@ -3,7 +3,11 @@ import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { readAppState, writeAppState, clearAppState } from '../appState'
-import { installPendingUpdate, checkForUpdatesNow } from '../updateChecker'
+import {
+  installPendingUpdate,
+  checkForUpdatesNow,
+  installRuntimeUpdateOnly
+} from '../updateChecker'
 import { dismissRuntimeUpdate } from '../runtimeUpdate'
 import { forceSyncBundledSource } from '../bundledSourceSync'
 import { getPluginsDirectory } from '../pluginLoader'
@@ -73,6 +77,10 @@ export function registerAppIpc(ctx: IpcContext): void {
 
   ipcMain.on(IPC.INSTALL_UPDATE, () => {
     installPendingUpdate()
+  })
+
+  ipcMain.on(IPC.INSTALL_RUNTIME_UPDATE, () => {
+    installRuntimeUpdateOnly()
   })
 
   ipcMain.on(IPC.DISMISS_RUNTIME_UPDATE, () => {

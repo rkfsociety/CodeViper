@@ -9,8 +9,7 @@ import type {
   AppState,
   ChatMessage,
   ChatStore,
-  OllamaModel,
-  UpdateInfo
+  OllamaModel
 } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
@@ -24,7 +23,8 @@ import { CHAT_TEMPLATES } from '../shared/chatTemplates'
 import { ProjectTreePanel } from './components/ProjectTreePanel'
 import { FilePreviewPanel } from './components/FilePreviewPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
-import { UpdateBanner } from './components/UpdateBanner'
+import { UpdateBanner, applyUpdateInfo } from './components/UpdateBanner'
+import type { PendingUpdates } from '../shared/updateBannerView'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { PromptDialog } from './components/PromptDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
@@ -261,7 +261,11 @@ function AppContent() {
     },
     [persistLayout]
   )
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [pendingUpdates, setPendingUpdates] = useState<PendingUpdates>({
+    release: null,
+    runtime: null,
+    git: null
+  })
   const [installingUpdate, setInstallingUpdate] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
@@ -538,11 +542,15 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
-    return window.codeviper.onUpdateAvailable((info) => setUpdateInfo(info))
+    return window.codeviper.onUpdateAvailable((info) =>
+      setPendingUpdates((prev) => applyUpdateInfo(prev, info))
+    )
   }, [])
 
   useEffect(() => {
-    return window.codeviper.onRuntimeUpdateReady((info) => setUpdateInfo(info))
+    return window.codeviper.onRuntimeUpdateReady((info) =>
+      setPendingUpdates((prev) => applyUpdateInfo(prev, info))
+    )
   }, [])
 
   // Проверяем наличие краш-снимка при старте (файл остался после аварийного завершения)
@@ -1053,19 +1061,28 @@ function AppContent() {
           </div>
         </header>
 
-        {updateInfo && (
+        {(pendingUpdates.release || pendingUpdates.runtime || pendingUpdates.git) && (
           <UpdateBanner
-            info={updateInfo}
+            updates={pendingUpdates}
             installing={installingUpdate}
             onInstall={() => {
               setInstallingUpdate(true)
               window.codeviper.installUpdate()
             }}
+            onInstallRuntime={() => {
+              setInstallingUpdate(true)
+              window.codeviper.installRuntimeUpdate()
+            }}
             onDismiss={() => {
-              if (updateInfo.source === 'runtime') {
+              if (pendingUpdates.runtime) {
                 window.codeviper.dismissRuntimeUpdate()
               }
-              setUpdateInfo(null)
+              setPendingUpdates((prev) => ({
+                ...prev,
+                runtime: null,
+                release: null,
+                git: null
+              }))
             }}
           />
         )}
