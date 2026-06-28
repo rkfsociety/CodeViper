@@ -11,9 +11,15 @@ import {
   START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
   buildSelfImprovementContinueNudge,
   ROADMAP_DOCS_NOT_UPDATED_NUDGE,
+  ROADMAP_ITEM_ALREADY_READ_NUDGE,
+  AUTO_ADOPT_ROADMAP_PLAN_AFTER_NUDGES,
+  buildPlanFromRoadmapItem,
+  parseRoadmapItemFromToolOutput,
+  parseRoadmapFieldsFromAssistantText,
   incrementAttempt,
   hasActionablePending,
-  type SelfImprovementItem
+  type SelfImprovementItem,
+  type RoadmapPlanSource
 } from '../../shared/selfImprovement'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import { commitAndPushSelfEditsRuntime, stageSelfEditsForRestartRuntime } from './selfCommitRuntime'
@@ -46,6 +52,9 @@ export class SelfImprovementOrchestrator {
   private currentPlanItemId: string | null = null
   private roadmapDocsUpdated = false
   private roadmapItemNum: number | null = null
+  private cachedRoadmapItem: RoadmapPlanSource | null = null
+  private readRoadmapRepeatCount = 0
+  private lastReadRoadmapNum: number | null = null
 
   constructor(
     private readonly plan: SelfImprovementPlanStore,
@@ -60,6 +69,63 @@ export class SelfImprovementOrchestrator {
   setRoadmapContext(itemNum: number | null): void {
     this.roadmapItemNum = itemNum
     this.roadmapDocsUpdated = false
+    this.cachedRoadmapItem = null
+    this.readRoadmapRepeatCount = 0
+    this.lastReadRoadmapNum = null
+  }
+
+  /** Предзагрузка пункта ROADMAP (agent.ts читает до первого шага модели). */
+  setRoadmapItemDetail(detail: RoadmapPlanSource): void {
+    this.cachedRoadmapItem = detail
+    this.lastReadRoadmapNum = detail.num
+  }
+
+  /**
+   * После batch tool calls: кэширует read_roadmap_item, при повторном чтении — автоплан.
+   * Возвращает nudge для messages, если план создан автоматически.
+   */
+  recordToolInvocations(
+    invocations: Array<{ name: string; output: string; args?: Record<string, string> }>
+  ): string | null {
+    if (this.plan.has()) return null
+
+    for (const inv of invocations) {
+      if (inv.name !== 'read_roadmap_item') continue
+      const parsed = parseRoadmapItemFromToolOutput(inv.output)
+      if (!parsed) continue
+
+      if (this.lastReadRoadmapNum === parsed.num) {
+        this.readRoadmapRepeatCount++
+      } else {
+        this.lastReadRoadmapNum = parsed.num
+        this.readRoadmapRepeatCount = 1
+      }
+      this.cachedRoadmapItem = parsed
+
+      if (this.readRoadmapRepeatCount >= 2 && this.autoAdoptRoadmapPlan()) {
+        const current = this.plan.get()
+        return current
+          ? `${ROADMAP_ITEM_ALREADY_READ_NUDGE}\n\n${buildSelfImprovementContinueNudge(current)}`
+          : ROADMAP_ITEM_ALREADY_READ_NUDGE
+      }
+    }
+    return null
+  }
+
+  private autoAdoptRoadmapPlan(source?: RoadmapPlanSource): boolean {
+    if (this.plan.has()) return false
+    const item = source ?? this.cachedRoadmapItem
+    if (!item?.action && !item?.verification) return false
+
+    const items = buildPlanFromRoadmapItem(item)
+    if (items.length < 2) return false
+
+    this.plan.adopt(items)
+    this.emitPlan(items)
+    this.selfImprovePlanNudges = 0
+    const next = items.find((i) => !i.done && !i.blocked)
+    if (next) this.currentPlanItemId = next.id
+    return true
   }
 
   markRoadmapDocsUpdated(): void {
@@ -143,7 +209,37 @@ export class SelfImprovementOrchestrator {
     }
 
     if (!current && usedTools) {
+      if (assistantText && !adoptedPlan) {
+        const fromText = parseRoadmapFieldsFromAssistantText(assistantText)
+        if (fromText && this.autoAdoptRoadmapPlan(fromText)) {
+          const planNow = this.plan.get()
+          if (planNow) {
+            return {
+              action: 'continue',
+              nudgeMessage: buildSelfImprovementContinueNudge(planNow),
+              requireTool: true,
+              clearDraft: true
+            }
+          }
+        }
+      }
+
       this.selfImprovePlanNudges++
+      if (
+        this.selfImprovePlanNudges >= AUTO_ADOPT_ROADMAP_PLAN_AFTER_NUDGES &&
+        this.autoAdoptRoadmapPlan()
+      ) {
+        const planNow = this.plan.get()
+        if (planNow) {
+          return {
+            action: 'continue',
+            nudgeMessage: buildSelfImprovementContinueNudge(planNow),
+            requireTool: true,
+            clearDraft: true
+          }
+        }
+      }
+
       if (this.selfImprovePlanNudges >= MAX_SELF_IMPROVE_PLAN_NUDGES) {
         return { action: 'error', content: SELF_IMPROVE_PLAN_STUCK_MESSAGE }
       }

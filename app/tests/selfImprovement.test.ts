@@ -24,6 +24,9 @@ import {
   isPlanComplete,
   formatPlanSummary,
   buildSelfImprovementContinueNudge,
+  buildPlanFromRoadmapItem,
+  parseRoadmapItemFromToolOutput,
+  parseRoadmapFieldsFromAssistantText,
   isReadOutputTruncated,
   mapSelfImproveProjectTool,
   validateSelfImproveMutatingContent,
@@ -301,5 +304,36 @@ tool_response {"name": "read_codeviper_file", "arguments": {"path": "agent.ts"}}
     const hint = buildRoadmapAlreadyDoneHint('- Горячие клавиши: Esc')
     expect(hint).toContain('уже выполнен')
     expect(hint).toContain('Горячие клавиши')
+  })
+
+  it('buildPlanFromRoadmapItem — стандартные шаги ROADMAP', () => {
+    const plan = buildPlanFromRoadmapItem({
+      num: 1,
+      action: 'Добавить custom endpoint',
+      verification: 'npm run typecheck'
+    })
+    expect(plan.length).toBeGreaterThanOrEqual(3)
+    expect(plan[0].title).toContain('custom endpoint')
+    expect(plan.some((p) => p.title.includes('ROADMAP'))).toBe(true)
+    expect(plan.some((p) => p.title.includes('commit_and_push'))).toBe(true)
+  })
+
+  it('parseRoadmapItemFromToolOutput из read_roadmap_item', () => {
+    const text = `Пункт 1 · M · Custom endpoint (chain)
+
+Цель: x
+Файлы: a.ts
+Действие: реализовать провайдер
+Проверка: npm run typecheck`
+    const item = parseRoadmapItemFromToolOutput(text)
+    expect(item?.num).toBe(1)
+    expect(item?.action).toContain('провайдер')
+    expect(item?.verification).toContain('typecheck')
+  })
+
+  it('parseRoadmapFieldsFromAssistantText отклоняет расплывчатый план qwen', () => {
+    const vague = `Действие: Реализация пункта 1 из дорожной карты.
+Проверка: npm run typecheck`
+    expect(parseRoadmapFieldsFromAssistantText(vague)).toBeNull()
   })
 })

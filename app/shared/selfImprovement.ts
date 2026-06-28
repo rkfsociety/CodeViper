@@ -529,8 +529,114 @@ function extractJsonArrays(text: string): string[] {
   return arrays
 }
 
+/** Минимальные поля ROADMAP для автоплана (read_roadmap_item / startup). */
+export interface RoadmapPlanSource {
+  num: number
+  action: string
+  verification: string
+  title?: string
+}
+
+/** Стандартный план самоулучшения из полей «Действие» и «Проверка» пункта ROADMAP. */
+export function buildPlanFromRoadmapItem(item: RoadmapPlanSource): SelfImprovementItem[] {
+  const items: SelfImprovementItem[] = []
+  const action = item.action.trim()
+  const verification = item.verification.trim()
+
+  if (action) {
+    items.push({ id: '1', title: action, done: false, attemptCount: 0 })
+  }
+  if (verification) {
+    items.push({
+      id: String(items.length + 1),
+      title: verification,
+      done: false,
+      attemptCount: 0
+    })
+  }
+  items.push({
+    id: String(items.length + 1),
+    title: `ROADMAP: удалить пункт ${item.num}, перенумеровать; ROADMAP_DONE: запись; README: счётчик задач`,
+    done: false,
+    attemptCount: 0
+  })
+  items.push({
+    id: String(items.length + 1),
+    title: 'commit_and_push_self_edits',
+    done: false,
+    attemptCount: 0
+  })
+  return items
+}
+
+/** Парсит текст ответа read_roadmap_item (Цель / Файлы / Действие / Проверка). */
+export function parseRoadmapItemFromToolOutput(text: string): RoadmapPlanSource | null {
+  const body = text.replace(/^Инструмент\s+read_roadmap_item:\s*/i, '').trim()
+  const numMatch = body.match(/^Пункт\s+(\d+)/m)
+  if (!numMatch) return null
+
+  const readField = (name: string): string => {
+    const re = new RegExp(`^${name}:\\s*(.+)$`, 'im')
+    const m = body.match(re)
+    return m?.[1]?.trim() ?? ''
+  }
+
+  const action = readField('Действие')
+  const verification = readField('Проверка')
+  if (!action && !verification) return null
+
+  const titleMatch = body.match(/^Пункт\s+\d+\s+·\s+(?:S|M|L|XL)\s+·\s+(.+?)(?:\s+\(|$)/im)
+  return {
+    num: parseInt(numMatch[1], 10),
+    action,
+    verification,
+    title: titleMatch?.[1]?.trim()
+  }
+}
+
+/** Действие/Проверка из текста ответа модели (qwen часто пишет план текстом, не tool call). */
+export function parseRoadmapFieldsFromAssistantText(text: string): RoadmapPlanSource | null {
+  const actionMatch = text.match(
+    /(?:^|\n)\*?\*?Действие:?\*?\*?\s*([\s\S]*?)(?=\n\s*\*?\*?(?:Проверка|Инструмент|Редактирование|###)|$)/iu
+  )
+  const checkMatch = text.match(
+    /(?:^|\n)\*?\*?Проверка:?\*?\*?\s*([\s\S]*?)(?=\n\s*\*?\*?(?:Действие|Инструмент|Редактирование|###)|$)/iu
+  )
+  if (!actionMatch && !checkMatch) return null
+
+  const clean = (raw: string): string =>
+    raw
+      .replace(/^\d+\.\s+/gm, '')
+      .replace(/^[-*]\s+/gm, '')
+      .replace(/`/g, '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !/^инструмент/i.test(l) && !/^только tool/i.test(l))
+      .join(' ')
+      .trim()
+
+  const action = actionMatch ? clean(actionMatch[1]) : ''
+  const verification = checkMatch ? clean(checkMatch[1]) : ''
+  if (!action && !verification) return null
+  if (/^реализация пункта \d+ из дорожной/i.test(action)) return null
+
+  const numMatch = text.match(/пункт\s+(\d+)/i)
+  return {
+    num: numMatch ? parseInt(numMatch[1], 10) : 1,
+    action: action || verification,
+    verification:
+      verification && verification !== action ? verification : 'npm run typecheck; npm run build'
+  }
+}
+
 /** План из markdown checklist или JSON-массива [{id, title}, …] в тексте ответа модели. */
 export function parsePlanFromAssistantText(text: string): SelfImprovementItem[] | null {
+  const roadmapFields = parseRoadmapFieldsFromAssistantText(text)
+  if (roadmapFields?.action) {
+    const built = buildPlanFromRoadmapItem(roadmapFields)
+    if (built.length >= 2) return built
+  }
+
   const checklist = parseChecklistAsPlan(text)
   if (checklist) return checklist
 
@@ -651,8 +757,12 @@ export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_im
 - ROADMAP: удалить пункт; ROADMAP_DONE: запись
 Только tool_calling. read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) и файлы из «Файлы» (*_codeviper_*, не read_file).`
 
+export const AUTO_ADOPT_ROADMAP_PLAN_AFTER_NUDGES = 2
+
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
   'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'
+
+export const ROADMAP_ITEM_ALREADY_READ_NUDGE = `Пункт ROADMAP уже прочитан — не вызывай read_roadmap_item повторно. План создан автоматически; начни с read_codeviper_file для путей из «Файлы», затем edit_codeviper_file.`
 
 export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) → read_codeviper_file файлы из «Файлы» (ENOENT → create_codeviper_file) → set_self_improvement_plan. Не list_directory и не read_file проекта для app/. Не угадывай файлы (agent.ts в корне нет — смотри «Файлы» в ROADMAP).`
 

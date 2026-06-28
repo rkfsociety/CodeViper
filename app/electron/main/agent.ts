@@ -367,7 +367,9 @@ export class AgentRunner {
         hintParts.push(buildRoadmapAlreadyDoneHint(doneLine))
       } else if (roadmapItemNum != null) {
         const planned = await readRoadmapItem(roadmapItemNum)
-        if (!planned) {
+        if (planned) {
+          this.selfImproveOrchestrator.setRoadmapItemDetail(planned)
+        } else {
           const byNum = await findRoadmapDoneMatch(`пункт ${roadmapItemNum}`)
           if (byNum) hintParts.push(buildRoadmapAlreadyDoneHint(byNum))
         }
@@ -817,6 +819,20 @@ export class AgentRunner {
             name: r.name,
             args: parseToolArgs(toolCalls[i]?.function.arguments ?? {})
           }))
+          if (taskMode === 'self-improve') {
+            const autoNudge = this.selfImproveOrchestrator.recordToolInvocations(
+              results.map((r, i) => ({
+                name: r.name,
+                output: r.output,
+                args: parseToolArgs(toolCalls[i]?.function.arguments ?? {})
+              }))
+            )
+            if (autoNudge) {
+              messages.push({ role: 'user', content: autoNudge })
+              requireToolNext = true
+              continue
+            }
+          }
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
@@ -849,6 +865,20 @@ export class AgentRunner {
             name: inv.name,
             args: inv.args
           }))
+          if (taskMode === 'self-improve') {
+            const autoNudge = this.selfImproveOrchestrator.recordToolInvocations(
+              batch.invocations.map((inv) => ({
+                name: inv.name,
+                output: inv.output,
+                args: inv.args
+              }))
+            )
+            if (autoNudge) {
+              messages.push({ role: 'user', content: autoNudge })
+              requireToolNext = true
+              continue
+            }
+          }
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
