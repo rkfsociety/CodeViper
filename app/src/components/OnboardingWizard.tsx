@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentSettings, OllamaModel } from '../types'
 import { useModalA11y } from '../hooks/useModalA11y'
 import { CloudModelSelector } from './CloudModelSelector'
@@ -80,12 +80,14 @@ export function OnboardingWizard({
   const modalRef = useModalA11y<HTMLDivElement>(open)
   const [step, setStep] = useState(1)
   const [draft, setDraft] = useState(settings)
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpenRef.current) {
       setStep(1)
       setDraft(settings)
     }
+    wasOpenRef.current = open
   }, [open, settings])
 
   const provider = draft.modelProvider ?? 'ollama'
