@@ -24,6 +24,9 @@ import {
   buildPlanFromRoadmapItem,
   parseRoadmapItemFromToolOutput,
   parseRoadmapFieldsFromAssistantText,
+  isInvalidSelfImprovementPlan,
+  looksLikeJsonPlanText,
+  parsePlanItemsJson,
   incrementAttempt,
   hasActionablePending,
   planProgress,
@@ -169,9 +172,22 @@ export class SelfImprovementOrchestrator {
     if (!this.plan.has()) {
       const parsed = parsePlanFromAssistantText(assistantText)
       if (parsed) {
+        if (isInvalidSelfImprovementPlan(parsed)) {
+          return this.cachedRoadmapItem ? this.autoAdoptRoadmapPlan() : false
+        }
         this.plan.adopt(parsed)
         this.emitPlan(parsed)
         return true
+      }
+      if (looksLikeJsonPlanText(assistantText.trim())) {
+        try {
+          const raw = parsePlanItemsJson(assistantText)
+          if (isInvalidSelfImprovementPlan(raw) && this.cachedRoadmapItem) {
+            return this.autoAdoptRoadmapPlan()
+          }
+        } catch {
+          /* не JSON-план */
+        }
       }
       return false
     }
@@ -211,6 +227,20 @@ export class SelfImprovementOrchestrator {
       if (!hasActionablePending(current)) {
         this.emitPlan(current)
         const { done } = planProgress(current)
+        if (done === 0 && this.cachedRoadmapItem && isInvalidSelfImprovementPlan(current)) {
+          this.plan.reset()
+          if (this.autoAdoptRoadmapPlan()) {
+            const planNow = this.plan.get()
+            if (planNow) {
+              return {
+                action: 'continue',
+                nudgeMessage: `${ROADMAP_ITEM_ALREADY_READ_NUDGE}\n\n${buildSelfImprovementContinueNudge(planNow)}`,
+                requireTool: true,
+                clearDraft: true
+              }
+            }
+          }
+        }
         if (done === 0) {
           return { action: 'error', content: SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE }
         }

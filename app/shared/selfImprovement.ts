@@ -485,6 +485,37 @@ export function stripPlanItemsWrappers(text: string): string {
   return t
 }
 
+/** Многострочный JSON [{id,title},…] — не разбирать parseLoosePlanLines построчно (trace 1782685657649). */
+export function looksLikeJsonPlanText(text: string): boolean {
+  const t = text.trim()
+  if (!t.startsWith('[')) return false
+  return /"title"\s*:|"id"\s*:/.test(t)
+}
+
+const FRAGMENTED_PLAN_TITLE_RE = /^"?(?:id|title)"?\s*:/i
+
+/** План из «склеенных» строк JSON — артеfact parseLoosePlanLines. */
+export function isFragmentedJsonPlan(items: SelfImprovementItem[]): boolean {
+  if (items.length < 2) return false
+  const fragmented = items.filter((item) => FRAGMENTED_PLAN_TITLE_RE.test(item.title.trim()))
+  return fragmented.length >= Math.ceil(items.length / 2)
+}
+
+/** Только meta-шаги (read/write ROADMAP) без реализации — qwen trace 1782685657649. */
+export function isExplorationOnlyPlan(items: SelfImprovementItem[]): boolean {
+  if (items.length === 0) return false
+  const implRe =
+    /edit_codeviper|create_codeviper|preview_patch|run_codeviper_command|npm run|commit_and_push/i
+  if (items.some((item) => implRe.test(item.title))) return false
+  const metaRe =
+    /read_roadmap_item|read_codeviper_file.*ROADMAP|write_codeviper_file.*ROADMAP|ROADMAP:\s*удалить/i
+  return items.every((item) => metaRe.test(item.title))
+}
+
+export function isInvalidSelfImprovementPlan(items: SelfImprovementItem[]): boolean {
+  return isFragmentedJsonPlan(items) || isExplorationOnlyPlan(items)
+}
+
 /** Построчный план без JSON (Gemini flash иногда шлёт так). */
 export function parseLoosePlanLines(text: string): SelfImprovementItem[] | null {
   const items: SelfImprovementItem[] = []
@@ -509,28 +540,15 @@ export function parseLoosePlanLines(text: string): SelfImprovementItem[] | null 
   return items.length >= 2 ? items : null
 }
 
-export function parsePlanItemsJson(raw: unknown): SelfImprovementItem[] {
-  const normalized = stripPlanItemsWrappers(normalizePlanItemsInput(raw)).trim()
-  const bulletPlan = parseBulletListAsPlan(normalized)
-  if (bulletPlan) return bulletPlan
-
-  const loosePlan = parseLoosePlanLines(normalized)
-  if (loosePlan) return loosePlan
-
+function parseJsonPlanArray(normalized: string): SelfImprovementItem[] | null {
   let parsed: unknown
   try {
     parsed = JSON.parse(normalized)
   } catch {
-    const fallback = parseBulletListAsPlan(normalized) ?? parseLoosePlanLines(normalized)
-    if (fallback) return fallback
-    throw new Error(
-      'items должны быть JSON-массивом [{id, title}, ...] или маркированным списком «- пункт»'
-    )
+    return null
   }
 
-  if (!Array.isArray(parsed) || !parsed.length) {
-    throw new Error('items: нужен непустой JSON-массив')
-  }
+  if (!Array.isArray(parsed) || !parsed.length) return null
 
   const stringPlan = parseStringArrayPlan(parsed)
   if (stringPlan) return stringPlan
@@ -555,6 +573,33 @@ export function parsePlanItemsJson(raw: unknown): SelfImprovementItem[] {
       attemptCount: 0
     }
   })
+}
+
+export function parsePlanItemsJson(raw: unknown): SelfImprovementItem[] {
+  const normalized = stripPlanItemsWrappers(normalizePlanItemsInput(raw)).trim()
+
+  if (looksLikeJsonPlanText(normalized)) {
+    const fromJson = parseJsonPlanArray(normalized)
+    if (fromJson?.length) return fromJson
+  }
+
+  const bulletPlan = parseBulletListAsPlan(normalized)
+  if (bulletPlan) return bulletPlan
+
+  if (!looksLikeJsonPlanText(normalized)) {
+    const loosePlan = parseLoosePlanLines(normalized)
+    if (loosePlan && !isFragmentedJsonPlan(loosePlan)) return loosePlan
+  }
+
+  const fromJson = parseJsonPlanArray(normalized)
+  if (fromJson?.length) return fromJson
+
+  const fallback = parseBulletListAsPlan(normalized) ?? parseLoosePlanLines(normalized)
+  if (fallback && !isFragmentedJsonPlan(fallback)) return fallback
+
+  throw new Error(
+    'items должны быть JSON-массивом [{id, title}, ...] или маркированным списком «- пункт»'
+  )
 }
 
 export function parseChecklistAsPlan(text: string): SelfImprovementItem[] | null {
@@ -712,7 +757,7 @@ export function parsePlanFromAssistantText(text: string): SelfImprovementItem[] 
     if (!/(?:id|title|item)/i.test(candidate)) continue
     try {
       const items = parsePlanItemsJson(candidate)
-      if (items.length >= 2) return items
+      if (items.length >= 2 && !isInvalidSelfImprovementPlan(items)) return items
     } catch {
       // пробуем следующий массив
     }

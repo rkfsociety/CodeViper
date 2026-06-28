@@ -1,3 +1,5 @@
+2026-06-29 · trace 1782685657649 — ROADMAP п.1 (qwen2.5-coder:7b): JSON-план в тексте (`read_roadmap_item` + write ROADMAP) принят как 6 пунктов «"id": "1",» — `parseLoosePlanLines` дробил многострочный JSON; все 6 заблокированы. Исправлено: JSON до loose-lines, `isFragmentedJsonPlan` / `isExplorationOnlyPlan`, автоплан из кэша ROADMAP, сброс invalid-плана.
+
 2026-06-29 · trace 1782684505177 — Gemini 404 на `gemini-2.5-flash-lite-preview-06-17` (preview снят Google). Исправлено: stable id `gemini-2.5-flash-lite` в GEMINI_FREE_MODELS, `resolveGeminiModelId` + миграция в settings/modelRuntime/geminiProvider.
 
 2026-06-28 · custom OpenAI endpoint — провайдер `custom` в modelRuntime через `createOpenAiCompatibleProvider`; настройки `customBaseUrl`/`customApiKey`; ping через IPC `ping-provider` и тест `ModelRuntime custom provider` в providers.integration.test.ts.

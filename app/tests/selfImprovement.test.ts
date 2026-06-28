@@ -28,6 +28,8 @@ import {
   parseRoadmapItemFromToolOutput,
   parseRoadmapFieldsFromAssistantText,
   isPseudoReadRoadmapItemText,
+  isFragmentedJsonPlan,
+  isExplorationOnlyPlan,
   isReadOutputTruncated,
   mapSelfImproveProjectTool,
   validateSelfImproveMutatingContent,
@@ -411,5 +413,37 @@ tool_response {"name": "read_codeviper_file", "arguments": {"path": "agent.ts"}}
     expect(isPseudoReadRoadmapItemText('read_roadmap_item number=1')).toBe(true)
     expect(isPseudoReadRoadmapItemText('  read_roadmap_item number = 2  ')).toBe(true)
     expect(isPseudoReadRoadmapItemText('read_roadmap_item number=1 и ещё текст')).toBe(false)
+  })
+
+  it('parsePlanItemsJson — многострочный JSON не дробится на фрагменты (trace 1782685657649)', () => {
+    const raw = `[
+  {
+    "id": "1",
+    "title": "read_roadmap_item number=1"
+  },
+  {
+    "id": "2",
+    "title": "write_codeviper_file ../ROADMAP.md - Удалить пункт N, перенумеровать"
+  },
+  {
+    "id": "3",
+    "title": "write_codeviper_file ../ROADMAP_DONE.md - Запись в 'Сделано'"
+  }
+]`
+    const items = parsePlanItemsJson(raw)
+    expect(items).toHaveLength(3)
+    expect(items[0].title).toBe('read_roadmap_item number=1')
+    expect(isFragmentedJsonPlan(items)).toBe(false)
+    expect(isExplorationOnlyPlan(items)).toBe(true)
+    expect(parsePlanFromAssistantText(raw)).toBeNull()
+  })
+
+  it('isFragmentedJsonPlan — строки «"id": "1",» из parseLoosePlanLines', () => {
+    const fragmented = parseLoosePlanLines(`"id": "1",
+"title": "read_roadmap_item number=1",
+"id": "2",
+"title": "write ROADMAP"`)
+    expect(fragmented).not.toBeNull()
+    expect(isFragmentedJsonPlan(fragmented!)).toBe(true)
   })
 })

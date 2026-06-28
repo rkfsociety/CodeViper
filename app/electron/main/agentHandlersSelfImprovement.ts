@@ -5,6 +5,7 @@ import {
   normalizePlanItemsInput,
   resolvePlanToolArg,
   formatPlanSummary,
+  isInvalidSelfImprovementPlan,
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
@@ -19,7 +20,13 @@ import { getCodeViperSourceRoot } from './codeviperSource'
 
 function parseSelfImprovementPlanItems(raw: unknown): SelfImprovementItem[] {
   try {
-    return parsePlanItemsJson(raw)
+    const items = parsePlanItemsJson(raw)
+    if (isInvalidSelfImprovementPlan(items)) {
+      throw new Error(
+        'План должен содержать шаги реализации (Действие + Проверка из ROADMAP), а не только read_roadmap_item / write ROADMAP.'
+      )
+    }
+    return items
   } catch (firstError) {
     const text = normalizePlanItemsInput(raw)
     const fromAssistant = parsePlanFromAssistantText(text)

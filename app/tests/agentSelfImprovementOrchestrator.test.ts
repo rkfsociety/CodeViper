@@ -156,4 +156,26 @@ grep_codeviper_files openaiProvider.ts "baseUrl"
       expect(result.nudgeMessage).toContain('Следующий пункт')
     }
   })
+
+  it('handleNoToolCalls восстанавливает план после exploration-only JSON (trace 1782685657649)', () => {
+    const { store, orchestrator } = createOrchestrator()
+    orchestrator.setRoadmapContext(1)
+    orchestrator.setRoadmapItemDetail({
+      num: 1,
+      action: 'переиспользовать OpenAI client с custom baseURL',
+      verification: 'ping к mock server'
+    })
+    store.reset()
+
+    const badJson = `[
+  { "id": "1", "title": "read_roadmap_item number=1" },
+  { "id": "2", "title": "write_codeviper_file ../ROADMAP.md - Удалить пункт N, перенумеровать" },
+  { "id": "3", "title": "write_codeviper_file ../ROADMAP_DONE.md - Запись в 'Сделано'" }
+]`
+    const adopted = orchestrator.adoptPlanFromText(badJson)
+    expect(adopted).toBe(true)
+    expect(store.has()).toBe(true)
+    expect(store.get()?.[0].title).toContain('OpenAI client')
+    expect(store.get()?.some((p) => p.title.includes('commit_and_push'))).toBe(true)
+  })
 })
