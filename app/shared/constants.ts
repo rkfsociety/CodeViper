@@ -172,8 +172,10 @@ export const BUNDLED_RUNTIME_MAIN_MIN_BYTES = 1024
 export const BUNDLED_SHELL_RENDERER_MIN_BYTES = 64
 /** Таймаут npm install / build в клоне (с) */
 export const BUNDLED_SOURCE_BUILD_TIMEOUT_SEC = 600
-/** Маркер: для какого git HEAD собран out/ в клоне (избегает ложного stale после checkout) */
-export const RUNTIME_BUILD_HEAD_REL = 'out/.runtime-build-head'
+/** Маркер: для какого git HEAD собран out/ в клоне (вне out/ — vite не удаляет при сборке) */
+export const RUNTIME_BUILD_HEAD_REL = '.runtime-build-head'
+/** Старый путь маркера (миграция с out/.runtime-build-head) */
+export const RUNTIME_BUILD_HEAD_LEGACY_REL = 'out/.runtime-build-head'
 
 // ── P2P-вычисления ───────────────────────────────────────────────────────────
 /** CPU выше порога → входящие P2P-задачи на паузе */

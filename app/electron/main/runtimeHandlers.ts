@@ -17,8 +17,16 @@ export function ensureLiveRuntimeExtras(): void {
   registerLiveRuntimeGithubTraceIpc()
   registerLiveRuntimeUiLayoutIpc()
   installLiveShellRendererReload()
+  void (async () => {
+    const { getRuntimeBuildHead } = await import('./bundledSourceBuild')
+    const head = getRuntimeBuildHead()
+    if (!head) return
+    const { recordRuntimeAppliedHead } = await import('./runtimeUpdateState')
+    await recordRuntimeAppliedHead(head)
+  })()
 }
 
+export { maybeBuildBundledSourceAfterSync, getRuntimeBuildHead } from './bundledSourceBuild'
 export { createProjectToolHandlers, type ProjectToolOptions } from './agentHandlersProject'
 export { createGitHubToolHandlers } from './agentHandlersGitHub'
 export { createGitLabToolHandlers } from './agentHandlersGitLab'

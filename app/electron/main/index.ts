@@ -45,7 +45,8 @@ import { runBundledSourceStartupSync } from './bundledSourceSync'
 import {
   initBundledRuntimeFromSettings,
   initBundledShellPaths,
-  getBundledShellPaths
+  getBundledShellPaths,
+  isBundledRuntimeFromClone
 } from './runtimeBootstrap'
 
 if (process.env.CODEVIPER_E2E === '1') {
@@ -406,6 +407,13 @@ app.whenReady().then(async () => {
 
   await runBundledSourceStartupSync(settings.liveRuntimeFromGit ?? false)
   await initBundledRuntimeFromSettings(settings)
+  if (isBundledRuntimeFromClone()) {
+    void import('./runtimeUpdateState').then(async ({ recordRuntimeAppliedHead }) => {
+      const { getRuntimeBuildHead } = await import('./bundledSourceBuild')
+      const head = getRuntimeBuildHead()
+      if (head) await recordRuntimeAppliedHead(head)
+    })
+  }
   initBundledShellPaths(settings.liveRuntimeFromGit !== false, {
     isPackaged: app.isPackaged,
     mainDir: __dirname

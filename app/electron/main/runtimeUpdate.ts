@@ -65,13 +65,21 @@ export function markRuntimeUpdateReady(localHead?: string): void {
   if (process.env.CODEVIPER_E2E === '1') return
   if (!app.isPackaged) return
 
-  pendingRuntimeUpdate = true
-  pendingLocalHead = localHead
-  void logRuntimeUpdate('runtime update ready', { localHead })
+  void (async () => {
+    const { shouldSkipRuntimeUpdateBanner } = await import('./runtimeUpdateState')
+    if (await shouldSkipRuntimeUpdateBanner(localHead)) {
+      await logRuntimeUpdate('runtime update banner skipped', { localHead })
+      return
+    }
 
-  if (targetWebContents && !targetWebContents.isDestroyed()) {
-    notifyRuntimeUpdateReady(targetWebContents, localHead)
-  }
+    pendingRuntimeUpdate = true
+    pendingLocalHead = localHead
+    await logRuntimeUpdate('runtime update ready', { localHead })
+
+    if (targetWebContents && !targetWebContents.isDestroyed()) {
+      notifyRuntimeUpdateReady(targetWebContents, localHead)
+    }
+  })()
 }
 
 export function startRuntimeUpdateNotifier(webContents: WebContents): void {
@@ -86,8 +94,14 @@ export function stopRuntimeUpdateNotifier(): void {
 }
 
 export function dismissRuntimeUpdate(): void {
+  const head = pendingLocalHead
   clearRuntimeUpdatePending()
-  void logRuntimeUpdate('runtime update dismissed')
+  void logRuntimeUpdate('runtime update dismissed', { localHead: head })
+  if (head) {
+    void import('./runtimeUpdateState').then(({ recordRuntimeDismissedHead }) =>
+      recordRuntimeDismissedHead(head)
+    )
+  }
 }
 
 async function prepareForRuntimeRelaunch(): Promise<void> {
@@ -103,8 +117,13 @@ async function prepareForRuntimeRelaunch(): Promise<void> {
 
 /** Перезапуск .exe — при старте initBundledRuntimeHandlers загрузит runtime из клона. */
 export async function relaunchForRuntimeUpdate(): Promise<void> {
-  await logRuntimeUpdate('relaunch for runtime update', { localHead: pendingLocalHead })
+  const head = pendingLocalHead
+  await logRuntimeUpdate('relaunch for runtime update', { localHead: head })
   clearRuntimeUpdatePending()
+  if (head) {
+    const { recordRuntimeAppliedHead } = await import('./runtimeUpdateState')
+    await recordRuntimeAppliedHead(head)
+  }
   await prepareForRuntimeRelaunch()
   app.relaunch()
   app.exit(0)

@@ -5,6 +5,7 @@ import { app } from 'electron'
 import {
   BUNDLED_SOURCE_APP_DIR_NAME,
   BUNDLED_SOURCE_BUILD_TIMEOUT_SEC,
+  RUNTIME_BUILD_HEAD_LEGACY_REL,
   RUNTIME_BUILD_HEAD_REL
 } from '../../shared/constants'
 import { runCommandInAppRoot } from './codeviperSource'
@@ -83,9 +84,7 @@ export function getBundledRuntimeMainPath(): string {
   return join(getBundledSourceAppRoot(), RUNTIME_MAIN_REL)
 }
 
-/** HEAD коммита, для которого последний раз успешно собран out/ в клоне. */
-export function getRuntimeBuildHead(appRoot = getBundledSourceAppRoot()): string | null {
-  const file = join(appRoot, RUNTIME_BUILD_HEAD_REL)
+function readRuntimeBuildHeadFile(file: string): string | null {
   if (!existsSync(file)) return null
   try {
     const head = readFileSync(file, 'utf8').trim()
@@ -93,6 +92,14 @@ export function getRuntimeBuildHead(appRoot = getBundledSourceAppRoot()): string
   } catch {
     return null
   }
+}
+
+/** HEAD коммита, для которого последний раз успешно собран out/ в клоне. */
+export function getRuntimeBuildHead(appRoot = getBundledSourceAppRoot()): string | null {
+  return (
+    readRuntimeBuildHeadFile(join(appRoot, RUNTIME_BUILD_HEAD_REL)) ??
+    readRuntimeBuildHeadFile(join(appRoot, RUNTIME_BUILD_HEAD_LEGACY_REL))
+  )
 }
 
 export async function writeRuntimeBuildHead(
@@ -199,6 +206,26 @@ export function shouldBuildBundledSourceAfterSync(
   return isBundledRuntimeMainStale(appRoot)
 }
 
+/** Hot-reload runtime + shell из клона без relaunch .exe. */
+async function tryApplyRuntimeWithoutRelaunch(): Promise<boolean> {
+  try {
+    const { loadSettings } = await import('./settings')
+    const settings = await loadSettings()
+    const {
+      initBundledRuntimeFromSettings,
+      isBundledRuntimeFromClone,
+      initBundledShellPaths,
+      isBundledShellFromClone
+    } = await import('./runtimeBootstrap')
+    const runtimeOk = await initBundledRuntimeFromSettings(settings)
+    if (!runtimeOk || !isBundledRuntimeFromClone()) return false
+    initBundledShellPaths(settings.liveRuntimeFromGit !== false)
+    return isBundledShellFromClone()
+  } catch {
+    return false
+  }
+}
+
 /** npm install (при необходимости) + npm run build в source/app. */
 export async function buildBundledSourceRuntime(
   appRoot = getBundledSourceAppRoot()
@@ -261,24 +288,33 @@ export async function maybeBuildBundledSourceAfterSync(
         await writeRuntimeBuildHead(syncResult.localHead, appRoot)
       }
 
+      const appliedLive = await tryApplyRuntimeWithoutRelaunch()
+      if (appliedLive && syncResult.localHead) {
+        const { recordRuntimeAppliedHead } = await import('./runtimeUpdateState')
+        await recordRuntimeAppliedHead(syncResult.localHead)
+      }
+
       const needsRestartBanner =
-        syncResult.updated ||
-        syncResult.cloneCreated ||
-        syncResult.appDirChanged ||
-        previousBuildHead !== syncResult.localHead
+        !appliedLive &&
+        (syncResult.updated ||
+          syncResult.cloneCreated ||
+          syncResult.appDirChanged ||
+          previousBuildHead !== syncResult.localHead)
 
       if (needsRestartBanner) {
         void import('./runtimeUpdate').then(({ markRuntimeUpdateReady }) =>
           markRuntimeUpdateReady(syncResult.localHead)
         )
       }
-      // Подхватить IPC из свежего runtimeHandlers.js без обязательного relaunch
-      try {
-        const { loadSettings } = await import('./settings')
-        const { initBundledRuntimeFromSettings } = await import('./runtimeBootstrap')
-        await initBundledRuntimeFromSettings(await loadSettings())
-      } catch {
-        /* fallback: пользователь перезапустит по баннеру */
+      if (!appliedLive) {
+        // Подхватить IPC из свежего runtimeHandlers.js без обязательного relaunch
+        try {
+          const { loadSettings } = await import('./settings')
+          const { initBundledRuntimeFromSettings } = await import('./runtimeBootstrap')
+          await initBundledRuntimeFromSettings(await loadSettings())
+        } catch {
+          /* fallback: пользователь перезапустит по баннеру */
+        }
       }
     }
     return result

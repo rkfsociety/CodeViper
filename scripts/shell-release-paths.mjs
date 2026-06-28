@@ -120,6 +120,7 @@ export const SHELL_MAIN_EXACT = new Set([
   'app/electron/main/bundledSourceBuild.ts',
   'app/electron/main/runtimeBootstrap.ts',
   'app/electron/main/runtimeUpdate.ts',
+  'app/electron/main/runtimeUpdateState.ts',
   'app/electron/main/windowsGitEnv.ts',
   'app/electron/main/codeviperSource.ts',
   'app/electron/main/settings.ts',

@@ -2,6 +2,7 @@ import { spawn } from 'child_process'
 import { appendFile, mkdir, readdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import { dirname, join } from 'path'
+import { pathToFileURL } from 'url'
 import { app } from 'electron'
 import { Mutex } from 'async-mutex'
 import {
@@ -13,6 +14,8 @@ import {
 } from '../../shared/constants'
 import { loadSettings, saveSettings } from './settings'
 import { cliSpawnBase, resolveGitExecutable } from './windowsGitEnv'
+import { getRuntimeHandlersPath } from './runtimeBootstrap'
+import type { BundledSourceBuildResult } from './bundledSourceBuild'
 
 export interface BundledSourceSyncResult {
   updated: boolean
@@ -313,6 +316,35 @@ export function shouldRunBundledSourceStartupSync(options: {
   return options.isPackaged && options.liveRuntimeFromGit
 }
 
+type MaybeBuildAfterSyncFn = (
+  syncResult: BundledSourceSyncResult
+) => Promise<BundledSourceBuildResult | null>
+
+/** asar fallback; при готовом клоне — maybeBuild из свежего runtimeHandlers.js. */
+export async function resolveMaybeBuildAfterSync(): Promise<MaybeBuildAfterSyncFn> {
+  const handlersPath = getRuntimeHandlersPath()
+  if (handlersPath) {
+    try {
+      const mod = (await import(pathToFileURL(handlersPath).href)) as {
+        maybeBuildBundledSourceAfterSync?: MaybeBuildAfterSyncFn
+      }
+      if (typeof mod.maybeBuildBundledSourceAfterSync === 'function') {
+        await logBundledSourceSync('build delegate: clone runtimeHandlers', { handlersPath })
+        return mod.maybeBuildBundledSourceAfterSync
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err)
+      await logBundledSourceSync('build delegate failed — fallback to asar', {
+        error,
+        handlersPath
+      })
+    }
+  }
+
+  const { maybeBuildBundledSourceAfterSync } = await import('./bundledSourceBuild')
+  return maybeBuildBundledSourceAfterSync
+}
+
 /**
  * Pull при старте packaged-приложения. Ждёт не дольше BUNDLED_SOURCE_STARTUP_WAIT_MS;
  * дольше — sync продолжается в фоне. Ошибки только в лог, fallback на asar.
@@ -338,8 +370,8 @@ export async function runBundledSourceStartupSync(
           localHead: result.localHead
         })
       } else {
-        void import('./bundledSourceBuild')
-          .then(({ maybeBuildBundledSourceAfterSync }) => maybeBuildBundledSourceAfterSync(result))
+        void resolveMaybeBuildAfterSync()
+          .then((maybeBuild) => maybeBuild(result))
           .catch(async (err) => {
             const error = err instanceof Error ? err.message : String(err)
             await logBundledSourceSync('startup build error — fallback to asar', { error })

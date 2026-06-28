@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const sendMock = vi.fn()
 const relaunchMock = vi.fn()
 const exitMock = vi.fn()
+const shouldSkipMock = vi.fn().mockResolvedValue(false)
 
 vi.mock('electron', () => ({
   app: {
@@ -21,6 +22,12 @@ vi.mock('fs/promises', () => ({
   mkdir: vi.fn().mockResolvedValue(undefined)
 }))
 
+vi.mock('../electron/main/runtimeUpdateState', () => ({
+  shouldSkipRuntimeUpdateBanner: (...args: unknown[]) => shouldSkipMock(...args),
+  recordRuntimeAppliedHead: vi.fn().mockResolvedValue(undefined),
+  recordRuntimeDismissedHead: vi.fn().mockResolvedValue(undefined)
+}))
+
 import {
   buildRuntimeUpdateInfo,
   clearRuntimeUpdatePending,
@@ -37,6 +44,7 @@ import { IPC } from '../shared/ipcContracts'
 describe('runtimeUpdate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    shouldSkipMock.mockResolvedValue(false)
     clearRuntimeUpdatePending()
   })
 
@@ -53,18 +61,30 @@ describe('runtimeUpdate', () => {
     })
   })
 
-  it('markRuntimeUpdateReady устанавливает pending и шлёт runtime-update-ready', () => {
+  it('markRuntimeUpdateReady устанавливает pending и шлёт runtime-update-ready', async () => {
     const wc = { isDestroyed: () => false, send: sendMock } as never
     startRuntimeUpdateNotifier(wc)
 
     markRuntimeUpdateReady('deadbeef')
-    expect(isRuntimeUpdatePending()).toBe(true)
+    await vi.waitFor(() => expect(isRuntimeUpdatePending()).toBe(true))
 
     expect(sendMock).toHaveBeenCalledWith(IPC.RUNTIME_UPDATE_READY, {
       source: 'runtime',
       ready: true,
       localHead: 'deadbeef'
     })
+  })
+
+  it('markRuntimeUpdateReady пропускает баннер если HEAD уже применён', async () => {
+    shouldSkipMock.mockResolvedValue(true)
+    const wc = { isDestroyed: () => false, send: sendMock } as never
+    startRuntimeUpdateNotifier(wc)
+
+    markRuntimeUpdateReady('deadbeef')
+    await new Promise((r) => setTimeout(r, 20))
+
+    expect(isRuntimeUpdatePending()).toBe(false)
+    expect(sendMock).not.toHaveBeenCalled()
   })
 
   it('notifyRuntimeUpdateReady шлёт update-available и runtime-update-ready', () => {
@@ -82,15 +102,16 @@ describe('runtimeUpdate', () => {
     })
   })
 
-  it('dismissRuntimeUpdate сбрасывает pending', () => {
-    markRuntimeUpdateReady()
-    expect(isRuntimeUpdatePending()).toBe(true)
+  it('dismissRuntimeUpdate сбрасывает pending', async () => {
+    markRuntimeUpdateReady('abc')
+    await vi.waitFor(() => expect(isRuntimeUpdatePending()).toBe(true))
     dismissRuntimeUpdate()
     expect(isRuntimeUpdatePending()).toBe(false)
   })
 
   it('relaunchForRuntimeUpdate вызывает app.relaunch и exit', async () => {
     markRuntimeUpdateReady('abc')
+    await vi.waitFor(() => expect(isRuntimeUpdatePending()).toBe(true))
     await relaunchForRuntimeUpdate()
     expect(isRuntimeUpdatePending()).toBe(false)
     expect(relaunchMock).toHaveBeenCalled()
