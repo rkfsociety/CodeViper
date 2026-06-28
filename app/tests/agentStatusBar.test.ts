@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { agentStatusLabel } from '../src/components/AgentStatusBar'
+import { agentStatusLabel, formatIndexProgressChip } from '../src/components/AgentStatusBar'
+import { isIndexProgressLabel } from '../electron/main/progress'
 
 describe('agentStatusLabel', () => {
   it('показывает фазу размышления', () => {
@@ -30,5 +31,19 @@ describe('agentStatusLabel', () => {
         tokensPerSec: 21
       })
     ).toBe('qwen2.5-coder думает… · 21.0 tok/s · 2.0с')
+  })
+})
+
+describe('formatIndexProgressChip', () => {
+  it('форматирует чип индексации', () => {
+    expect(formatIndexProgressChip(42)).toBe('Индекс 42%')
+    expect(formatIndexProgressChip(0)).toBe('Индекс 0%')
+  })
+})
+
+describe('isIndexProgressLabel', () => {
+  it('распознаёт метки индексации', () => {
+    expect(isIndexProgressLabel('Индексация: сканирование…')).toBe(true)
+    expect(isIndexProgressLabel('Поиск по коду: foo')).toBe(false)
   })
 })

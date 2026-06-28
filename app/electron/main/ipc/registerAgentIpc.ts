@@ -8,7 +8,7 @@ import { buildAgentContextPreview, summarizeChatHistory } from '../agentContext'
 import { formatModelSwitchMessage, prepareOllamaModel } from '../modelRuntime'
 import { selectModelForTask, shouldUseAutoModel } from '../../../shared/modelRouter'
 import { startSystemStatsPush, stopSystemStatsPush } from '../systemStats'
-import { setProgressTarget, clearProgress } from '../progress'
+import { setProgressTarget, clearProgress, setIndexProgressStreamer } from '../progress'
 import { agentLogger } from '../agentLogger'
 import { hasRunCheckpoint, rollbackRunCheckpoint } from '../runCheckpoint'
 import { makeId } from '../../../shared/makeId'
@@ -187,6 +187,9 @@ export function registerAgentIpc(ctx: IpcContext): void {
       syncTrayAgentBadge()
       if (!settings.disableSystemStats) startSystemStatsPush(_e.sender)
       setProgressTarget(_e.sender)
+      setIndexProgressStreamer((percent) => {
+        stream(chatId, { type: 'index_progress', indexPercent: percent })
+      })
 
       const skipOllama = (settings.modelProvider ?? 'ollama') !== 'ollama'
       const prerequisites = await checkAgentPrerequisites(
@@ -203,6 +206,9 @@ export function registerAgentIpc(ctx: IpcContext): void {
         activeAgentAborts.delete(chatId)
         agentRunStates.delete(chatId)
         syncTrayAgentBadge()
+        clearProgress()
+        setProgressTarget(null)
+        setIndexProgressStreamer(null)
         return
       }
 
@@ -271,6 +277,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
         stopSystemStatsPush()
         clearProgress()
         setProgressTarget(null)
+        setIndexProgressStreamer(null)
         activeAgentAborts.delete(chatId)
         agentRunStates.delete(chatId)
         syncTrayAgentBadge()

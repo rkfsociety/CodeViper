@@ -2,6 +2,8 @@
 
 2026-06-28 · fallbackModels — цепочка запасных моделей в BehaviorTab; loop в AgentRunner при HTTP 429/5xx; `isProviderFallbackRetryableError` в providerErrors.ts; тест modelFallbackChain.test.ts.
 
+2026-06-28 · index_progress — чип «Индекс N%» в AgentStatusBar при index_project; stream event `index_progress` из progress.ts через registerAgentIpc; подписка в useAgentStream.
+
 ---
 
 

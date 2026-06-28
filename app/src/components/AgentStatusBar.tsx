@@ -58,10 +58,16 @@ export function formatP2pCreditsLabel(balance: number): string {
   return `⚡ P2P ${balance} кр.`
 }
 
+export function formatIndexProgressChip(percent: number): string {
+  return `Индекс ${percent}%`
+}
+
 interface Props {
   model?: string
   queueSize?: number
   progress?: ProgressInfo | null
+  /** Прогресс фоновой индексации (autoIndexOnOpen), когда агент не занят */
+  indexPercent?: number | null
   p2pCredits?: number | null
 }
 
@@ -69,6 +75,7 @@ export function AgentStatusBar({
   model,
   queueSize = 0,
   progress = null,
+  indexPercent: indexPercentProp = null,
   p2pCredits = null
 }: Props) {
   const {
@@ -87,10 +94,16 @@ export function AgentStatusBar({
     circuitBreakerOpenUntilMs,
     collectiveSyncStatus,
     collectiveSyncBranch,
-    collectiveSyncPending
+    collectiveSyncPending,
+    indexProgress
   } = useAgentState()
   const displayModel = runModel || model
   const [planExpanded, setPlanExpanded] = useState(false)
+
+  const resolvedIndexPercent =
+    indexPercentProp ??
+    indexProgress ??
+    (progress?.label?.startsWith('Индексация') ? progress.percent : null)
 
   // Форсируем ре-рендер каждую секунду пока circuit breaker открыт, чтобы обновлять обратный отсчёт.
   const [, tick] = useReducer((n: number) => n + 1, 0)
@@ -112,23 +125,32 @@ export function AgentStatusBar({
         ? `⚡ Проверяю соединение с провайдером…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
         : retry429
           ? `Лимит запросов, жду ${Math.round(retry429.waitMs / 1000)} с… (попытка ${retry429.attempt}/4)${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-          : progress
-            ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-            : summarizing
-              ? `Сжимаю контекст…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
-              : agentStatusLabel(
-                  agentPhase,
-                  activeToolName,
-                  displayModel,
-                  queueSize,
-                  generationMetrics,
-                  runStats
-                )
+          : resolvedIndexPercent != null
+            ? agentStatusLabel(
+                agentPhase,
+                activeToolName,
+                displayModel,
+                queueSize,
+                generationMetrics,
+                runStats
+              )
+            : progress
+              ? `${progress.label}${progress.percent != null ? ` ${progress.percent}%` : ''}${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+              : summarizing
+                ? `Сжимаю контекст…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+                : agentStatusLabel(
+                    agentPhase,
+                    activeToolName,
+                    displayModel,
+                    queueSize,
+                    generationMetrics,
+                    runStats
+                  )
 
   return (
     <div
       className={`agent-status-bar phase-${agentPhase}${summarizing ? ' summarizing' : ''}${
-        progress ? ' has-progress' : ''
+        progress || resolvedIndexPercent != null ? ' has-progress' : ''
       }${circuitBreakerState === 'open' ? ' circuit-breaker-open' : ''}${circuitBreakerState === 'half-open' ? ' circuit-breaker-half-open' : ''}`}
       role="status"
       aria-live="polite"
@@ -154,6 +176,11 @@ export function AgentStatusBar({
         {editing && (
           <span className="agent-orchestrating-chip" title="Субагент-редактор выполняет задачу">
             Редактирую…
+          </span>
+        )}
+        {resolvedIndexPercent != null && (
+          <span className="agent-orchestrating-chip" title="Индексация проекта в Qdrant">
+            {formatIndexProgressChip(resolvedIndexPercent)}
           </span>
         )}
         {generationMetrics?.estimatedCostUsd != null &&

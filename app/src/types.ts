@@ -506,6 +506,7 @@ export interface AgentStreamPayload {
     | 'run_checkpoint'
     | 'ollama_fallback_offer'
     | 'model_fallback'
+    | 'index_progress'
     | 'trace_report'
   content?: string
   /** Поля события retry_429 */
@@ -560,6 +561,8 @@ export interface AgentStreamPayload {
   /** Переключение на запасную модель (type === 'model_fallback') */
   fallbackFromModel?: string
   fallbackToModel?: string
+  /** Прогресс index_project (type === 'index_progress') */
+  indexPercent?: number | null
   /** Issue создан из трейса (type === 'trace_report') */
   traceReportAuto?: boolean
   traceReportIssueUrl?: string

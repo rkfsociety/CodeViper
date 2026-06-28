@@ -256,6 +256,7 @@ export function useAgentStream({
 
       if (event.type === 'tool_end') {
         dispatchRef.current({ type: 'SET_PHASE', phase: 'thinking' })
+        dispatchRef.current({ type: 'SET_INDEX_PROGRESS', value: null })
         activeToolNameRef.current = undefined
         const id = activeToolMessageIdRef.current ?? makeId()
         activeToolMessageIdRef.current = null
@@ -430,6 +431,13 @@ export function useAgentStream({
         })
       }
 
+      if (event.type === 'index_progress') {
+        dispatchRef.current({
+          type: 'SET_INDEX_PROGRESS',
+          value: event.indexPercent ?? null
+        })
+      }
+
       if (event.type === 'circuit_breaker') {
         dispatchRef.current({
           type: 'SET_CIRCUIT_BREAKER',
@@ -491,6 +499,7 @@ export function useAgentStream({
         dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
         dispatchRef.current({ type: 'SET_PLAN_AWAITING_CONFIRM', pending: null })
         dispatchRef.current({ type: 'SET_RETRY_429', value: null })
+        dispatchRef.current({ type: 'SET_INDEX_PROGRESS', value: null })
         genStartRef.current = null
         runActiveRef.current = false
 

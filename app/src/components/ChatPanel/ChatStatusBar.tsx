@@ -162,7 +162,8 @@ export function ChatStatusBar({
         <AgentStatusBar
           model={settings.model}
           queueSize={queueSize}
-          progress={busy ? progress : indexingProgress}
+          progress={busy ? progress : null}
+          indexPercent={busy ? null : (indexingProgress?.percent ?? null)}
           p2pCredits={p2pCredits}
         />
       )}

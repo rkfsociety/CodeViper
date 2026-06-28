@@ -23,6 +23,8 @@ export interface AgentState {
   collectiveSyncBranch: string
   collectiveSyncPending: number
   collectiveSyncMessage: string
+  /** Прогресс index_project (0–100), null — не индексируется */
+  indexProgress: number | null
 }
 
 export type AgentAction =
@@ -48,6 +50,7 @@ export type AgentAction =
       pending?: number
       message?: string
     }
+  | { type: 'SET_INDEX_PROGRESS'; value: number | null }
   | { type: 'RESET' }
 
 const initialState: AgentState = {
@@ -68,7 +71,8 @@ const initialState: AgentState = {
   collectiveSyncStatus: 'idle',
   collectiveSyncBranch: 'agent/self-improve',
   collectiveSyncPending: 0,
-  collectiveSyncMessage: ''
+  collectiveSyncMessage: '',
+  indexProgress: null
 }
 
 function agentReducer(state: AgentState, action: AgentAction): AgentState {
@@ -116,6 +120,8 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
           action.pending != null ? action.pending : state.collectiveSyncPending,
         collectiveSyncMessage: action.message ?? state.collectiveSyncMessage
       }
+    case 'SET_INDEX_PROGRESS':
+      return { ...state, indexProgress: action.value }
     case 'RESET':
       return initialState
     default:

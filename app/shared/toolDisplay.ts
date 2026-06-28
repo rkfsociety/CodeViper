@@ -55,7 +55,8 @@ export const TOOL_LABELS: Record<string, string> = {
   create_ollama_model: 'Создаю модель Ollama',
   set_self_improvement_plan: 'План самоулучшения',
   complete_self_improvement_item: 'Пункт выполнен',
-  get_self_improvement_plan: 'Статус плана'
+  get_self_improvement_plan: 'Статус плана',
+  index_project: 'Индексирую проект'
 }
 
 export function toolLabel(name: string | undefined): string {
