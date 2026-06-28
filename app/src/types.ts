@@ -454,7 +454,15 @@ export interface AgentPreviewRequest {
 
 export interface AgentTraceEvent {
   ts: number
-  kind: 'run_start' | 'llm_request' | 'llm_response' | 'tool_call' | 'tool_result' | 'run_end'
+  kind:
+    | 'run_start'
+    | 'llm_request'
+    | 'llm_response'
+    | 'tool_call'
+    | 'tool_result'
+    | 'context_compress'
+    | 'nudge'
+    | 'run_end'
   label: string
   data: Record<string, unknown>
 }
@@ -630,7 +638,8 @@ export interface BenchmarkResult {
 }
 
 import type { UpdateInfo } from '../shared/updateInfo'
-export type { UpdateInfo }
+import type { CheckForUpdatesResult } from '../shared/checkForUpdatesResult'
+export type { UpdateInfo, CheckForUpdatesResult }
 
 export interface CodeViperAPI {
   /** true при запуске Playwright e2e (CODEVIPER_E2E=1) */
@@ -807,6 +816,7 @@ export interface CodeViperAPI {
     error?: string
     message?: string
   }>
+  checkForUpdates: () => Promise<CheckForUpdatesResult>
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
   onRuntimeUpdateReady: (cb: (info: UpdateInfo) => void) => () => void
   dismissRuntimeUpdate: () => void

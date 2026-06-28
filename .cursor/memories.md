@@ -6,6 +6,7 @@
 
 ---
 
+- **2026-06-28 · trace schema v2** — расширен трейс: `context_compress` (before/after usage%, method), `nudge` (source), `llm_request` (estimatedTokens, roles), tool `signature`, `run_start` settings snapshot, `traceSchemaVersion: 2` в экспорте.
 - **2026-06-28 · trace 1782675029046** — ROADMAP п.1 (qwen2.5-coder:7b): шаг 11 ~28k tok, UI «Сжимаю…», затем 120 с timeout — LLM-суммаризация на той же Ollama внутри таймаута шага; tool results не доходили до модели (filter role=tool) → 6× read. Исправлено: сжатие **до** Promise.race шага, Ollama truncate-only без второго LLM, таймаут summarize 45 с, tool→user для Ollama, num_ctx из лимита модели (не 4096).
 - **2026-06-28 · trace 1782674100615** — ROADMAP п.1 custom endpoint (qwen2.5-coder:7b): после автоплана модель 14× писала `{"name":"read_roadmap_item",…}` **после prose** — `extractEmbeddedToolCalls` парсил только чистый JSON; 0 tool calls → 4 пункта заблокированы. Исправлено: `extractInlineJsonToolCalls` для JSON после текста.
 - **2026-06-28 · trace 1782669506795** — ROADMAP п.1 (qwen2.5-coder:7b): после одного `read_roadmap_item` модель 19× писала текст `read_roadmap_item number=1` вместо tool call / `set_self_improvement_plan`; nudge зацикливался. Исправлено: автоплан сразу после 1-го read_roadmap_item, автоплан при кэше ROADMAP в handleNoToolCalls, `isPseudoReadRoadmapItemText`, AUTO_ADOPT nudges = 1.

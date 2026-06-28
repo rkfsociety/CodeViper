@@ -13,6 +13,7 @@
  *   ipcRenderer.invoke(IPC.LOAD_SETTINGS)
  */
 import { z } from 'zod'
+import { CheckForUpdatesResultSchema } from './checkForUpdatesResult'
 import { UpdateInfoSchema } from './updateInfo'
 import { UiLayoutStateSchema } from './uiLayout'
 
@@ -96,7 +97,16 @@ export const ImportResultSchema = z.object({
 
 export const AgentTraceEventSchema = z.object({
   ts: z.number(),
-  kind: z.enum(['run_start', 'llm_request', 'llm_response', 'tool_call', 'tool_result', 'run_end']),
+  kind: z.enum([
+    'run_start',
+    'llm_request',
+    'llm_response',
+    'tool_call',
+    'tool_result',
+    'context_compress',
+    'nudge',
+    'run_end'
+  ]),
   label: z.string(),
   data: z.record(z.string(), z.unknown())
 })
@@ -485,6 +495,7 @@ export const IPC = {
   GET_COLLECTIVE_SYNC_STATUS: 'get-collective-sync-status',
   FLUSH_COLLECTIVE_MEMORY: 'flush-collective-memory',
   FORCE_SYNC_BUNDLED_RUNTIME: 'force-sync-bundled-runtime',
+  CHECK_FOR_UPDATES: 'check-for-updates',
 
   // ── Broadcast (main → renderer) ───────────────────────────────────────
   AGENT_STREAM: 'agent-stream',
@@ -860,6 +871,10 @@ export const Contracts = {
       error: z.string().optional(),
       message: z.string().optional()
     })
+  },
+  [IPC.CHECK_FOR_UPDATES]: {
+    args: z.tuple([]),
+    result: CheckForUpdatesResultSchema
   },
   [IPC.REGISTER_P2P_NODE]: {
     args: z.tuple([AgentSettingsSchema]),
