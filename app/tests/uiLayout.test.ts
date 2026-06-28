@@ -13,6 +13,7 @@ describe('uiLayout', () => {
   it('normalizeSidePanelWidths подставляет значения по умолчанию', () => {
     expect(normalizeSidePanelWidths(null)).toEqual({
       history: 280,
+      preview: 400,
       metrics: 400,
       trace: 400
     })

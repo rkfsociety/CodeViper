@@ -9,8 +9,16 @@ export function emitAgentTrace(
   emit({ type: 'trace', traceEvent: { ts: Date.now(), kind, label, data } })
 }
 
+const TOOL_VALIDATION_ERROR_PREFIXES = [
+  'Укажите ',
+  'Не указан параметр ',
+  'Неизвестный инструмент:',
+  'План не задан.'
+] as const
+
 export function isToolOutputError(output: string): boolean {
-  return output.startsWith('Ошибка:') || output.startsWith('⛔')
+  if (output.startsWith('Ошибка:') || output.startsWith('⛔')) return true
+  return TOOL_VALIDATION_ERROR_PREFIXES.some((prefix) => output.startsWith(prefix))
 }
 
 export function isToolResultOk(threw: boolean, output: string): boolean {

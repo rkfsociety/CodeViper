@@ -223,6 +223,23 @@ button {
   overflow: hidden;
 }
 
+.panel-preview {
+  min-width: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-preview-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+}
+
 .panel-resizer {
   width: 5px;
   flex-shrink: 0;

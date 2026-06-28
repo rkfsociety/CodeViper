@@ -6,17 +6,19 @@ export const SIDE_PANEL_DEFAULT_WIDTH = 400
 export const SIDE_PANEL_DEFAULT_HISTORY_WIDTH = 280
 
 export const SidePanelWidthsSchema = z.object({
-  history: z.number().int(),
-  metrics: z.number().int(),
-  trace: z.number().int()
+  history: z.number().int().optional(),
+  preview: z.number().int().optional(),
+  metrics: z.number().int().optional(),
+  trace: z.number().int().optional()
 })
 
 export const UiLayoutPanelsSchema = z.object({
-  fileTreeOpen: z.boolean(),
-  terminalOpen: z.boolean(),
-  prPanelOpen: z.boolean(),
-  tracePanelOpen: z.boolean(),
-  metricsPanelOpen: z.boolean()
+  fileTreeOpen: z.boolean().optional(),
+  previewOpen: z.boolean().optional(),
+  terminalOpen: z.boolean().optional(),
+  prPanelOpen: z.boolean().optional(),
+  tracePanelOpen: z.boolean().optional(),
+  metricsPanelOpen: z.boolean().optional()
 })
 
 export const UiLayoutStateSchema = z.object({
@@ -25,9 +27,27 @@ export const UiLayoutStateSchema = z.object({
   panels: UiLayoutPanelsSchema
 })
 
-export type SidePanelWidths = z.infer<typeof SidePanelWidthsSchema>
-export type UiLayoutPanels = z.infer<typeof UiLayoutPanelsSchema>
-export type UiLayoutState = z.infer<typeof UiLayoutStateSchema>
+export type SidePanelWidths = {
+  history: number
+  preview: number
+  metrics: number
+  trace: number
+}
+
+export type UiLayoutPanels = {
+  fileTreeOpen: boolean
+  previewOpen: boolean
+  terminalOpen: boolean
+  prPanelOpen: boolean
+  tracePanelOpen: boolean
+  metricsPanelOpen: boolean
+}
+
+export type UiLayoutState = {
+  version: 1
+  sidePanelWidths: SidePanelWidths
+  panels: UiLayoutPanels
+}
 
 export function clampSidePanelWidth(value: number): number {
   if (!Number.isFinite(value)) return SIDE_PANEL_DEFAULT_WIDTH
@@ -37,6 +57,7 @@ export function clampSidePanelWidth(value: number): number {
 export function normalizeSidePanelWidths(raw?: Partial<SidePanelWidths> | null): SidePanelWidths {
   return {
     history: clampSidePanelWidth(raw?.history ?? SIDE_PANEL_DEFAULT_HISTORY_WIDTH),
+    preview: clampSidePanelWidth(raw?.preview ?? SIDE_PANEL_DEFAULT_WIDTH),
     metrics: clampSidePanelWidth(raw?.metrics ?? SIDE_PANEL_DEFAULT_WIDTH),
     trace: clampSidePanelWidth(raw?.trace ?? SIDE_PANEL_DEFAULT_WIDTH)
   }
@@ -45,6 +66,7 @@ export function normalizeSidePanelWidths(raw?: Partial<SidePanelWidths> | null):
 export function defaultUiLayoutPanels(): UiLayoutPanels {
   return {
     fileTreeOpen: true,
+    previewOpen: true,
     terminalOpen: false,
     prPanelOpen: false,
     tracePanelOpen: false,
@@ -68,11 +90,13 @@ export function normalizeUiLayoutState(raw: unknown): UiLayoutState {
     version: 1,
     sidePanelWidths: normalizeSidePanelWidths(parsed.data.sidePanelWidths),
     panels: {
-      fileTreeOpen: parsed.data.panels.fileTreeOpen,
-      terminalOpen: parsed.data.panels.terminalOpen,
-      prPanelOpen: parsed.data.panels.prPanelOpen,
-      tracePanelOpen: parsed.data.panels.tracePanelOpen,
-      metricsPanelOpen: parsed.data.panels.metricsPanelOpen
+      fileTreeOpen: parsed.data.panels.fileTreeOpen ?? defaultUiLayoutPanels().fileTreeOpen,
+      previewOpen: parsed.data.panels.previewOpen ?? defaultUiLayoutPanels().previewOpen,
+      terminalOpen: parsed.data.panels.terminalOpen ?? defaultUiLayoutPanels().terminalOpen,
+      prPanelOpen: parsed.data.panels.prPanelOpen ?? defaultUiLayoutPanels().prPanelOpen,
+      tracePanelOpen: parsed.data.panels.tracePanelOpen ?? defaultUiLayoutPanels().tracePanelOpen,
+      metricsPanelOpen:
+        parsed.data.panels.metricsPanelOpen ?? defaultUiLayoutPanels().metricsPanelOpen
     }
   }
 }

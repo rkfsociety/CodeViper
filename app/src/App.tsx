@@ -130,6 +130,7 @@ function AppContent() {
   const [prPanelOpen, setPrPanelOpen] = useState(initialLayout.panels.prPanelOpen)
   const [tracePanelOpen, setTracePanelOpen] = useState(initialLayout.panels.tracePanelOpen)
   const [metricsPanelOpen, setMetricsPanelOpen] = useState(initialLayout.panels.metricsPanelOpen)
+  const [previewOpen, setPreviewOpen] = useState(initialLayout.panels.previewOpen)
   const [sidePanelWidths, setSidePanelWidths] = useState(initialLayout.sidePanelWidths)
   const [fileTreeOpen, setFileTreeOpen] = useState(initialLayout.panels.fileTreeOpen)
 
@@ -150,6 +151,7 @@ function AppContent() {
       setPrPanelOpen(layout.panels.prPanelOpen)
       setTracePanelOpen(layout.panels.tracePanelOpen)
       setMetricsPanelOpen(layout.panels.metricsPanelOpen)
+      setPreviewOpen(layout.panels.previewOpen)
     })
   }, [])
 
@@ -181,6 +183,20 @@ function AppContent() {
         const next = {
           ...prev,
           history: adjustSidePanelWidth(prev.history, deltaX)
+        }
+        persistLayout({ sidePanelWidths: next })
+        return next
+      })
+    },
+    [persistLayout]
+  )
+
+  const resizePreviewWidth = useCallback(
+    (deltaX: number) => {
+      setSidePanelWidths((prev) => {
+        const next = {
+          ...prev,
+          preview: adjustSidePanelWidth(prev.preview, mapOuterPanelResizeDelta(deltaX))
         }
         persistLayout({ sidePanelWidths: next })
         return next
@@ -920,6 +936,13 @@ function AppContent() {
               {incognitoMode ? '🕶️' : '👁️'}
             </button>
             <button
+              className={`btn ${previewOpen ? 'active' : ''}`}
+              onClick={() => setPreviewOpen((open) => togglePanel('previewOpen', open))}
+              title="Превью файла — панель справа от чата"
+            >
+              Превью
+            </button>
+            <button
               className={`btn ${tracePanelOpen ? 'active' : ''}`}
               onClick={() => setTracePanelOpen((open) => togglePanel('tracePanelOpen', open))}
               title="Трассировка агента — сырой лог всех запросов к модели"
@@ -1109,6 +1132,16 @@ function AppContent() {
               </div>
             )}
           </section>
+
+          {previewOpen && (
+            <>
+              <PanelResizer onDrag={resizePreviewWidth} className="panel-resizer-preview" />
+              <section className="panel panel-preview" style={{ width: sidePanelWidths.preview }}>
+                <div className="panel-header">Превью</div>
+                <div className="panel-preview-placeholder hint">Файл не выбран</div>
+              </section>
+            </>
+          )}
 
           {metricsPanelOpen && (
             <>

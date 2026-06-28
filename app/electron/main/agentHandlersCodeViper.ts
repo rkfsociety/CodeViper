@@ -18,7 +18,12 @@ import { buildFileTree } from './services'
 import { formatFileTree } from './agentContext'
 import { grepInTree, formatGrepResults, findFilesInTree, formatFindResults } from './fileSearch'
 import { parseToolBool } from '../../shared/fileEdit'
-import { parseTreeDepth, formatCommandResult, missingToolArg } from './agentHandlersUtils'
+import {
+  parseTreeDepth,
+  formatCommandResult,
+  missingToolArg,
+  resolveToolPathArg
+} from './agentHandlersUtils'
 
 export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
@@ -38,7 +43,8 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       const query = args.query?.trim()
       if (!query) return missingToolArg('query (текст или /regex/i для поиска)')
       const root = getCodeViperSourceRoot()
-      const subpath = args.path?.trim() ? normalizeCodeViperPath(root, args.path.trim()) : undefined
+      const pathArg = resolveToolPathArg(args as Record<string, unknown>)
+      const subpath = pathArg ? normalizeCodeViperPath(root, pathArg) : undefined
       if (subpath && !isAllowedSelfPath(root, subpath)) {
         throw new Error('Доступ запрещён: path вне исходников CodeViper')
       }
@@ -50,7 +56,8 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       const pattern = args.pattern?.trim()
       if (!pattern) return missingToolArg('pattern (имя или glob, напр. *.ts)')
       const root = getCodeViperSourceRoot()
-      const subpath = args.path?.trim() ? normalizeCodeViperPath(root, args.path.trim()) : undefined
+      const pathArg = resolveToolPathArg(args as Record<string, unknown>)
+      const subpath = pathArg ? normalizeCodeViperPath(root, pathArg) : undefined
       if (subpath && !isAllowedSelfPath(root, subpath)) {
         throw new Error('Доступ запрещён: path вне исходников CodeViper')
       }

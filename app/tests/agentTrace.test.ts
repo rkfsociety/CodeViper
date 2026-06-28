@@ -10,6 +10,8 @@ describe('agentTrace helpers', () => {
   it('isToolOutputError распознаёт префиксы ошибок', () => {
     expect(isToolOutputError('Ошибка: файл не найден')).toBe(true)
     expect(isToolOutputError('⛔ Действие отклонено пользователем')).toBe(true)
+    expect(isToolOutputError('Укажите id пункта из set_self_improvement_plan')).toBe(true)
+    expect(isToolOutputError('Не указан параметр query')).toBe(true)
     expect(isToolOutputError('ok')).toBe(false)
   })
 

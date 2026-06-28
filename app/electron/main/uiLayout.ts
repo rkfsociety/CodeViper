@@ -25,7 +25,7 @@ export async function loadUiLayout(): Promise<UiLayoutState> {
   }
 }
 
-export async function saveUiLayout(layout: UiLayoutState): Promise<UiLayoutState> {
+export async function saveUiLayout(layout: unknown): Promise<UiLayoutState> {
   const normalized = normalizeUiLayoutState(layout)
   await writeJsonAtomic(storePath(), normalized)
   return normalized

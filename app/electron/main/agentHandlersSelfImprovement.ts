@@ -64,7 +64,7 @@ export function createSelfImprovementToolHandlers(
     },
 
     complete_self_improvement_item: async (args: any) => {
-      const itemId = String(args?.id ?? '').trim()
+      const itemId = String(args?.id ?? args?.item_id ?? args?.itemId ?? '').trim()
       if (!itemId) return 'Укажите id пункта из set_self_improvement_plan (строка или число).'
       const items = plan.complete(itemId)
       emitPlan(items)

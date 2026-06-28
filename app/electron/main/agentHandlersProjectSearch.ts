@@ -6,7 +6,7 @@ import { findSymbolDeclarations, findSymbolReferences, formatSymbolResults } fro
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { emitProgress, clearProgress } from './progress'
 import type { ProjectHandlerContext } from './agentHandlersProjectContext'
-import { missingToolArg } from './agentHandlersUtils'
+import { missingToolArg, resolveToolPathArg } from './agentHandlersUtils'
 
 function scanPercent(scanned: number): number {
   return Math.min(99, Math.round((scanned / MAX_WALK_FILES) * 100))
@@ -19,11 +19,12 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
     grep_files: async (args) => {
       const query = args.query?.trim()
       if (!query) return missingToolArg('query (текст или /regex/i для поиска)')
-      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      const pathArg = resolveToolPathArg(args as Record<string, unknown>)
+      assertInsideProject(pathArg, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск по коду: ${query}`, 0)
         const result = await grepInTreeWorker(projectPath, query, {
-          subpath: args.path?.trim(),
+          subpath: pathArg,
           onProgress: (scanned) => emitProgress(`Поиск по коду: ${query}`, scanPercent(scanned))
         })
         return formatGrepResults(projectPath, query, result)
@@ -35,11 +36,12 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
     find_files: async (args) => {
       const pattern = args.pattern?.trim()
       if (!pattern) return missingToolArg('pattern (имя или glob, напр. *.ts)')
-      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      const pathArg = resolveToolPathArg(args as Record<string, unknown>)
+      assertInsideProject(pathArg, 'папка для поиска', { allowEmpty: true })
       try {
         emitProgress(`Поиск файлов: ${pattern}`, 0)
         const result = await findFilesInTreeWorker(projectPath, pattern, {
-          subpath: args.path?.trim(),
+          subpath: pathArg,
           onProgress: (scanned) => emitProgress(`Поиск файлов: ${pattern}`, scanPercent(scanned))
         })
         return formatFindResults(projectPath, pattern, result)
