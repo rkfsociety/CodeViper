@@ -3,7 +3,7 @@ import { appendFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { readAppState, writeAppState, clearAppState } from '../appState'
-import { installPendingUpdate } from '../updateChecker'
+import { installPendingUpdate, checkForUpdatesNow } from '../updateChecker'
 import { dismissRuntimeUpdate } from '../runtimeUpdate'
 import { forceSyncBundledSource } from '../bundledSourceSync'
 import { getPluginsDirectory } from '../pluginLoader'
@@ -82,6 +82,22 @@ export function registerAppIpc(ctx: IpcContext): void {
   ipcMain.handle(IPC.FORCE_SYNC_BUNDLED_RUNTIME, async (_e, ...a) => {
     parseIpcArgs(Contracts[IPC.FORCE_SYNC_BUNDLED_RUNTIME].args, a)
     return forceSyncBundledSource()
+  })
+
+  ipcMain.handle(IPC.CHECK_FOR_UPDATES, async (_e, ...a) => {
+    parseIpcArgs(Contracts[IPC.CHECK_FOR_UPDATES].args, a)
+    const win = getWindow()
+    if (!win || win.isDestroyed()) {
+      return {
+        ok: false,
+        currentVersion: app.getVersion(),
+        packaged: app.isPackaged,
+        release: { checked: false, status: 'skipped' as const },
+        runtime: { checked: false, status: 'skipped' as const },
+        message: 'Окно приложения недоступно'
+      }
+    }
+    return checkForUpdatesNow(win.webContents)
   })
 
   ipcMain.on(IPC.OPEN_EXTERNAL, (_e, url: string) => {

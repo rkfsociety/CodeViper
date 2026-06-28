@@ -6,7 +6,12 @@ import type { AppUpdater } from 'electron-updater'
 import type { WebContents } from 'electron'
 import type { UpdateInfo } from '../../shared/updateInfo'
 import { resolveWindowsPendingInstaller } from '../../shared/updateInstall'
+import {
+  formatCheckForUpdatesMessage,
+  type CheckForUpdatesResult
+} from '../../shared/checkForUpdatesResult'
 import { getCodeViperSourceRoot } from './codeviperSource'
+import { peekBundledSourceUpdate } from './bundledSourceSync'
 import { isRuntimeUpdatePending, relaunchForRuntimeUpdate } from './runtimeUpdate'
 import { runShutdownHooks } from './appShutdown'
 import { shutdownEmbeddingWorker } from './embeddingQueue'
@@ -80,33 +85,54 @@ function sendUpdate(webContents: WebContents, info: UpdateInfo): void {
   }
 }
 
+interface GitSourceProbeResult {
+  available: boolean
+  commits: number
+  error?: string
+}
+
 /**
  * Dev/исходники: git fetch и проверка обновлений app/ на origin.
  */
-async function checkGitSourceUpdate(webContents: WebContents): Promise<void> {
+async function probeGitSourceUpdate(webContents: WebContents): Promise<GitSourceProbeResult> {
   const source = getCodeViperSourceRoot()
 
   const top = await runGit(source, ['rev-parse', '--show-toplevel'])
-  if (top.code !== 0) return
+  if (top.code !== 0) {
+    return { available: false, commits: 0, error: 'Не git-репозиторий' }
+  }
 
   const branchRes = await runGit(source, ['rev-parse', '--abbrev-ref', 'HEAD'])
   const branch = branchRes.stdout.trim()
-  if (!branch || branch === 'HEAD') return
+  if (!branch || branch === 'HEAD') {
+    return { available: false, commits: 0, error: 'Не удалось определить ветку' }
+  }
 
   const fetch = await runGit(source, ['fetch', 'origin', branch, '--quiet'])
-  if (fetch.code !== 0) return
+  if (fetch.code !== 0) {
+    return { available: false, commits: 0, error: 'git fetch не удался' }
+  }
 
   const local = (await runGit(source, ['rev-parse', 'HEAD'])).stdout.trim()
   const remote = (await runGit(source, ['rev-parse', `origin/${branch}`])).stdout.trim()
-  if (!remote || local === remote) return
+  if (!remote || local === remote) {
+    return { available: false, commits: 0 }
+  }
 
   const diff = await runGit(source, ['diff', '--quiet', 'HEAD', `origin/${branch}`, '--', '.'])
-  if (diff.code === 0) return
+  if (diff.code === 0) {
+    return { available: false, commits: 0 }
+  }
 
   const countRes = await runGit(source, ['rev-list', '--count', `HEAD..origin/${branch}`])
   const commits = parseInt(countRes.stdout.trim(), 10) || 1
 
   sendUpdate(webContents, { source: 'git', commits })
+  return { available: true, commits }
+}
+
+async function checkGitSourceUpdate(webContents: WebContents): Promise<void> {
+  await probeGitSourceUpdate(webContents)
 }
 
 async function checkReleaseUpdate(): Promise<void> {
@@ -173,6 +199,102 @@ async function startReleaseUpdateChecks(
     () => void checkReleaseUpdate().catch(() => {}),
     RELEASE_CHECK_INTERVAL_MS
   )
+}
+
+export async function checkForUpdatesNow(
+  webContents: WebContents,
+  allowPrerelease = false
+): Promise<CheckForUpdatesResult> {
+  const currentVersion = app.getVersion()
+  const packaged = app.isPackaged
+
+  if (packaged) {
+    if (!releaseChecksStarted) {
+      await startReleaseUpdateChecks(webContents, allowPrerelease)
+    }
+
+    let release: CheckForUpdatesResult['release']
+    if (updateDownloadReady && pendingReleaseVersion) {
+      release = {
+        checked: true,
+        status: 'ready',
+        version: pendingReleaseVersion
+      }
+      sendUpdate(webContents, {
+        source: 'release',
+        version: pendingReleaseVersion,
+        ready: true
+      })
+    } else if (pendingReleaseVersion) {
+      release = {
+        checked: true,
+        status: 'downloading',
+        version: pendingReleaseVersion
+      }
+    } else {
+      try {
+        const autoUpdater = await getAutoUpdater()
+        const result = await autoUpdater.checkForUpdates()
+        const version = result?.updateInfo?.version
+        if (version) {
+          release = { checked: true, status: 'available', version }
+        } else {
+          release = { checked: true, status: 'upToDate', version: currentVersion }
+        }
+      } catch (err) {
+        release = {
+          checked: true,
+          status: 'error',
+          error: err instanceof Error ? err.message : String(err)
+        }
+      }
+    }
+
+    const peek = await peekBundledSourceUpdate()
+    const runtime: CheckForUpdatesResult['runtime'] = peek.error
+      ? { checked: true, status: 'error', error: peek.error }
+      : peek.available
+        ? {
+            checked: true,
+            status: 'available',
+            commitsBehind: peek.commitsBehind,
+            localHead: peek.localHead
+          }
+        : { checked: true, status: 'upToDate', localHead: peek.localHead }
+
+    const result: CheckForUpdatesResult = {
+      ok: release.status !== 'error' && runtime.status !== 'error',
+      currentVersion,
+      packaged,
+      release,
+      runtime,
+      message: ''
+    }
+    result.message = formatCheckForUpdatesMessage(result)
+    return result
+  }
+
+  const gitProbe = await probeGitSourceUpdate(webContents)
+  const release: CheckForUpdatesResult['release'] = {
+    checked: false,
+    status: 'skipped'
+  }
+  const runtime: CheckForUpdatesResult['runtime'] = gitProbe.error
+    ? { checked: true, status: 'error', error: gitProbe.error }
+    : gitProbe.available
+      ? { checked: true, status: 'available', commitsBehind: gitProbe.commits }
+      : { checked: true, status: 'upToDate' }
+
+  const result: CheckForUpdatesResult = {
+    ok: runtime.status !== 'error',
+    currentVersion,
+    packaged,
+    release,
+    runtime,
+    message: ''
+  }
+  result.message = formatCheckForUpdatesMessage(result)
+  return result
 }
 
 export function startUpdateChecks(webContents: WebContents, allowPrerelease = false): void {

@@ -497,6 +497,9 @@ const codeviper = {
       message?: string
     }>,
 
+  checkForUpdates: () =>
+    withTimeout(ipcRenderer.invoke(IPC.CHECK_FOR_UPDATES), 120_000, 'checkForUpdates'),
+
   onUpdateAvailable: (cb: (info: import('../../shared/updateInfo').UpdateInfo) => void) => {
     const handler = (
       _e: Electron.IpcRendererEvent,

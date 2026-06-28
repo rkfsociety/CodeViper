@@ -80,10 +80,30 @@
 .about {
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   padding: 12px 16px;
   border-top: 1px solid var(--bg-element);
+}
+
+.updatesFooter {
   margin-top: 4px;
+}
+
+.updatesStatus {
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.updatesStatusOk {
+  color: var(--text-secondary);
+}
+
+.updatesStatusError {
+  color: #f85149;
 }
 
 .aboutVersion {

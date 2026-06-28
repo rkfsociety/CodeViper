@@ -10,6 +10,7 @@ import { PerformanceTab } from './PerformanceTab'
 import { MemoryTab } from './MemoryTab'
 import { IntegrationsTab } from './IntegrationsTab'
 import { PluginsTab } from './PluginsTab'
+import { UpdatesFooter } from './UpdatesFooter'
 
 type DownloadQueue = ReturnType<typeof useOllamaDownloadQueue>
 
@@ -173,25 +174,7 @@ export function SettingsModal({
           </div>
         )}
 
-        <div className={styles.about}>
-          <span className={styles.aboutVersion}>CodeViper v{__APP_VERSION__}</span>
-          <a
-            className={styles.aboutLink}
-            href="https://github.com/rkfsociety/CodeViper/issues"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Сообщить об ошибке
-          </a>
-          <a
-            className={styles.aboutLink}
-            href="https://github.com/rkfsociety/CodeViper"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub
-          </a>
-        </div>
+        <UpdatesFooter />
       </div>
     </div>
   )

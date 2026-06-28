@@ -250,6 +250,50 @@ async function prepareBundledSourceForRuntimeSync(
   return { ok: true }
 }
 
+export interface BundledSourcePeekResult {
+  available: boolean
+  commitsBehind: number
+  localHead?: string
+  remoteHead?: string
+  error?: string
+}
+
+/** Только fetch + сравнение с origin/master, без checkout и pull. */
+export async function peekBundledSourceUpdate(): Promise<BundledSourcePeekResult> {
+  if (!app.isPackaged) {
+    return { available: false, commitsBehind: 0, error: 'Только для установленной версии' }
+  }
+
+  const root = getBundledSourceRoot()
+  if (!existsSync(join(root, '.git'))) {
+    return { available: false, commitsBehind: 0, error: 'Клон runtime не найден' }
+  }
+
+  const remoteRef = `origin/${CODEVIPER_RUNTIME_SYNC_BRANCH}`
+  const fetch = await runGit(root, ['fetch', 'origin', CODEVIPER_RUNTIME_SYNC_BRANCH, '--quiet'])
+  if (fetch.code !== 0) {
+    return {
+      available: false,
+      commitsBehind: 0,
+      error: (fetch.stderr || fetch.stdout || 'git fetch failed').trim()
+    }
+  }
+
+  const localRes = await runGit(root, ['rev-parse', 'HEAD'])
+  const remoteRes = await runGit(root, ['rev-parse', remoteRef])
+  const localHead = localRes.stdout.trim()
+  const remoteHead = remoteRes.stdout.trim()
+
+  if (!localHead || !remoteHead || localHead === remoteHead) {
+    return { available: false, commitsBehind: 0, localHead, remoteHead }
+  }
+
+  const countRes = await runGit(root, ['rev-list', '--count', `${localHead}..${remoteHead}`])
+  const commitsBehind = parseInt(countRes.stdout.trim(), 10) || 1
+
+  return { available: true, commitsBehind, localHead, remoteHead }
+}
+
 /** Синхронизация клона с origin/master; при отсутствии клона — git clone. */
 export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
   const root = getBundledSourceRoot()

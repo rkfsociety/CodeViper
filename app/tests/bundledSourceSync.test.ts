@@ -7,7 +7,8 @@ const userDataDir = mkdtempSync(join(tmpdir(), 'cv-bundled-source-'))
 
 vi.mock('electron', () => ({
   app: {
-    getPath: (name: string) => (name === 'userData' ? userDataDir : process.cwd())
+    getPath: (name: string) => (name === 'userData' ? userDataDir : process.cwd()),
+    isPackaged: false
   }
 }))
 
@@ -20,6 +21,7 @@ import {
   ensureBundledSourceClone,
   forceSyncBundledSource,
   getBundledSourceRoot,
+  peekBundledSourceUpdate,
   resetBundledSourceCloneStateForTests,
   runBundledSourceStartupSync,
   setGitRunnerForTests,
@@ -28,6 +30,7 @@ import {
   syncBundledSourceIfEnabled,
   type GitRunResult
 } from '../electron/main/bundledSourceSync'
+import { app } from 'electron'
 import { getBundledSourceAppRoot } from '../electron/main/bundledSourceBuild'
 
 describe('bundledSourceSync', () => {
@@ -339,5 +342,42 @@ describe('forceSyncBundledSource', () => {
     const result = await forceSyncBundledSource()
     expect(result.ok).toBe(false)
     expect(result.error).toMatch(/установлен/i)
+  })
+})
+
+describe('peekBundledSourceUpdate', () => {
+  afterEach(() => {
+    vi.mocked(app).isPackaged = false
+    setGitRunnerForTests(null)
+    rmSync(join(userDataDir, 'source'), { recursive: true, force: true })
+  })
+
+  it('в dev-режиме недоступен', async () => {
+    const result = await peekBundledSourceUpdate()
+    expect(result.available).toBe(false)
+    expect(result.error).toMatch(/установлен/i)
+  })
+
+  it('сообщает о новых коммитах без checkout', async () => {
+    vi.mocked(app).isPackaged = true
+    mkdirSync(join(userDataDir, 'source', '.git'), { recursive: true })
+
+    setGitRunnerForTests(async (_cwd, args) => {
+      if (args[0] === 'fetch') return { code: 0, stdout: '', stderr: '' }
+      if (args[0] === 'rev-parse' && args[1] === 'HEAD')
+        return { code: 0, stdout: 'aaa1111\n', stderr: '' }
+      if (args[0] === 'rev-parse' && args[1] === 'origin/master')
+        return { code: 0, stdout: 'bbb2222\n', stderr: '' }
+      if (args[0] === 'rev-list') return { code: 0, stdout: '4\n', stderr: '' }
+      return { code: 1, stdout: '', stderr: 'unexpected' }
+    })
+
+    const result = await peekBundledSourceUpdate()
+    expect(result).toEqual({
+      available: true,
+      commitsBehind: 4,
+      localHead: 'aaa1111',
+      remoteHead: 'bbb2222'
+    })
   })
 })
