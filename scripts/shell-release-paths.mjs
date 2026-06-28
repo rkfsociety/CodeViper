@@ -63,6 +63,7 @@ export const RUNTIME_ONLY_EXACT = new Set([
   'app/electron/main/selfCommit.ts',
   'app/electron/main/mcpTools.ts',
   'app/electron/main/runtimeHandlers.ts',
+  'app/electron/main/uiLayout.ts',
   'app/electron/main/modelRuntime.ts',
   'app/electron/main/services.ts',
   'app/electron/main/gitTools.ts',

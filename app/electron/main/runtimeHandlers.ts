@@ -4,6 +4,7 @@
  */
 import { registerLiveRuntimeTraceIpc } from './ipc/registerLiveRuntimeTraceIpc'
 import { registerLiveRuntimeGithubTraceIpc } from './ipc/registerLiveRuntimeGithubTraceIpc'
+import { registerLiveRuntimeUiLayoutIpc } from './ipc/registerLiveRuntimeUiLayoutIpc'
 import { installLiveShellRendererReload } from './liveShellBootstrap'
 
 let liveShellExtrasInstalled = false
@@ -14,6 +15,7 @@ export function ensureLiveRuntimeExtras(): void {
   liveShellExtrasInstalled = true
   registerLiveRuntimeTraceIpc()
   registerLiveRuntimeGithubTraceIpc()
+  registerLiveRuntimeUiLayoutIpc()
   installLiveShellRendererReload()
 }
 

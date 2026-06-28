@@ -48,7 +48,12 @@ function clearLegacyLocalLayout(): void {
 }
 
 export async function loadUiLayoutWithMigration(): Promise<UiLayoutState> {
-  const fromMain = await window.codeviper.loadUiLayout()
+  let fromMain = defaultUiLayoutState()
+  try {
+    fromMain = await window.codeviper.loadUiLayout()
+  } catch {
+    // Старый shell без IPC load-ui-layout — defaults + legacy localStorage
+  }
   const legacy = readLegacyLocalLayout()
   if (!legacy) return fromMain
 
@@ -65,6 +70,8 @@ export function scheduleSaveUiLayout(layout: UiLayoutState): void {
     const snapshot = pendingLayout ?? defaultUiLayoutState()
     pendingLayout = null
     saveTimer = null
-    void window.codeviper.saveUiLayout(snapshot)
+    void window.codeviper.saveUiLayout(snapshot).catch(() => {
+      // Старый shell без IPC save-ui-layout — layout только в памяти сессии
+    })
   }, SAVE_DEBOUNCE_MS)
 }
