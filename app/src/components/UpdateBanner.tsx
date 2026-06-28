@@ -1,8 +1,9 @@
-import type { PendingUpdates, ReleaseUpdateInfo } from '../shared/updateBannerView'
 import type { UpdateInfo } from '../types'
 import {
   buildUpdateBannerView,
   mergePendingUpdate,
+  type PendingUpdates,
+  type ReleaseUpdateInfo,
   type UpdateBannerView
 } from '../../shared/updateBannerView'
 import {
