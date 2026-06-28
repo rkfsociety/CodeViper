@@ -60,6 +60,25 @@ describe('extractEmbeddedToolCalls', () => {
       toolCalls: [{ name: 'read_roadmap_item', arguments: { number: 1 } }]
     })
   })
+
+  it('парсит несколько JSON tool calls с ведущей } (обрыв предыдущего стрима qwen)', () => {
+    const raw =
+      '}\n{"name": "read_codeviper_file", "arguments": {"path": "app/electron/main/modelRuntime.ts"}}\n{"name": "read_codeviper_file", "arguments": {"path": "app/src/components/SettingsModal/ModelTab.tsx"}}\n{"name": "read_codeviper_file", "arguments": {"path": "app/tests/providers.integration.test.ts"}}'
+    expect(extractEmbeddedToolCalls(raw)).toEqual({
+      content: '',
+      toolCalls: [
+        { name: 'read_codeviper_file', arguments: { path: 'app/electron/main/modelRuntime.ts' } },
+        {
+          name: 'read_codeviper_file',
+          arguments: { path: 'app/src/components/SettingsModal/ModelTab.tsx' }
+        },
+        {
+          name: 'read_codeviper_file',
+          arguments: { path: 'app/tests/providers.integration.test.ts' }
+        }
+      ]
+    })
+  })
 })
 
 describe('looksLikeEmbeddedToolCall', () => {

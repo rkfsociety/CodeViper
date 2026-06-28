@@ -2,12 +2,14 @@ import type { AgentStreamPayload } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
 import type { ModelRuntime } from './modelRuntime'
 import type { AgentSettings } from '../../src/types'
+import { looksLikeFakeToolOutput } from '../../shared/actionVerification'
 import {
   parsePlanFromAssistantText,
   syncPlanFromChecklist,
   formatPlanSummary,
   CREATE_SELF_IMPROVEMENT_PLAN_NUDGE,
   SELF_IMPROVE_PLAN_STUCK_MESSAGE,
+  SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE,
   START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
   buildSelfImprovementContinueNudge,
   ROADMAP_DOCS_NOT_UPDATED_NUDGE,
@@ -18,6 +20,7 @@ import {
   parseRoadmapFieldsFromAssistantText,
   incrementAttempt,
   hasActionablePending,
+  planProgress,
   type SelfImprovementItem,
   type RoadmapPlanSource
 } from '../../shared/selfImprovement'
@@ -158,6 +161,10 @@ export class SelfImprovementOrchestrator {
     assistantThinking: string | undefined,
     usedTools: boolean
   ): SelfImproveNoToolAction {
+    if (assistantText && looksLikeFakeToolOutput(assistantText)) {
+      return { action: 'passthrough' }
+    }
+
     const adoptedPlan = assistantText ? this.adoptPlanFromText(assistantText) : false
     const current = this.plan.get()
 
@@ -177,6 +184,10 @@ export class SelfImprovementOrchestrator {
     if (current && this.plan.hasPending()) {
       if (!hasActionablePending(current)) {
         this.emitPlan(current)
+        const { done } = planProgress(current)
+        if (done === 0) {
+          return { action: 'error', content: SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE }
+        }
         return { action: 'done' }
       }
 

@@ -767,6 +767,9 @@ export function isPseudoReadRoadmapItemText(text: string): boolean {
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
   'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'
 
+export const SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE =
+  'Самоулучшение не выполнено: все пункты плана заблокированы (модель писала «Вывод: … завершено» без tool calls). Повторите прогон или смените модель.'
+
 export const ROADMAP_ITEM_ALREADY_READ_NUDGE = `Пункт ROADMAP уже прочитан — не вызывай read_roadmap_item повторно. План создан автоматически; начни с read_codeviper_file для путей из «Файлы», затем edit_codeviper_file.`
 
 export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) → read_codeviper_file файлы из «Файлы» (ENOENT → create_codeviper_file) → set_self_improvement_plan. Не list_directory и не read_file проекта для app/. Не угадывай файлы (agent.ts в корне нет — смотри «Файлы» в ROADMAP).`

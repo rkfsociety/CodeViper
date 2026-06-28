@@ -4,8 +4,10 @@ import {
   taskMutationLikelihood,
   taskLikelyNeedsMutation,
   taskLikelyNeedsTools,
+  looksLikeFakeToolOutput,
   EXPLORATION_STALL_NUDGE,
-  EXPLORATION_STALL_ABORT_MESSAGE
+  EXPLORATION_STALL_ABORT_MESSAGE,
+  FAKE_TOOL_OUTPUT_NUDGE
 } from '../../shared/actionVerification'
 import { escalateModel } from '../../shared/modelRouter'
 import {
@@ -155,18 +157,24 @@ export class LoopGuard {
 
     if (shouldRetry) {
       this.verificationRetries++
+      const fakeOutput = looksLikeFakeToolOutput(assistantText)
       const afterExploration = !assistantText.trim() && usedTools && mutatingToolsUsed.size === 0
       const notice = this.verificationNoticeSent
         ? undefined
-        : afterExploration
-          ? '⚠️ Пустой ответ после разведки — повторяю с требованием правок…'
-          : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
+        : fakeOutput
+          ? '⚠️ Модель симулировала вывод инструмента текстом — повторяю с обязательным tool call…'
+          : afterExploration
+            ? '⚠️ Пустой ответ после разведки — повторяю с требованием правок…'
+            : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
       this.verificationNoticeSent = true
       return {
         action: 'retry',
-        nudgeMessage: afterExploration
-          ? EXPLORATION_STALL_NUDGE
-          : (notice ?? 'Инструменты обязательны для этой задачи. Вызови нужный инструмент сейчас.')
+        nudgeMessage: fakeOutput
+          ? FAKE_TOOL_OUTPUT_NUDGE
+          : afterExploration
+            ? EXPLORATION_STALL_NUDGE
+            : (notice ??
+              'Инструменты обязательны для этой задачи. Вызови нужный инструмент сейчас.')
       }
     }
 

@@ -4,6 +4,7 @@ import {
   claimsActionCompleted,
   looksLikeAdviceInsteadOfAction,
   looksLikeAlreadyImplementedConclusion,
+  looksLikeFakeToolOutput,
   MUTATING_TOOLS,
   needsToolVerification,
   shouldRetryForMissingTools,
@@ -135,5 +136,16 @@ describe('actionVerification', () => {
         true
       )
     ).toBe(true)
+  })
+
+  it('looksLikeFakeToolOutput ловит симуляцию «Вывод: Чтение … завершено»', () => {
+    const fake =
+      'Для начала выполним несколько шагов для разведки:\n\n1. Читаем файл `a.ts`.\n\nИнструмент для этого:\n\n\nВывод: Чтение файла `a.ts` завершено.'
+    expect(looksLikeFakeToolOutput(fake)).toBe(true)
+    const roadmapMsg = `1 · M · Custom endpoint
+Цель: провайдер custom
+Файлы: openaiProvider.ts
+Действие: переиспользовать OpenAI client`
+    expect(shouldRetryForMissingTools(roadmapMsg, fake, new Set(), true)).toBe(true)
   })
 })

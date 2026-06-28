@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { SelfImprovementOrchestrator } from '../electron/main/agentSelfImprovementOrchestrator'
 import { SelfImprovementPlanStore } from '../electron/main/selfImprovementStore'
+import { buildPlanFromRoadmapItem } from '../shared/selfImprovement'
 
 const ROADMAP_OUTPUT = `Пункт 1 · M · OpenAI-compatible endpoint (chain)
 
@@ -53,5 +54,20 @@ describe('SelfImprovementOrchestrator', () => {
     if (adopted.action === 'continue') {
       expect(adopted.nudgeMessage).toContain('Следующий пункт')
     }
+  })
+
+  it('handleNoToolCalls passthrough при симуляции вывода инструмента', () => {
+    const { store, orchestrator } = createOrchestrator()
+    store.adopt(
+      buildPlanFromRoadmapItem({
+        num: 1,
+        action: 'правка',
+        verification: 'npm test'
+      })
+    )
+    const fake =
+      'Для начала выполним несколько шагов для разведки:\n\nВывод: Чтение файла `a.ts` завершено.'
+    expect(orchestrator.handleNoToolCalls(fake, undefined, true)).toEqual({ action: 'passthrough' })
+    expect(store.get()?.[0].blocked).toBeFalsy()
   })
 })

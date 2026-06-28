@@ -248,6 +248,11 @@ function extractToolResponseCalls(
   return { content: remaining.trim(), toolCalls }
 }
 
+/** Обрыв предыдущего JSON-стрима qwen: ведущая `}` перед `{"name":…}`. */
+function stripLeadingOrphanBrace(text: string): string {
+  return text.replace(/^\s*\}\s*(?=\{)/, '').trimStart()
+}
+
 export function extractEmbeddedToolCalls(
   content: string,
   extraToolNames?: readonly string[]
@@ -256,7 +261,7 @@ export function extractEmbeddedToolCalls(
   toolCalls: ParsedToolCall[]
 } {
   const toolCalls: ParsedToolCall[] = []
-  let remaining = content
+  let remaining = stripLeadingOrphanBrace(content)
 
   const toolResponse = extractToolResponseCalls(content, extraToolNames)
   if (toolResponse.toolCalls.length) {

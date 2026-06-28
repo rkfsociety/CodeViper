@@ -146,6 +146,19 @@ export function looksLikeAdviceInsteadOfAction(assistantText: string): boolean {
   return ADVICE_INSTEAD_OF_ACTION_PATTERNS.some((pattern) => pattern.test(text))
 }
 
+/** Модель описала результат инструмента текстом («Вывод: … завершено») без реального tool call. */
+const FAKE_TOOL_OUTPUT_PATTERNS: RegExp[] = [
+  /Вывод:\s*(?:Чтение|Успешн|Выполнен|Команда|git\s)/i,
+  /Инструмент(?:ы)?\s+для\s+этого\s*:[\s\S]*?Вывод:/i,
+  /Для начала выполним несколько шагов для разведки[\s\S]*Вывод:/i
+]
+
+export function looksLikeFakeToolOutput(assistantText: string): boolean {
+  const text = assistantText.trim()
+  if (!text) return false
+  return FAKE_TOOL_OUTPUT_PATTERNS.some((pattern) => pattern.test(text))
+}
+
 export function claimsActionCompleted(assistantText: string): boolean {
   const text = assistantText.trim()
   if (!text) return false
@@ -215,6 +228,10 @@ export function shouldRetryForMissingTools(
     return false
   }
 
+  if (looksLikeFakeToolOutput(assistantText)) {
+    return true
+  }
+
   // Не-мутационная задача (изучи/перечисли/проанализируй) без вызова инструментов:
   // короткий ответ (<200 симв.) — модель написала намерение и остановилась, повторяем;
   // длинный ответ — облачная/умная модель ответила из знаний, принимаем как есть.
@@ -235,6 +252,10 @@ export const EXPLORATION_STALL_NUDGE = `⚠️ Достаточно развед
 
 export const EXPLORATION_STALL_ABORT_MESSAGE = `🛑 Прогон остановлен: слишком много шагов разведки (read/grep) без правок.
 Вызови edit_codeviper_file по файлам из «Файлы:» или смените модель (бесплатные лимиты OpenRouter быстро исчерпываются на «вечной разведке»).`
+
+export const FAKE_TOOL_OUTPUT_NUDGE = `STOP. Ты описал результат инструмента текстом («Вывод: … завершено») — это не выполнение.
+Вызови реальный tool call: read_codeviper_file / edit_codeviper_file / run_codeviper_command.
+Не пиши JSON и не симулируй вывод — только официальный tool calling.`
 
 export const TOOL_VERIFICATION_NUDGE = `STOP. Не давай пользователю пошаговый план и не советуй Figma/Material-UI — это делаешь ТЫ через инструменты.
 Сейчас вызови tool calling: list_directory / read_file или list_codeviper_directory / read_codeviper_file для изучения, затем create_file / edit_file / write_file (или codeviper_* аналоги) для правок.
