@@ -51,6 +51,7 @@
 ### UX и UI
 - Resizable split layout: панель «Превью» справа от чата с перетаскиваемым разделителем; ширина и видимость в `ui-layout.json`
 - FilePreviewPanel: read-only просмотр файла с highlight.js (IPC `read-file`); ProjectTree → split-панель «Превью»
+- MessageBody: кнопка «Копировать» на каждом fenced code block (`navigator.clipboard.writeText`)
 - DiffPreviewModal (side-by-side, cherry-pick hunks); ProjectTree; @-mentions; trace export/replay; MetricsPanel
 - Горячие клавиши: Esc — стоп агента; Ctrl+Shift+N — новый чат; Ctrl+B — дерево файлов (модалка `?`)
 - Vision-ввод; ErrorBoundary; prompt templates; tray; UpdateBanner; уведомления и звук по завершении агента; toast при ожидании подтверждения (preview/danger/диалог), если окно не в фокусе

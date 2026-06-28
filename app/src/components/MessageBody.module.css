@@ -50,3 +50,47 @@
 .ctxMenuItem:hover {
   background: var(--bg-element);
 }
+
+.codeBlock {
+  position: relative;
+  margin: 0.65em 0;
+}
+
+.codeBlock pre {
+  margin: 0;
+  padding-top: 36px;
+}
+
+.codeCopyBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  padding: 3px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0.85;
+  transition:
+    opacity 0.12s,
+    background 0.12s;
+}
+
+.codeBlock:hover .codeCopyBtn,
+.codeCopyBtn:focus-visible {
+  opacity: 1;
+}
+
+.codeCopyBtn:hover:not(:disabled) {
+  background: var(--bg-element);
+  color: var(--text-primary);
+}
+
+.codeCopyBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

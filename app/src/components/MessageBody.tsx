@@ -23,6 +23,47 @@ function showPath(path: string) {
   window.codeviper.showItemInFolder(path)
 }
 
+/** Текст из <pre><code> для копирования (unit-тест). */
+export function extractCodeBlockText(children: ReactNode): string {
+  if (children == null || typeof children === 'boolean') return ''
+  if (typeof children === 'string') return children
+  if (typeof children === 'number') return String(children)
+  if (Array.isArray(children)) return children.map(extractCodeBlockText).join('')
+  if (React.isValidElement<{ children?: ReactNode }>(children)) {
+    return extractCodeBlockText(children.props.children)
+  }
+  return ''
+}
+
+function CodeBlockCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = useCallback(async () => {
+    const value = text.replace(/\n$/, '')
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setCopied(false)
+    }
+  }, [text])
+
+  return (
+    <button
+      type="button"
+      className={styles.codeCopyBtn}
+      onClick={() => void copy()}
+      title="Копировать код"
+      aria-label="Копировать код"
+      disabled={!text.trim()}
+    >
+      {copied ? '✓' : 'Копировать'}
+    </button>
+  )
+}
+
 interface CtxMenu {
   path: string
   x: number
@@ -121,6 +162,16 @@ export const MessageBody = React.memo(function MessageBody({
           )
         }
         return <code className={className}>{children}</code>
+      },
+
+      pre: ({ children }: { children?: ReactNode }) => {
+        const codeText = extractCodeBlockText(children)
+        return (
+          <div className={styles.codeBlock}>
+            <CodeBlockCopyButton text={codeText} />
+            <pre>{children}</pre>
+          </div>
+        )
       }
     }),
     [processChildren, handleFileCtxMenu]
