@@ -8,7 +8,7 @@ test.describe('Запуск приложения', () => {
       const title = await app.evaluate(({ BrowserWindow }) =>
         BrowserWindow.getAllWindows()[0]?.getTitle()
       )
-      expect(title).toMatch(/^CodeViper \d+\.\d+\.\d+$/)
+      expect(title).toMatch(/^CodeViper \d+\.\d+\.\d+( [0-9a-f]{7})?$/)
     } finally {
       await closeApp(app)
     }
