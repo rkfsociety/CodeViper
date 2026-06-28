@@ -81,6 +81,7 @@ describe('SelfImprovementOrchestrator', () => {
     })
     expect(store.has()).toBe(true)
     expect(store.get()?.[0].title).toContain('OpenAI client')
+    expect(store.get()?.[1].title).toContain('providers.integration.test.ts')
   })
 
   it('handleNoToolCalls не завершает прогон при текстовом плане после read (trace 1782678329979)', () => {

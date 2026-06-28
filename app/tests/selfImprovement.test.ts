@@ -31,6 +31,9 @@ import {
   isReadOutputTruncated,
   mapSelfImproveProjectTool,
   validateSelfImproveMutatingContent,
+  validateSelfImproveEditArgs,
+  expandRoadmapVerificationTitle,
+  buildOpenAiCustomEndpointHint,
   isNewUiComponentPath,
   hasReadCodeViperUiReference
 } from '../shared/selfImprovement'
@@ -130,6 +133,53 @@ describe('selfImprovement', () => {
       validateSelfImproveMutatingContent('app/src/App.tsx', 'const x = React.useState(false)')
     ).toMatch(/useState/)
     expect(validateSelfImproveMutatingContent('app/src/App.tsx', 'const ok = 1')).toBeNull()
+  })
+
+  it('validateSelfImproveEditArgs блокирует ROADMAP-текст и переименование export class', () => {
+    expect(
+      validateSelfImproveEditArgs('Цель: провайдер custom\nФайлы: openaiProvider.ts', 'new')
+    ).toMatch(/ROADMAP/)
+    expect(
+      validateSelfImproveEditArgs(
+        'export class OpenAIProvider extends StreamingChatProvider',
+        'class CustomOpenAIProvider extends StreamingChatProvider'
+      )
+    ).toMatch(/export|переименовывай/)
+    expect(
+      validateSelfImproveEditArgs(
+        'protected override readonly BACKOFF_MS = [1000]',
+        'protected override readonly CUSTOM_BACKOFF_MS = [1000]'
+      )
+    ).toMatch(/BACKOFF_MS/)
+    expect(
+      validateSelfImproveEditArgs('export class Foo {', 'export class Foo { bar() {}')
+    ).toBeNull()
+  })
+
+  it('expandRoadmapVerificationTitle добавляет npm test для ping mock', () => {
+    expect(expandRoadmapVerificationTitle('ping к mock server')).toContain(
+      'providers.integration.test.ts'
+    )
+    expect(expandRoadmapVerificationTitle('npm run typecheck')).toBe('npm run typecheck')
+  })
+
+  it('buildOpenAiCustomEndpointHint для custom endpoint ROADMAP', () => {
+    const hint = buildOpenAiCustomEndpointHint({
+      num: 1,
+      action: 'переиспользовать OpenAI client с custom baseURL',
+      verification: 'ping к mock server'
+    })
+    expect(hint).toContain('OpenAIProvider')
+    expect(hint).toContain('BACKOFF_MS')
+  })
+
+  it('buildPlanFromRoadmapItem — ping mock включает npm test в шаг проверки', () => {
+    const plan = buildPlanFromRoadmapItem({
+      num: 1,
+      action: 'custom baseURL',
+      verification: 'ping к mock server'
+    })
+    expect(plan[1].title).toContain('providers.integration.test.ts')
   })
 
   it('требует эталон UI перед новым компонентом', () => {

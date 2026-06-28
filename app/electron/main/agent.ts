@@ -29,8 +29,11 @@ import {
   resolveSelfImproveBranch,
   parseRoadmapTaskItemNumber,
   isRoadmapSelfImprovementTask,
+  isRoadmapItemBodyTask,
+  parseRoadmapFieldsFromAssistantText,
   buildRoadmapSelfImproveHint,
-  buildRoadmapAlreadyDoneHint
+  buildRoadmapAlreadyDoneHint,
+  buildOpenAiCustomEndpointHint
 } from '../../shared/selfImprovement'
 import { findRoadmapDoneMatch, readRoadmapItem } from './roadmapParser'
 import { getActiveAgentSourceRootPath } from './runtimeBootstrap'
@@ -401,9 +404,17 @@ export class AgentRunner {
         const planned = await readRoadmapItem(roadmapItemNum)
         if (planned) {
           this.selfImproveOrchestrator.setRoadmapItemDetail(planned)
+          const openAiHint = buildOpenAiCustomEndpointHint(planned)
+          if (openAiHint) hintParts.push(openAiHint)
         } else {
           const byNum = await findRoadmapDoneMatch(`пункт ${roadmapItemNum}`)
           if (byNum) hintParts.push(buildRoadmapAlreadyDoneHint(byNum))
+        }
+      } else if (isRoadmapItemBodyTask(userMessage)) {
+        const fields = parseRoadmapFieldsFromAssistantText(userMessage)
+        if (fields) {
+          const openAiHint = buildOpenAiCustomEndpointHint(fields)
+          if (openAiHint) hintParts.push(openAiHint)
         }
       }
     }
