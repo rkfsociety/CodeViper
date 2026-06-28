@@ -258,4 +258,56 @@ describe('liveRuntimeFromGit', () => {
     const loaded = await loadSettings()
     expect(loaded.liveRuntimeFromGit).toBe(true)
   })
+
+  it('сохраняет и загружает uiLightMode', async () => {
+    const saved = await saveSettings(makeSettings({ uiLightMode: true }))
+    expect(saved.uiLightMode).toBe(true)
+
+    const jsonCall = mockWriteFile.mock.calls.find((args: unknown[]) =>
+      String(args[1]).includes('uiLightMode')
+    )
+    expect(jsonCall).toBeDefined()
+    const parsed = JSON.parse(String(jsonCall![1])) as Record<string, unknown>
+    expect(parsed.uiLightMode).toBe(true)
+
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(String(jsonCall![1]))
+    const loaded = await loadSettings()
+    expect(loaded.uiLightMode).toBe(true)
+  })
+
+  it('без uiLightMode в файле — тема тёмная (поле отсутствует)', async () => {
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        ollamaUrl: 'http://127.0.0.1:11434',
+        model: '',
+        selfLearning: true,
+        autoModel: true,
+        permissionMode: 'acceptEdits',
+        clarifyMode: false,
+        deepReasoning: false,
+        excludeThinkingFromHistory: true,
+        autoPushSelfEdits: true,
+        summarizeModel: '',
+        modelProvider: 'ollama',
+        providerApiKey: '',
+        deepseekApiKey: '',
+        openaiApiKey: '',
+        openrouterApiKey: '',
+        geminiApiKey: '',
+        geminiRpm: 5,
+        geminiTier: 'free',
+        claudeApiKey: '',
+        groqApiKey: '',
+        togetherApiKey: '',
+        gitSyncOnStartup: true,
+        gitSyncStrategy: 'stash'
+      })
+    )
+
+    const loaded = await loadSettings()
+    expect(loaded.uiLightMode).toBeUndefined()
+  })
 })

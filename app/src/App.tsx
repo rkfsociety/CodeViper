@@ -267,7 +267,7 @@ function AppContent() {
   useAgentWaitingApprovalNotify(pendingApproval, notifyWaitingApproval)
 
   const [ollamaFallbackUrl, setOllamaFallbackUrl] = useState<string | null>(null)
-  const [lightMode, setLightMode] = useState(false)
+  const lightMode = settings.uiLightMode === true
   const [incognitoMode, setIncognitoMode] = useState(false)
   const incognitoModeRef = useRef(false)
   incognitoModeRef.current = incognitoMode
@@ -922,7 +922,7 @@ function AppContent() {
             <button
               className="btn"
               title={lightMode ? 'Тёмная тема' : 'Светлая тема'}
-              onClick={() => setLightMode((v) => !v)}
+              onClick={() => setSettings((prev) => ({ ...prev, uiLightMode: !prev.uiLightMode }))}
             >
               {lightMode ? '🌙' : '☀️'}
             </button>

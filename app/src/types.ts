@@ -201,6 +201,8 @@ export interface AgentSettings {
   soundNotifications?: boolean
   /** Сворачивать в трей при закрытии окна (крестик). По умолчанию true. */
   minimizeToTray?: boolean
+  /** Светлая тема интерфейса (☀️ в шапке) */
+  uiLightMode?: boolean
   /** URL для POST-уведомления при завершении прогона агента (Slack/Discord/n8n) */
   webhookUrl?: string
   /** Автоиндексация проекта в Qdrant при смене projectPath */
