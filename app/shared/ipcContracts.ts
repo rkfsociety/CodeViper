@@ -14,6 +14,7 @@
  */
 import { z } from 'zod'
 import { UpdateInfoSchema } from './updateInfo'
+import { UiLayoutStateSchema } from './uiLayout'
 
 // ─── Примитивные схемы ────────────────────────────────────────────────────
 
@@ -464,6 +465,8 @@ export const IPC = {
   GET_P2P_CREDITS: 'get-p2p-credits',
   SHOW_AGENT_DONE_NOTIFICATION: 'show-agent-done-notification',
   GET_AGENT_METRICS: 'get-agent-metrics',
+  LOAD_UI_LAYOUT: 'load-ui-layout',
+  SAVE_UI_LAYOUT: 'save-ui-layout',
 
   // ── One-way (renderer → main) ─────────────────────────────────────────
   CANCEL_GGUF_DOWNLOAD: 'cancel-gguf-download',
@@ -724,6 +727,14 @@ export const Contracts = {
   [IPC.LOAD_SETTINGS]: {
     args: z.tuple([]),
     result: AgentSettingsSchema
+  },
+  [IPC.LOAD_UI_LAYOUT]: {
+    args: z.tuple([]),
+    result: UiLayoutStateSchema
+  },
+  [IPC.SAVE_UI_LAYOUT]: {
+    args: z.tuple([UiLayoutStateSchema]),
+    result: UiLayoutStateSchema
   },
   [IPC.SAVE_SETTINGS]: {
     args: z.tuple([AgentSettingsSchema]),

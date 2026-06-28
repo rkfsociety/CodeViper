@@ -10,6 +10,7 @@ export type {
   PackageManager
 } from '../shared/agentPrerequisites'
 export type { PermissionMode } from '../shared/permissions'
+export type { UiLayoutState } from '../shared/uiLayout'
 export { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../shared/permissions'
 export { isThinkingModel } from '../shared/reasoning'
 
@@ -691,6 +692,10 @@ export interface CodeViperAPI {
     skipOllamaCheck?: boolean
   ) => Promise<AgentPrerequisitesResult>
   loadSettings: () => Promise<AgentSettings>
+  loadUiLayout: () => Promise<import('../shared/uiLayout').UiLayoutState>
+  saveUiLayout: (
+    layout: import('../shared/uiLayout').UiLayoutState
+  ) => Promise<import('../shared/uiLayout').UiLayoutState>
   saveSettings: (settings: AgentSettings) => Promise<AgentSettings>
   addMcpServer: (settings: AgentSettings, serverUrl: string) => Promise<AgentSettings>
   removeMcpServer: (settings: AgentSettings, serverUrl: string) => Promise<AgentSettings>

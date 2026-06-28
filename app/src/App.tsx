@@ -56,13 +56,13 @@ import { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 import { tronStorage } from './lib/tron'
 import { PanelResizer } from './components/PanelResizer'
-import { loadFileTreeVisible, saveFileTreeVisible } from './lib/fileTreeVisibility'
 import {
   adjustSidePanelWidth,
-  loadSidePanelWidths,
   mapOuterPanelResizeDelta,
-  saveSidePanelWidths
+  type SidePanelWidths
 } from './lib/sidePanelWidths'
+import { defaultUiLayoutState, mergeUiLayoutState, type UiLayoutPanels } from '../shared/uiLayout'
+import { loadUiLayoutWithMigration, scheduleSaveUiLayout } from './lib/uiLayoutPersistence'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -124,66 +124,112 @@ function AppContent() {
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
-  const [terminalOpen, setTerminalOpen] = useState(false)
-  const [prPanelOpen, setPrPanelOpen] = useState(false)
-  const [tracePanelOpen, setTracePanelOpen] = useState(false)
-  const [metricsPanelOpen, setMetricsPanelOpen] = useState(false)
-  const [sidePanelWidths, setSidePanelWidths] = useState(loadSidePanelWidths)
-  const [fileTreeOpen, setFileTreeOpen] = useState(loadFileTreeVisible)
+  const initialLayout = defaultUiLayoutState()
+  const layoutRef = useRef(initialLayout)
+  const [terminalOpen, setTerminalOpen] = useState(initialLayout.panels.terminalOpen)
+  const [prPanelOpen, setPrPanelOpen] = useState(initialLayout.panels.prPanelOpen)
+  const [tracePanelOpen, setTracePanelOpen] = useState(initialLayout.panels.tracePanelOpen)
+  const [metricsPanelOpen, setMetricsPanelOpen] = useState(initialLayout.panels.metricsPanelOpen)
+  const [sidePanelWidths, setSidePanelWidths] = useState(initialLayout.sidePanelWidths)
+  const [fileTreeOpen, setFileTreeOpen] = useState(initialLayout.panels.fileTreeOpen)
+
+  const persistLayout = useCallback(
+    (patch: { panels?: Partial<UiLayoutPanels>; sidePanelWidths?: Partial<SidePanelWidths> }) => {
+      layoutRef.current = mergeUiLayoutState(layoutRef.current, patch)
+      scheduleSaveUiLayout(layoutRef.current)
+    },
+    []
+  )
+
+  useEffect(() => {
+    void loadUiLayoutWithMigration().then((layout) => {
+      layoutRef.current = layout
+      setSidePanelWidths(layout.sidePanelWidths)
+      setFileTreeOpen(layout.panels.fileTreeOpen)
+      setTerminalOpen(layout.panels.terminalOpen)
+      setPrPanelOpen(layout.panels.prPanelOpen)
+      setTracePanelOpen(layout.panels.tracePanelOpen)
+      setMetricsPanelOpen(layout.panels.metricsPanelOpen)
+    })
+  }, [])
 
   useEffect(() => initTraceBuffer(), [])
 
-  const toggleFileTree = useCallback((open?: boolean) => {
-    setFileTreeOpen((prev) => {
-      const next = open ?? !prev
-      saveFileTreeVisible(next)
-      return next
-    })
-  }, [])
+  const toggleFileTree = useCallback(
+    (open?: boolean) => {
+      setFileTreeOpen((prev) => {
+        const next = open ?? !prev
+        persistLayout({ panels: { fileTreeOpen: next } })
+        return next
+      })
+    },
+    [persistLayout]
+  )
 
-  const resizeHistoryWidth = useCallback((deltaX: number) => {
-    setSidePanelWidths((prev) => {
-      const next = {
-        ...prev,
-        history: adjustSidePanelWidth(prev.history, deltaX)
-      }
-      saveSidePanelWidths(next)
+  const togglePanel = useCallback(
+    (key: keyof UiLayoutPanels, current: boolean) => {
+      const next = !current
+      persistLayout({ panels: { [key]: next } })
       return next
-    })
-  }, [])
+    },
+    [persistLayout]
+  )
 
-  const resizeMetricsWidth = useCallback((deltaX: number) => {
-    setSidePanelWidths((prev) => {
-      const next = {
-        ...prev,
-        metrics: adjustSidePanelWidth(prev.metrics, mapOuterPanelResizeDelta(deltaX))
-      }
-      saveSidePanelWidths(next)
-      return next
-    })
-  }, [])
+  const resizeHistoryWidth = useCallback(
+    (deltaX: number) => {
+      setSidePanelWidths((prev) => {
+        const next = {
+          ...prev,
+          history: adjustSidePanelWidth(prev.history, deltaX)
+        }
+        persistLayout({ sidePanelWidths: next })
+        return next
+      })
+    },
+    [persistLayout]
+  )
 
-  const resizeTraceWidth = useCallback((deltaX: number) => {
-    setSidePanelWidths((prev) => {
-      const next = {
-        ...prev,
-        trace: adjustSidePanelWidth(prev.trace, mapOuterPanelResizeDelta(deltaX))
-      }
-      saveSidePanelWidths(next)
-      return next
-    })
-  }, [])
+  const resizeMetricsWidth = useCallback(
+    (deltaX: number) => {
+      setSidePanelWidths((prev) => {
+        const next = {
+          ...prev,
+          metrics: adjustSidePanelWidth(prev.metrics, mapOuterPanelResizeDelta(deltaX))
+        }
+        persistLayout({ sidePanelWidths: next })
+        return next
+      })
+    },
+    [persistLayout]
+  )
 
-  const resizeBetweenMetricsAndTrace = useCallback((deltaX: number) => {
-    setSidePanelWidths((prev) => {
-      const metrics = adjustSidePanelWidth(prev.metrics, deltaX)
-      const trace = adjustSidePanelWidth(prev.trace, -deltaX)
-      if (metrics === prev.metrics && trace === prev.trace) return prev
-      const next = { ...prev, metrics, trace }
-      saveSidePanelWidths(next)
-      return next
-    })
-  }, [])
+  const resizeTraceWidth = useCallback(
+    (deltaX: number) => {
+      setSidePanelWidths((prev) => {
+        const next = {
+          ...prev,
+          trace: adjustSidePanelWidth(prev.trace, mapOuterPanelResizeDelta(deltaX))
+        }
+        persistLayout({ sidePanelWidths: next })
+        return next
+      })
+    },
+    [persistLayout]
+  )
+
+  const resizeBetweenMetricsAndTrace = useCallback(
+    (deltaX: number) => {
+      setSidePanelWidths((prev) => {
+        const metrics = adjustSidePanelWidth(prev.metrics, deltaX)
+        const trace = adjustSidePanelWidth(prev.trace, -deltaX)
+        if (metrics === prev.metrics && trace === prev.trace) return prev
+        const next = { ...prev, metrics, trace }
+        persistLayout({ sidePanelWidths: next })
+        return next
+      })
+    },
+    [persistLayout]
+  )
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [installingUpdate, setInstallingUpdate] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
@@ -845,7 +891,7 @@ function AppContent() {
             </button>
             <button
               className={`btn ${terminalOpen ? 'active' : ''}`}
-              onClick={() => setTerminalOpen((open) => !open)}
+              onClick={() => setTerminalOpen((open) => togglePanel('terminalOpen', open))}
               disabled={!activeProjectPath}
               title={activeProjectPath ? undefined : 'Сначала выберите проект в чате'}
             >
@@ -853,7 +899,7 @@ function AppContent() {
             </button>
             <button
               className={`btn ${prPanelOpen ? 'active' : ''}`}
-              onClick={() => setPrPanelOpen((open) => !open)}
+              onClick={() => setPrPanelOpen((open) => togglePanel('prPanelOpen', open))}
               title="Статус Pull Requests"
             >
               PR
@@ -878,14 +924,14 @@ function AppContent() {
             </button>
             <button
               className={`btn ${tracePanelOpen ? 'active' : ''}`}
-              onClick={() => setTracePanelOpen((v) => !v)}
+              onClick={() => setTracePanelOpen((open) => togglePanel('tracePanelOpen', open))}
               title="Трассировка агента — сырой лог всех запросов к модели"
             >
               Трасса
             </button>
             <button
               className={`btn ${metricsPanelOpen ? 'active' : ''}`}
-              onClick={() => setMetricsPanelOpen((v) => !v)}
+              onClick={() => setMetricsPanelOpen((open) => togglePanel('metricsPanelOpen', open))}
               title="Метрики агента — токены, стоимость, статистика прогонов"
             >
               Метрики
@@ -1027,7 +1073,10 @@ function AppContent() {
                   <button
                     type="button"
                     className="btn terminal-dock-close"
-                    onClick={() => setTerminalOpen(false)}
+                    onClick={() => {
+                      setTerminalOpen(false)
+                      persistLayout({ panels: { terminalOpen: false } })
+                    }}
                   >
                     Скрыть
                   </button>
@@ -1049,7 +1098,10 @@ function AppContent() {
                   <button
                     type="button"
                     className="btn terminal-dock-close"
-                    onClick={() => setPrPanelOpen(false)}
+                    onClick={() => {
+                      setPrPanelOpen(false)
+                      persistLayout({ panels: { prPanelOpen: false } })
+                    }}
                   >
                     Скрыть
                   </button>

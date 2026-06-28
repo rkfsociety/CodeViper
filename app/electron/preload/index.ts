@@ -216,6 +216,12 @@ const codeviper = {
   loadSettings: () =>
     withTimeout(ipcRenderer.invoke(IPC.LOAD_SETTINGS), IPC_TIMEOUT_MS, 'loadSettings'),
 
+  loadUiLayout: () =>
+    withTimeout(ipcRenderer.invoke(IPC.LOAD_UI_LAYOUT), IPC_TIMEOUT_MS, 'loadUiLayout'),
+
+  saveUiLayout: (layout: import('../../shared/uiLayout').UiLayoutState) =>
+    withTimeout(ipcRenderer.invoke(IPC.SAVE_UI_LAYOUT, layout), IPC_TIMEOUT_MS, 'saveUiLayout'),
+
   saveSettings: (settings: AgentSettings) =>
     withTimeout(ipcRenderer.invoke(IPC.SAVE_SETTINGS, settings), IPC_TIMEOUT_MS, 'saveSettings'),
 

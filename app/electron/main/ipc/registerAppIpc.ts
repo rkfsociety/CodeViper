@@ -6,6 +6,7 @@ import { readAppState, writeAppState, clearAppState } from '../appState'
 import { installPendingUpdate } from '../updateChecker'
 import { dismissRuntimeUpdate } from '../runtimeUpdate'
 import { getPluginsDirectory } from '../pluginLoader'
+import { loadUiLayout, saveUiLayout } from '../uiLayout'
 import type { AppState } from '../../../src/types'
 import type { IpcContext } from './ipcContext'
 
@@ -18,6 +19,13 @@ export function registerAppIpc(ctx: IpcContext): void {
     } else {
       writeAppState(state).catch(() => {})
     }
+  })
+
+  ipcMain.handle(IPC.LOAD_UI_LAYOUT, async () => loadUiLayout())
+
+  ipcMain.handle(IPC.SAVE_UI_LAYOUT, async (_e, ...a) => {
+    const [layout] = parseIpcArgs(Contracts[IPC.SAVE_UI_LAYOUT].args, a)
+    return saveUiLayout(layout)
   })
 
   ipcMain.handle(IPC.GET_CRASH_RECOVERY, async () => {
