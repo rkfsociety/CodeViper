@@ -233,6 +233,9 @@ export const EXPLORATION_STALL_NUDGE = `⚠️ Достаточно развед
 Задача требует изменения кода: вызови edit_file / search_replace (для исходников CodeViper — edit_codeviper_file).
 Не перечитывай те же файлы и не расширяй scope (IPC, preload) — правь файлы из задачи.`
 
+export const EXPLORATION_STALL_ABORT_MESSAGE = `🛑 Прогон остановлен: слишком много шагов разведки (read/grep) без правок.
+Вызови edit_codeviper_file по файлам из «Файлы:» или смените модель (бесплатные лимиты OpenRouter быстро исчерпываются на «вечной разведке»).`
+
 export const TOOL_VERIFICATION_NUDGE = `STOP. Не давай пользователю пошаговый план и не советуй Figma/Material-UI — это делаешь ТЫ через инструменты.
 Сейчас вызови tool calling: list_directory / read_file или list_codeviper_directory / read_codeviper_file для изучения, затем create_file / edit_file / write_file (или codeviper_* аналоги) для правок.
 Не пиши JSON вызова инструмента текстом — только официальный tool calling.

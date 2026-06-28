@@ -2,10 +2,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { LoopGuard } from '../electron/main/agentLoopGuard'
 import {
   EXPLORATION_STALL_MIN_STEPS,
+  EXPLORATION_STALL_ABORT_STEPS,
+  EXPLORATION_STALL_REPEAT_INTERVAL,
   MAX_CONSECUTIVE_SAME_TOOL,
   MAX_SAME_TOOL_TOTAL
 } from '../shared/constants'
-import { EXPLORATION_STALL_NUDGE } from '../shared/actionVerification'
+import {
+  EXPLORATION_STALL_NUDGE,
+  EXPLORATION_STALL_ABORT_MESSAGE
+} from '../shared/actionVerification'
 import type { AgentSettings } from '../src/types'
 import type { ModelRuntime } from '../electron/main/modelRuntime'
 
@@ -92,7 +97,11 @@ describe('LoopGuard', () => {
         EXPLORATION_STALL_MIN_STEPS,
         true
       )
-      expect(nudge).toBe(EXPLORATION_STALL_NUDGE)
+      expect(nudge).toEqual({ action: 'nudge', message: EXPLORATION_STALL_NUDGE })
+    })
+
+    it('повторяет nudge каждые EXPLORATION_STALL_REPEAT_INTERVAL шагов', () => {
+      loopGuard.checkExplorationStall(mutationMsg, new Set(), EXPLORATION_STALL_MIN_STEPS, true)
       expect(
         loopGuard.checkExplorationStall(
           mutationMsg,
@@ -101,6 +110,23 @@ describe('LoopGuard', () => {
           true
         )
       ).toBeNull()
+      const again = loopGuard.checkExplorationStall(
+        mutationMsg,
+        new Set(),
+        EXPLORATION_STALL_MIN_STEPS + EXPLORATION_STALL_REPEAT_INTERVAL,
+        true
+      )
+      expect(again).toEqual({ action: 'nudge', message: EXPLORATION_STALL_NUDGE })
+    })
+
+    it('abort после EXPLORATION_STALL_ABORT_STEPS без mutating tools', () => {
+      const result = loopGuard.checkExplorationStall(
+        mutationMsg,
+        new Set(),
+        EXPLORATION_STALL_ABORT_STEPS,
+        true
+      )
+      expect(result).toEqual({ action: 'abort', message: EXPLORATION_STALL_ABORT_MESSAGE })
     })
 
     it('не nudge если уже были mutating tools', () => {

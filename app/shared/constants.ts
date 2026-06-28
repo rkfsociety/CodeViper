@@ -5,6 +5,10 @@ export const MAX_CONSECUTIVE_SAME_TOOL = 5
 export const MAX_SAME_TOOL_TOTAL = 50
 /** Шагов агента без mutating tools на mutation-задаче — nudge «пора править» */
 export const EXPLORATION_STALL_MIN_STEPS = 8
+/** После этого числа шагов без mutating tools — остановить прогон (экономия токенов/лимитов API). */
+export const EXPLORATION_STALL_ABORT_STEPS = 20
+/** Повтор nudge «достаточно разведки» каждые N шагов после порога. */
+export const EXPLORATION_STALL_REPEAT_INTERVAL = 5
 
 // ── Агент: контекст ───────────────────────────────────────────────────────────
 /** Порог заполнения контекста (0–1), при котором запускается суммаризация */

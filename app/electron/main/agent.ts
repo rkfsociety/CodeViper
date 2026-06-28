@@ -877,14 +877,21 @@ export class AgentRunner {
           continue
         }
 
-        const stallNudge = loopGuard.checkExplorationStall(
+        const stallResult = loopGuard.checkExplorationStall(
           userMessage,
           mutatingToolsUsed,
           step,
           usedTools
         )
-        if (stallNudge) {
-          messages.push({ role: 'user', content: stallNudge })
+        if (stallResult) {
+          if (stallResult.action === 'abort') {
+            this.emitter.emit({ type: 'error', content: stallResult.message })
+            runSuccess = false
+            traceRunEnd('error', { error: stallResult.message, steps: step })
+            this.emitter.emit({ type: 'done' })
+            return
+          }
+          messages.push({ role: 'user', content: stallResult.message })
           requireToolNext = true
           continue
         }

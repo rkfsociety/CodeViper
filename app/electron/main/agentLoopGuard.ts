@@ -4,11 +4,14 @@ import {
   taskMutationLikelihood,
   taskLikelyNeedsMutation,
   taskLikelyNeedsTools,
-  EXPLORATION_STALL_NUDGE
+  EXPLORATION_STALL_NUDGE,
+  EXPLORATION_STALL_ABORT_MESSAGE
 } from '../../shared/actionVerification'
 import { escalateModel } from '../../shared/modelRouter'
 import {
   EXPLORATION_STALL_MIN_STEPS,
+  EXPLORATION_STALL_ABORT_STEPS,
+  EXPLORATION_STALL_REPEAT_INTERVAL,
   MAX_CONSECUTIVE_SAME_TOOL,
   MAX_SAME_TOOL_TOTAL
 } from '../../shared/constants'
@@ -19,6 +22,10 @@ import type { ModelRuntime } from './modelRuntime'
 import { fetchOllamaModels } from './agentOllamaApi'
 
 const MAX_VERIFICATION_RETRIES = 1
+
+export type ExplorationStallResult =
+  | { action: 'nudge'; message: string }
+  | { action: 'abort'; message: string }
 
 export type VerificationAction =
   | { action: 'retry'; nudgeMessage: string }
@@ -32,7 +39,7 @@ export class LoopGuard {
   private readonly toolCallCounts = new Map<string, number>()
   private verificationRetries = 0
   private verificationNoticeSent = false
-  private explorationStallNudged = false
+  private lastExplorationStallNudgeStep = 0
   private taskScopeNudged = false
   escalated = false
 
@@ -72,20 +79,31 @@ export class LoopGuard {
 
   /**
    * Nudge когда mutation-задача: много шагов с tools, но ни одного mutating.
-   * Ловит «вечную разведку» (read/grep без edit_file).
+   * Ловит «вечную разведку» (read/grep без edit_file); после abort-порога — остановка прогона.
    */
   checkExplorationStall(
     userMessage: string,
     mutatingToolsUsed: Set<string>,
     currentStep: number,
     usedTools: boolean
-  ): string | null {
-    if (this.explorationStallNudged) return null
+  ): ExplorationStallResult | null {
     if (!usedTools || mutatingToolsUsed.size > 0) return null
     if (!taskLikelyNeedsMutation(userMessage)) return null
     if (currentStep < EXPLORATION_STALL_MIN_STEPS) return null
-    this.explorationStallNudged = true
-    return EXPLORATION_STALL_NUDGE
+
+    if (currentStep >= EXPLORATION_STALL_ABORT_STEPS) {
+      return { action: 'abort', message: EXPLORATION_STALL_ABORT_MESSAGE }
+    }
+
+    if (
+      this.lastExplorationStallNudgeStep === 0 ||
+      currentStep - this.lastExplorationStallNudgeStep >= EXPLORATION_STALL_REPEAT_INTERVAL
+    ) {
+      this.lastExplorationStallNudgeStep = currentStep
+      return { action: 'nudge', message: EXPLORATION_STALL_NUDGE }
+    }
+
+    return null
   }
 
   /** Nudge при чтении файлов вне списка «Файлы:» до первых правок. */

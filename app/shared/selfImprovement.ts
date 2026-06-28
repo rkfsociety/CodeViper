@@ -92,6 +92,7 @@ export function isCodeViperSourceRelativePath(filePath: string): boolean {
   return (
     p.startsWith('app/') ||
     p.startsWith('electron/') ||
+    p.startsWith('src/') ||
     p.startsWith('shared/') ||
     p.startsWith('tests/')
   )
@@ -125,6 +126,8 @@ export const READ_FILE_ENOENT_CREATE_HINT = `Файл не существует.
 
 export const SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT = `Для исходников CodeViper используй read_codeviper_file / create_codeviper_file / edit_codeviper_file, не инструменты проекта. Корень — в блоке «Исходники CodeViper», не папка установки .exe.`
 
+export const SELF_IMPROVE_GREP_WRONG_TOOL_HINT = `grep_files ищет в открытом проекте (не в исходниках app/). Для ROADMAP-путей (electron/, src/, tests/) — grep_codeviper_files; для чтения — read_codeviper_file.`
+
 export const SELF_IMPROVE_UI_REFERENCE_REQUIRED_HINT = `Перед create_codeviper_file для src/components/*.tsx прочитай эталон: read_codeviper_file app/src/components/ConfirmDialog.tsx (или KeyboardShortcutsModal.tsx, App.tsx) — затем создавай в том же стиле (modal-backdrop, useModalA11y, без сторонних UI-kit).`
 
 /** project_* → *_codeviper_* при самоулучшении, если путь в app/ / tests/ / ROADMAP. */
@@ -133,7 +136,9 @@ export const SELF_IMPROVE_PROJECT_TO_CVI_TOOL: Record<string, string> = {
   write_file: 'write_codeviper_file',
   create_file: 'create_codeviper_file',
   edit_file: 'edit_codeviper_file',
-  list_directory: 'list_codeviper_directory'
+  list_directory: 'list_codeviper_directory',
+  grep_files: 'grep_codeviper_files',
+  find_files: 'find_codeviper_files'
 }
 
 export function extractSelfImproveToolPath(toolName: string, args: Record<string, string>): string {
@@ -147,6 +152,10 @@ export function mapSelfImproveProjectTool(
 ): { toolName: string; args: Record<string, string> } {
   const mapped = SELF_IMPROVE_PROJECT_TO_CVI_TOOL[toolName]
   if (!mapped) return { toolName, args }
+  // grep/find в самоулучшении — всегда по исходникам app/, не по дереву открытого проекта
+  if (toolName === 'grep_files' || toolName === 'find_files') {
+    return { toolName: mapped, args }
+  }
   const pathArg = extractSelfImproveToolPath(toolName, args)
   if (!pathArg || !isCodeViperSourceRelativePath(pathArg)) return { toolName, args }
   return { toolName: mapped, args }

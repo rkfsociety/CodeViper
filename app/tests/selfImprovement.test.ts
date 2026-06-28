@@ -78,20 +78,31 @@ describe('selfImprovement', () => {
   it('определяет пути исходников CodeViper', () => {
     expect(isCodeViperSourceRelativePath('tests/agent.test.ts')).toBe(true)
     expect(isCodeViperSourceRelativePath('../ROADMAP.md')).toBe(true)
-    expect(isCodeViperSourceRelativePath('src/App.tsx')).toBe(false)
+    expect(isCodeViperSourceRelativePath('src/App.tsx')).toBe(true)
+    expect(isCodeViperSourceRelativePath('src/components/ModelTab.tsx')).toBe(true)
+    expect(isCodeViperSourceRelativePath('docs/readme.md')).toBe(false)
   })
 
-  it('редиректит project tools на codeviper при пути app/', () => {
+  it('редиректит project tools на codeviper при пути app/ или src/', () => {
     expect(
       mapSelfImproveProjectTool('read_file', {
         path: 'app/src/components/Foo.tsx'
       }).toolName
     ).toBe('read_codeviper_file')
     expect(mapSelfImproveProjectTool('read_file', { path: 'src/App.tsx' }).toolName).toBe(
-      'read_file'
+      'read_codeviper_file'
     )
     expect(mapSelfImproveProjectTool('edit_file', { path: 'app/src/App.tsx' }).toolName).toBe(
       'edit_codeviper_file'
+    )
+    expect(
+      mapSelfImproveProjectTool('grep_files', {
+        query: 'baseUrl',
+        path: 'src/components/SettingsModal/ModelTab.tsx'
+      }).toolName
+    ).toBe('grep_codeviper_files')
+    expect(mapSelfImproveProjectTool('grep_files', { query: 'OpenAIProvider' }).toolName).toBe(
+      'grep_codeviper_files'
     )
   })
 

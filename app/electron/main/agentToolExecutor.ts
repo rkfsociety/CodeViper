@@ -33,7 +33,8 @@ import {
   READ_FILE_ALREADY_IN_RUN_HINT,
   READ_FILE_TRUNCATED_HINT,
   SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT,
-  SELF_IMPROVE_UI_REFERENCE_REQUIRED_HINT
+  SELF_IMPROVE_UI_REFERENCE_REQUIRED_HINT,
+  SELF_IMPROVE_GREP_WRONG_TOOL_HINT
 } from '../../shared/selfImprovement'
 
 // Read-only инструменты — безопасно запускать параллельно (Promise.all).
@@ -208,6 +209,9 @@ export class ToolExecutor {
         ) {
           result += `\n\n${SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT}`
         }
+      }
+      if (name === 'grep_files' && /просмотрено файлов: 0/i.test(result)) {
+        result += `\n\n${SELF_IMPROVE_GREP_WRONG_TOOL_HINT}`
       }
     }
 
@@ -386,7 +390,7 @@ export class ToolExecutor {
       }
     }
 
-    output = this.enrichToolOutput(toolName, toolArgs, output)
+    output = this.enrichToolOutput(name, toolArgs, output)
     const durationMs = Date.now() - toolStartMs
     const toolOk = isToolResultOk(threw, output)
 
