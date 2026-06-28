@@ -6,5 +6,5 @@
 
 ---
 
-- **2026-06-28 · GitHub issues** — в коммите писать `closes #N` или `fix #N`; упоминание `(issue #22)` issue не закрывает. Если фикс уже в master — `gh issue close N`.
+- **2026-06-28 · GitHub issues** — если проблемы issue решены и фикс в master: **закрыть issue** (`closes #N` / `fix #N` в коммите с кодом, иначе `gh issue close N --comment "…"`). Упоминание `(issue #N)` issue не закрывает. После фикса trace-report — проверить, что ошибки устранены, и закрыть в том же прогоне или сразу после merge.
 - **2026-06-27 · grep/list самоулучшение** — `grep_codeviper_files` / `grep_files` падали на `undefined.trim()` без `query`; `list_codeviper_directory` давал `app/app/…` — исправлено `normalizeCodeViperPath` + optional chaining (ab39a66).
