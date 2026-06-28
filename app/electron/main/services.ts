@@ -13,7 +13,11 @@ import {
 import { constants, existsSync, watch as fsWatch } from 'fs'
 import { dirname, join, relative, resolve, sep } from 'path'
 import type { FileNode } from '../../src/types'
-import { applySearchReplace, FileEditError } from '../../shared/fileEdit'
+import {
+  applySearchReplace,
+  FileEditError,
+  assertFileContentNotReadOutput
+} from '../../shared/fileEdit'
 import { readLargeFileQueued } from './largeFileQueue'
 import { invalidateGrepCache } from './fileSearchInWorker'
 import { loadIgnorePatterns, shouldIgnorePath, clearIgnorePatternsCache } from './ignorePatterns'
@@ -340,6 +344,8 @@ export async function safeWriteFile(
     throw new Error('Доступ запрещён: путь вне проекта')
   }
 
+  assertFileContentNotReadOutput(content)
+
   await mkdir(dir, { recursive: true })
   await writeFile(absPath, content, 'utf-8')
   invalidateReadCache(absPath)
@@ -372,6 +378,8 @@ export async function safeCreateFile(
     if (code !== 'ENOENT') throw err
   }
   if (fileExists) throw new Error('Файл уже существует — используйте edit_file или write_file')
+
+  assertFileContentNotReadOutput(content)
 
   await mkdir(dir, { recursive: true })
   await writeFile(absPath, content, 'utf-8')

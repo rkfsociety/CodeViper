@@ -3,6 +3,7 @@ import { existsSync } from 'fs'
 import { join, resolve } from 'path'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { getBundledSourceRoot } from './bundledSourceSync'
+import { extractRoadmapTitleFromTask } from '../../shared/selfImprovement'
 
 export interface RoadmapItem {
   num: number
@@ -81,6 +82,56 @@ export function resolveRoadmapPath(): string | null {
     if (existsSync(path)) return path
   }
   return null
+}
+
+export function resolveRoadmapDonePath(): string | null {
+  const candidates = [join(getCodeViperSourceRoot(), '..', 'ROADMAP_DONE.md')]
+  try {
+    candidates.push(join(getBundledSourceRoot(), 'ROADMAP_DONE.md'))
+  } catch {
+    /* vitest */
+  }
+
+  const seen = new Set<string>()
+  for (const candidate of candidates) {
+    const path = resolve(candidate)
+    if (seen.has(path)) continue
+    seen.add(path)
+    if (existsSync(path)) return path
+  }
+  return null
+}
+
+/** Ищет строку в ROADMAP_DONE.md по заголовку/ключевым словам задачи. */
+export async function findRoadmapDoneMatch(searchText: string): Promise<string | null> {
+  const donePath = resolveRoadmapDonePath()
+  if (!donePath) return null
+
+  const content = await readFile(donePath, 'utf-8')
+  const title = extractRoadmapTitleFromTask(searchText)
+  const probe = (title ?? searchText.trim().split('\n')[0] ?? '').toLowerCase()
+  const keywords = probe
+    .split(/[\s—·\-–,;:]+/u)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 4)
+
+  if (keywords.length === 0) return null
+
+  let bestLine: string | null = null
+  let bestScore = 0
+
+  for (const line of normalizeRoadmapLines(content)) {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('-')) continue
+    const lower = trimmed.toLowerCase()
+    const score = keywords.filter((k) => lower.includes(k)).length
+    if (score > bestScore && score >= Math.min(2, keywords.length)) {
+      bestScore = score
+      bestLine = trimmed
+    }
+  }
+
+  return bestLine
 }
 
 export async function listRoadmapItems(): Promise<RoadmapItem[]> {

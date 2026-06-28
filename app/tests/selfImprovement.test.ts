@@ -14,6 +14,10 @@ import {
   parsePlanFromAssistantText,
   parseChecklistAsPlan,
   parseBulletListAsPlan,
+  parseLoosePlanLines,
+  stripPlanItemsWrappers,
+  extractRoadmapTitleFromTask,
+  buildRoadmapAlreadyDoneHint,
   syncPlanFromChecklist,
   isPlanComplete,
   formatPlanSummary,
@@ -173,5 +177,32 @@ tool_response {"name": "read_codeviper_file", "arguments": {"path": "agent.ts"}}
     expect(isReadOutputTruncated('показаны первые 50 и последние 50')).toBe(true)
     expect(isReadOutputTruncated('[Ещё 80 строк. Читай дальше: offset=220]')).toBe(true)
     expect(isReadOutputTruncated('полный файл без обрезки')).toBe(false)
+  })
+
+  it('stripPlanItemsWrappers снимает markdown и {items:[]}', () => {
+    const raw = '```json\n[{"id":"1","title":"A"}]\n```'
+    expect(stripPlanItemsWrappers(raw)).toBe('[{"id":"1","title":"A"}]')
+    expect(stripPlanItemsWrappers('{"items":[{"id":"1","title":"B"}]}')).toBe(
+      '[{"id":"1","title":"B"}]'
+    )
+  })
+
+  it('parseLoosePlanLines — нумерованный список', () => {
+    const plan = parseLoosePlanLines('1. Read App.tsx\n2. npm run typecheck\n3. ROADMAP')
+    expect(plan).toHaveLength(3)
+    expect(plan?.[0].title).toBe('Read App.tsx')
+  })
+
+  it('extractRoadmapTitleFromTask из тела пункта', () => {
+    const body = `1 · M · Расширение горячих клавиш — уровень 2
+
+Цель: Escape — стоп`
+    expect(extractRoadmapTitleFromTask(body)).toBe('Расширение горячих клавиш')
+  })
+
+  it('buildRoadmapAlreadyDoneHint предупреждает о повторе', () => {
+    const hint = buildRoadmapAlreadyDoneHint('- Горячие клавиши: Esc')
+    expect(hint).toContain('уже выполнен')
+    expect(hint).toContain('Горячие клавиши')
   })
 })

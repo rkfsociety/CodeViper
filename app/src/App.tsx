@@ -681,11 +681,8 @@ function AppContent() {
           setSettingsOpen(false)
           return
         }
-        const chatId = activeChatIdRef.current
-        if (chatId && busyChats.has(chatId)) {
-          e.preventDefault()
-          void window.codeviper.stopAgent(chatId)
-        }
+        e.preventDefault()
+        void window.codeviper.stopAgent(activeChatIdRef.current ?? '')
       }
     }
     window.addEventListener('keydown', handleKeyDown)

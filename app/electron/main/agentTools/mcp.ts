@@ -97,13 +97,16 @@ export const CODEVIPER_TOOLS = [
     function: {
       name: 'edit_codeviper_file',
       description:
-        'Точечная замена в файле CodeViper. old_string — точная копия из read/grep (не выдумывай). Большие файлы: grep + read с offset/limit.',
+        'Точечная замена в файле CodeViper. old_string — только код из read/grep (без строк [Файл:…], [Конец файла]). Большие файлы: grep + read с offset/limit.',
       parameters: {
         type: 'object',
         properties: {
           path: { type: 'string', description: 'путь в исходниках CodeViper' },
-          old_string: { type: 'string', description: 'Точный фрагмент из файла' },
-          new_string: { type: 'string', description: 'Новый фрагмент' },
+          old_string: {
+            type: 'string',
+            description: 'Точный фрагмент кода из файла (не служебные строки read_*)'
+          },
+          new_string: { type: 'string', description: 'Новый фрагмент кода' },
           replace_all: { type: 'string', description: 'true — заменить все вхождения' }
         },
         required: ['path', 'old_string', 'new_string']
@@ -290,14 +293,15 @@ export const OLLAMA_TOOLS = [
     type: 'function',
     function: {
       name: 'set_self_improvement_plan',
-      description: 'Задать план самоулучшения (3–8 пунктов) после изучения кода',
+      description:
+        'Задать план самоулучшения (3–8 пунктов) после изучения кода. items — JSON [{id,title}] или маркированный список «- шаг».',
       parameters: {
         type: 'object',
         properties: {
           items: {
             type: 'string',
             description:
-              'JSON-массив [{id, title}, ...] — title обязателен; допустимы action/check (как в ROADMAP). Пример: [{"id":"1","title":"Добавить skill X"}]'
+              'JSON: [{"id":"1","title":"…"}] или список строк «- шаг 1\\n- шаг 2». title обязателен (алиасы: action, item).'
           }
         },
         required: ['items']

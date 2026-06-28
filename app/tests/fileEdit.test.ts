@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { applySearchReplace, parseToolBool, FileEditError } from '../shared/fileEdit'
+import {
+  applySearchReplace,
+  parseToolBool,
+  FileEditError,
+  stripReadOutputDecorations,
+  buildEditContextHint,
+  assertFileContentNotReadOutput
+} from '../shared/fileEdit'
 
 describe('applySearchReplace', () => {
   it('заменяет одно вхождение', () => {
@@ -30,6 +37,33 @@ describe('applySearchReplace', () => {
 
   it('ошибка old_string содержит подсказку про offset/grep', () => {
     expect(() => applySearchReplace('abc', 'xyz', 'q')).toThrow(/offset\/limit/)
+  })
+
+  it('stripReadOutputDecorations убирает заголовок read_*', () => {
+    const raw = '[Файл: /app/src/Foo.tsx | строки 1–10 из 100]\nconst x = 1\n[Конец файла]'
+    expect(stripReadOutputDecorations(raw)).toBe('const x = 1')
+  })
+
+  it('applySearchReplace игнорирует служебные строки read_* в old_string', () => {
+    const file = 'const x = 1\nconst y = 2'
+    const readCopy = `[Файл: x | 1–2]\nconst x = 1\n[Конец файла]`
+    const result = applySearchReplace(file, readCopy, 'const x = 42')
+    expect(result.content).toBe('const x = 42\nconst y = 2')
+  })
+
+  it('отклоняет new_string со служебным заголовком read_*', () => {
+    expect(() => applySearchReplace('abc', 'abc', '[Файл: x]\nabc')).toThrow(/служебные строки/)
+  })
+
+  it('buildEditContextHint показывает фрагмент файла', () => {
+    const content = 'alpha\nconst toggle = () => {}\nbeta'
+    const hint = buildEditContextHint(content, 'const toggle = () => {}')
+    expect(hint).toContain('строки 2')
+    expect(hint).toContain('const toggle')
+  })
+
+  it('assertFileContentNotReadOutput блокирует заголовок read_*', () => {
+    expect(() => assertFileContentNotReadOutput('[Файл: x]\nimport x')).toThrow(/заголовка/)
   })
 
   it('ошибка при пустом old_string', () => {

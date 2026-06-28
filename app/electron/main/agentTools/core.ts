@@ -363,14 +363,15 @@ export const FILE_TOOLS = [
     type: 'function',
     function: {
       name: 'edit_file',
-      description: 'Точечная замена old_string → new_string. Перед правкой — read_file.',
+      description:
+        'Точечная замена old_string → new_string. Копируй только код из read_file (без [Файл:…] / [Конец файла]). Большие файлы: grep + read с offset/limit.',
       parameters: {
         type: 'object',
         properties: {
           path: { type: 'string', description: 'путь к файлу' },
           old_string: {
             type: 'string',
-            description: 'Точный фрагмент из файла (с пробелами и переносами)'
+            description: 'Точный фрагмент кода из файла (не служебные строки read_*)'
           },
           new_string: { type: 'string', description: 'Новый фрагмент вместо old_string' },
           replace_all: {

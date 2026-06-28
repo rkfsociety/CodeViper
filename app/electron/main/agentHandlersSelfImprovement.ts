@@ -1,6 +1,8 @@
 import type { ToolHandlers } from './agentTools'
 import {
   parsePlanItemsJson,
+  parsePlanFromAssistantText,
+  normalizePlanItemsInput,
   formatPlanSummary,
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
@@ -9,8 +11,20 @@ import {
   formatRoadmapItemsList,
   formatRoadmapItemDetail,
   listRoadmapItems,
-  readRoadmapItem
+  readRoadmapItem,
+  findRoadmapDoneMatch
 } from './roadmapParser'
+
+function parseSelfImprovementPlanItems(raw: unknown): SelfImprovementItem[] {
+  try {
+    return parsePlanItemsJson(raw)
+  } catch (firstError) {
+    const text = normalizePlanItemsInput(raw)
+    const fromAssistant = parsePlanFromAssistantText(text)
+    if (fromAssistant) return fromAssistant
+    throw firstError
+  }
+}
 
 export function createSelfImprovementToolHandlers(
   plan: SelfImprovementPlanStore,
@@ -29,13 +43,21 @@ export function createSelfImprovementToolHandlers(
       }
       const item = await readRoadmapItem(num)
       if (!item) {
+        const doneLine = await findRoadmapDoneMatch(`пункт ${num}`)
+        if (doneLine) {
+          return (
+            `Пункт ${num} не найден в ROADMAP.md (раздел «В планах»).\n\n` +
+            `Возможно уже выполнен — запись в ROADMAP_DONE.md:\n${doneLine}\n\n` +
+            `Не реализуй повторно. Сообщи пользователю и заверши прогон.`
+          )
+        }
         return `Пункт ${num} не найден в ROADMAP.md (раздел «В планах»).`
       }
       return formatRoadmapItemDetail(item)
     },
 
     set_self_improvement_plan: async (args: any) => {
-      const items = plan.set(parsePlanItemsJson(args?.items))
+      const items = plan.set(parseSelfImprovementPlanItems(args?.items))
       emitPlan(items)
       return `${formatPlanSummary(items)}\n\nНачни выполнение пункта 1 через инструменты.`
     },

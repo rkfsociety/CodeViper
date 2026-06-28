@@ -24,8 +24,10 @@ import {
   resolveSelfImproveBranch,
   parseRoadmapTaskItemNumber,
   isRoadmapSelfImprovementTask,
-  buildRoadmapSelfImproveHint
+  buildRoadmapSelfImproveHint,
+  buildRoadmapAlreadyDoneHint
 } from '../../shared/selfImprovement'
+import { findRoadmapDoneMatch, readRoadmapItem } from './roadmapParser'
 import { getActiveAgentSourceRootPath } from './runtimeBootstrap'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyWebhook } from './webhookNotify'
@@ -340,6 +342,16 @@ export class AgentRunner {
       hintParts.push(`## Разведка проекта (субагент-explorer)\n${explorerSummary}`)
     if (taskMode === 'self-improve' && isRoadmapSelfImprovementTask(userMessage)) {
       hintParts.push(buildRoadmapSelfImproveHint(roadmapItemNum, getActiveAgentSourceRootPath()))
+      const doneLine = await findRoadmapDoneMatch(userMessage)
+      if (doneLine) {
+        hintParts.push(buildRoadmapAlreadyDoneHint(doneLine))
+      } else if (roadmapItemNum != null) {
+        const planned = await readRoadmapItem(roadmapItemNum)
+        if (!planned) {
+          const byNum = await findRoadmapDoneMatch(`пункт ${roadmapItemNum}`)
+          if (byNum) hintParts.push(buildRoadmapAlreadyDoneHint(byNum))
+        }
+      }
     }
     const customSystemPrompt = hintParts.length
       ? `${baseSystemPrompt}\n\n${hintParts.join('\n\n')}`.trim()
