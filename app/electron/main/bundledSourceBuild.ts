@@ -206,23 +206,19 @@ export function shouldBuildBundledSourceAfterSync(
   return isBundledRuntimeMainStale(appRoot)
 }
 
-/** Hot-reload runtime + shell из клона без relaunch .exe. */
-async function tryApplyRuntimeWithoutRelaunch(): Promise<boolean> {
+/** Частичный hot-reload handlers после сборки; UI/preload требуют relaunch .exe. */
+async function tryApplyRuntimeWithoutRelaunch(): Promise<void> {
   try {
     const { loadSettings } = await import('./settings')
     const settings = await loadSettings()
-    const {
-      initBundledRuntimeFromSettings,
-      isBundledRuntimeFromClone,
-      initBundledShellPaths,
-      isBundledShellFromClone
-    } = await import('./runtimeBootstrap')
-    const runtimeOk = await initBundledRuntimeFromSettings(settings)
-    if (!runtimeOk || !isBundledRuntimeFromClone()) return false
+    const { initBundledRuntimeFromSettings, initBundledShellPaths } =
+      await import('./runtimeBootstrap')
+    await initBundledRuntimeFromSettings(settings)
     initBundledShellPaths(settings.liveRuntimeFromGit !== false)
-    return isBundledShellFromClone()
+    const { reloadAllWindowsRendererFromClone } = await import('./liveShellBootstrap')
+    await reloadAllWindowsRendererFromClone()
   } catch {
-    return false
+    /* fallback: пользователь перезапустит по баннеру */
   }
 }
 
@@ -281,42 +277,18 @@ export async function maybeBuildBundledSourceAfterSync(
     return null
   }
 
-  const previousBuildHead = getRuntimeBuildHead(appRoot)
-
   return buildBundledSourceRuntime(appRoot).then(async (result) => {
     if (result.built) {
       if (syncResult.localHead) {
         await writeRuntimeBuildHead(syncResult.localHead, appRoot)
       }
 
-      const appliedLive = await tryApplyRuntimeWithoutRelaunch()
-      if (appliedLive && syncResult.localHead) {
-        const { recordRuntimeAppliedHead } = await import('./runtimeUpdateState')
-        await recordRuntimeAppliedHead(syncResult.localHead)
-      }
+      await tryApplyRuntimeWithoutRelaunch()
 
-      const needsRestartBanner =
-        !appliedLive &&
-        (syncResult.updated ||
-          syncResult.cloneCreated ||
-          syncResult.appDirChanged ||
-          previousBuildHead !== syncResult.localHead)
-
-      if (needsRestartBanner) {
-        void import('./runtimeUpdate').then(({ markRuntimeUpdateReady }) =>
-          markRuntimeUpdateReady(syncResult.localHead)
-        )
-      }
-      if (!appliedLive) {
-        // Подхватить IPC из свежего runtimeHandlers.js без обязательного relaunch
-        try {
-          const { loadSettings } = await import('./settings')
-          const { initBundledRuntimeFromSettings } = await import('./runtimeBootstrap')
-          await initBundledRuntimeFromSettings(await loadSettings())
-        } catch {
-          /* fallback: пользователь перезапустит по баннеру */
-        }
-      }
+      // После сборки всегда предлагаем relaunch: preload и main bootstrap не обновляются без .exe
+      void import('./runtimeUpdate').then(({ markRuntimeUpdateReady }) =>
+        markRuntimeUpdateReady(syncResult.localHead)
+      )
 
       void import('./appWindowTitle').then(({ refreshAppWindowTitle }) => refreshAppWindowTitle())
     }

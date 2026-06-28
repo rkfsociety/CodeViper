@@ -17,11 +17,27 @@ import {
   getBundledRuntimeMainPath,
   getRuntimeBuildHead,
   isBundledRuntimeMainStale,
+  maybeBuildBundledSourceAfterSync,
   needsBundledSourceNpmInstall,
   setBundledSourceCommandRunnerForTests,
   shouldBuildBundledSourceAfterSync,
   writeRuntimeBuildHead
 } from '../electron/main/bundledSourceBuild'
+
+const markRuntimeUpdateReadyMock = vi.fn()
+
+vi.mock('../electron/main/runtimeUpdate', () => ({
+  markRuntimeUpdateReady: (...args: unknown[]) => markRuntimeUpdateReadyMock(...args)
+}))
+
+vi.mock('../electron/main/runtimeBootstrap', () => ({
+  initBundledRuntimeFromSettings: vi.fn(async () => true),
+  initBundledShellPaths: vi.fn()
+}))
+
+vi.mock('../electron/main/liveShellBootstrap', () => ({
+  reloadAllWindowsRendererFromClone: vi.fn(async () => false)
+}))
 
 function setupMinimalApp(appRoot: string): void {
   mkdirSync(join(appRoot, 'electron', 'main'), { recursive: true })
@@ -34,6 +50,7 @@ describe('bundledSourceBuild', () => {
 
   beforeEach(() => {
     setBundledSourceCommandRunnerForTests(null)
+    markRuntimeUpdateReadyMock.mockClear()
     rmSync(join(userDataDir, 'source'), { recursive: true, force: true })
     rmSync(join(userDataDir, 'logs'), { recursive: true, force: true })
   })
@@ -151,5 +168,25 @@ describe('bundledSourceBuild', () => {
     await buildBundledSourceRuntime(appRoot)
     expect(commands).not.toContain('npm install')
     expect(commands).toContain('npm run build')
+  })
+
+  it('maybeBuildBundledSourceAfterSync предлагает перезапуск после успешной сборки', async () => {
+    setupMinimalApp(appRoot)
+    setBundledSourceCommandRunnerForTests(async (root, command) => {
+      if (command === 'npm run build') {
+        mkdirSync(join(root, 'out', 'main'), { recursive: true })
+        writeFileSync(join(root, 'out', 'main', 'index.js'), 'built\n', 'utf8')
+        return { stdout: '', stderr: '', exitCode: 0 }
+      }
+      return { stdout: '', stderr: '', exitCode: 0 }
+    })
+
+    await maybeBuildBundledSourceAfterSync({
+      updated: true,
+      appDirChanged: true,
+      localHead: 'deadbeefcafe'
+    })
+
+    await vi.waitFor(() => expect(markRuntimeUpdateReadyMock).toHaveBeenCalledWith('deadbeefcafe'))
   })
 })

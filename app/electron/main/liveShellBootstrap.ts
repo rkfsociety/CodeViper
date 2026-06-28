@@ -61,17 +61,28 @@ function rendererUrlPointsToClone(url: string, rendererIndex: string): boolean {
   return normalizedUrl.includes('out/renderer/index.html') && normalizedUrl.includes(normalizedPath)
 }
 
-async function reloadWindowRendererFromClone(win: BrowserWindow): Promise<void> {
-  if (win.isDestroyed()) return
+async function reloadWindowRendererFromClone(win: BrowserWindow): Promise<boolean> {
+  if (win.isDestroyed()) return false
 
   const paths = resolveLiveShellPathsFromClone()
-  if (!paths) return
+  if (!paths) return false
 
   const currentUrl = win.webContents.getURL()
-  if (currentUrl && rendererUrlPointsToClone(currentUrl, paths.rendererIndex)) return
+  if (currentUrl && rendererUrlPointsToClone(currentUrl, paths.rendererIndex)) return false
 
   await win.loadFile(paths.rendererIndex)
   await logLiveShell('reloaded renderer from clone', { rendererIndex: paths.rendererIndex })
+  return true
+}
+
+/** Перезагрузить renderer существующих окон из клона (preload без relaunch .exe не меняется). */
+export async function reloadAllWindowsRendererFromClone(): Promise<boolean> {
+  const { BrowserWindow } = await import('electron')
+  let reloaded = false
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (await reloadWindowRendererFromClone(win)) reloaded = true
+  }
+  return reloaded
 }
 
 /**
