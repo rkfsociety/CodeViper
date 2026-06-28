@@ -67,6 +67,14 @@ describe('roadmapParser', () => {
     expect(hints).toContain('ModelTab/providers/')
   })
 
+  it('resolveRoadmapFileHints — ProjectTreePanel.tsx и index_project (trace 1782686538797)', () => {
+    const root = getCodeViperSourceRoot()
+    const hints = resolveRoadmapFileHints('`ProjectTreePanel.tsx`, IPC вызов `index_project`', root)
+    expect(hints).toContain('src/components/ProjectTreePanel.tsx')
+    expect(hints).toContain('autoIndexProject')
+    expect(hints).toContain('agentHandlersProject.ts')
+  })
+
   it('readRoadmapItem возвращает null для несуществующего номера', async () => {
     expect(await readRoadmapItem(999_999)).toBeNull()
   })

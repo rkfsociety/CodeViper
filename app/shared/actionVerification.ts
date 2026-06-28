@@ -157,10 +157,26 @@ const FAKE_TOOL_OUTPUT_PATTERNS: RegExp[] = [
   /Для начала выполним несколько шагов для разведки[\s\S]*Вывод:/i
 ]
 
+/** qwen2.5-coder: «Инструмент read_codeviper_file:\nПуть: …» вместо native tool call (trace 1782686538797). */
+const SIMULATED_TOOL_TRANSCRIPT_PATTERNS: RegExp[] = [
+  /Инструмент\s+(?:read|edit|write|create|list|grep|find|run|complete|set)_(?:codeviper_)?\w+:\s*[\s\S]*?(?:Путь|Файл|ID|Содержимое|Строка для замены):/i,
+  /Инструмент\s+complete_self_improvement_item:\s*\n?\s*ID:/i,
+  /Инструмент\s+set_self_improvement_plan:/i
+]
+
+export function looksLikeSimulatedToolTranscript(assistantText: string): boolean {
+  const text = assistantText.trim()
+  if (!text) return false
+  return SIMULATED_TOOL_TRANSCRIPT_PATTERNS.some((pattern) => pattern.test(text))
+}
+
 export function looksLikeFakeToolOutput(assistantText: string): boolean {
   const text = assistantText.trim()
   if (!text) return false
-  return FAKE_TOOL_OUTPUT_PATTERNS.some((pattern) => pattern.test(text))
+  return (
+    looksLikeSimulatedToolTranscript(text) ||
+    FAKE_TOOL_OUTPUT_PATTERNS.some((pattern) => pattern.test(text))
+  )
 }
 
 /** Модель описала вызов инструмента текстом/bash вместо native tool call (qwen2.5-coder). */
@@ -272,9 +288,9 @@ export const EXPLORATION_STALL_NUDGE = `⚠️ Достаточно развед
 export const EXPLORATION_STALL_ABORT_MESSAGE = `🛑 Прогон остановлен: слишком много шагов разведки (read/grep) без правок.
 Вызови edit_codeviper_file по файлам из «Файлы:» или смените модель (бесплатные лимиты OpenRouter быстро исчерпываются на «вечной разведке»).`
 
-export const FAKE_TOOL_OUTPUT_NUDGE = `STOP. Ты описал результат инструмента текстом («Вывод: … завершено») — это не выполнение.
+export const FAKE_TOOL_OUTPUT_NUDGE = `STOP. Ты описал инструмент текстом («Инструмент read_codeviper_file:» / «Вывод: … завершено») — это не выполнение.
 Вызови реальный tool call: read_codeviper_file / edit_codeviper_file / run_codeviper_command.
-Не пиши JSON и не симулируй вывод — только официальный tool calling.`
+Не пиши JSON, не симулируй «Путь:» / «Содержимое файла:» — только официальный tool calling.`
 
 export const TOOL_VERIFICATION_NUDGE = `STOP. Не давай пользователю пошаговый план и не советуй Figma/Material-UI — это делаешь ТЫ через инструменты.
 Сейчас вызови tool calling: list_directory / read_file или list_codeviper_directory / read_codeviper_file для изучения, затем create_file / edit_file / write_file (или codeviper_* аналоги) для правок.

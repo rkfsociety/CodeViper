@@ -92,6 +92,28 @@ describe('SelfImprovementOrchestrator', () => {
     expect(store.get()?.[0].blocked).toBeFalsy()
   })
 
+  it('handleNoToolCalls passthrough при «Инструмент read_codeviper_file: Путь:» (trace 1782686538797)', () => {
+    const { store, orchestrator } = createOrchestrator()
+    store.adopt(
+      buildPlanFromRoadmapItem({
+        num: 1,
+        action: 'пункт меню index_project',
+        verification: 'индексация запускается'
+      })
+    )
+    const fake = `Инструмент read_codeviper_file:
+Путь: app/codeviper/index.ts
+
+Содержимое файла:
+typescript
+export async function indexProject() {}
+
+Инструмент complete_self_improvement_item:
+ID: 2`
+    expect(orchestrator.handleNoToolCalls(fake, undefined, true)).toEqual({ action: 'passthrough' })
+    expect(store.get()?.[0].blocked).toBeFalsy()
+  })
+
   it('setRoadmapItemDetail автоматически создаёт план при старте', () => {
     const { store, orchestrator } = createOrchestrator()
     orchestrator.setRoadmapContext(1)

@@ -1,3 +1,5 @@
+2026-06-29 · trace 1782686538797 — ROADMAP п.1 «Ручная переиндексация» (qwen2.5-coder:7b): `ProjectTreePanel.tsx` без полного пути → ENOENT `app/components/`; модель симулировала tool calls текстом («Инструмент read_codeviper_file:\nПуть:») → 4 пункта плана заблокированы. Исправлено: `src/components` в ROADMAP_SEARCH_DIRS, подсказка `autoIndexProject`, `looksLikeSimulatedToolTranscript` в `looksLikeFakeToolOutput` (passthrough без block).
+
 2026-06-29 · trace 1782686071549 — ROADMAP п.1 «Ручная переиндексация»: `read_roadmap_item` вернул устаревший «OpenAI endpoint» — клон на `agent/self-improve` @ старом коммите, master впереди. Исправлено: `ensureSelfImproveBranch` — rebase `--autostash` на `origin/master` при каждом самоулучшении; новая ветка от `origin/master`.
 
 2026-06-29 · trace 1782685657649 — ROADMAP п.1 (qwen2.5-coder:7b): JSON-план в тексте (`read_roadmap_item` + write ROADMAP) принят как 6 пунктов «"id": "1",» — `parseLoosePlanLines` дробил многострочный JSON; все 6 заблокированы. Исправлено: JSON до loose-lines, `isFragmentedJsonPlan` / `isExplorationOnlyPlan`, автоплан из кэша ROADMAP, сброс invalid-плана.

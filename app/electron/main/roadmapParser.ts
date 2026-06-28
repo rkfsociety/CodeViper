@@ -256,6 +256,7 @@ const ROADMAP_PATH_ALIASES: Record<string, string[]> = {
 const ROADMAP_SEARCH_DIRS = [
   'electron/main/providers',
   'electron/main',
+  'src/components',
   'src/components/SettingsModal',
   'tests'
 ]
@@ -322,13 +323,18 @@ export function resolveRoadmapFileHints(filesField: string, sourceRoot: string):
     }
   }
 
-  if (resolved.length === 0) return ''
-
   const lines = resolved.map((p) => `- ${p}`)
   let note = ''
   if (/ModelTab\/providers/i.test(filesField)) {
     note =
       '\n\nПримечание: каталога ModelTab/providers/ нет — UI провайдеров в src/components/SettingsModal/ModelTab.tsx.'
+  }
+  if (/index_project/i.test(filesField)) {
+    note +=
+      '\n\nindex_project из UI: window.codeviper.autoIndexProject(projectPath, ollamaUrl, qdrantUrl) — preload electron/preload/index.ts; handler electron/main/agentHandlersProject.ts.'
+  }
+  if (resolved.length === 0) {
+    return note ? `\n\n${note.trim()}` : ''
   }
   return `\n\nПути для read_codeviper_file (относительно app/):\n${lines.join('\n')}${note}`
 }

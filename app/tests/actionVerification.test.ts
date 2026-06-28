@@ -150,6 +150,16 @@ describe('actionVerification', () => {
     expect(shouldRetryForMissingTools(roadmapMsg, fake, new Set(), true)).toBe(true)
   })
 
+  it('looksLikeFakeToolOutput ловит «Инструмент read_codeviper_file: Путь:» (trace 1782686538797)', () => {
+    const fake = `Инструмент read_codeviper_file:
+Путь: app/codeviper/index.ts
+
+Содержимое файла:
+typescript
+export async function indexProject() {}`
+    expect(looksLikeFakeToolOutput(fake)).toBe(true)
+  })
+
   it('looksLikePseudoToolInvocation ловит grep/bash текстом вместо tool call', () => {
     const text = `### Пример команды:
 
