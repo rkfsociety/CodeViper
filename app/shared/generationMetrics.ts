@@ -4,6 +4,10 @@ export interface GenerationMetrics {
   tokensPerSec: number
   /** Общее число токенов за запрос (для облачных провайдеров) */
   totalTokens?: number
+  /** Входные токены одного запроса (облако) */
+  requestInputTokens?: number
+  /** Выходные токены одного запроса (облако) */
+  requestOutputTokens?: number
   /** Накопленные токены за всю сессию (только для облачных провайдеров) */
   sessionTokens?: number
   /** Накопленные входные токены за сессию (Claude/OpenAI) */
@@ -42,7 +46,9 @@ export function buildRequestGenerationMetrics(
       evalCount: 0,
       evalDurationSec: 0,
       tokensPerSec: 0,
-      totalTokens: cloudTotal
+      totalTokens: cloudTotal,
+      ...(requestInputTokens > 0 ? { requestInputTokens } : {}),
+      ...(requestOutputTokens > 0 ? { requestOutputTokens } : {})
     }
   }
 

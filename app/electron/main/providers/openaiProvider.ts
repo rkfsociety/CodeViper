@@ -70,6 +70,7 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
     const body: Record<string, unknown> = {
       model: options.model || this.modelName,
       stream: true,
+      stream_options: { include_usage: true },
       messages: mappedMessages,
       temperature: options.temperature,
       top_p: options.top_p,
@@ -104,6 +105,9 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
     type AccToolCall = { id: string; name: string; arguments: string }
     const accToolCalls: AccToolCall[] = []
     let toolCallsYielded = false
+    let inputTokens = 0
+    let outputTokens = 0
+    let totalTokens: number | undefined
     const modelName = options.model || this.modelName
 
     return {
@@ -128,10 +132,30 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
               }
               finish_reason?: string | null
             }>
-            usage?: { total_tokens?: number }
+            usage?: {
+              total_tokens?: number
+              prompt_tokens?: number
+              completion_tokens?: number
+            }
           }
           const choice = chunk.choices?.[0]
           const delta = choice?.delta
+
+          if (chunk.usage && !delta) {
+            if (chunk.usage.prompt_tokens != null) inputTokens = chunk.usage.prompt_tokens
+            if (chunk.usage.completion_tokens != null) outputTokens = chunk.usage.completion_tokens
+            if (chunk.usage.total_tokens != null) totalTokens = chunk.usage.total_tokens
+            return {
+              content: '',
+              model: modelName,
+              total_tokens:
+                totalTokens ??
+                (inputTokens + outputTokens > 0 ? inputTokens + outputTokens : undefined),
+              input_tokens: inputTokens || undefined,
+              output_tokens: outputTokens || undefined
+            }
+          }
+
           if (!delta) return null
 
           // Накапливаем delta.tool_calls по индексу
@@ -176,9 +200,18 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
             }
           }
 
-          // Некоторые стриминговые ответы включают usage прямо в chunk
-          if (chunk.usage?.total_tokens) {
-            chatChunk.total_tokens = chunk.usage.total_tokens
+          // Usage приходит в финальном chunk при stream_options.include_usage
+          if (chunk.usage) {
+            if (chunk.usage.prompt_tokens != null) inputTokens = chunk.usage.prompt_tokens
+            if (chunk.usage.completion_tokens != null) outputTokens = chunk.usage.completion_tokens
+            if (chunk.usage.total_tokens != null) totalTokens = chunk.usage.total_tokens
+            if (inputTokens > 0 || outputTokens > 0) {
+              chatChunk.input_tokens = inputTokens
+              chatChunk.output_tokens = outputTokens
+              chatChunk.total_tokens =
+                totalTokens ??
+                (inputTokens + outputTokens > 0 ? inputTokens + outputTokens : undefined)
+            }
           }
 
           return chatChunk
@@ -188,6 +221,18 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
       },
 
       finalize(): ChatChunk[] {
+        const trailing: ChatChunk[] = []
+        if (inputTokens > 0 || outputTokens > 0 || totalTokens != null) {
+          trailing.push({
+            content: '',
+            model: modelName,
+            total_tokens:
+              totalTokens ??
+              (inputTokens + outputTokens > 0 ? inputTokens + outputTokens : undefined),
+            input_tokens: inputTokens || undefined,
+            output_tokens: outputTokens || undefined
+          })
+        }
         // Fallback: стрим закончился без finish_reason='tool_calls', но tool_calls накоплены
         if (!toolCallsYielded && accToolCalls.length > 0) {
           const assembled = accToolCalls
@@ -198,10 +243,10 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
               function: { name: tc.name, arguments: tc.arguments }
             }))
           if (assembled.length > 0) {
-            return [{ content: '', tool_calls: assembled }]
+            trailing.push({ content: '', tool_calls: assembled })
           }
         }
-        return []
+        return trailing
       }
     }
   }

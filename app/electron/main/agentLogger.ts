@@ -4,6 +4,8 @@ import { app } from 'electron'
 import { tronParse, tronStringify } from '../lib/tron'
 import { redactSecretsDeep } from '../../shared/secretRedaction'
 import { findModelPricing, estimateRequestCost } from '../../shared/constants'
+import { aggregateTraceEvents } from '../../shared/traceMetrics'
+import { loadAllChatTraceEventsFromDisk } from './traceStorage'
 
 export interface AgentLogEntry {
   ts?: string
@@ -73,6 +75,21 @@ class AgentLogger {
   }
 
   async readMetrics(days = 30): Promise<AgentMetrics> {
+    const [traceMetrics, logMetrics] = await Promise.all([
+      this.readMetricsFromTraces(days),
+      this.readMetricsFromLogs(days)
+    ])
+    return mergeAgentMetrics(traceMetrics, logMetrics, days)
+  }
+
+  private async readMetricsFromTraces(days: number): Promise<AgentMetrics> {
+    const cutoffTs = Date.now() - days * 86_400_000
+    const events = await loadAllChatTraceEventsFromDisk()
+    const { byModel, toolCount } = aggregateTraceEvents(events, cutoffTs)
+    return this._buildMetricsFromMaps(byModel, toolCount, days)
+  }
+
+  private async readMetricsFromLogs(days: number): Promise<AgentMetrics> {
     const dir = this.logsDir()
     const cutoff = dateStampForDaysAgo(days)
     const byModel = new Map<
@@ -145,6 +162,10 @@ class AgentLogger {
           if (!entry['status'] || entry['status'] === 'ok') {
             row.successRuns++
           }
+          const sessionTokens = (entry['session_tokens'] as number | undefined) ?? 0
+          if (sessionTokens > 0) row.totalTokens += sessionTokens
+          const sessionCostUsd = (entry['session_cost_usd'] as number | undefined) ?? 0
+          if (sessionCostUsd > 0) row.costUsd += sessionCostUsd
           byModel.set(model, row)
         } else if (event === 'llm_response') {
           const row = byModel.get(model) ?? {
@@ -183,6 +204,24 @@ class AgentLogger {
       }
     }
 
+    return this._buildMetricsFromMaps(byModel, toolCount, days)
+  }
+
+  private _buildMetricsFromMaps(
+    byModel: Map<
+      string,
+      {
+        runs: number
+        successRuns: number
+        totalMs: number
+        totalTokens: number
+        toolCalls: number
+        costUsd: number
+      }
+    >,
+    toolCount: Map<string, number>,
+    days: number
+  ): AgentMetrics {
     const rows: AgentMetricRow[] = Array.from(byModel.entries()).map(([model, r]) => ({
       model,
       runs: r.runs,
@@ -226,6 +265,71 @@ class AgentLogger {
       totalCostUsd: 0,
       periodDays: days
     }
+  }
+}
+
+function mergeAgentMetrics(trace: AgentMetrics, logs: AgentMetrics, days: number): AgentMetrics {
+  const modelKeys = new Set([
+    ...trace.byModel.map((r) => r.model),
+    ...logs.byModel.map((r) => r.model)
+  ])
+  const traceByModel = new Map(trace.byModel.map((r) => [r.model, r]))
+  const logsByModel = new Map(logs.byModel.map((r) => [r.model, r]))
+
+  const byModel: AgentMetricRow[] = []
+  for (const model of modelKeys) {
+    const t = traceByModel.get(model)
+    const l = logsByModel.get(model)
+    if (!t && !l) continue
+
+    const runs = Math.max(t?.runs ?? 0, l?.runs ?? 0)
+    const successRuns = Math.max(t?.successRuns ?? 0, l?.successRuns ?? 0)
+    const totalMs =
+      (t?.avgDurationMs ?? 0) * (t?.successRuns ?? 0) ||
+      (l?.avgDurationMs ?? 0) * (l?.successRuns ?? 0)
+    const successForAvg = Math.max(t?.successRuns ?? 0, l?.successRuns ?? 0, 1)
+    const totalTokens = (t?.totalTokens ?? 0) > 0 ? t!.totalTokens : (l?.totalTokens ?? 0)
+    const toolCalls =
+      (t?.toolCalls ?? 0) > 0 ? t!.toolCalls : model === 'unknown' ? 0 : (l?.toolCalls ?? 0)
+    const estimatedCostUsd =
+      (t?.estimatedCostUsd ?? 0) > 0 ? t!.estimatedCostUsd : (l?.estimatedCostUsd ?? 0)
+
+    byModel.push({
+      model,
+      runs,
+      successRuns,
+      avgDurationMs: runs > 0 ? Math.round(totalMs / successForAvg) : 0,
+      totalTokens,
+      toolCalls,
+      estimatedCostUsd
+    })
+  }
+
+  byModel.sort((a, b) => b.runs - a.runs)
+
+  const toolMap = new Map<string, number>()
+  const topToolsSource = trace.topTools.length > 0 ? trace.topTools : logs.topTools
+  for (const { tool, count } of topToolsSource) {
+    toolMap.set(tool, count)
+  }
+  const topTools = Array.from(toolMap.entries())
+    .map(([tool, count]) => ({ tool, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+
+  const totalRuns = byModel.reduce((s, r) => s + r.runs, 0)
+  const totalSuccessRuns = byModel.reduce((s, r) => s + r.successRuns, 0)
+  const totalTokens = byModel.reduce((s, r) => s + r.totalTokens, 0)
+  const totalCostUsd = byModel.reduce((s, r) => s + r.estimatedCostUsd, 0)
+
+  return {
+    byModel: byModel.filter((r) => r.model !== 'unknown' || r.runs > 0 || r.toolCalls > 0),
+    topTools,
+    totalRuns,
+    totalSuccessRuns,
+    totalTokens,
+    totalCostUsd,
+    periodDays: days
   }
 }
 

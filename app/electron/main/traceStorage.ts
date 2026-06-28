@@ -1,5 +1,5 @@
 import { existsSync } from 'fs'
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, readFile, readdir, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
 import type { AgentTraceEvent } from '../../src/types'
@@ -90,6 +90,26 @@ async function flushChatTrace(chatId: string): Promise<void> {
     events
   }
   await writeJsonAtomic(chatTracePath(chatId), payload)
+}
+
+/** Все события трейса всех чатов с диска (без кэша — для агрегации метрик). */
+export async function loadAllChatTraceEventsFromDisk(): Promise<AgentTraceEvent[]> {
+  const dir = chatTracesDir()
+  let files: string[] = []
+  try {
+    files = await readdir(dir)
+  } catch {
+    return []
+  }
+
+  const all: AgentTraceEvent[] = []
+  for (const file of files) {
+    if (!file.endsWith('.json')) continue
+    const chatId = file.slice(0, -'.json'.length)
+    const events = await loadChatTraceFromDisk(chatId)
+    all.push(...events)
+  }
+  return all
 }
 
 export async function loadChatTrace(chatId: string): Promise<AgentTraceEvent[]> {

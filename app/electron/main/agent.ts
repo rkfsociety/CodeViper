@@ -209,7 +209,11 @@ export class AgentRunner {
     ): void => {
       if (runEndTraced) return
       runEndTraced = true
-      const end = buildRunEndTraceData(Date.now() - runStartMs, status, extra)
+      const end = buildRunEndTraceData(Date.now() - runStartMs, status, {
+        sessionTokens: this.ctx.sessionTokens > 0 ? this.ctx.sessionTokens : undefined,
+        sessionCostUsd: this.ctx.sessionCostUsd > 0 ? this.ctx.sessionCostUsd : undefined,
+        ...extra
+      })
       this.emitter.trace('run_end', end.label, end.data)
     }
 
@@ -530,6 +534,8 @@ export class AgentRunner {
           model: this.settings.model,
           duration_ms: durationMs,
           tokens: requestTokens,
+          input_tokens: response.metrics?.requestInputTokens,
+          output_tokens: response.metrics?.requestOutputTokens,
           has_tools: (response.message?.tool_calls?.length ?? 0) > 0,
           has_thinking: !!response.message?.thinking
         })
@@ -552,6 +558,8 @@ export class AgentRunner {
             step,
             durationMs,
             tokens,
+            inputTokens: response.metrics?.requestInputTokens,
+            outputTokens: response.metrics?.requestOutputTokens,
             toksPerSec: tps,
             textLength: assistantText.length,
             text: assistantText.slice(0, 500),
@@ -629,7 +637,7 @@ export class AgentRunner {
                 thinking: assistantThinking
               })
             await taskPlanner.finalize(messages, userMessage, usedTools, this.settings)
-            traceRunEnd('ok', { steps: step, sessionTokens: this.ctx.sessionTokens })
+            traceRunEnd('ok', { steps: step })
             this.emitter.emit({ type: 'done' })
             return
           }
@@ -732,10 +740,9 @@ export class AgentRunner {
           traceRunEnd(
             runSuccess ? 'ok' : 'error',
             runSuccess
-              ? { steps: step, sessionTokens: this.ctx.sessionTokens }
+              ? { steps: step }
               : {
                   steps: step,
-                  sessionTokens: this.ctx.sessionTokens,
                   error: 'Модель не ответила и не вызвала инструменты'
                 }
           )
@@ -874,8 +881,11 @@ export class AgentRunner {
         event: 'run_end',
         model: this.settings.model,
         total_ms: Date.now() - runStartMs,
-        status: runSuccess ? 'ok' : 'error'
+        status: runSuccess ? 'ok' : 'error',
+        session_tokens: this.ctx.sessionTokens > 0 ? this.ctx.sessionTokens : undefined,
+        session_cost_usd: this.ctx.sessionCostUsd > 0 ? this.ctx.sessionCostUsd : undefined
       })
+      traceRunEnd(runSuccess ? 'ok' : 'error')
       if (selfEdited) {
         if (taskPlanner.isSelfImprove && this.settings.autoPushSelfEdits !== false) {
           await this.selfImproveOrchestrator.autoCommitSelfEdits(
