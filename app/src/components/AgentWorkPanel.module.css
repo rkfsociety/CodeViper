@@ -19,14 +19,6 @@
   display: none;
 }
 
-.liveTools {
-  border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg-msg-tool) 85%, transparent);
-  overflow: hidden;
-  font-size: 11px;
-}
-
 .settled {
   margin: 0 0 8px;
 }

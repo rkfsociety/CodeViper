@@ -51,7 +51,7 @@ function ToolItem({ m }: { m: ChatMessage }) {
       ? styles.statusError
       : styles.statusOk
 
-  const label = `${humanizeToolName(name)}${firstLine ? ' ' + firstLine : ''}`
+  const label = firstLine || humanizeToolName(name)
 
   return (
     <div className={styles.item}>
@@ -74,7 +74,7 @@ function ToolItem({ m }: { m: ChatMessage }) {
 export function AllToolsGroup({ items }: AllToolsGroupProps) {
   const [open, setOpen] = useState(false)
 
-  const lastItem = items[items.length - 1]
+  const topItem = items.find((m) => m.content.startsWith('▶')) ?? items[items.length - 1]
   const allDone = items.every((m) => !m.content.startsWith('▶'))
   const hasError = items.some((m) => m.content.startsWith('✗') || m.content.startsWith('❌'))
 
@@ -82,43 +82,48 @@ export function AllToolsGroup({ items }: AllToolsGroupProps) {
   const headerIcon = headerStatus === 'running' ? '…' : headerStatus === 'error' ? '✗' : '✓'
 
   let headerLabel = 'Инструменты'
-  if (lastItem) {
-    const name = lastItem.toolName || 'tool'
-    const { firstLine } = parseContent(lastItem.content)
-    headerLabel = `${humanizeToolName(name)}${firstLine ? ' ' + firstLine : ''}`
+  if (topItem) {
+    const { firstLine } = parseContent(topItem.content)
+    headerLabel = firstLine || humanizeToolName(topItem.toolName || 'tool')
   }
 
-  return (
-    <div className={styles.container}>
-      <button
-        type="button"
-        className={styles.header}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <span
-          className={
-            headerStatus === 'running'
-              ? styles.statusRunning
-              : headerStatus === 'error'
-                ? styles.statusError
-                : styles.statusOk
-          }
-        >
-          {headerIcon}
-        </span>
-        <span className={styles.headerLabel}>{headerLabel}</span>
-        {items.length > 1 && <span className={styles.headerCount}>+{items.length - 1}</span>}
-        <span className={styles.headerChevron}>{open ? '▾' : '›'}</span>
-      </button>
+  const stackDepth = !open && items.length > 1 ? Math.min(items.length - 1, 2) : 0
 
-      {open && (
-        <div className={styles.list}>
-          {items.map((m) => (
-            <ToolItem key={m.id} m={m} />
-          ))}
-        </div>
-      )}
+  return (
+    <div className={styles.wrapper}>
+      {stackDepth >= 2 && <div className={styles.stackLayer2} aria-hidden />}
+      {stackDepth >= 1 && <div className={styles.stackLayer1} aria-hidden />}
+      <div className={`${styles.container}${open ? ` ${styles.containerOpen}` : ''}`}>
+        <button
+          type="button"
+          className={styles.header}
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          <span
+            className={
+              headerStatus === 'running'
+                ? styles.statusRunning
+                : headerStatus === 'error'
+                  ? styles.statusError
+                  : styles.statusOk
+            }
+          >
+            {headerIcon}
+          </span>
+          <span className={styles.headerLabel}>{headerLabel}</span>
+          {items.length > 1 && !open && <span className={styles.headerCount}>{items.length}</span>}
+          <span className={styles.headerChevron}>{open ? '▾' : '›'}</span>
+        </button>
+
+        {open && (
+          <div className={styles.list}>
+            {items.map((m) => (
+              <ToolItem key={m.id} m={m} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import type { ChatMessage } from '../types'
 import type { AgentPhase } from './AgentStatusBar'
 import type { AgentWorkTrace } from './ChatPanel/helpers'
 import { computeWorkDurationMs, formatWorkDuration } from './ChatPanel/helpers'
+import { AllToolsGroup } from './AllToolsGroup'
 import toolStyles from './AllToolsGroup.module.css'
 import styles from './AgentWorkPanel.module.css'
 
@@ -57,7 +58,7 @@ function ToolDetail({ m }: { m: ChatMessage }) {
     : isError
       ? toolStyles.statusError
       : toolStyles.statusOk
-  const label = `${humanizeToolName(name)}${firstLine ? ` ${firstLine}` : ''}`
+  const label = firstLine || humanizeToolName(name)
 
   return (
     <div className={toolStyles.item}>
@@ -73,17 +74,6 @@ function ToolDetail({ m }: { m: ChatMessage }) {
         {result && <span className={toolStyles.itemChevron}>{open ? '▾' : '›'}</span>}
       </button>
       {open && result && <div className={toolStyles.itemResult}>{result}</div>}
-    </div>
-  )
-}
-
-function LiveTools({ tools }: { tools: ChatMessage[] }) {
-  if (tools.length === 0) return null
-  return (
-    <div className={styles.liveTools}>
-      {tools.map((m) => (
-        <ToolDetail key={m.id} m={m} />
-      ))}
     </div>
   )
 }
@@ -131,7 +121,7 @@ export function AgentWorkPanel({ work, message, busy, agentPhase, draftMessageId
             {work.thinking}
           </div>
         )}
-        {toolsLive && <LiveTools tools={work.tools} />}
+        {toolsLive && <AllToolsGroup items={work.tools} />}
       </div>
     )
   }
