@@ -1,10 +1,11 @@
 import { spawn } from 'child_process'
+import { cliSpawnBase, resolveGitExecutable } from './windowsGitEnv'
 
 const DEFAULT_GITLAB_URL = 'https://gitlab.com'
 
 function runGit(args: string[], cwd: string): Promise<string> {
   return new Promise((resolve) => {
-    const child = spawn('git', args, { cwd, windowsHide: true })
+    const child = spawn(resolveGitExecutable(), args, cliSpawnBase(cwd))
     let stdout = ''
     child.stdout?.on('data', (c: Buffer) => (stdout += c.toString()))
     child.on('close', () => resolve(stdout.trim()))

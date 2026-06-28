@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import { cliSpawnBase, resolveGitExecutable } from './windowsGitEnv'
 
 interface GitResult {
   code: number
@@ -8,7 +9,7 @@ interface GitResult {
 
 function runGit(cwd: string, args: string[]): Promise<GitResult> {
   return new Promise((resolve) => {
-    const child = spawn('git', args, { cwd, windowsHide: true })
+    const child = spawn(resolveGitExecutable(), args, cliSpawnBase(cwd))
     let stdout = ''
     let stderr = ''
     child.stdout?.on('data', (chunk: Buffer) => {

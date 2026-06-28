@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import { relative, resolve } from 'path'
 import { isInsideProject } from './services'
+import { cliSpawnBase, resolveGitExecutable } from './windowsGitEnv'
 
 const MAX_OUTPUT_CHARS = 20_000
 const DEFAULT_LOG_LIMIT = 20
@@ -14,7 +15,7 @@ interface GitResult {
 
 function runGit(cwd: string, args: string[]): Promise<GitResult> {
   return new Promise((resolvePromise) => {
-    const child = spawn('git', args, { cwd, windowsHide: true })
+    const child = spawn(resolveGitExecutable(), args, cliSpawnBase(cwd))
     let stdout = ''
     let stderr = ''
     child.stdout?.on('data', (chunk: Buffer) => {

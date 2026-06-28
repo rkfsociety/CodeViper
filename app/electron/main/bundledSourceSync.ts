@@ -12,7 +12,7 @@ import {
   CODEVIPER_RUNTIME_SYNC_BRANCH
 } from '../../shared/constants'
 import { loadSettings, saveSettings } from './settings'
-import { prependWindowsGitToPath } from './windowsGitEnv'
+import { cliSpawnBase, resolveGitExecutable } from './windowsGitEnv'
 
 export interface BundledSourceSyncResult {
   updated: boolean
@@ -86,11 +86,7 @@ function defaultRunGit(
   timeoutMs = GIT_TIMEOUT_MS
 ): Promise<GitRunResult> {
   return new Promise((resolve) => {
-    const child = spawn('git', args, {
-      cwd,
-      windowsHide: true,
-      env: prependWindowsGitToPath(process.env)
-    })
+    const child = spawn(resolveGitExecutable(), args, cliSpawnBase(cwd))
     let stdout = ''
     let stderr = ''
     let settled = false

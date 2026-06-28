@@ -28,7 +28,17 @@ export function setWinGhDirsForTests(dirs: readonly string[] | null): void {
 }
 
 function winGitCmdDirs(): readonly string[] {
-  return winGitCmdDirsOverride ?? DEFAULT_WIN_GIT_CMD_DIRS
+  if (winGitCmdDirsOverride) return winGitCmdDirsOverride
+
+  const dirs: string[] = [...DEFAULT_WIN_GIT_CMD_DIRS]
+  const localAppData = process.env.LOCALAPPDATA
+  if (localAppData) dirs.push(join(localAppData, 'Programs', 'Git', 'cmd'))
+  const userProfile = process.env.USERPROFILE
+  if (userProfile) {
+    dirs.push(join(userProfile, 'scoop', 'apps', 'git', 'current', 'cmd'))
+    dirs.push(join(userProfile, 'scoop', 'shims'))
+  }
+  return dirs
 }
 
 function winGhDirs(): readonly string[] {
@@ -111,6 +121,30 @@ export function resolveGhExecutable(): string {
     }
   }
   return 'gh'
+}
+
+/** Полный путь к git.exe на Windows; иначе `git` из PATH. */
+export function resolveGitExecutable(): string {
+  if (process.platform === 'win32') {
+    for (const dir of winGitCmdDirs()) {
+      const exe = join(dir, 'git.exe')
+      if (existsSync(exe)) return exe
+    }
+  }
+  return 'git'
+}
+
+/** Базовые опции spawn для git/gh из GUI-процесса Electron (Windows PATH + профиль). */
+export function cliSpawnBase(cwd: string): {
+  cwd: string
+  windowsHide: true
+  env: NodeJS.ProcessEnv
+} {
+  return {
+    cwd,
+    windowsHide: true,
+    env: prependWindowsCliToolsToPath(process.env)
+  }
 }
 
 /** PATH + профиль пользователя — env для spawn gh/git из установленного .exe. */

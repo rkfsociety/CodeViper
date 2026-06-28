@@ -8,6 +8,7 @@ import {
   prependWindowsGitToPath,
   prependWindowsGhToPath,
   resolveGhExecutable,
+  resolveGitExecutable,
   setWinGitCmdDirsForTests,
   setWinGhDirsForTests
 } from '../electron/main/windowsGitEnv'
@@ -109,6 +110,36 @@ describe('ensureWindowsUserEnv', () => {
     expect(result.USERPROFILE).toBeTruthy()
     expect(result.APPDATA).toContain('AppData')
     expect(result.LOCALAPPDATA).toContain('AppData')
+  })
+})
+
+describe('resolveGitExecutable', () => {
+  afterEach(() => {
+    setWinGitCmdDirsForTests(null)
+  })
+
+  it('на win32 возвращает полный путь к git.exe', () => {
+    if (process.platform !== 'win32') return
+
+    const gitDir = mkdtempSync(join(tmpdir(), 'cv-git-bin-'))
+    writeFileSync(join(gitDir, 'git.exe'), '')
+    setWinGitCmdDirsForTests([gitDir])
+
+    expect(resolveGitExecutable()).toBe(join(gitDir, 'git.exe'))
+
+    rmSync(gitDir, { recursive: true, force: true })
+  })
+
+  it('без git.exe возвращает git', () => {
+    if (process.platform !== 'win32') {
+      expect(resolveGitExecutable()).toBe('git')
+      return
+    }
+
+    const emptyDir = mkdtempSync(join(tmpdir(), 'cv-git-miss-'))
+    setWinGitCmdDirsForTests([emptyDir])
+    expect(resolveGitExecutable()).toBe('git')
+    rmSync(emptyDir, { recursive: true, force: true })
   })
 })
 

@@ -5,7 +5,7 @@ import { app } from 'electron'
 import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { resolveGitRepoRoot } from './githubAuth'
-import { prependWindowsCliToolsToPath } from './windowsGitEnv'
+import { cliSpawnBase, resolveGhExecutable, resolveGitExecutable } from './windowsGitEnv'
 
 interface GitResult {
   code: number
@@ -13,13 +13,13 @@ interface GitResult {
   stderr: string
 }
 
+function isGitSpawnEnoent(result: GitResult): boolean {
+  return result.code !== 0 && /spawn .* ENOENT/i.test(result.stderr)
+}
+
 function runCmd(cmd: string, cwd: string, args: string[]): Promise<GitResult> {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, {
-      cwd,
-      windowsHide: true,
-      env: prependWindowsCliToolsToPath(process.env)
-    })
+    const child = spawn(cmd, args, cliSpawnBase(cwd))
     let stdout = ''
     let stderr = ''
     child.stdout?.on('data', (chunk: Buffer) => {
@@ -34,7 +34,7 @@ function runCmd(cmd: string, cwd: string, args: string[]): Promise<GitResult> {
 }
 
 function runGit(cwd: string, args: string[]): Promise<GitResult> {
-  return runCmd('git', cwd, args)
+  return runCmd(resolveGitExecutable(), cwd, args)
 }
 
 /**
@@ -49,6 +49,11 @@ async function runGitWithRetry(cwd: string, args: string[], label: string): Prom
   for (let attempt = 1; attempt <= 3; attempt++) {
     last = await runGit(cwd, args)
     if (last.code === 0) return last
+    if (isGitSpawnEnoent(last)) {
+      throw new Error(
+        'Git не найден — установите Git for Windows (https://git-scm.com) и перезапустите CodeViper'
+      )
+    }
 
     if (attempt < 3) {
       await new Promise((r) => setTimeout(r, delays[attempt - 1]))
@@ -360,7 +365,7 @@ export async function createCodeViperPr(title?: string, body?: string): Promise<
     }
   }
 
-  const ghCheck = await runCmd('gh', source, ['--version'])
+  const ghCheck = await runCmd(resolveGhExecutable(), source, ['--version'])
   if (ghCheck.code !== 0) {
     return {
       ok: false,
@@ -385,7 +390,7 @@ export async function createCodeViperPr(title?: string, body?: string): Promise<
     body?.trim() ||
     'PR создан агентом CodeViper. Не мержится автоматически — требуется ручная проверка и approve.'
 
-  const pr = await runCmd('gh', source, [
+  const pr = await runCmd(resolveGhExecutable(), source, [
     'pr',
     'create',
     '--base',
