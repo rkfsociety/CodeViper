@@ -18,13 +18,13 @@
 
 ---
 
-Локальный AI-агент с GUI: в заголовке окна — версия оболочки и короткий hash коммита runtime; при первом запуске — визард настройки (провайдер → модель → проект), читает проект, скрываемое дерево файлов (иконка ▶ слева от чата или Ctrl+B), панель «Превью» справа от чата с подсветкой синтаксиса (клик по файлу в дереве) и перетаскиваемым разделителем (ширина сохраняется между перезапусками), кнопка «Копировать» на блоках кода в ответах агента, «↺ Перегенерировать» в меню ответа assistant, toast «Агент ждёт подтверждения» при preview/danger вне фокуса, side-by-side diff, стеклянная панель «Недавние» с pill-списком чатов и перетаскиваемым разделителем ширины, иконка в трее, toast при завершении агента, стопка вызовов инструментов в одну строку чата (клик — развернуть список; сырой JSON tool call не показывается во время стрима), экспорт одного чата в JSON для анализа (кнопка ⤓ в истории чатов или «Чат JSON» в панели «Трасса» — сообщения, метаданные и трейс, `exportSchemaVersion` 1), экспорт трейса агента в JSON (контекст %, сжатие, nudge, signature инструментов — `traceSchemaVersion` 2), отправка трейса в GitHub Issue через `gh` от имени агента (авто при ошибке + кнопка «На GitHub», нужен `gh auth login`), панели «Метрики» (токены, стоимость и инструменты по моделям — из трейса агента, автообновление в реальном времени; сортировка по клику на заголовки таблицы и в блоке «Топ инструментов») и «Трасса» с перетаскиваемым разделителем (ширины и открытые панели сохраняются между перезапусками), ищет символы по AST (`find_symbol`), правит файлы, защита edit от служебных строк read_* и повторного ROADMAP-пункта из «Сделано», гибкий парсер `set_self_improvement_plan`, защита от «вечной разведки» (повтор nudge + остановка на 20-м шаге без правок) и авто-редирект `grep_files`→`grep_codeviper_files` в самоулучшении, распознавание копипаста пункта ROADMAP как самоулучшения, сжатие контекста до таймаута шага (Ollama — обрезка без второго LLM-вызова), запускает команды, git stash/pop и откат, самоулучшение. Ollama, DeepSeek, OpenAI, Anthropic, Gemini, OpenRouter.
+Локальный AI-агент с GUI: читает и правит код, запускает команды и git, самоулучшение по ROADMAP. Провайдеры — Ollama, OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter. Возможности и сценарии — в [вики](https://github.com/rkfsociety/CodeViper/wiki).
 
 ## Быстрый старт
 
-**Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org) (для запуска из исходников), 8 ГБ RAM.
+**Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org) (из исходников), 8 ГБ RAM.
 
-**Установщик:** `CodeViper-Setup-*.exe` с [релизов](https://github.com/rkfsociety/CodeViper/releases) — ярлыки запускают `CodeViper.exe`; при установке запросит **права администратора (UAC)** и **[Git for Windows](https://git-scm.com)** в PATH (клон в `%APPDATA%/codeviper/source`). Если окно пустое или чёрное после обновления — переустановите **0.3.0+**, удалите `%APPDATA%\codeviper\GPUCache` и `%APPDATA%\codeviper\ShaderCache`, либо временно переименуйте `%USERPROFILE%\.codeviper\plugins`.
+**Установщик:** [`CodeViper-Setup-*.exe`](https://github.com/rkfsociety/CodeViper/releases) — нужен [Git for Windows](https://git-scm.com) в PATH.
 
 ```powershell
 git clone https://github.com/rkfsociety/CodeViper.git
@@ -35,7 +35,7 @@ cd CodeViper/app && npm install
 
 ## Обновление без переустановки
 
-Установщик клонирует репозиторий в **`%APPDATA%/CodeViper/source`** (нужен **Git for Windows**). При **автообновлении** без полной переустановки: синхронизация с `origin/master` (сброс ветки `agent/*` и локальных правок в клоне) → сборка в `source/app` → баннер **«Перезапустить для применения»** (handlers подхватываются частично, UI и preload — только после relaunch `.exe`). Установщик (Releases) и runtime показываются **одним баннером**; если установщик ещё качается, а runtime уже собран — кнопка **«Только runtime»**. Вручную: внизу **Настройки** — **«Проверить обновления»**. Повторный баннер с тем же коммитом — нажмите **«Позже»** или обновите установщик до последнего релиза. Тонкая оболочка `CodeViper.exe` меняется редко; новый установщик — только при смене Electron/NSIS или первой установке.
+Runtime (UI, агент) — git-клон в `%APPDATA%/CodeViper/source`, перезапуск `.exe` после обновления. Оболочку `.exe` меняют редко. Детали — [docs/development.md](docs/development.md) · [вики · Разработка](https://github.com/rkfsociety/CodeViper/wiki/Разработка).
 
 ## Документация
 
@@ -53,12 +53,12 @@ cd CodeViper/app && npm install
 | | |
 |---|---|
 | [Демонстрации (GIF)](docs/demos.md) | [Примеры запросов](docs/example-prompts.md) |
-| [Интеграции (MCP, P2P, коллективная память — gh/git или token)](docs/integrations.md) | [Разработка и live runtime](docs/development.md) |
+| [Интеграции (MCP, P2P, коллективная память)](docs/integrations.md) | [Разработка и live runtime](docs/development.md) |
 | [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) | [ROADMAP](ROADMAP.md) (117 задач) · [выполнено](ROADMAP_DONE.md) |
 
 ## Участие
 
-[Discussions](https://github.com/rkfsociety/CodeViper/discussions) (вопросы, идеи) · [Issues](https://github.com/rkfsociety/CodeViper/issues) · [CONTRIBUTING.md](CONTRIBUTING.md) · PR приветствуются.
+[Discussions](https://github.com/rkfsociety/CodeViper/discussions) · [Issues](https://github.com/rkfsociety/CodeViper/issues) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Лицензия
 
