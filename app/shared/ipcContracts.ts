@@ -474,6 +474,7 @@ export const IPC = {
   LOG_FRONTEND_ERROR: 'log-frontend-error',
   AGENT_CONFIRM_RESPONSE: 'agent-confirm-response',
   AGENT_CLARIFY_RESPONSE: 'agent-clarify-response',
+  AGENT_PLAN_CONFIRM_RESPONSE: 'agent-plan-confirm-response',
   AGENT_PREVIEW_RESPONSE: 'agent-preview-response',
   AGENT_PREVIEW_HUNK_SELECTION: 'agent-preview-hunk-selection',
   OPEN_DEVTOOLS: 'open-devtools',

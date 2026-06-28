@@ -8,6 +8,7 @@ export interface IpcContext {
   activeAgentAborts: Map<string, AbortController>
   pendingConfirms: Map<string, (approved: boolean) => void>
   pendingClarifies: Map<string, (answer: string | null) => void>
+  pendingPlanConfirms: Map<string, (approved: boolean) => void>
   pendingPreviews: Map<string, (apply: boolean) => void>
   pendingHunkSelections: Map<string, number[]>
   syncTrayAgentBadge: () => void

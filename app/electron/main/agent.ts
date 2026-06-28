@@ -33,9 +33,10 @@ import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './c
 import { notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
 import {
-  isOrchestratorConfigured,
   resolveOrchestratorBackend,
-  resolveOrchestratorOllamaModel
+  resolveOrchestratorOllamaModel,
+  shouldAwaitPlanConfirmation,
+  shouldRunOrchestratorAnalysis
 } from '../../shared/orchestrator'
 import { runSubagent } from './subagentRunner'
 
@@ -68,6 +69,7 @@ export interface AgentRunnerOptions {
   emit: (event: AgentStreamPayload) => void
   signal?: AbortSignal
   confirm?: (toolName: string, toolInput: string) => Promise<boolean>
+  confirmPlan?: (plan: string) => Promise<boolean>
   clarify?: (question: string) => Promise<string | null>
   previewFn?: (previewId: string) => Promise<boolean>
   chatId?: string
@@ -137,6 +139,7 @@ export class AgentRunner {
   private readonly projectPath: string
   private readonly chatId: string | undefined
   private readonly clarify: ((question: string) => Promise<string | null>) | undefined
+  private readonly confirmPlan: ((plan: string) => Promise<boolean>) | undefined
 
   private readonly emitter: ResponseEmitter
   private readonly ctx: ContextManager
@@ -150,11 +153,13 @@ export class AgentRunner {
     signal,
     confirm,
     clarify,
+    confirmPlan,
     previewFn,
     chatId,
     hunkSelectionFn
   }: AgentRunnerOptions) {
     this.clarify = clarify
+    this.confirmPlan = confirmPlan
     this.settings = settings
     this.projectPath = projectPath
     this.chatId = chatId
@@ -263,12 +268,7 @@ export class AgentRunner {
     let orchestratorPlanHint = ''
     let orchestratorIsComplex = false
 
-    const minLen = this.settings.orchestratorMinMessageLength ?? 30
-    if (
-      this.settings.orchestratorEnabled &&
-      isOrchestratorConfigured(this.settings) &&
-      userMessage.length >= minLen
-    ) {
+    if (shouldRunOrchestratorAnalysis(this.settings, userMessage.length)) {
       this.emitter.emit({ type: 'orchestrating', orchestrating: true })
       try {
         const backend = resolveOrchestratorBackend(this.settings)
@@ -288,6 +288,21 @@ export class AgentRunner {
           orchestrating: false,
           content: result.plan || undefined
         })
+        if (
+          shouldAwaitPlanConfirmation(this.settings) &&
+          orchestratorPlanHint &&
+          this.confirmPlan
+        ) {
+          const approved = await this.confirmPlan(orchestratorPlanHint)
+          if (!approved) {
+            this.emitter.emit({
+              type: 'context',
+              content: '⏹ Выполнение отменено — план не подтверждён.'
+            })
+            this.emitter.emit({ type: 'done' })
+            return
+          }
+        }
       } catch (err) {
         console.error('[AgentRunner] orchestrator error:', err)
         this.emitter.emit({ type: 'orchestrating', orchestrating: false, error: String(err) })

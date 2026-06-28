@@ -197,7 +197,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   // Координационные рефы между хуками — созданы здесь, переданы в оба.
   const dispatch = useAgentDispatch()
-  const { runModel, runStats, agentPhase } = useAgentState()
+  const { runModel, runStats, agentPhase, planAwaitingConfirm } = useAgentState()
 
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
@@ -922,6 +922,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     lastVisibleMessage?.role === 'assistant' &&
     /\?\s*$/.test(lastVisibleMessage.content.trimEnd())
 
+  const handlePlanConfirm = useCallback(
+    (approved: boolean) => {
+      if (!planAwaitingConfirm) return
+      window.codeviper.respondAgentPlanConfirm(planAwaitingConfirm.id, approved)
+      dispatch({ type: 'SET_PLAN_AWAITING_CONFIRM', pending: null })
+    },
+    [planAwaitingConfirm, dispatch]
+  )
+
   const addDroppedFiles = useCallback(
     (entries: DroppedFile[]) => {
       setDroppedFiles((prev) => {
@@ -1007,6 +1016,32 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onOpenRecentProject={onOpenRecentProject}
         onBrowseProject={onPickProject}
       />
+
+      {planAwaitingConfirm && (
+        <div className={styles.planConfirmBanner} role="status">
+          <div className={styles.planConfirmHeader}>
+            <span className={styles.clarifyIcon}>📋</span>
+            <span>Подтвердите план перед выполнением</span>
+          </div>
+          <pre className={styles.planConfirmBody}>{planAwaitingConfirm.plan}</pre>
+          <div className={styles.planConfirmActions}>
+            <button
+              type="button"
+              className={styles.planConfirmCancel}
+              onClick={() => handlePlanConfirm(false)}
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              className={styles.planConfirmExecute}
+              onClick={() => handlePlanConfirm(true)}
+            >
+              Выполнить
+            </button>
+          </div>
+        </div>
+      )}
 
       {awaitingClarification && (
         <div className={styles.clarifyBanner} role="status">

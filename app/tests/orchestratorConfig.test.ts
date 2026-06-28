@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   isOrchestratorConfigured,
   resolveOrchestratorBackend,
-  resolveOrchestratorOllamaModel
+  resolveOrchestratorOllamaModel,
+  shouldAwaitPlanConfirmation,
+  shouldRunOrchestratorAnalysis
 } from '../shared/orchestrator'
 import { ORCHESTRATOR_DEFAULT_OLLAMA_MODEL } from '../shared/constants'
 
@@ -40,5 +42,20 @@ describe('orchestrator config', () => {
         orchestratorModelPath: '/x.gguf'
       })
     ).toBe(true)
+  })
+
+  it('shouldRunOrchestratorAnalysis при planBeforeExecute без orchestratorEnabled', () => {
+    expect(
+      shouldRunOrchestratorAnalysis({ orchestratorBackend: 'ollama', planBeforeExecute: true }, 50)
+    ).toBe(true)
+    expect(
+      shouldRunOrchestratorAnalysis({ orchestratorBackend: 'ollama', planBeforeExecute: true }, 10)
+    ).toBe(false)
+    expect(shouldRunOrchestratorAnalysis({ orchestratorBackend: 'ollama' }, 50)).toBe(false)
+  })
+
+  it('shouldAwaitPlanConfirmation только при planBeforeExecute', () => {
+    expect(shouldAwaitPlanConfirmation({ planBeforeExecute: true })).toBe(true)
+    expect(shouldAwaitPlanConfirmation({})).toBe(false)
   })
 })

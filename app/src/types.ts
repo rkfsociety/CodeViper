@@ -479,6 +479,7 @@ export interface AgentStreamPayload {
     | 'preview'
     | 'trace'
     | 'orchestrating'
+    | 'plan_awaiting_confirm'
     | 'exploring'
     | 'editing'
     | 'retry_429'
@@ -515,6 +516,8 @@ export interface AgentStreamPayload {
   traceEvent?: AgentTraceEvent
   /** Агент строит план действий (type === 'orchestrating') */
   orchestrating?: boolean
+  /** Ожидание подтверждения плана (type === 'plan_awaiting_confirm') */
+  planConfirmId?: string
   /** Субагент-разведчик анализирует проект (type === 'exploring') */
   exploring?: boolean
   /** Сводка от explorer-субагента — добавляется в системный промпт */
@@ -764,6 +767,7 @@ export interface CodeViperAPI {
   respondAgentConfirm: (id: string, approved: boolean) => void
   onAgentClarify: (callback: (request: AgentClarifyRequest) => void) => () => void
   respondAgentClarify: (id: string, answer: string | null) => void
+  respondAgentPlanConfirm: (id: string, approved: boolean) => void
   respondAgentPreview: (id: string, apply: boolean) => void
   respondAgentPreviewHunkSelection: (id: string, selectedIndices: number[]) => void
   shareAsGist: (

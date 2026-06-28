@@ -375,6 +375,13 @@ export function useAgentStream({
         })
       }
 
+      if (event.type === 'plan_awaiting_confirm' && event.planConfirmId && event.content) {
+        dispatchRef.current({
+          type: 'SET_PLAN_AWAITING_CONFIRM',
+          pending: { id: event.planConfirmId, plan: event.content }
+        })
+      }
+
       if (event.type === 'exploring') {
         dispatchRef.current({ type: 'SET_EXPLORING', active: event.exploring !== false })
       }
@@ -482,6 +489,7 @@ export function useAgentStream({
         dispatchRef.current({ type: 'SET_PHASE', phase: 'idle' })
         dispatchRef.current({ type: 'SET_SUMMARIZING', value: false })
         dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
+        dispatchRef.current({ type: 'SET_PLAN_AWAITING_CONFIRM', pending: null })
         dispatchRef.current({ type: 'SET_RETRY_429', value: null })
         genStartRef.current = null
         runActiveRef.current = false

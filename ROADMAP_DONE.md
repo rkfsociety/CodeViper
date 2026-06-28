@@ -38,7 +38,7 @@
 - Провайдеры Claude/Gemini → `StreamingChatProvider`; агент на 6 модулей; параллельные tool calls; LRU-кэши
 
 ### Агент и инструменты
-- `planBeforeExecute` в settings: тумблер «Сначала показать план» в BehaviorTab (сохранение в settings.json)
+- `planBeforeExecute` в settings: тумблер «Сначала показать план» в BehaviorTab; пауза после плана с кнопкой «Выполнить» в чате
 - Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды, `disabledTools`
 - `list_pull_requests` — открытые PR и статус CI через gh (как панель PR в UI)
 - `list_roadmap` — список пунктов «В планах» из ROADMAP.md (num · title · chain)

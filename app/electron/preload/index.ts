@@ -400,6 +400,9 @@ const codeviper = {
   respondAgentClarify: (id: string, answer: string | null) =>
     ipcRenderer.send(IPC.AGENT_CLARIFY_RESPONSE, id, answer),
 
+  respondAgentPlanConfirm: (id: string, approved: boolean) =>
+    ipcRenderer.send(IPC.AGENT_PLAN_CONFIRM_RESPONSE, id, approved),
+
   respondAgentPreview: (id: string, apply: boolean) =>
     ipcRenderer.send(IPC.AGENT_PREVIEW_RESPONSE, id, apply),
 

@@ -8,6 +8,8 @@ export interface OrchestratorSettingsSlice {
   orchestratorModelPath?: string
   orchestratorOllamaModel?: string
   orchestratorEnabled?: boolean
+  planBeforeExecute?: boolean
+  orchestratorMinMessageLength?: number
 }
 
 /** GGUF, если явно выбран или уже скачан файл; иначе Ollama. */
@@ -30,4 +32,19 @@ export function isOrchestratorConfigured(settings: OrchestratorSettingsSlice): b
   const backend = resolveOrchestratorBackend(settings)
   if (backend === 'gguf') return !!settings.orchestratorModelPath?.trim()
   return !!resolveOrchestratorOllamaModel(settings)
+}
+
+/** Запускать analyze() при включённом оркестраторе или planBeforeExecute. */
+export function shouldRunOrchestratorAnalysis(
+  settings: OrchestratorSettingsSlice,
+  messageLength: number
+): boolean {
+  const minLen = settings.orchestratorMinMessageLength ?? 30
+  if (messageLength < minLen) return false
+  if (!isOrchestratorConfigured(settings)) return false
+  return settings.orchestratorEnabled === true || settings.planBeforeExecute === true
+}
+
+export function shouldAwaitPlanConfirmation(settings: { planBeforeExecute?: boolean }): boolean {
+  return settings.planBeforeExecute === true
 }

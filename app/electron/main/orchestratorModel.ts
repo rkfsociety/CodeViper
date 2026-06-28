@@ -218,3 +218,8 @@ export function parseOrchestratorResult(raw: string): OrchestratorResult {
 function parseResult(raw: string): OrchestratorResult {
   return parseOrchestratorResult(raw)
 }
+
+export {
+  shouldAwaitPlanConfirmation,
+  shouldRunOrchestratorAnalysis
+} from '../../shared/orchestrator'

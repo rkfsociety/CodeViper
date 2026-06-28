@@ -50,6 +50,73 @@
   font-size: 14px;
 }
 
+.planConfirmBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 10px 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #0d1b2a 0%, var(--bg-base) 100%);
+  font-size: 12px;
+  color: var(--text-secondary);
+  animation: clarify-fadein 0.2s ease;
+}
+
+.planConfirmHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-light, var(--blue-light));
+  font-weight: 500;
+}
+
+.planConfirmBody {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+  max-height: 160px;
+  overflow: auto;
+}
+
+.planConfirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.planConfirmCancel,
+.planConfirmExecute {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.planConfirmCancel {
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.planConfirmExecute {
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent-light, var(--blue-light));
+  font-weight: 600;
+}
+
+.planConfirmExecute:hover {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
 /* ── Область ввода ────────────────────────────────────── */
 .input {
   display: grid;

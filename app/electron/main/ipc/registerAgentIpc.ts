@@ -23,6 +23,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
     activeAgentAborts,
     pendingConfirms,
     pendingClarifies,
+    pendingPlanConfirms,
     pendingPreviews,
     pendingHunkSelections,
     syncTrayAgentBadge,
@@ -38,6 +39,23 @@ export function registerAgentIpc(ctx: IpcContext): void {
         }
         pendingPreviews.set(previewId, settle)
         signal.addEventListener('abort', () => settle(false), { once: true })
+      })
+  }
+
+  function makePlanConfirmFn(
+    signal: AbortSignal,
+    chatId: string
+  ): (plan: string) => Promise<boolean> {
+    return (plan) =>
+      new Promise<boolean>((resolve) => {
+        const id = makeId()
+        const settle = (approved: boolean) => {
+          pendingPlanConfirms.delete(id)
+          resolve(approved)
+        }
+        pendingPlanConfirms.set(id, settle)
+        signal.addEventListener('abort', () => settle(false), { once: true })
+        stream(chatId, { type: 'plan_awaiting_confirm', planConfirmId: id, content: plan })
       })
   }
 
@@ -107,6 +125,14 @@ export function registerAgentIpc(ctx: IpcContext): void {
     if (resolve) {
       pendingClarifies.delete(id)
       resolve(answer)
+    }
+  })
+
+  ipcMain.on(IPC.AGENT_PLAN_CONFIRM_RESPONSE, (_e, id: string, approved: boolean) => {
+    const resolve = pendingPlanConfirms.get(id)
+    if (resolve) {
+      pendingPlanConfirms.delete(id)
+      resolve(approved)
     }
   })
 
@@ -221,6 +247,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
           signal: abortCtrl.signal,
           confirm: makeConfirmFn(abortCtrl.signal),
           clarify: makeClarifyFn(abortCtrl.signal),
+          confirmPlan: makePlanConfirmFn(abortCtrl.signal, chatId),
           previewFn: makePreviewFn(abortCtrl.signal),
           chatId,
           hunkSelectionFn: (previewId) => {
