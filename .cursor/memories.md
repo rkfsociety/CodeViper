@@ -1,3 +1,5 @@
+2026-06-29 · trace 1782686538797 (follow-up) — оркестратор: `responseMentionsToolsWithoutCall` → retry + `injectHardToolCallingSystemHint`, abort после 3 симуляций; compact nudges/prompts для моделей ≤8B (`isCompactPromptModel`).
+
 2026-06-29 · trace 1782686538797 — ROADMAP п.1 «Ручная переиндексация» (qwen2.5-coder:7b): `ProjectTreePanel.tsx` без полного пути → ENOENT `app/components/`; модель симулировала tool calls текстом («Инструмент read_codeviper_file:\nПуть:») → 4 пункта плана заблокированы. Исправлено: `src/components` в ROADMAP_SEARCH_DIRS, подсказка `autoIndexProject`, `looksLikeSimulatedToolTranscript` в `looksLikeFakeToolOutput` (passthrough без block).
 
 2026-06-29 · trace 1782686071549 — ROADMAP п.1 «Ручная переиндексация»: `read_roadmap_item` вернул устаревший «OpenAI endpoint» — клон на `agent/self-improve` @ старом коммите, master впереди. Исправлено: `ensureSelfImproveBranch` — rebase `--autostash` на `origin/master` при каждом самоулучшении; новая ветка от `origin/master`.

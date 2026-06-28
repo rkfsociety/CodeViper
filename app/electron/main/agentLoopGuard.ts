@@ -5,9 +5,9 @@ import {
   taskLikelyNeedsMutation,
   taskLikelyNeedsTools,
   looksLikeFakeToolOutput,
+  pickFakeToolOutputNudge,
   EXPLORATION_STALL_NUDGE,
-  EXPLORATION_STALL_ABORT_MESSAGE,
-  FAKE_TOOL_OUTPUT_NUDGE
+  EXPLORATION_STALL_ABORT_MESSAGE
 } from '../../shared/actionVerification'
 import { escalateModel } from '../../shared/modelRouter'
 import {
@@ -170,7 +170,7 @@ export class LoopGuard {
       return {
         action: 'retry',
         nudgeMessage: fakeOutput
-          ? FAKE_TOOL_OUTPUT_NUDGE
+          ? pickFakeToolOutputNudge(this.settings.model)
           : afterExploration
             ? EXPLORATION_STALL_NUDGE
             : (notice ??

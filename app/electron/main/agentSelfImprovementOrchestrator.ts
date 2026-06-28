@@ -4,22 +4,25 @@ import type { ModelRuntime } from './modelRuntime'
 import type { AgentSettings } from '../../src/types'
 import {
   looksLikeAdviceInsteadOfAction,
-  looksLikeFakeToolOutput,
   looksLikePseudoToolInvocation,
+  responseMentionsToolsWithoutCall,
   shouldRetryForMissingTools,
-  TOOL_VERIFICATION_NUDGE
+  pickFakeToolOutputNudge,
+  MAX_SIMULATED_TOOL_RESPONSE_RETRIES,
+  SIMULATED_TOOL_ABORT_MESSAGE
 } from '../../shared/actionVerification'
 import {
   parsePlanFromAssistantText,
   syncPlanFromChecklist,
   formatPlanSummary,
-  CREATE_SELF_IMPROVEMENT_PLAN_NUDGE,
-  SELF_IMPROVE_PLAN_STUCK_MESSAGE,
-  SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE,
-  START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
+  pickCreateSelfImprovementPlanNudge,
+  pickStartSelfImprovementExplorationNudge,
+  pickRoadmapItemAlreadyReadNudge,
+  pickToolVerificationNudge,
   buildSelfImprovementContinueNudge,
   ROADMAP_DOCS_NOT_UPDATED_NUDGE,
-  ROADMAP_ITEM_ALREADY_READ_NUDGE,
+  SELF_IMPROVE_PLAN_STUCK_MESSAGE,
+  SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE,
   AUTO_ADOPT_ROADMAP_PLAN_AFTER_NUDGES,
   buildPlanFromRoadmapItem,
   parseRoadmapItemFromToolOutput,
@@ -55,6 +58,7 @@ export type SelfImproveNoToolAction =
       nudgeMessage: string
       requireTool: boolean
       clearDraft: boolean
+      injectHardToolHint?: boolean
       emitAssistant?: { text: string; thinking?: string }
     }
   | { action: 'passthrough' }
@@ -70,6 +74,7 @@ export class SelfImprovementOrchestrator {
   private userMessage = ''
   private lastNoToolText: string | null = null
   private textOnlyStreak = 0
+  private simulatedToolRetries = 0
 
   constructor(
     private readonly plan: SelfImprovementPlanStore,
@@ -90,6 +95,7 @@ export class SelfImprovementOrchestrator {
     this.lastReadRoadmapNum = null
     this.lastNoToolText = null
     this.textOnlyStreak = 0
+    this.simulatedToolRetries = 0
   }
 
   /** Предзагрузка пункта ROADMAP (agent.ts читает до первого шага модели). */
@@ -108,6 +114,9 @@ export class SelfImprovementOrchestrator {
   recordToolInvocations(
     invocations: Array<{ name: string; output: string; args?: Record<string, string> }>
   ): string | null {
+    if (invocations.length > 0) {
+      this.simulatedToolRetries = 0
+    }
     if (this.plan.has()) return null
 
     for (const inv of invocations) {
@@ -125,9 +134,11 @@ export class SelfImprovementOrchestrator {
 
       if (this.readRoadmapRepeatCount >= 1 && this.autoAdoptRoadmapPlan()) {
         const current = this.plan.get()
+        const model = this.settings.model
+        const alreadyRead = pickRoadmapItemAlreadyReadNudge(model)
         return current
-          ? `${ROADMAP_ITEM_ALREADY_READ_NUDGE}\n\n${buildSelfImprovementContinueNudge(current)}`
-          : ROADMAP_ITEM_ALREADY_READ_NUDGE
+          ? `${alreadyRead}\n\n${buildSelfImprovementContinueNudge(current, model)}`
+          : alreadyRead
       }
     }
     return null
@@ -203,8 +214,25 @@ export class SelfImprovementOrchestrator {
     assistantThinking: string | undefined,
     usedTools: boolean
   ): SelfImproveNoToolAction {
-    if (assistantText && looksLikeFakeToolOutput(assistantText)) {
-      return { action: 'passthrough' }
+    const model = this.settings.model
+
+    if (assistantText && responseMentionsToolsWithoutCall(assistantText)) {
+      this.simulatedToolRetries++
+      if (this.simulatedToolRetries >= MAX_SIMULATED_TOOL_RESPONSE_RETRIES) {
+        return { action: 'error', content: SIMULATED_TOOL_ABORT_MESSAGE }
+      }
+      const currentPlan = this.plan.get()
+      let nudgeMessage = pickFakeToolOutputNudge(model)
+      if (currentPlan && this.plan.hasPending()) {
+        nudgeMessage = `${nudgeMessage}\n\n${buildSelfImprovementContinueNudge(currentPlan, model)}`
+      }
+      return {
+        action: 'continue',
+        nudgeMessage,
+        requireTool: true,
+        clearDraft: true,
+        injectHardToolHint: true
+      }
     }
 
     const adoptedPlan = assistantText ? this.adoptPlanFromText(assistantText) : false
@@ -234,7 +262,7 @@ export class SelfImprovementOrchestrator {
             if (planNow) {
               return {
                 action: 'continue',
-                nudgeMessage: `${ROADMAP_ITEM_ALREADY_READ_NUDGE}\n\n${buildSelfImprovementContinueNudge(planNow)}`,
+                nudgeMessage: `${pickRoadmapItemAlreadyReadNudge(model)}\n\n${buildSelfImprovementContinueNudge(planNow, model)}`,
                 requireTool: true,
                 clearDraft: true
               }
@@ -282,9 +310,9 @@ export class SelfImprovementOrchestrator {
       this.emitPlan(current)
       const nextItem = current.find((i) => !i.done && !i.blocked)
       if (nextItem) this.currentPlanItemId = nextItem.id
-      const baseNudge = buildSelfImprovementContinueNudge(current)
+      const baseNudge = buildSelfImprovementContinueNudge(current, model)
       const nudgeMessage =
-        this.textOnlyStreak >= 1 ? `${TOOL_VERIFICATION_NUDGE}\n\n${baseNudge}` : baseNudge
+        this.textOnlyStreak >= 1 ? `${pickToolVerificationNudge(model)}\n\n${baseNudge}` : baseNudge
       return {
         action: 'continue',
         nudgeMessage,
@@ -305,7 +333,7 @@ export class SelfImprovementOrchestrator {
           if (planNow) {
             return {
               action: 'continue',
-              nudgeMessage: buildSelfImprovementContinueNudge(planNow),
+              nudgeMessage: buildSelfImprovementContinueNudge(planNow, model),
               requireTool: true,
               clearDraft: true
             }
@@ -318,7 +346,7 @@ export class SelfImprovementOrchestrator {
         if (planNow) {
           return {
             action: 'continue',
-            nudgeMessage: buildSelfImprovementContinueNudge(planNow),
+            nudgeMessage: buildSelfImprovementContinueNudge(planNow, model),
             requireTool: true,
             clearDraft: true
           }
@@ -334,7 +362,7 @@ export class SelfImprovementOrchestrator {
         if (planNow) {
           return {
             action: 'continue',
-            nudgeMessage: buildSelfImprovementContinueNudge(planNow),
+            nudgeMessage: buildSelfImprovementContinueNudge(planNow, model),
             requireTool: true,
             clearDraft: true
           }
@@ -349,7 +377,7 @@ export class SelfImprovementOrchestrator {
       }
       return {
         action: 'continue',
-        nudgeMessage: CREATE_SELF_IMPROVEMENT_PLAN_NUDGE,
+        nudgeMessage: pickCreateSelfImprovementPlanNudge(model),
         requireTool: true,
         clearDraft: false
       }
@@ -358,7 +386,7 @@ export class SelfImprovementOrchestrator {
     if (!current && !usedTools) {
       return {
         action: 'continue',
-        nudgeMessage: START_SELF_IMPROVEMENT_EXPLORATION_NUDGE,
+        nudgeMessage: pickStartSelfImprovementExplorationNudge(model),
         requireTool: true,
         clearDraft: true
       }

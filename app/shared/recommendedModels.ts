@@ -205,6 +205,15 @@ function parseParamSizeB(parameterSize: string | undefined): number | null {
   return m ? parseFloat(m[1]!) : null
 }
 
+/** Модели ≤8B — короткие системные инструкции и nudge (qwen2.5-coder:7b, llama3.1:8b). */
+export function isCompactPromptModel(name: string, parameterSize?: string): boolean {
+  const sizeB = parseParamSizeB(parameterSize)
+  if (sizeB !== null) return sizeB <= 8
+  const n = normalizeModelTag(name || '')
+  if (!n) return false
+  return /:(7|8)b\b/i.test(n) || /[-_](7|8)b\b/i.test(n)
+}
+
 /**
  * Фильтрует модели, слишком маленькие для агент-режима (< MIN_AGENT_PARAMS_B B).
  * Если размер неизвестен — пропускаем модель (на всякий случай оставляем).

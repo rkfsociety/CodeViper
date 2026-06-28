@@ -5,7 +5,8 @@ import {
   filterDownloadableRecommendedModels,
   getModelPickerHint,
   groupRecommendedModelsByTier,
-  isToolCallingModel
+  isToolCallingModel,
+  isCompactPromptModel
 } from '../shared/recommendedModels'
 
 describe('recommendedModels', () => {
@@ -28,6 +29,13 @@ describe('recommendedModels', () => {
     expect(isToolCallingModel('deepseek-r1:14b')).toBe(false)
     expect(isToolCallingModel('mistral:7b')).toBe(false)
     expect(() => assertPullableToolModel('gemma2:9b')).toThrow(/tool calling/)
+  })
+
+  it('isCompactPromptModel — 7b/8b и parameterSize', () => {
+    expect(isCompactPromptModel('qwen2.5-coder:7b')).toBe(true)
+    expect(isCompactPromptModel('llama3.1:8b')).toBe(true)
+    expect(isCompactPromptModel('qwen2.5-coder:14b')).toBe(false)
+    expect(isCompactPromptModel('custom', '7B')).toBe(true)
   })
 
   it('разрешает скачивание только из каталога', () => {

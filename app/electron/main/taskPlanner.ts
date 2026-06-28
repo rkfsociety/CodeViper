@@ -35,6 +35,7 @@ export type PlannerAction =
       nudgeMessage: string
       requireTool: boolean
       clearDraft: boolean
+      injectHardToolHint?: boolean
       emitAssistant?: { text: string; thinking?: string }
     }
   | { kind: 'passthrough' }
@@ -106,6 +107,7 @@ class SelfImprovePlanningStrategy implements PlanningStrategy {
         nudgeMessage: action.nudgeMessage,
         requireTool: action.requireTool,
         clearDraft: action.clearDraft,
+        injectHardToolHint: action.injectHardToolHint,
         emitAssistant: action.emitAssistant
       }
     }

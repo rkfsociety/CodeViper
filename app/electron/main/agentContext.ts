@@ -15,7 +15,7 @@ import { buildMemoryContext } from './memory'
 import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
 import { getAgentTools, formatAgentToolsSummary } from './agentTools'
-import { SELF_IMPROVEMENT_MODE_PROMPT } from '../../shared/selfImprovement'
+import { pickSelfImprovementModePrompt } from '../../shared/selfImprovement'
 import {
   DEEP_REASONING_PROMPT,
   isThinkingModel,
@@ -29,12 +29,12 @@ import {
   MAX_TOOL_MESSAGE_CHARS
 } from '../../shared/contextLimits'
 import { compressContextMessages } from './contextSummarizer'
-import { searchRAGMessages } from './contextRAG'
+import { searchRAGMessages, PROJECT_RAG_COLLECTION } from './contextRAG'
 import type { VectorStoreConfig } from './vectorStore'
 import type { ProviderConfig } from '../../shared/modelProvider'
 import { redactMessagesForModel, redactSecrets } from '../../shared/secretRedaction'
 import { QdrantClient } from '@qdrant/js-client-rest'
-import { PROJECT_RAG_COLLECTION } from './contextRAG'
+import { pickHardToolCallingSystemHint } from '../../shared/actionVerification'
 
 /** Префикс ответа grep_files / search_in_project при отсутствии совпадений. */
 export const GREP_EMPTY_RESULT_PREFIX = 'Совпадений не найдено'
@@ -190,7 +190,8 @@ function buildSystemPrompt(
   cotReasoning = false,
   chatMode = false,
   customSystemPrompt = '',
-  nativeThinking = false
+  nativeThinking = false,
+  model = ''
 ): string {
   // В режиме Chat — только базовый промпт: без инструментов, дерева проекта и памяти.
   if (chatMode) {
@@ -214,7 +215,7 @@ function buildSystemPrompt(
   }
 
   if (selfImproveMode) {
-    parts.push(SELF_IMPROVEMENT_MODE_PROMPT)
+    parts.push(pickSelfImprovementModePrompt(model))
   }
 
   if (projectPath.trim()) {
@@ -463,7 +464,8 @@ export async function buildAgentContextPreview(
     cotReasoning,
     chatMode,
     options.customSystemPrompt ?? '',
-    nativeThinking
+    nativeThinking,
+    model
   )
 
   const adaptiveLimits = computeAdaptiveLimits(model, options.modelContextLength)
@@ -585,7 +587,7 @@ export async function buildAgentContextPreview(
       section(
         'self-improve',
         'Автономное самоулучшение',
-        SELF_IMPROVEMENT_MODE_PROMPT,
+        pickSelfImprovementModePrompt(model),
         'До выполнения всех пунктов'
       )
     )
@@ -653,6 +655,18 @@ export async function prepareAgentRunContext(
   )
 
   return { messages, preview }
+}
+
+/** Добавляет жёсткое напоминание о tool calling в system (после симуляции инструментов текстом). */
+export function injectHardToolCallingSystemHint(messages: OllamaMessage[], model: string): boolean {
+  const hint = pickHardToolCallingSystemHint(model)
+  const marker = hint.slice(0, 24)
+  const idx = messages.findIndex((m) => m.role === 'system')
+  if (idx < 0) return false
+  const current = messages[idx].content
+  if (current.includes(marker)) return false
+  messages[idx] = { role: 'system', content: `${current}\n\n${hint}` }
+  return true
 }
 
 export interface SummarizeChatHistoryResult {

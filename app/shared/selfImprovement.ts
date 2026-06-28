@@ -1,3 +1,6 @@
+import { isCompactPromptModel } from './recommendedModels'
+import { pickToolVerificationNudge } from './actionVerification'
+
 /** Ветка git по умолчанию для автономного самоулучшения (не master/main). */
 export const DEFAULT_SELF_IMPROVE_BRANCH = 'agent/self-improve'
 
@@ -100,7 +103,16 @@ export function isCodeViperSourceRelativePath(filePath: string): boolean {
 
 export const SELF_IMPROVE_TEST_IMPORTS_HINT = `**Тесты** (\`app/tests/*.test.ts\`): импорт из main — \`../electron/main/...\`, из shared — \`../shared/...\`, типы UI — \`../src/types\`. Не \`./modelRuntime\` и не пути к несуществующим файлам в tests/.`
 
-export function buildRoadmapSelfImproveHint(itemNum: number | null, sourceRoot: string): string {
+export function buildRoadmapSelfImproveHint(
+  itemNum: number | null,
+  sourceRoot: string,
+  model?: string
+): string {
+  if (model && isCompactPromptModel(model)) {
+    const n = itemNum ?? 'N'
+    return `## ROADMAP п.${n}
+Корень app/: \`${sourceRoot}\`. Только *_codeviper_*. Шаги: read_roadmap_item → read_codeviper_file (пути из «Файлы») → edit_codeviper_file → run_codeviper_command → ROADMAP/README → commit. Только tool_calls.`
+  }
   const itemLine = itemNum
     ? `Пункт ROADMAP: **${itemNum}**.`
     : 'Пункт ROADMAP: следующий из «В планах».'
@@ -862,6 +874,16 @@ ${SELF_IMPROVE_TEST_IMPORTS_HINT}
 
 Без steps пользователю — только tool_calling.`
 
+export const SELF_IMPROVEMENT_MODE_PROMPT_COMPACT = `## Самоулучшение
+Исходники app/: только *_codeviper_*. read_roadmap_item → read_codeviper_file → edit_codeviper_file → run_codeviper_command → ROADMAP/README → commit_and_push_self_edits.
+Только native tool_calls — не пиши «Инструмент …» / «Путь:» текстом.`
+
+export function pickSelfImprovementModePrompt(model: string): string {
+  return isCompactPromptModel(model)
+    ? SELF_IMPROVEMENT_MODE_PROMPT_COMPACT
+    : SELF_IMPROVEMENT_MODE_PROMPT
+}
+
 export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_improvement_plan по полям ROADMAP (Действие + Проверка + ROADMAP/README).
 Формат A — JSON: [{"id":"1","title":"…Действие…"},{"id":"2","title":"npm run typecheck"}]
 Формат B — список:
@@ -869,6 +891,8 @@ export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_im
 - npm run typecheck
 - ROADMAP: удалить пункт; ROADMAP_DONE: запись
 Только tool_calling. read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) и файлы из «Файлы» (*_codeviper_*, не read_file).`
+
+export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE_COMPACT = `set_self_improvement_plan: Действие + Проверка + ROADMAP/README. Только tool_calls.`
 
 export const AUTO_ADOPT_ROADMAP_PLAN_AFTER_NUDGES = 1
 
@@ -885,24 +909,63 @@ export const SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE =
 
 export const ROADMAP_ITEM_ALREADY_READ_NUDGE = `Пункт ROADMAP уже прочитан — не вызывай read_roadmap_item повторно. План создан автоматически; начни с read_codeviper_file для путей из «Файлы», затем edit_codeviper_file. Не вставляй текст ROADMAP в old_string — только фрагменты из read/grep.`
 
+export const ROADMAP_ITEM_ALREADY_READ_NUDGE_COMPACT = `ROADMAP прочитан. read_codeviper_file (пути из «Файлы») → edit_codeviper_file. Только tool_calls.`
+
 export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) → read_codeviper_file файлы из «Файлы» (ENOENT → create_codeviper_file) → set_self_improvement_plan. Не list_directory и не read_file проекта для app/. Не угадывай файлы (agent.ts в корне нет — смотри «Файлы» в ROADMAP).`
+
+export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE_COMPACT = `read_roadmap_item N → read_codeviper_file (пути из «Файлы») → edit_codeviper_file. Только tool_calls.`
+
+export function pickStartSelfImprovementExplorationNudge(model: string): string {
+  return isCompactPromptModel(model)
+    ? START_SELF_IMPROVEMENT_EXPLORATION_NUDGE_COMPACT
+    : START_SELF_IMPROVEMENT_EXPLORATION_NUDGE
+}
+
+export function pickCreateSelfImprovementPlanNudge(model: string): string {
+  return isCompactPromptModel(model)
+    ? CREATE_SELF_IMPROVEMENT_PLAN_NUDGE_COMPACT
+    : CREATE_SELF_IMPROVEMENT_PLAN_NUDGE
+}
+
+export function pickRoadmapItemAlreadyReadNudge(model: string): string {
+  return isCompactPromptModel(model)
+    ? ROADMAP_ITEM_ALREADY_READ_NUDGE_COMPACT
+    : ROADMAP_ITEM_ALREADY_READ_NUDGE
+}
+
+export { pickToolVerificationNudge }
 
 export const ROADMAP_DOCS_NOT_UPDATED_NUDGE = `Код и тесты готовы, но ROADMAP.md / ROADMAP_DONE.md / README.md не обновлены. edit_codeviper_file: удалить выполненный пункт из ROADMAP.md, перенумеровать с 1, запись в ROADMAP_DONE.md («Сделано»), счётчик в README — затем commit_and_push_self_edits.`
 
-export function buildSelfImprovementContinueNudge(plan: SelfImprovementItem[]): string {
+export function buildSelfImprovementContinueNudge(
+  plan: SelfImprovementItem[],
+  model?: string
+): string {
   const { done, total, pending } = planProgress(plan)
   const blocked = plan.filter((item) => item.blocked).length
   const next = pending[0]
+  const compact = model ? isCompactPromptModel(model) : false
 
   const blocked_info =
-    blocked > 0 ? `\n⚠️ Заблокировано ${blocked} пунктов (не переоформляй их).` : ''
+    blocked > 0
+      ? compact
+        ? ` Заблокировано: ${blocked}.`
+        : `\n⚠️ Заблокировано ${blocked} пунктов (не переоформляй их).`
+      : ''
 
   if (!next) {
-    const summary =
-      blocked > 0
+    const summary = compact
+      ? blocked > 0
+        ? `План ${done}/${total}.${blocked_info} Итог и завершение.`
+        : 'План выполнен. Краткий итог.'
+      : blocked > 0
         ? `${done} пункта выполнены${blocked_info}. Кратко подведи итог и заверши.`
         : 'Все пункты плана выполнены. Кратко подведи итог и заверши.'
     return summary
+  }
+
+  if (compact) {
+    return `План ${done}/${total}.${blocked_info} Следующий: «${next.title}» (id ${next.id}). Tool call → complete_self_improvement_item(id).`
   }
 
   return `План самоулучшения: выполнено ${done}/${total}.${blocked_info}

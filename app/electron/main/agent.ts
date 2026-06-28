@@ -15,6 +15,7 @@ import {
 } from '../../shared/actionVerification'
 import {
   prepareAgentRunContext,
+  injectHardToolCallingSystemHint,
   maybeAppendRagSearchHintAfterEmptyGrep,
   type OllamaMessage
 } from './agentContext'
@@ -396,7 +397,13 @@ export class AgentRunner {
     if (explorerSummary)
       hintParts.push(`## Разведка проекта (субагент-explorer)\n${explorerSummary}`)
     if (taskMode === 'self-improve' && isRoadmapSelfImprovementTask(userMessage)) {
-      hintParts.push(buildRoadmapSelfImproveHint(roadmapItemNum, getActiveAgentSourceRootPath()))
+      hintParts.push(
+        buildRoadmapSelfImproveHint(
+          roadmapItemNum,
+          getActiveAgentSourceRootPath(),
+          this.settings.model
+        )
+      )
       const doneLine = await findRoadmapDoneMatch(userMessage)
       if (doneLine) {
         hintParts.push(buildRoadmapAlreadyDoneHint(doneLine))
@@ -780,6 +787,14 @@ export class AgentRunner {
           if (planAction.kind === 'continue') {
             if (planAction.clearDraft && assistantText) messages.pop()
             if (planAction.clearDraft) this.emitter.emit({ type: 'clear_draft' })
+            if (planAction.injectHardToolHint) {
+              injectHardToolCallingSystemHint(messages, this.settings.model)
+              this.emitter.emit({
+                type: 'context',
+                content:
+                  '⚠️ Модель описала инструменты текстом без tool_calls — повтор с жёстким tool calling…'
+              })
+            }
             if (planAction.emitAssistant)
               this.emitter.emit({
                 type: 'assistant',

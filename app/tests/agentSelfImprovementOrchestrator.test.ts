@@ -18,7 +18,7 @@ describe('SelfImprovementOrchestrator', () => {
       store,
       emit,
       {} as never,
-      {} as never,
+      { model: 'qwen2.5-coder:7b' } as never,
       '/tmp/project'
     )
     return { store, emit, orchestrator }
@@ -34,7 +34,7 @@ describe('SelfImprovementOrchestrator', () => {
       args: { number: '1' }
     }
     const nudge = orchestrator.recordToolInvocations([inv])
-    expect(nudge).toContain('Пункт ROADMAP уже прочитан')
+    expect(nudge).toContain('ROADMAP')
     expect(store.has()).toBe(true)
     expect(store.get()?.[0].title).toContain('OpenAI client')
   })
@@ -52,7 +52,7 @@ describe('SelfImprovementOrchestrator', () => {
     expect(adopted.action).toBe('continue')
     expect(store.has()).toBe(true)
     if (adopted.action === 'continue') {
-      expect(adopted.nudgeMessage).toContain('Следующий пункт')
+      expect(adopted.nudgeMessage).toMatch(/Следующий/i)
     }
   })
 
@@ -77,7 +77,7 @@ describe('SelfImprovementOrchestrator', () => {
     )
   })
 
-  it('handleNoToolCalls passthrough при симуляции вывода инструмента', () => {
+  it('handleNoToolCalls retry при симуляции вывода инструмента', () => {
     const { store, orchestrator } = createOrchestrator()
     store.adopt(
       buildPlanFromRoadmapItem({
@@ -88,11 +88,17 @@ describe('SelfImprovementOrchestrator', () => {
     )
     const fake =
       'Для начала выполним несколько шагов для разведки:\n\nВывод: Чтение файла `a.ts` завершено.'
-    expect(orchestrator.handleNoToolCalls(fake, undefined, true)).toEqual({ action: 'passthrough' })
+    const result = orchestrator.handleNoToolCalls(fake, undefined, true)
+    expect(result.action).toBe('continue')
+    if (result.action === 'continue') {
+      expect(result.clearDraft).toBe(true)
+      expect(result.injectHardToolHint).toBe(true)
+      expect(result.requireTool).toBe(true)
+    }
     expect(store.get()?.[0].blocked).toBeFalsy()
   })
 
-  it('handleNoToolCalls passthrough при «Инструмент read_codeviper_file: Путь:» (trace 1782686538797)', () => {
+  it('handleNoToolCalls retry при «Инструмент read_codeviper_file: Путь:» (trace 1782686538797)', () => {
     const { store, orchestrator } = createOrchestrator()
     store.adopt(
       buildPlanFromRoadmapItem({
@@ -110,7 +116,30 @@ export async function indexProject() {}
 
 Инструмент complete_self_improvement_item:
 ID: 2`
-    expect(orchestrator.handleNoToolCalls(fake, undefined, true)).toEqual({ action: 'passthrough' })
+    const result = orchestrator.handleNoToolCalls(fake, undefined, true)
+    expect(result.action).toBe('continue')
+    if (result.action === 'continue') {
+      expect(result.injectHardToolHint).toBe(true)
+    }
+    expect(store.get()?.[0].blocked).toBeFalsy()
+  })
+
+  it('handleNoToolCalls abort после MAX симуляций tool calls', () => {
+    const { store, orchestrator } = createOrchestrator()
+    store.adopt(
+      buildPlanFromRoadmapItem({
+        num: 1,
+        action: 'правка',
+        verification: 'npm test'
+      })
+    )
+    const fake = 'Инструмент read_codeviper_file:\nПуть: x.ts\n\nСодержимое файла:\n'
+    for (let i = 0; i < 2; i++) {
+      const r = orchestrator.handleNoToolCalls(fake, undefined, true)
+      expect(r.action).toBe('continue')
+    }
+    const last = orchestrator.handleNoToolCalls(fake, undefined, true)
+    expect(last.action).toBe('error')
     expect(store.get()?.[0].blocked).toBeFalsy()
   })
 
@@ -152,7 +181,7 @@ ID: 2`
     expect(store.has()).toBe(true)
     if (result.action === 'continue') {
       expect(result.requireTool).toBe(true)
-      expect(result.nudgeMessage).toContain('Следующий пункт')
+      expect(result.nudgeMessage).toMatch(/Следующий/i)
     }
   })
 
@@ -175,7 +204,7 @@ grep_codeviper_files openaiProvider.ts "baseUrl"
     expect(result.action).toBe('continue')
     if (result.action === 'continue') {
       expect(result.nudgeMessage).toContain('STOP')
-      expect(result.nudgeMessage).toContain('Следующий пункт')
+      expect(result.nudgeMessage).toMatch(/Следующий/i)
     }
   })
 
