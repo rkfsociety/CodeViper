@@ -975,20 +975,6 @@ function AppContent() {
               Обновить Ollama
             </button>
             <button
-              className={`btn ${fileTreeOpen ? 'active' : ''}`}
-              onClick={() => toggleFileTree()}
-              disabled={!activeProjectPath}
-              title={
-                activeProjectPath
-                  ? fileTreeOpen
-                    ? 'Скрыть дерево файлов'
-                    : 'Показать дерево файлов'
-                  : 'Сначала выберите проект в чате'
-              }
-            >
-              Файлы
-            </button>
-            <button
               className={`btn ${terminalOpen ? 'active' : ''}`}
               onClick={() => setTerminalOpen((open) => togglePanel('terminalOpen', open))}
               disabled={!activeProjectPath}
@@ -1113,6 +1099,20 @@ function AppContent() {
           </section>
 
           <PanelResizer onDrag={resizeHistoryWidth} className="panel-resizer-history" />
+
+          {activeProjectPath && !fileTreeOpen && (
+            <div className="panel-tree-collapsed">
+              <button
+                type="button"
+                className="btn panel-header-tree-toggle panel-tree-expand-toggle"
+                onClick={() => toggleFileTree(true)}
+                title="Показать дерево файлов (Ctrl+B)"
+                aria-label="Показать дерево файлов"
+              >
+                ▶
+              </button>
+            </div>
+          )}
 
           {activeProjectPath && fileTreeOpen && (
             <section className="panel panel-tree">

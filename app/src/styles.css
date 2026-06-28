@@ -424,6 +424,21 @@ button {
   opacity: 1;
 }
 
+.panel-tree-collapsed {
+  width: 36px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.panel-tree-expand-toggle {
+  opacity: 0.85;
+}
+
 .terminal-output {
   overflow: auto;
   padding: 12px;
