@@ -64,6 +64,7 @@ import {
 } from './lib/sidePanelWidths'
 import { defaultUiLayoutState, mergeUiLayoutState, type UiLayoutPanels } from '../shared/uiLayout'
 import { loadUiLayoutWithMigration, scheduleSaveUiLayout } from './lib/uiLayoutPersistence'
+import { QuickOpenPalette } from './components/QuickOpenPalette'
 
 const DEFAULT_SETTINGS: AgentSettings = {
   ollamaUrl: 'http://127.0.0.1:11434',
@@ -125,6 +126,7 @@ function AppContent() {
   const [skillsRefreshKey, setSkillsRefreshKey] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false)
   const initialLayout = defaultUiLayoutState()
   const layoutRef = useRef(initialLayout)
   const [terminalOpen, setTerminalOpen] = useState(initialLayout.panels.terminalOpen)
@@ -175,6 +177,15 @@ function AppContent() {
       const next = !current
       persistLayout({ panels: { [key]: next } })
       return next
+    },
+    [persistLayout]
+  )
+
+  const openFilePreview = useCallback(
+    (relativePath: string) => {
+      setPreviewPath(relativePath)
+      setPreviewOpen(true)
+      persistLayout({ panels: { previewOpen: true } })
     },
     [persistLayout]
   )
@@ -659,6 +670,11 @@ function AppContent() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        setQuickOpenOpen(true)
+        return
+      }
       if (e.ctrlKey && e.key === ',') {
         e.preventDefault()
         setSettingsOpen(true)
@@ -689,6 +705,11 @@ function AppContent() {
         return
       }
       if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (quickOpenOpen) {
+          e.preventDefault()
+          setQuickOpenOpen(false)
+          return
+        }
         if (shortcutsOpen) {
           e.preventDefault()
           setShortcutsOpen(false)
@@ -705,7 +726,7 @@ function AppContent() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [createChat, toggleFileTree, settingsOpen, shortcutsOpen, busyChats])
+  }, [createChat, toggleFileTree, settingsOpen, shortcutsOpen, quickOpenOpen, busyChats])
 
   const createChatFromTemplate = useCallback(
     async (templateId: string, folderId: string | null = null) => {
@@ -1047,11 +1068,7 @@ function AppContent() {
               <ProjectTreePanel
                 projectPath={activeProjectPath}
                 onAskAgent={(path) => chatPanelRef.current?.insertFileMention(path)}
-                onFileOpen={(path) => {
-                  setPreviewPath(path)
-                  setPreviewOpen(true)
-                  persistLayout({ panels: { previewOpen: true } })
-                }}
+                onFileOpen={openFilePreview}
               />
             </section>
           )}
@@ -1216,6 +1233,13 @@ function AppContent() {
             </>
           )}
         </div>
+
+        <QuickOpenPalette
+          open={quickOpenOpen}
+          projectPath={activeProjectPath}
+          onClose={() => setQuickOpenOpen(false)}
+          onFileOpen={openFilePreview}
+        />
 
         {shortcutsOpen && (
           <Suspense fallback={null}>

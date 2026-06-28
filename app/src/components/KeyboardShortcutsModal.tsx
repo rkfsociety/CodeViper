@@ -24,6 +24,7 @@ const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['Ctrl', ','], label: 'Открыть настройки' },
       { keys: ['Ctrl', 'K'], label: 'Фокус на поле ввода' },
       { keys: ['Ctrl', 'Shift', 'N'], label: 'Новый чат' },
+      { keys: ['Ctrl', 'P'], label: 'Быстрое открытие файла (Quick Open)' },
       { keys: ['Ctrl', 'B'], label: 'Показать / скрыть дерево файлов' },
       { keys: ['Esc'], label: 'Остановить агента / Закрыть модалку' },
       { keys: ['?'], label: 'Показать шпаргалку горячих клавиш' }
