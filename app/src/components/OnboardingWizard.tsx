@@ -3,6 +3,7 @@ import type { AgentSettings, OllamaModel } from '../types'
 import { useModalA11y } from '../hooks/useModalA11y'
 import { CloudModelSelector } from './CloudModelSelector'
 import {
+  CODEVIPER_GITHUB_CLONE_URL,
   DEEPSEEK_MODEL_DEFAULT,
   filterOpenRouterModelsByTier,
   GEMINI_MODEL_DEFAULT
@@ -23,6 +24,8 @@ const PROVIDERS: { value: ModelProvider; label: string }[] = [
 ]
 
 const STEP_LABELS = ['Провайдер', 'Модель', 'Проект'] as const
+
+const EXAMPLE_PROMPTS_URL = `${CODEVIPER_GITHUB_CLONE_URL}/blob/master/docs/example-prompts.md`
 
 function defaultModelForProvider(provider: ModelProvider): string {
   switch (provider) {
@@ -256,6 +259,13 @@ export function OnboardingWizard({
                 Откройте папку проекта, с которым будете работать. Можно пропустить и выбрать проект
                 позже из панели чата.
               </p>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void window.codeviper.openExternal(EXAMPLE_PROMPTS_URL)}
+              >
+                Примеры запросов
+              </button>
             </>
           )}
         </div>
