@@ -13,6 +13,8 @@ interface Props {
   busy: boolean
   agentPhase: AgentPhase
   draftMessageId: string | null
+  /** Показывать текст reasoning; иначе только индикатор «Думаю…» */
+  showLiveThinking?: boolean
 }
 
 function humanizeToolName(name: string): string {
@@ -78,7 +80,14 @@ function ToolDetail({ m }: { m: ChatMessage }) {
   )
 }
 
-export function AgentWorkPanel({ work, message, busy, agentPhase, draftMessageId }: Props) {
+export function AgentWorkPanel({
+  work,
+  message,
+  busy,
+  agentPhase,
+  draftMessageId,
+  showLiveThinking = false
+}: Props) {
   const [expanded, setExpanded] = useState(false)
   const thinkingScrollRef = useRef<HTMLDivElement>(null)
   const wasActiveRef = useRef(false)
@@ -91,13 +100,15 @@ export function AgentWorkPanel({ work, message, busy, agentPhase, draftMessageId
     draftMessageId === work.liveAssistantId
   const toolsLive = work.tools.some((m) => m.content.startsWith('▶'))
   const active = thinkingLive || toolsLive
+  const hasThinking = work.thinking.trim().length > 0
+  const showThinkingText = showLiveThinking && hasThinking
 
   useLayoutEffect(() => {
-    if (!thinkingLive) return
+    if (!thinkingLive || !showThinkingText) return
     const el = thinkingScrollRef.current
     if (!el) return
     el.scrollTop = el.scrollHeight
-  }, [work.thinking, thinkingLive])
+  }, [work.thinking, thinkingLive, showThinkingText])
 
   useEffect(() => {
     if (wasActiveRef.current && !active) {
@@ -111,16 +122,20 @@ export function AgentWorkPanel({ work, message, busy, agentPhase, draftMessageId
     frozenDurationMs ??
     (active ? computeWorkDurationMs(work, message) : computeWorkDurationMs(work, message))
 
-  if (work.tools.length === 0 && !work.thinking.trim()) return null
+  if (work.tools.length === 0 && !hasThinking) return null
+  if (work.tools.length === 0 && hasThinking && !showThinkingText && !thinkingLive) return null
 
   if (active) {
     return (
       <div className={styles.live} role="status" aria-live="polite">
-        {thinkingLive && work.thinking.trim() && (
-          <div ref={thinkingScrollRef} className={styles.liveThinking}>
-            {work.thinking}
-          </div>
-        )}
+        {thinkingLive &&
+          (showThinkingText ? (
+            <div ref={thinkingScrollRef} className={styles.liveThinking}>
+              {work.thinking}
+            </div>
+          ) : (
+            <div className={styles.liveIndicator}>Думаю…</div>
+          ))}
         {toolsLive && <AllToolsGroup items={work.tools} />}
       </div>
     )
@@ -144,7 +159,7 @@ export function AgentWorkPanel({ work, message, busy, agentPhase, draftMessageId
       </button>
       {expanded && (
         <div className={styles.details}>
-          {work.thinking.trim() && <div className={styles.detailThinking}>{work.thinking}</div>}
+          {showThinkingText && <div className={styles.detailThinking}>{work.thinking}</div>}
           {work.tools.length > 0 && (
             <div className={toolStyles.list}>
               {work.tools.map((m) => (

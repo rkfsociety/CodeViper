@@ -21,7 +21,8 @@ export const MessageRow = memo(function MessageRow({
   onEdit,
   onRegenerate,
   onFileTimeline,
-  onSaveAsSkill
+  onSaveAsSkill,
+  showLiveThinking = false
 }: {
   message: ChatMessage
   work?: AgentWorkTrace
@@ -36,6 +37,7 @@ export const MessageRow = memo(function MessageRow({
   onRegenerate?: (message: ChatMessage) => void
   onFileTimeline?: (path: string) => void
   onSaveAsSkill?: (content: string) => void
+  showLiveThinking?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -115,6 +117,7 @@ export const MessageRow = memo(function MessageRow({
           busy={busy}
           agentPhase={agentPhase}
           draftMessageId={draftMessageId}
+          showLiveThinking={showLiveThinking}
         />
       )}
       {message.images && message.images.length > 0 && (

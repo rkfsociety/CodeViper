@@ -1001,6 +1001,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         recentProjects={settings.recentProjects}
         onOpenRecentProject={onOpenRecentProject}
         onBrowseProject={onPickProject}
+        showLiveThinking={settings.showLiveThinking === true}
       />
 
       {planAwaitingConfirm && (

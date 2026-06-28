@@ -239,6 +239,8 @@ export interface AgentSettings {
   linearApiKey?: string
   /** Исключать thinking из истории контекста (экономия 20-50% для think-моделей) */
   excludeThinkingFromHistory?: boolean
+  /** Показывать текст reasoning в чате во время генерации (по умолчанию — только «Думаю…») */
+  showLiveThinking?: boolean
   /** Размер контекста выбранной модели в токенах (сохраняется при выборе модели) */
   modelContextLength?: number
   /** Порог суммаризации контекста в процентах (50–85, дефолт 85) */

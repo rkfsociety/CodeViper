@@ -489,3 +489,59 @@ describe('liveRuntimeFromGit', () => {
     expect(loaded.model).toBe('gemini-2.5-flash-lite')
   })
 })
+
+describe('showLiveThinking', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockExistsSync.mockReturnValue(true)
+    mockDecryptString.mockImplementation((b: Buffer) => b.toString())
+  })
+
+  it('по умолчанию не сохраняется (выключено)', async () => {
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        ollamaUrl: 'http://127.0.0.1:11434',
+        model: '',
+        selfLearning: true,
+        autoModel: true,
+        permissionMode: 'acceptEdits',
+        clarifyMode: false,
+        deepReasoning: false,
+        excludeThinkingFromHistory: true,
+        autoPushSelfEdits: true,
+        summarizeModel: '',
+        modelProvider: 'ollama',
+        providerApiKey: '',
+        deepseekApiKey: '',
+        openaiApiKey: '',
+        openrouterApiKey: '',
+        geminiApiKey: '',
+        geminiRpm: 5,
+        geminiTier: 'free',
+        claudeApiKey: '',
+        groqApiKey: '',
+        togetherApiKey: '',
+        gitSyncOnStartup: true,
+        gitSyncStrategy: 'stash'
+      })
+    )
+
+    const loaded = await loadSettings()
+    expect(loaded.showLiveThinking).toBeUndefined()
+  })
+
+  it('сохраняется при включении', async () => {
+    mockReadFile.mockResolvedValue('{}')
+    mockExistsSync.mockReturnValue(false)
+
+    await saveSettings({
+      ollamaUrl: 'http://127.0.0.1:11434',
+      model: '',
+      showLiveThinking: true
+    })
+
+    const saved = JSON.parse(String(mockWriteFile.mock.calls[0]?.[1]))
+    expect(saved.showLiveThinking).toBe(true)
+  })
+})

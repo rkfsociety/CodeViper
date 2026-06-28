@@ -31,6 +31,7 @@ interface Props {
   recentProjects?: string[]
   onOpenRecentProject?: (path: string) => void
   onBrowseProject?: () => void
+  showLiveThinking?: boolean
 }
 
 function isNearBottom(el: HTMLElement): boolean {
@@ -59,7 +60,8 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
   onInsertPrompt,
   recentProjects,
   onOpenRecentProject,
-  onBrowseProject
+  onBrowseProject,
+  showLiveThinking = false
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const atBottomRef = useRef(true)
@@ -206,6 +208,7 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
       recentProjects={recentProjects}
       onOpenRecentProject={onOpenRecentProject}
       onBrowseProject={onBrowseProject}
+      showLiveThinking={showLiveThinking}
     />
   )
 })

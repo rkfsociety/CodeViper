@@ -38,6 +38,7 @@ interface Props {
   recentProjects?: string[]
   onOpenRecentProject?: (path: string) => void
   onBrowseProject?: () => void
+  showLiveThinking?: boolean
 }
 
 function renderWorkPanel(
@@ -47,6 +48,7 @@ function renderWorkPanel(
     agentPhase: AgentPhase
     draftMessageId: string | null
     message?: ChatMessage
+    showLiveThinking?: boolean
   }
 ) {
   if (!work || workTraceIsEmpty(work)) return null
@@ -57,6 +59,7 @@ function renderWorkPanel(
       busy={opts.busy}
       agentPhase={opts.agentPhase}
       draftMessageId={opts.draftMessageId}
+      showLiveThinking={opts.showLiveThinking}
     />
   )
 }
@@ -84,10 +87,11 @@ export function ChatMessages({
   onInsertPrompt,
   recentProjects = [],
   onOpenRecentProject,
-  onBrowseProject
+  onBrowseProject,
+  showLiveThinking = false
 }: Props) {
   const draftMessageId = draftMessageIdRef.current
-  const workOpts = { busy, agentPhase, draftMessageId }
+  const workOpts = { busy, agentPhase, draftMessageId, showLiveThinking }
 
   return (
     <div className={styles.messages} ref={scrollRef}>
@@ -177,6 +181,7 @@ export function ChatMessages({
                   onRegenerate={regenerateAssistantMessage}
                   onFileTimeline={onFileTimeline}
                   onSaveAsSkill={onSaveAsSkill}
+                  showLiveThinking={showLiveThinking}
                 />
               )
             }

@@ -195,6 +195,7 @@ export const AgentSettingsSchema = z.object({
   githubToken: z.string().optional(),
   autoAgentTraceReportOnError: z.boolean().optional(),
   excludeThinkingFromHistory: z.boolean().optional(),
+  showLiveThinking: z.boolean().optional(),
   modelContextLength: z.number().optional(),
   contextSummarizeThreshold: z.number().optional(),
   aggressiveCompression: z.boolean().optional(),

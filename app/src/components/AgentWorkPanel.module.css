@@ -2,6 +2,15 @@
   margin: 0 0 6px;
 }
 
+.liveIndicator {
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-faint);
+  opacity: 0.65;
+  user-select: none;
+}
+
 .liveThinking {
   max-height: 5.8em;
   overflow-y: auto;

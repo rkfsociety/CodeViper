@@ -219,6 +219,24 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
           <label className={styles.toggle}>
             <input
               type="checkbox"
+              checked={settings.showLiveThinking === true}
+              onChange={(e) => onSettingsChange({ showLiveThinking: e.target.checked })}
+            />
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.thumb} />
+            </span>
+            <span className={styles.toggleContent}>
+              <span className={styles.title}>Показывать reasoning в чате</span>
+              <span className={styles.desc}>
+                Во время генерации выводить текст размышлений think-моделей. По умолчанию только
+                индикатор «Думаю…» (статус-бар и блок инструментов)
+              </span>
+            </span>
+          </label>
+
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
               checked={settings.readonlyMode === true}
               onChange={(e) => onSettingsChange({ readonlyMode: e.target.checked })}
             />
