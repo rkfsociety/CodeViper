@@ -43,7 +43,12 @@ vi.mock('fs/promises', async (importOriginal) => {
   }
 })
 
-import { loadSettings, saveSettings, defaultLiveRuntimeFromGit } from '../electron/main/settings'
+import {
+  loadSettings,
+  saveSettings,
+  defaultLiveRuntimeFromGit,
+  resolveFirstRunCompleted
+} from '../electron/main/settings'
 import type { AgentSettings } from '../src/types'
 
 // ── Базовые настройки ────────────────────────────────────────────────────────
@@ -370,6 +375,46 @@ describe('liveRuntimeFromGit', () => {
 
     mockExistsSync.mockReturnValue(true)
     mockReadFile.mockResolvedValue(String(jsonCall![1]))
+    const loaded = await loadSettings()
+    expect(loaded.firstRunCompleted).toBe(true)
+  })
+
+  it('resolveFirstRunCompleted: cloud-провайдер без флага → true', () => {
+    expect(resolveFirstRunCompleted(makeSettings({ modelProvider: 'deepseek' }))).toBe(true)
+    expect(resolveFirstRunCompleted(makeSettings({ modelProvider: 'ollama' }))).toBe(false)
+  })
+
+  it('старый settings.json с deepseek без firstRunCompleted → true при загрузке', async () => {
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        ollamaUrl: 'http://127.0.0.1:11434',
+        model: 'deepseek-chat',
+        selfLearning: true,
+        autoModel: true,
+        permissionMode: 'acceptEdits',
+        clarifyMode: false,
+        deepReasoning: false,
+        excludeThinkingFromHistory: true,
+        autoPushSelfEdits: true,
+        summarizeModel: '',
+        modelProvider: 'deepseek',
+        providerApiKey: '',
+        deepseekApiKey: '',
+        openaiApiKey: '',
+        openrouterApiKey: '',
+        geminiApiKey: '',
+        geminiRpm: 5,
+        geminiTier: 'free',
+        openrouterTier: 'free',
+        claudeApiKey: '',
+        groqApiKey: '',
+        togetherApiKey: '',
+        gitSyncOnStartup: true,
+        gitSyncStrategy: 'stash'
+      })
+    )
     const loaded = await loadSettings()
     expect(loaded.firstRunCompleted).toBe(true)
   })

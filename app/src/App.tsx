@@ -264,6 +264,7 @@ function AppContent() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [installingUpdate, setInstallingUpdate] = useState(false)
   const [settingsReady, setSettingsReady] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
   const [clarifyReq, setClarifyReq] = useState<AgentClarifyRequest | null>(null)
   const [dangerApprovalPending, setDangerApprovalPending] = useState(false)
@@ -511,6 +512,21 @@ function AppContent() {
     return () => {
       active = false
     }
+  }, [])
+
+  useEffect(() => {
+    if (!settingsReady || window.codeviper.isE2e) return
+    if (settings.firstRunCompleted !== true) {
+      setOnboardingOpen(true)
+    }
+  }, [settingsReady, settings.firstRunCompleted])
+
+  const completeFirstRun = useCallback((patch?: Partial<AgentSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch, firstRunCompleted: true }
+      void window.codeviper.saveSettings(next)
+      return next
+    })
   }, [])
 
   useEffect(() => {
@@ -1317,13 +1333,14 @@ function AppContent() {
         )}
 
         <OnboardingWizard
-          open={settingsReady && settings.firstRunCompleted !== true && !window.codeviper.isE2e}
+          open={onboardingOpen}
           settings={settings}
           models={models}
           ollamaOnline={ollamaOnline}
           onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+          onCompleteFirstRun={completeFirstRun}
           onPickProject={pickProjectFromOnboarding}
-          onComplete={() => {}}
+          onComplete={() => setOnboardingOpen(false)}
         />
 
         <ConfirmDialog

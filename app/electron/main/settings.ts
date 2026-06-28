@@ -195,6 +195,27 @@ function migrateCloudApiKey(settings: LegacySettings): void {
   }
 }
 
+/** Уже настроивший приложение пользователь (до появления флага или без явного завершения визарда). */
+export function resolveFirstRunCompleted(settings: LegacySettings): boolean {
+  if (settings.firstRunCompleted === true) return true
+  if (settings.recentProjects?.length) return true
+  const apiKeys = [
+    settings.deepseekApiKey,
+    settings.openaiApiKey,
+    settings.openrouterApiKey,
+    settings.geminiApiKey,
+    settings.claudeApiKey,
+    settings.groqApiKey,
+    settings.togetherApiKey,
+    settings.providerApiKey
+  ]
+  if (apiKeys.some((key) => key?.trim())) return true
+  const provider = settings.modelProvider
+  if (provider && provider !== 'ollama') return true
+  if (settings.autoModel === false && settings.model?.trim()) return true
+  return false
+}
+
 function normalize(settings: LegacySettings): PersistedSettings {
   migrateCloudApiKey(settings)
 
@@ -328,7 +349,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
         }
       : {}),
     ...(settings.planBeforeExecute === true ? { planBeforeExecute: true } : {}),
-    firstRunCompleted: settings.firstRunCompleted === true
+    firstRunCompleted: resolveFirstRunCompleted(settings)
   }
 }
 
@@ -402,8 +423,10 @@ export async function loadSettings(): Promise<PersistedSettings> {
 
     const result = PersistedSettingsSchema.safeParse(json)
     if (result.success) {
+      const data = result.data as LegacySettings
       return {
         ...result.data,
+        firstRunCompleted: resolveFirstRunCompleted(data),
         liveRuntimeFromGit: resolveLiveRuntimeFromGit(result.data.liveRuntimeFromGit)
       }
     }

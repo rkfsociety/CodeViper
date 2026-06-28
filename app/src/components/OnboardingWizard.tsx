@@ -64,6 +64,7 @@ interface Props {
   models: OllamaModel[]
   ollamaOnline: boolean
   onSettingsChange: (patch: Partial<AgentSettings>) => void
+  onCompleteFirstRun: (patch?: Partial<AgentSettings>) => void
   onPickProject: () => Promise<void>
   onComplete: () => void
 }
@@ -74,6 +75,7 @@ export function OnboardingWizard({
   models,
   ollamaOnline,
   onSettingsChange,
+  onCompleteFirstRun,
   onPickProject,
   onComplete
 }: Props) {
@@ -109,44 +111,40 @@ export function OnboardingWizard({
     patchDraft(applyProviderPatch(draft, next))
   }
 
-  function handleSkip() {
-    onSettingsChange({ firstRunCompleted: true })
-    onComplete()
-  }
-
-  function handleNext() {
-    onSettingsChange({
+  function modelPatch(): Partial<AgentSettings> {
+    return {
       modelProvider: draft.modelProvider,
       model: draft.model,
       autoModel: draft.autoModel,
       openrouterTier: draft.openrouterTier,
       modelContextLength: draft.modelContextLength
-    })
-    setStep((s) => Math.min(3, s + 1))
+    }
+  }
+
+  function handleSkip() {
+    onCompleteFirstRun()
+    onComplete()
+  }
+
+  function handleNext() {
+    const nextStep = Math.min(3, step + 1)
+    const patch = modelPatch()
+    if (nextStep === 3) {
+      onCompleteFirstRun(patch)
+    } else {
+      onSettingsChange(patch)
+    }
+    setStep(nextStep)
   }
 
   async function handleOpenProject() {
-    onSettingsChange({
-      modelProvider: draft.modelProvider,
-      model: draft.model,
-      autoModel: draft.autoModel,
-      openrouterTier: draft.openrouterTier,
-      modelContextLength: draft.modelContextLength,
-      firstRunCompleted: true
-    })
+    onCompleteFirstRun(modelPatch())
     await onPickProject()
     onComplete()
   }
 
   function handleFinishWithoutProject() {
-    onSettingsChange({
-      modelProvider: draft.modelProvider,
-      model: draft.model,
-      autoModel: draft.autoModel,
-      openrouterTier: draft.openrouterTier,
-      modelContextLength: draft.modelContextLength,
-      firstRunCompleted: true
-    })
+    onCompleteFirstRun(modelPatch())
     onComplete()
   }
 
