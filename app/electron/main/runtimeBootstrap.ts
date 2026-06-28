@@ -11,6 +11,7 @@ import { getCodeViperSourceRoot, setSourceRootOverride } from './codeviperSource
 import { getBundledSourceAppRoot } from './bundledSourceBuild'
 import type { AgentSettings } from '../../src/types'
 import * as asarHandlerFactories from './runtimeHandlers'
+import { resetSelfCommitRuntimeCacheForTests } from './selfCommitRuntime'
 
 const RUNTIME_MAIN_FILE = join('out', 'main', 'index.js')
 const RUNTIME_HANDLERS_FILE = join('out', 'main', 'runtimeHandlers.js')
@@ -288,6 +289,7 @@ async function importHandlerModule(
 function resetRuntimeState(): void {
   cachedCloneFactories = null
   runtimeFromClone = false
+  resetSelfCommitRuntimeCacheForTests()
 }
 
 /** Фабрики handlers: клон (dynamic import) или asar (static). */

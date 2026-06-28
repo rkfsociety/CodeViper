@@ -15,7 +15,7 @@ import {
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
-import { commitAndPushSelfEdits, stageSelfEditsForRestart } from './selfCommit'
+import { commitAndPushSelfEditsRuntime, stageSelfEditsForRestartRuntime } from './selfCommitRuntime'
 import { getPendingCollectiveMemoryCount, queueCollectiveMemoryEntry } from './collectiveMemorySync'
 import { parseReflectionLearnings, addMemory } from './memory'
 
@@ -166,7 +166,10 @@ export class SelfImprovementOrchestrator {
 
   async autoCommitSelfEdits(userMessage: string, emit: typeof this.emit): Promise<void> {
     try {
-      const result = await commitAndPushSelfEdits(userMessage, this.settings.selfImproveBranch)
+      const result = await commitAndPushSelfEditsRuntime(
+        userMessage,
+        this.settings.selfImproveBranch
+      )
       emit({
         type: 'context',
         content: result.ok ? `🔁 Самоправки: ${result.message}` : `⚠️ Автокоммит: ${result.message}`
@@ -178,7 +181,7 @@ export class SelfImprovementOrchestrator {
 
   async stageSelfEditsForRestart(userMessage: string, emit: typeof this.emit): Promise<void> {
     try {
-      const result = await stageSelfEditsForRestart(userMessage)
+      const result = await stageSelfEditsForRestartRuntime(userMessage)
       emit({
         type: 'context',
         content: result.ok
