@@ -23,9 +23,9 @@ describe('roadmapParser', () => {
 
   it('парсит пункты «В планах»', async () => {
     const items = await listRoadmapItems()
-    expect(items.length).toBe(117)
+    expect(items.length).toBe(114)
     expect(items[0]?.num).toBe(1)
-    expect(items[0]?.title).toMatch(/OpenAI-compatible|endpoint/i)
+    expect(items[0]?.title).toMatch(/переиндексац/i)
   })
 
   it('formatRoadmapItemsList выводит num · title · chain', async () => {
@@ -51,8 +51,8 @@ describe('roadmapParser', () => {
     expect(text).toContain('Файлы:')
     expect(text).toContain('Действие:')
     expect(text).toContain('Проверка:')
-    expect(text).toContain('read_codeviper_file')
-    expect(text).toContain('electron/main/providers/openaiProvider.ts')
+    expect(text).toContain('ProjectTreePanel')
+    expect(text).toContain('index_project')
   })
 
   it('resolveRoadmapFileHints разрешает короткие имена из ROADMAP', () => {
