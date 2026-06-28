@@ -11,8 +11,10 @@ import {
   resolveRoadmapPath,
   formatRoadmapItemsList,
   readRoadmapItem,
-  formatRoadmapItemDetail
+  formatRoadmapItemDetail,
+  resolveRoadmapFileHints
 } from '../electron/main/roadmapParser'
+import { getCodeViperSourceRoot } from '../electron/main/codeviperSource'
 
 describe('roadmapParser', () => {
   it('находит ROADMAP.md в репозитории', () => {
@@ -21,9 +23,9 @@ describe('roadmapParser', () => {
 
   it('парсит пункты «В планах»', async () => {
     const items = await listRoadmapItems()
-    expect(items.length).toBe(118)
+    expect(items.length).toBe(117)
     expect(items[0]?.num).toBe(1)
-    expect(items[0]?.title).toMatch(/example-prompts|визард/i)
+    expect(items[0]?.title).toMatch(/OpenAI-compatible|endpoint/i)
   })
 
   it('formatRoadmapItemsList выводит num · title · chain', async () => {
@@ -44,11 +46,25 @@ describe('roadmapParser', () => {
   it('formatRoadmapItemDetail содержит все поля шаблона', async () => {
     const item = await readRoadmapItem(1)
     expect(item).not.toBeNull()
-    const text = formatRoadmapItemDetail(item!)
+    const text = formatRoadmapItemDetail(item!, getCodeViperSourceRoot())
     expect(text).toContain('Цель:')
     expect(text).toContain('Файлы:')
     expect(text).toContain('Действие:')
     expect(text).toContain('Проверка:')
+    expect(text).toContain('read_codeviper_file')
+    expect(text).toContain('electron/main/providers/openaiProvider.ts')
+  })
+
+  it('resolveRoadmapFileHints разрешает короткие имена из ROADMAP', () => {
+    const root = getCodeViperSourceRoot()
+    const hints = resolveRoadmapFileHints(
+      '`openaiProvider.ts`, `modelRuntime.ts`, `ModelTab/providers/`',
+      root
+    )
+    expect(hints).toContain('electron/main/providers/openaiProvider.ts')
+    expect(hints).toContain('electron/main/modelRuntime.ts')
+    expect(hints).toContain('src/components/SettingsModal/ModelTab.tsx')
+    expect(hints).toContain('ModelTab/providers/')
   })
 
   it('readRoadmapItem возвращает null для несуществующего номера', async () => {

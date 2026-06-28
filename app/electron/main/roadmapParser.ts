@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join, resolve } from 'path'
+import { join, resolve, basename } from 'path'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { getBundledSourceRoot } from './bundledSourceSync'
 import { extractRoadmapTitleFromTask } from '../../shared/selfImprovement'
@@ -246,9 +246,96 @@ export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | 
   return finishIfMatch()
 }
 
+const ROADMAP_PATH_ALIASES: Record<string, string[]> = {
+  'openaiprovider.ts': ['electron/main/providers/openaiProvider.ts'],
+  'modelruntime.ts': ['electron/main/modelRuntime.ts'],
+  'modeltab/providers': ['src/components/SettingsModal/ModelTab.tsx'],
+  'modeltab/providers/': ['src/components/SettingsModal/ModelTab.tsx']
+}
+
+const ROADMAP_SEARCH_DIRS = [
+  'electron/main/providers',
+  'electron/main',
+  'src/components/SettingsModal',
+  'tests'
+]
+
+function extractRoadmapFileRefs(filesField: string): string[] {
+  const refs = new Set<string>()
+  for (const match of filesField.matchAll(/`([^`]+)`/g)) {
+    refs.add(match[1].trim())
+  }
+  for (const part of filesField.split(/[,;]/)) {
+    const trimmed = part.trim().replace(/^`|`$/g, '')
+    if (trimmed && (/\.(tsx?|jsx?|md|css|mjs)$/i.test(trimmed) || trimmed.includes('/'))) {
+      refs.add(trimmed)
+    }
+  }
+  return [...refs]
+}
+
+function tryAddRoadmapPath(
+  sourceRoot: string,
+  rel: string,
+  seen: Set<string>,
+  out: string[]
+): void {
+  const norm = rel.replace(/\\/g, '/').replace(/^app\//, '')
+  if (!norm || seen.has(norm)) return
+  if (existsSync(join(sourceRoot, norm))) {
+    seen.add(norm)
+    out.push(norm)
+  }
+}
+
+/** Разрешает пути из поля «Файлы» ROADMAP в реальные пути относительно app/. */
+export function resolveRoadmapFileHints(filesField: string, sourceRoot: string): string {
+  const resolved: string[] = []
+  const seen = new Set<string>()
+
+  for (const ref of extractRoadmapFileRefs(filesField)) {
+    const key = ref.replace(/\\/g, '/').toLowerCase().replace(/\/$/, '')
+    const aliasPaths =
+      ROADMAP_PATH_ALIASES[key] ?? ROADMAP_PATH_ALIASES[basename(key).toLowerCase()]
+    if (aliasPaths) {
+      for (const p of aliasPaths) tryAddRoadmapPath(sourceRoot, p, seen, resolved)
+      continue
+    }
+
+    if (
+      ref.startsWith('electron/') ||
+      ref.startsWith('src/') ||
+      ref.startsWith('tests/') ||
+      ref.startsWith('shared/')
+    ) {
+      tryAddRoadmapPath(sourceRoot, ref, seen, resolved)
+      continue
+    }
+    if (ref.startsWith('app/')) {
+      tryAddRoadmapPath(sourceRoot, ref.slice(4), seen, resolved)
+      continue
+    }
+
+    const bn = basename(ref)
+    for (const dir of ROADMAP_SEARCH_DIRS) {
+      tryAddRoadmapPath(sourceRoot, `${dir}/${bn}`, seen, resolved)
+    }
+  }
+
+  if (resolved.length === 0) return ''
+
+  const lines = resolved.map((p) => `- ${p}`)
+  let note = ''
+  if (/ModelTab\/providers/i.test(filesField)) {
+    note =
+      '\n\nПримечание: каталога ModelTab/providers/ нет — UI провайдеров в src/components/SettingsModal/ModelTab.tsx.'
+  }
+  return `\n\nПути для read_codeviper_file (относительно app/):\n${lines.join('\n')}${note}`
+}
+
 /** Текстовый блок пункта для агента: цель / файлы / действие / проверка */
-export function formatRoadmapItemDetail(item: RoadmapItemDetail): string {
-  return [
+export function formatRoadmapItemDetail(item: RoadmapItemDetail, sourceRoot?: string): string {
+  const base = [
     `Пункт ${item.num} · ${item.size} · ${item.title} (${item.chain})`,
     '',
     `Цель: ${item.goal}`,
@@ -256,4 +343,6 @@ export function formatRoadmapItemDetail(item: RoadmapItemDetail): string {
     `Действие: ${item.action}`,
     `Проверка: ${item.verification}`
   ].join('\n')
+  const hints = sourceRoot ? resolveRoadmapFileHints(item.files, sourceRoot) : ''
+  return base + hints
 }

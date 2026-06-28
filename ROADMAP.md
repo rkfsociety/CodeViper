@@ -48,7 +48,7 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **1 · M · OpenAI-compatible произвольный endpoint** — уровень 2
 - **Цель:** провайдер `custom` — `baseUrl` + `apiKey` + model id (LM Studio, vLLM)  
-- **Файлы:** `openaiProvider.ts`, `modelRuntime.ts`, `ModelTab/providers/`  
+- **Файлы:** `electron/main/providers/openaiProvider.ts`, `electron/main/modelRuntime.ts`, `src/components/SettingsModal/ModelTab.tsx`, `tests/providers.integration.test.ts`  
 - **Действие:** переиспользовать OpenAI client с custom baseURL  
 - **Проверка:** ping к mock server
 

@@ -15,6 +15,7 @@ import {
   readRoadmapItem,
   findRoadmapDoneMatch
 } from './roadmapParser'
+import { getCodeViperSourceRoot } from './codeviperSource'
 
 function parseSelfImprovementPlanItems(raw: unknown): SelfImprovementItem[] {
   try {
@@ -54,7 +55,7 @@ export function createSelfImprovementToolHandlers(
         }
         return `Пункт ${num} не найден в ROADMAP.md (раздел «В планах»).`
       }
-      return formatRoadmapItemDetail(item)
+      return formatRoadmapItemDetail(item, getCodeViperSourceRoot())
     },
 
     set_self_improvement_plan: async (args: any) => {

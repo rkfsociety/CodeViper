@@ -5,6 +5,7 @@ import type {
   LoadedModel,
   ModelPlacement
 } from '../../../shared/modelProvider'
+import { throwProviderHttpError } from '../../../shared/providerErrors'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
 export class OpenAIProvider extends StreamingChatProvider implements ModelProvider {
@@ -259,7 +260,7 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
     } catch {
       /* keep raw body */
     }
-    throw new Error(`OpenAI API error ${status}: ${detail}`)
+    throwProviderHttpError(status, detail)
   }
 
   async ping(signal?: AbortSignal): Promise<boolean> {

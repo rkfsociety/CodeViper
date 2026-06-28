@@ -19,6 +19,7 @@ import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
 import { TaskPlanner } from './taskPlanner'
 import { CircuitBreakerOpenError } from './modelRuntime'
+import { ProviderBillingError } from '../../shared/providerErrors'
 import { ensureSelfImproveBranch } from './selfCommit'
 import {
   resolveSelfImproveBranch,
@@ -517,6 +518,18 @@ export class AgentRunner {
             })
             runSuccess = false
             traceRunEnd('error', { error: cbMessage, steps: step })
+            this.emitter.emit({ type: 'done' })
+            return
+          }
+          if (error instanceof ProviderBillingError) {
+            this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+              step,
+              durationMs: Date.now() - stepStartMs,
+              error: error.message
+            })
+            this.emitter.emit({ type: 'error', content: error.message })
+            runSuccess = false
+            traceRunEnd('error', { error: error.message, steps: step })
             this.emitter.emit({ type: 'done' })
             return
           }

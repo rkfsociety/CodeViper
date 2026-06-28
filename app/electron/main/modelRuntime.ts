@@ -18,6 +18,7 @@ import {
   GEMINI_MODEL_DEFAULT,
   OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
+import { ProviderBillingError } from '../../shared/providerErrors'
 
 // ─── Circuit Breaker ──────────────────────────────────────────────────────────
 
@@ -194,7 +195,8 @@ export class ModelRuntime {
     } catch (error) {
       // AbortError (отмена пользователем) не считается ошибкой провайдера.
       const isAbort = error instanceof DOMException && error.name === 'AbortError'
-      if (!isAbort) this.cb.onError(options.onCircuitBreaker)
+      const isBilling = error instanceof ProviderBillingError
+      if (!isAbort && !isBilling) this.cb.onError(options.onCircuitBreaker)
       throw error
     }
   }
