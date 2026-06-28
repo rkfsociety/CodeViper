@@ -39,6 +39,7 @@
 
 ### Агент и инструменты
 - `planBeforeExecute` в settings: тумблер «Сначала показать план» в BehaviorTab; пауза после плана с кнопкой «Выполнить» в чате
+- `firstRunCompleted` в settings: флаг завершения onboarding (default `false`, визард выставит `true`)
 - Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды, `disabledTools`
 - `list_pull_requests` — открытые PR и статус CI через gh (как панель PR в UI)
 - `list_roadmap` — список пунктов «В планах» из ROADMAP.md (num · title · chain)

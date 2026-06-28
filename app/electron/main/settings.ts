@@ -123,7 +123,8 @@ export const PersistedSettingsSchema = z.object({
   p2pNodePublicKey: z.string().optional(),
   uiLightMode: z.boolean().optional(),
   recentProjects: z.array(z.string()).optional(),
-  planBeforeExecute: z.boolean().optional()
+  planBeforeExecute: z.boolean().optional(),
+  firstRunCompleted: z.boolean().default(false)
 })
 
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>
@@ -172,7 +173,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   milvusUrl: '',
   milvusApiKey: '',
   ragProvider: 'local' as const,
-  enabledPlugins: []
+  enabledPlugins: [],
+  firstRunCompleted: false
 }
 
 type LegacySettings = Partial<AgentSettings> & { cloudApiKey?: string }
@@ -325,7 +327,8 @@ function normalize(settings: LegacySettings): PersistedSettings {
             .slice(0, 10)
         }
       : {}),
-    ...(settings.planBeforeExecute === true ? { planBeforeExecute: true } : {})
+    ...(settings.planBeforeExecute === true ? { planBeforeExecute: true } : {}),
+    firstRunCompleted: settings.firstRunCompleted === true
   }
 }
 

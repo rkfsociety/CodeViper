@@ -289,6 +289,8 @@ export interface AgentSettings {
   orchestratorEnabled?: boolean
   /** Сначала показать план оркестратора перед вызовом инструментов */
   planBeforeExecute?: boolean
+  /** Onboarding-визард завершён (false при первой установке) */
+  firstRunCompleted?: boolean
   /** Минимальная длина сообщения для запуска оркестратора (символы) */
   orchestratorMinMessageLength?: number
   /** Запускать субагент-разведчик перед основным прогоном при сложных задачах */
