@@ -5,6 +5,7 @@ import type { ProviderConfig } from '../../shared/modelProvider'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
 import { compressContextMessages } from './contextSummarizer'
+import { buildMessageContextStats, type MessageContextStats } from './agentTrace'
 import { agentLogger } from './agentLogger'
 import {
   buildRequestGenerationMetrics,
@@ -29,6 +30,17 @@ const OLLAMA_KEEP_ALIVE = '5m'
 interface ToolCallShape {
   id?: string
   function: { name: string; arguments: Record<string, string> | string }
+}
+
+export interface CompressionStepResult {
+  changed: boolean
+  durationMs: number
+  attempted: boolean
+  before: MessageContextStats
+  after: MessageContextStats
+  summarized: boolean
+  truncated: boolean
+  droppedMessageCount: number
 }
 
 export interface ChatResult {
@@ -231,24 +243,35 @@ export class ContextManager {
     return getModelContextLimitTokens(model)
   }
 
-  /** Сжать messages на месте; возвращает true, если история изменилась. */
+  /** Сжать messages на месте; возвращает метрики для трейса. */
   async compressMessagesInPlace(
     messages: OllamaMessage[],
     model: string,
     selfImproveMode: boolean
-  ): Promise<boolean> {
+  ): Promise<CompressionStepResult> {
+    const toolsJsonChars = JSON.stringify(
+      getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
+    ).length
+    const threshold = this.resolveSummarizeThreshold()
+    const before = buildMessageContextStats(
+      messages,
+      model,
+      toolsJsonChars,
+      this.settings.modelContextLength,
+      threshold
+    )
+
+    const started = Date.now()
     let compressionNotified = false
     const compression = await compressContextMessages({
       messages,
       model,
       summarizeModel: this.summarizeModelResolved,
-      toolsJsonChars: JSON.stringify(
-        getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
-      ).length,
+      toolsJsonChars,
       providerConfig: this.summarizeProviderConfig,
       ollamaUrl: this.settings.ollamaUrl,
       signal: this.signal,
-      summarizeThresholdPercent: this.resolveSummarizeThreshold(),
+      summarizeThresholdPercent: threshold,
       knownContextLength: this.settings.modelContextLength,
       preferTruncateOverLlmSummarize: this.preferTruncateSummarize(),
       onCompressStart: () => {
@@ -257,7 +280,14 @@ export class ContextManager {
       }
     })
     if (compressionNotified) this.emitter.emit({ type: 'context', summarizing: false })
-    if (compression.summarized || compression.droppedMessageCount > 0) {
+
+    const changed =
+      compression.summarized ||
+      compression.truncated ||
+      compression.droppedMessageCount > 0 ||
+      compression.messages.length !== messages.length
+
+    if (changed) {
       messages.splice(0, messages.length, ...compression.messages)
       if (compression.summarized) {
         this.emitter.emit({
@@ -270,9 +300,26 @@ export class ContextManager {
           content: `📋 Контекст ~${compression.usagePercent}% — старые сообщения обрезаны`
         })
       }
-      return true
     }
-    return false
+
+    const after = buildMessageContextStats(
+      messages,
+      model,
+      toolsJsonChars,
+      this.settings.modelContextLength,
+      threshold
+    )
+
+    return {
+      changed,
+      durationMs: Date.now() - started,
+      attempted: compressionNotified,
+      before,
+      after,
+      summarized: compression.summarized,
+      truncated: compression.truncated,
+      droppedMessageCount: compression.droppedMessageCount
+    }
   }
 
   async chat(

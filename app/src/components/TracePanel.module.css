@@ -150,6 +150,16 @@
   line-height: 1.4;
 }
 
+.hint {
+  color: #888;
+  font-size: 10px;
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .toggle {
   color: #666;
   flex-shrink: 0;

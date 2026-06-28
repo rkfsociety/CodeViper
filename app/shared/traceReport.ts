@@ -1,6 +1,14 @@
 export interface TraceEvent {
   ts: number
-  kind: 'run_start' | 'llm_request' | 'llm_response' | 'tool_call' | 'tool_result' | 'run_end'
+  kind:
+    | 'run_start'
+    | 'llm_request'
+    | 'llm_response'
+    | 'tool_call'
+    | 'tool_result'
+    | 'context_compress'
+    | 'nudge'
+    | 'run_end'
   label: string
   data: Record<string, unknown>
 }
@@ -39,6 +47,9 @@ interface TraceSummary {
   durationMs: number | null
   stepCount: number
   toolsUsed: string[]
+  nudgeCount: number
+  contextCompressCount: number
+  maxContextUsagePercent: number | null
   errors: TraceError[]
 }
 
@@ -69,12 +80,30 @@ function summarizeTrace(events: TraceEvent[]): TraceSummary {
   const toolsUsed = new Set<string>()
   const errors: TraceError[] = []
   let stepCount = 0
+  let nudgeCount = 0
+  let contextCompressCount = 0
+  let maxContextUsagePercent: number | null = null
 
   for (const ev of events) {
     if (ev.kind === 'llm_request') {
       const step = asNumber(ev.data.step)
       if (step != null) stepCount = Math.max(stepCount, step)
+      const usage = asNumber(ev.data.usagePercent)
+      if (usage != null) {
+        maxContextUsagePercent =
+          maxContextUsagePercent == null ? usage : Math.max(maxContextUsagePercent, usage)
+      }
     }
+    if (ev.kind === 'context_compress') {
+      contextCompressCount++
+      const after = ev.data.after as Record<string, unknown> | undefined
+      const afterUsage = asNumber(after?.usagePercent)
+      if (afterUsage != null) {
+        maxContextUsagePercent =
+          maxContextUsagePercent == null ? afterUsage : Math.max(maxContextUsagePercent, afterUsage)
+      }
+    }
+    if (ev.kind === 'nudge') nudgeCount++
     if (ev.kind === 'tool_call') {
       const tool = asString(ev.data.tool)
       if (tool) toolsUsed.add(tool)
@@ -108,6 +137,9 @@ function summarizeTrace(events: TraceEvent[]): TraceSummary {
     durationMs: asNumber(runEnd?.data.durationMs) ?? null,
     stepCount,
     toolsUsed: [...toolsUsed],
+    nudgeCount,
+    contextCompressCount,
+    maxContextUsagePercent,
     errors
   }
 }
@@ -143,6 +175,8 @@ function buildTimeline(events: TraceEvent[]): string[] {
       ev.kind === 'run_start' ||
       ev.kind === 'run_end' ||
       ev.kind === 'tool_call' ||
+      ev.kind === 'context_compress' ||
+      ev.kind === 'nudge' ||
       (ev.kind === 'tool_result' && isFailedTraceEvent(ev)) ||
       (ev.kind === 'llm_response' && isFailedTraceEvent(ev))
   )
@@ -214,6 +248,13 @@ export function buildTraceIssueReport(
     `- Модель: \`${summary.model}\` (${summary.provider})`,
     `- Длительность: ${formatDuration(summary.durationMs)}`,
     `- Шагов LLM: ${summary.stepCount || '—'}`,
+    ...(summary.maxContextUsagePercent != null
+      ? [`- Пик заполнения контекста: ${summary.maxContextUsagePercent}%`]
+      : []),
+    ...(summary.nudgeCount > 0 ? [`- Nudge-сообщений агента: ${summary.nudgeCount}`] : []),
+    ...(summary.contextCompressCount > 0
+      ? [`- Сжатий контекста: ${summary.contextCompressCount}`]
+      : []),
     `- Chat ID: \`${meta.chatId}\``,
     ...(meta.projectPath?.trim() ? [`- Проект: \`${meta.projectPath.trim()}\``] : []),
     ...(meta.reporterLogin ? [`- GitHub (gh): @${meta.reporterLogin}`] : [])

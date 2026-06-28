@@ -14,6 +14,7 @@
   "chatId": "...",
   "projectPath": "C:/path/to/project",
   "exportedAt": 1782668736976,
+  "traceSchemaVersion": 2,
   "events": [ ... ]
 }
 ```
@@ -33,13 +34,15 @@ Live-файл чата:
 | `kind` | Что искать в `data` |
 |--------|---------------------|
 | `run_start` | `model`, `provider`, `userMessage`, настройки прогона |
-| `llm_request` | размер контекста, системный промпт (если есть) |
-| `llm_response` | текст, `stop_reason`, нативные `tool_calls` |
-| `tool_call` | `toolName`, аргументы |
-| `tool_result` | вывод, строки «Ошибка: …», пустой результат |
-| `run_end` | `status`, причина завершения |
+| `llm_request` | размер контекста, `usagePercent`, `estimatedTokens`, `roles`, превью сообщений |
+| `llm_response` | текст, `emptyResponse`, thinking, `tool_calls`, токены |
+| `tool_call` | `toolName`, аргументы, `signature` (для детекта циклов) |
+| `tool_result` | вывод, `exitCode` для команд, `outputLen`, ошибки |
+| `context_compress` | `before`/`after` (usage%, tok, roles), `method`, `durationMs` |
+| `nudge` | `source` (loop_guard, self_improve, …), `preview` |
+| `run_end` | `status`, `steps`, `sessionTokens`, причина завершения |
 
-Схема: `app/shared/ipcContracts.ts` → `AgentTraceEventSchema`.
+Схема: `app/shared/ipcContracts.ts` → `AgentTraceEventSchema`. Версия экспорта: `traceSchemaVersion` (сейчас **2**) в JSON экспорта.
 
 ## Типичные паттерны сбоев
 

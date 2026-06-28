@@ -57,6 +57,8 @@ export function isCostLimitExceeded(estimatedCostUsd: number, maxCostUsd: number
 export const AGENT_STEP_TIMEOUT_MS = 120_000
 /** Таймаут вызова модели для суммаризации контекста (мс). По истечении — обрезка без LLM-сводки. */
 export const CONTEXT_SUMMARIZE_TIMEOUT_MS = 45_000
+/** Версия схемы JSON-трейса агента (экспорт / gist). */
+export const AGENT_TRACE_SCHEMA_VERSION = 2
 /** Максимальное суммарное время одного прогона агента (мс). По истечении — ошибка таймаута. */
 export const AGENT_RUN_TIMEOUT_MS = 24 * 60 * 60 * 1000
 /** Таймаут для режима автономного самообучения — значительно больше обычного. */

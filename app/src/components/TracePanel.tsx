@@ -16,7 +16,30 @@ const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
   llm_response: '#dcdcaa',
   tool_call: '#c586c0',
   tool_result: '#b5cea8',
+  context_compress: '#4fc1ff',
+  nudge: '#ce9178',
   run_end: '#4ec9b0'
+}
+
+function traceEventHint(ev: AgentTraceEvent): string | null {
+  const d = ev.data
+  if (ev.kind === 'llm_request' && typeof d.usagePercent === 'number') {
+    return `${d.usagePercent}% · ~${d.estimatedTokens ?? '?'} tok`
+  }
+  if (ev.kind === 'context_compress' && typeof d.method === 'string' && d.method !== 'none') {
+    const before = d.before as { usagePercent?: number } | undefined
+    const after = d.after as { usagePercent?: number } | undefined
+    if (before?.usagePercent != null && after?.usagePercent != null) {
+      return `${String(d.method)} · ${before.usagePercent}%→${after.usagePercent}%`
+    }
+    return String(d.method)
+  }
+  if (ev.kind === 'nudge' && typeof d.source === 'string') return d.source
+  if (ev.kind === 'tool_call' && typeof d.signature === 'string') {
+    return d.signature.length > 48 ? `${d.signature.slice(0, 48)}…` : d.signature
+  }
+  if (ev.kind === 'llm_response' && d.emptyResponse === true) return 'пустой ответ'
+  return null
 }
 
 function isErrorTraceEvent(ev: AgentTraceEvent): boolean {
@@ -207,6 +230,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
           const isError = isErrorTraceEvent(ev)
           const canReplay =
             ev.kind === 'llm_request' && onReplayFromStep != null && findRunStart(idx) != null
+          const hint = traceEventHint(ev)
           return (
             <div key={idx} className={`${styles.event}${isError ? ` ${styles.eventError}` : ''}`}>
               <div
@@ -222,6 +246,8 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
                 <span className={`${styles.label}${isError ? ` ${styles.labelError}` : ''}`}>
                   {ev.label}
                 </span>
+                {hint && <span className={styles.hint}>{hint}</span>}
+                {hint && <span className={styles.hint}>{hint}</span>}
                 {canReplay && (
                   <button
                     className={styles.replayBtn}

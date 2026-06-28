@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
 import type { AgentTraceEvent } from '../../src/types'
+import { AGENT_TRACE_SCHEMA_VERSION } from '../../shared/constants'
 import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
 
 const MAX_EVENTS = 2000
@@ -172,6 +173,7 @@ export async function exportAgentTrace(
     await mkdir(tracesDir, { recursive: true })
     const filePath = join(tracesDir, `${Date.now()}.json`)
     const payload = {
+      traceSchemaVersion: AGENT_TRACE_SCHEMA_VERSION,
       chatId,
       ...(projectPath?.trim() ? { projectPath: projectPath.trim() } : {}),
       exportedAt: Date.now(),

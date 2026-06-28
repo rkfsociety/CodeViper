@@ -13,7 +13,11 @@ import {
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
-import { prepareAgentRunContext, maybeAppendRagSearchHintAfterEmptyGrep } from './agentContext'
+import {
+  prepareAgentRunContext,
+  maybeAppendRagSearchHintAfterEmptyGrep,
+  type OllamaMessage
+} from './agentContext'
 import { buildVectorStoreConfig } from './vectorStore'
 import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
@@ -42,7 +46,16 @@ import {
 import { runSubagent } from './subagentRunner'
 
 import { ResponseEmitter } from './agentResponseEmitter'
-import { buildRunEndTraceData } from './agentTrace'
+import {
+  buildRunEndTraceData,
+  buildRunStartTraceData,
+  buildLlmRequestTraceData,
+  buildLlmResponseTraceData,
+  buildContextCompressTraceData,
+  buildNudgeTraceData,
+  type NudgeTraceSource
+} from './agentTrace'
+import { getAgentTools } from './agentTools'
 import { LoopGuard } from './agentLoopGuard'
 import { ContextManager } from './agentContextManager'
 import {
@@ -196,6 +209,17 @@ export class AgentRunner {
     )
   }
 
+  private pushNudge(
+    messages: OllamaMessage[],
+    step: number,
+    source: NudgeTraceSource,
+    content: string
+  ): void {
+    messages.push({ role: 'user', content })
+    const nudge = buildNudgeTraceData(step, source, content)
+    this.emitter.trace('nudge', nudge.label, nudge.data)
+  }
+
   async run(
     history: ChatMessage[],
     userMessage: string,
@@ -224,22 +248,30 @@ export class AgentRunner {
     }
 
     const runStartMs = Date.now()
+    const taskMode = TaskPlanner.detectMode(userMessage)
     void agentLogger.write({
       event: 'run_start',
       model: this.settings.model,
       message: userMessage.slice(0, 200)
     })
-    this.emitter.trace(
-      'run_start',
-      `▶ Старт — модель: ${this.settings.model} (${this.ctx.providerConfig.type})`,
-      {
-        model: this.settings.model,
-        provider: this.ctx.providerConfig.type,
-        message: userMessage
+    const runStartTrace = buildRunStartTraceData({
+      model: this.settings.model,
+      provider: this.ctx.providerConfig.type,
+      message: userMessage,
+      chatId: this.chatId,
+      taskMode,
+      settings: {
+        contextSummarizeThreshold: this.ctx.resolveSummarizeThreshold(),
+        aggressiveCompression: this.settings.aggressiveCompression === true,
+        modelContextLength: this.settings.modelContextLength,
+        permissionMode: this.settings.permissionMode ?? 'bypass',
+        chatMode: this.settings.chatMode === true,
+        cloudEnabled: this.settings.cloudEnabled === true,
+        selfImproveAutoPush: this.settings.autoPushSelfEdits !== false
       }
-    )
+    })
+    this.emitter.trace('run_start', runStartTrace.label, runStartTrace.data)
 
-    const taskMode = TaskPlanner.detectMode(userMessage)
     this.toolExecutor.beginRun(taskMode === 'self-improve')
     const roadmapItemNum = isRoadmapSelfImprovementTask(userMessage)
       ? parseRoadmapTaskItemNumber(userMessage)
@@ -442,31 +474,42 @@ export class AgentRunner {
         this.emitter.throwIfAborted()
         step++
 
-        await this.ctx.compressMessagesInPlace(
+        const compression = await this.ctx.compressMessagesInPlace(
           messages,
           this.settings.model,
           taskPlanner.isSelfImprove
         )
+        const compressTrace = buildContextCompressTraceData({
+          step,
+          durationMs: compression.durationMs,
+          before: compression.before,
+          after: compression.after,
+          summarized: compression.summarized,
+          truncated: compression.truncated,
+          droppedMessageCount: compression.droppedMessageCount,
+          attempted: compression.attempted
+        })
+        this.emitter.trace('context_compress', compressTrace.label, compressTrace.data)
 
         const stepStartMs = Date.now()
-        const ctxChars = messages.reduce(
-          (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
-          0
-        )
-        this.emitter.trace(
-          'llm_request',
-          `→ Запрос к модели (шаг ${step}, ${messages.length} сообщ., ~${Math.round(ctxChars / 4)} токенов)`,
-          {
-            step,
-            messageCount: messages.length,
-            contextChars: ctxChars,
-            messages: messages.map((m) => ({
-              role: m.role,
-              chars: typeof m.content === 'string' ? m.content.length : 0,
-              preview: typeof m.content === 'string' ? m.content.slice(0, 300) : ''
-            }))
-          }
-        )
+        const toolsJsonChars = JSON.stringify(
+          getAgentTools(
+            taskPlanner.isSelfImprove,
+            this.settings.disabledTools,
+            this.settings.mcpServers
+          )
+        ).length
+        const ctxChars = compression.after.contextChars
+        const llmRequestTrace = buildLlmRequestTraceData({
+          step,
+          messages,
+          model: this.settings.model,
+          toolsJsonChars,
+          knownContextLength: this.settings.modelContextLength,
+          summarizeThresholdPercent: this.ctx.resolveSummarizeThreshold(),
+          requireTool: requireToolNext
+        })
+        this.emitter.trace('llm_request', llmRequestTrace.label, llmRequestTrace.data)
         this.emitter.emit({ type: 'orchestrating', orchestrating: true })
 
         let response
@@ -502,7 +545,8 @@ export class AgentRunner {
             this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
               step,
               durationMs: Date.now() - stepStartMs,
-              error: cbMessage
+              error: cbMessage,
+              errorKind: 'circuit_breaker'
             })
             // Повторно эмитим состояние open — контекст мог быть сброшен в RESET при старте прогона
             this.emitter.emit({
@@ -543,11 +587,12 @@ export class AgentRunner {
             return
           }
           const errMsg = error instanceof Error ? error.message : String(error)
-          this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+          const errTrace = buildLlmResponseTraceData({
             step,
             durationMs: Date.now() - stepStartMs,
             error: errMsg
           })
+          this.emitter.trace('llm_response', errTrace.label, errTrace.data)
           runSuccess = false
           throw error
         }
@@ -588,21 +633,18 @@ export class AgentRunner {
             response.metrics?.tokensPerSec != null
               ? Math.round(response.metrics.tokensPerSec * 10) / 10
               : undefined
-          const label = toolNames.length
-            ? `← Ответ (шаг ${step}, ${durationMs}ms${tokens ? `, ${tokens}tok` : ''}) → инструменты: ${toolNames.join(', ')}`
-            : `← Ответ (шаг ${step}, ${durationMs}ms${tokens ? `, ${tokens}tok` : ''}) → текст (${assistantText.length} симв.)`
-          this.emitter.trace('llm_response', label, {
+          const llmResponseTrace = buildLlmResponseTraceData({
             step,
             durationMs,
             tokens,
             inputTokens: response.metrics?.requestInputTokens,
             outputTokens: response.metrics?.requestOutputTokens,
             toksPerSec: tps,
-            textLength: assistantText.length,
-            text: assistantText.slice(0, 500),
-            thinking: assistantThinking?.slice(0, 300),
+            text: assistantText,
+            thinking: assistantThinking,
             toolCalls: toolNames
           })
+          this.emitter.trace('llm_response', llmResponseTrace.label, llmResponseTrace.data)
         }
 
         const isCloud = this.ctx.providerConfig.type !== 'ollama'
@@ -696,7 +738,7 @@ export class AgentRunner {
                 content: planAction.emitAssistant.text,
                 thinking: planAction.emitAssistant.thinking
               })
-            messages.push({ role: 'user', content: planAction.nudgeMessage })
+            this.pushNudge(messages, step, 'task_planner', planAction.nudgeMessage)
             requireToolNext = planAction.requireTool
             continue
           }
@@ -722,10 +764,12 @@ export class AgentRunner {
                 ? '⚠️ Пустой ответ после разведки — повторяю с требованием правок…'
                 : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
             })
-            messages.push({
-              role: 'user',
-              content: afterExploration ? EXPLORATION_STALL_NUDGE : TOOL_VERIFICATION_NUDGE
-            })
+            this.pushNudge(
+              messages,
+              step,
+              afterExploration ? 'exploration_stall' : 'require_tool',
+              afterExploration ? EXPLORATION_STALL_NUDGE : TOOL_VERIFICATION_NUDGE
+            )
             requireToolNext = true
             continue
           }
@@ -835,7 +879,7 @@ export class AgentRunner {
               }))
             )
             if (autoNudge) {
-              messages.push({ role: 'user', content: autoNudge })
+              this.pushNudge(messages, step, 'self_improve', autoNudge)
               requireToolNext = true
               continue
             }
@@ -881,7 +925,7 @@ export class AgentRunner {
               }))
             )
             if (autoNudge) {
-              messages.push({ role: 'user', content: autoNudge })
+              this.pushNudge(messages, step, 'self_improve', autoNudge)
               requireToolNext = true
               continue
             }
@@ -897,7 +941,13 @@ export class AgentRunner {
               this.settings,
               ragGrepNudged
             )) || ragGrepNudged
-          if (batch.breakLoop) continue
+          if (batch.breakLoop) {
+            if (batch.breakMessage) {
+              const loopNudge = buildNudgeTraceData(step, 'loop_guard', batch.breakMessage)
+              this.emitter.trace('nudge', loopNudge.label, loopNudge.data)
+            }
+            continue
+          }
         }
 
         if (
@@ -909,7 +959,7 @@ export class AgentRunner {
 
         const scopeNudge = loopGuard.checkTaskScope(userMessage, mutatingToolsUsed, stepInvocations)
         if (scopeNudge) {
-          messages.push({ role: 'user', content: scopeNudge })
+          this.pushNudge(messages, step, 'scope', scopeNudge)
           requireToolNext = true
           continue
         }
@@ -928,7 +978,7 @@ export class AgentRunner {
             this.emitter.emit({ type: 'done' })
             return
           }
-          messages.push({ role: 'user', content: stallResult.message })
+          this.pushNudge(messages, step, 'exploration_stall', stallResult.message)
           requireToolNext = true
           continue
         }
