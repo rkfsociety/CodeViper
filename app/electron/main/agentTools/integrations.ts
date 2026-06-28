@@ -383,9 +383,10 @@ export const TODO_TOOLS = [
               type: 'object',
               properties: {
                 id: { type: 'string' },
-                title: { type: 'string' }
+                title: { type: 'string', description: 'Текст задачи (допустим alias: text)' },
+                text: { type: 'string', description: 'Текст задачи (alias для title)' }
               },
-              required: ['id', 'title']
+              required: ['id']
             }
           },
           title: {
