@@ -106,10 +106,33 @@ function validateImportPayload(raw: unknown): SavedChat[] {
 }
 
 function chatMatchesQuery(chat: SavedChat, query: string): boolean {
-  const haystack = [chat.title, chat.projectPath, formatProject(chat.projectPath)]
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  const haystack = [
+    chat.title,
+    chat.projectPath,
+    formatProject(chat.projectPath),
+    lastMessagePreview(chat)
+  ]
     .join(' ')
     .toLowerCase()
-  return haystack.includes(query)
+  return haystack.includes(q)
+}
+
+/** Текст последнего user/assistant сообщения для поиска (unit-тест). */
+export function lastMessagePreview(chat: SavedChat): string {
+  for (let i = chat.messages.length - 1; i >= 0; i--) {
+    const msg = chat.messages[i]
+    if (!msg) continue
+    if ((msg.role === 'user' || msg.role === 'assistant') && msg.content.trim()) {
+      return msg.content
+    }
+  }
+  return ''
+}
+
+export function chatMatchesSearchQuery(chat: SavedChat, query: string): boolean {
+  return chatMatchesQuery(chat, query)
 }
 
 function getChatIcon(chat: SavedChat): string {
@@ -286,31 +309,46 @@ export function ChatHistoryPanel({
   }, [store?.chats])
 
   const flatItems = useMemo<FlatItem[]>(() => {
+    const query = searchQuery.trim().toLowerCase()
+    const searching = query.length > 0
     const items: FlatItem[] = []
     for (const folder of folders) {
+      const folderChats = chatsByFolder.get(folder.id) ?? []
+      if (searching && folderChats.length === 0) continue
       items.push({ kind: 'folder-head', folder })
-      if (!collapsed[folder.id]) {
-        for (const chat of chatsByFolder.get(folder.id) ?? []) {
+      const folderCollapsed = searching ? false : collapsed[folder.id]
+      if (!folderCollapsed) {
+        for (const chat of folderChats) {
           items.push({ kind: 'folder-chat', chat, folderId: folder.id })
         }
       }
     }
     for (const projectPath of projectPaths) {
       const chats = chatsByProject.get(projectPath) ?? []
+      if (searching && chats.length === 0) continue
       items.push({
         kind: 'project-head',
         projectPath,
         label: formatProject(projectPath),
         count: chats.length
       })
-      if (!collapsedProjects[projectPath]) {
+      const projectCollapsed = searching ? false : collapsedProjects[projectPath]
+      if (!projectCollapsed) {
         for (const chat of chats) {
           items.push({ kind: 'project-chat', chat, projectPath })
         }
       }
     }
     return items
-  }, [folders, chatsByFolder, collapsed, collapsedProjects, chatsByProject, projectPaths])
+  }, [
+    folders,
+    chatsByFolder,
+    collapsed,
+    collapsedProjects,
+    chatsByProject,
+    projectPaths,
+    searchQuery
+  ])
 
   const rowVirtualizer = useVirtualizer({
     count: flatItems.length,
@@ -679,7 +717,7 @@ export function ChatHistoryPanel({
           type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Поиск по названию или проекту…"
+          placeholder="Поиск по названию или последнему сообщению…"
         />
         {tagFilter && (
           <div className={styles.tagFilter}>

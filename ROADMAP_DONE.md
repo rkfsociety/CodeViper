@@ -49,6 +49,7 @@
 - RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
 
 ### UX и UI
+- ChatHistoryPanel: поиск по заголовку и последнему сообщению; при фильтре скрываются пустые папки/проекты, группы разворачиваются
 - Resizable split layout: панель «Превью» справа от чата с перетаскиваемым разделителем; ширина и видимость в `ui-layout.json`
 - FilePreviewPanel: read-only просмотр файла с highlight.js (IPC `read-file`); ProjectTree → split-панель «Превью»
 - MessageBody: кнопка «Копировать» на каждом fenced code block (`navigator.clipboard.writeText`)
