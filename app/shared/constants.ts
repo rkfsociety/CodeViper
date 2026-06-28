@@ -55,6 +55,8 @@ export function isCostLimitExceeded(estimatedCostUsd: number, maxCostUsd: number
 
 /** Таймаут одного LLM-шага (мс). Зависший запрос прерывается и агент сообщает об ошибке. */
 export const AGENT_STEP_TIMEOUT_MS = 120_000
+/** Таймаут вызова модели для суммаризации контекста (мс). По истечении — обрезка без LLM-сводки. */
+export const CONTEXT_SUMMARIZE_TIMEOUT_MS = 45_000
 /** Максимальное суммарное время одного прогона агента (мс). По истечении — ошибка таймаута. */
 export const AGENT_RUN_TIMEOUT_MS = 24 * 60 * 60 * 1000
 /** Таймаут для режима автономного самообучения — значительно больше обычного. */

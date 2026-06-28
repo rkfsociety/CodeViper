@@ -5,6 +5,7 @@ import type {
   LoadedModel,
   ModelPlacement
 } from '../../../shared/modelProvider'
+import { getModelContextLimitTokens } from '../../../shared/contextLimits'
 import { modelsMatch } from '../../../shared/modelRouter'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
@@ -76,7 +77,7 @@ export class OllamaProvider extends StreamingChatProvider implements ModelProvid
           tools: options.tools,
           // tool_choice не поддерживается Ollama — не передаём
           keep_alive: options.keep_alive ?? 5 * 60,
-          num_ctx: 4096,
+          num_ctx: options.num_ctx ?? getModelContextLimitTokens(options.model),
           num_predict: options.max_tokens ?? 2048,
           ...(options.num_gpu != null ? { num_gpu: options.num_gpu } : {})
         })

@@ -442,6 +442,12 @@ export class AgentRunner {
         this.emitter.throwIfAborted()
         step++
 
+        await this.ctx.compressMessagesInPlace(
+          messages,
+          this.settings.model,
+          taskPlanner.isSelfImprove
+        )
+
         const stepStartMs = Date.now()
         const ctxChars = messages.reduce(
           (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
@@ -478,7 +484,8 @@ export class AgentRunner {
           )
           response = await Promise.race([
             this.ctx.chat(messages, this.settings.model, taskPlanner.isSelfImprove, {
-              requireTool: requireToolNext
+              requireTool: requireToolNext,
+              skipCompression: true
             }),
             stepTimeout
           ])

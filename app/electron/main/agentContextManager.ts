@@ -12,6 +12,7 @@ import {
   type GenerationMetrics
 } from '../../shared/generationMetrics'
 import { findModelPricing, estimateRequestCost } from '../../shared/constants'
+import { getModelContextLimitTokens } from '../../shared/contextLimits'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
   DEEPSEEK_API_BASE_URL,
@@ -211,11 +212,74 @@ export class ContextManager {
     return 85
   }
 
+  /** Ollama без облачной summarize-модели — только обрезка, без второго LLM-вызова. */
+  private preferTruncateSummarize(): boolean {
+    return (
+      this.providerConfig.type === 'ollama' &&
+      this.summarizeProviderConfig.type === 'ollama' &&
+      !(
+        this.settings.cloudEnabled &&
+        this.cloudProviderApiKey(this.settings.cloudProvider || 'deepseek')
+      )
+    )
+  }
+
+  private resolveNumCtx(model: string): number {
+    if (this.settings.modelContextLength && this.settings.modelContextLength > 0) {
+      return this.settings.modelContextLength
+    }
+    return getModelContextLimitTokens(model)
+  }
+
+  /** Сжать messages на месте; возвращает true, если история изменилась. */
+  async compressMessagesInPlace(
+    messages: OllamaMessage[],
+    model: string,
+    selfImproveMode: boolean
+  ): Promise<boolean> {
+    let compressionNotified = false
+    const compression = await compressContextMessages({
+      messages,
+      model,
+      summarizeModel: this.summarizeModelResolved,
+      toolsJsonChars: JSON.stringify(
+        getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
+      ).length,
+      providerConfig: this.summarizeProviderConfig,
+      ollamaUrl: this.settings.ollamaUrl,
+      signal: this.signal,
+      summarizeThresholdPercent: this.resolveSummarizeThreshold(),
+      knownContextLength: this.settings.modelContextLength,
+      preferTruncateOverLlmSummarize: this.preferTruncateSummarize(),
+      onCompressStart: () => {
+        compressionNotified = true
+        this.emitter.emit({ type: 'context', summarizing: true })
+      }
+    })
+    if (compressionNotified) this.emitter.emit({ type: 'context', summarizing: false })
+    if (compression.summarized || compression.droppedMessageCount > 0) {
+      messages.splice(0, messages.length, ...compression.messages)
+      if (compression.summarized) {
+        this.emitter.emit({
+          type: 'context',
+          content: `📋 Контекст ~${compression.usagePercent}% — суммаризация в ходе задачи`
+        })
+      } else if (compression.truncated) {
+        this.emitter.emit({
+          type: 'context',
+          content: `📋 Контекст ~${compression.usagePercent}% — старые сообщения обрезаны`
+        })
+      }
+      return true
+    }
+    return false
+  }
+
   async chat(
     messages: OllamaMessage[],
     model: string,
     selfImproveMode: boolean,
-    options?: { requireTool?: boolean }
+    options?: { requireTool?: boolean; skipCompression?: boolean }
   ): Promise<ChatResult> {
     if (this.providerConfig.type === 'ollama') {
       try {
@@ -237,37 +301,16 @@ export class ContextManager {
       }
     }
 
-    let compressionNotified = false
-    const compression = await compressContextMessages({
-      messages,
-      model,
-      summarizeModel: this.summarizeModelResolved,
-      toolsJsonChars: JSON.stringify(
-        getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
-      ).length,
-      providerConfig: this.summarizeProviderConfig,
-      signal: this.signal,
-      summarizeThresholdPercent: this.resolveSummarizeThreshold(),
-      onCompressStart: () => {
-        compressionNotified = true
-        this.emitter.emit({ type: 'context', summarizing: true })
-      }
-    })
-    if (compressionNotified) this.emitter.emit({ type: 'context', summarizing: false })
-    if (compression.summarized || compression.droppedMessageCount > 0) {
-      messages.splice(0, messages.length, ...compression.messages)
-      if (compression.summarized) {
-        this.emitter.emit({
-          type: 'context',
-          content: `📋 Контекст ~${compression.usagePercent}% — суммаризация в ходе задачи`
-        })
-      }
+    if (!options?.skipCompression) {
+      await this.compressMessagesInPlace(messages, model, selfImproveMode)
     }
 
     const isCloud = this.providerConfig.type !== 'ollama'
     const filteredMessages = isCloud
       ? filterMessagesForCloud(messages)
-      : messages.filter((msg) => msg.role !== 'tool')
+      : messages.map((msg) =>
+          msg.role === 'tool' ? { ...msg, role: 'user' as const, content: msg.content } : msg
+        )
 
     const chatMessages = redactMessagesForModel(
       filteredMessages.map((msg) => ({
@@ -295,6 +338,7 @@ export class ContextManager {
       ...(!isCloud && this.settings.ollamaNumGpu != null
         ? { num_gpu: this.settings.ollamaNumGpu }
         : {}),
+      ...(!isCloud ? { num_ctx: this.resolveNumCtx(model) } : {}),
       onRetry429: (waitMs: number, attempt: number) => {
         this.emitter.emit({ type: 'retry_429', retryWaitMs: waitMs, retryAttempt: attempt })
       },

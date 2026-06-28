@@ -121,4 +121,45 @@ describe('contextSummarizer', () => {
     expect(result.truncated).toBe(false)
     expect(onCompressStart).not.toHaveBeenCalled()
   })
+
+  it('preferTruncateOverLlmSummarize: обрезка без fetch к модели', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await compressContextMessages({
+      messages: hugeHistory(),
+      model: 'qwen2.5-coder:7b',
+      toolsJsonChars: 20_000,
+      ollamaUrl: 'http://127.0.0.1:11434',
+      preferTruncateOverLlmSummarize: true
+    })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(result.summarized).toBe(false)
+    expect(result.truncated).toBe(true)
+    expect(result.messages.length).toBeLessThan(hugeHistory().length)
+  })
+
+  it('dropSupersededErrors оставляет только последний результат одного инструмента', async () => {
+    const fileBody = 'export const x = 1\n'.repeat(800)
+    const messages: OllamaMessage[] = [
+      { role: 'system', content: 'sys' },
+      { role: 'user', content: 'task' },
+      { role: 'tool', content: `Инструмент read_codeviper_file:\n${fileBody}` },
+      { role: 'tool', content: `Инструмент read_codeviper_file:\n${fileBody}` },
+      { role: 'tool', content: `Инструмент read_codeviper_file:\n${fileBody}` },
+      { role: 'user', content: 'продолжай' }
+    ]
+
+    const result = await compressContextMessages({
+      messages,
+      model: 'qwen2.5-coder:7b',
+      toolsJsonChars: 500,
+      preferTruncateOverLlmSummarize: true,
+      summarizeThresholdPercent: 50
+    })
+
+    const toolMsgs = result.messages.filter((m) => m.role === 'tool')
+    expect(toolMsgs.length).toBeLessThanOrEqual(1)
+  })
 })

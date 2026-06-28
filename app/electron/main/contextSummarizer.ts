@@ -3,6 +3,7 @@ import {
   estimateMessageChars,
   MIN_RECENT_CONTEXT_MESSAGES
 } from '../../shared/contextLimits'
+import { CONTEXT_SUMMARIZE_TIMEOUT_MS } from '../../shared/constants'
 import { redactMessagesForModel } from '../../shared/secretRedaction'
 import type { OllamaMessage } from './agentContext'
 import { ModelRuntime } from './modelRuntime'
@@ -22,9 +23,16 @@ export interface ContextCompressionResult {
   estimatedTokens: number
 }
 
-function countPayloadChars(messages: OllamaMessage[], toolsJsonChars: number): number {
+function countPayloadChars(
+  messages: OllamaMessage[],
+  toolsJsonChars: number,
+  excludeToolMessages = false
+): number {
+  const payload = excludeToolMessages
+    ? messages.filter((message) => message.role !== 'tool')
+    : messages
   return (
-    messages.reduce((sum, message) => sum + estimateMessageChars(message.content), 0) +
+    payload.reduce((sum, message) => sum + estimateMessageChars(message.content), 0) +
     toolsJsonChars
   )
 }
@@ -52,17 +60,27 @@ async function summarizeWithProvider(
     .join('\n\n')
     .slice(0, 60_000)
 
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => timeoutController.abort(), CONTEXT_SUMMARIZE_TIMEOUT_MS)
+  const linkedSignal = signal
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : timeoutController.signal
+
   let summaryContent = ''
-  for await (const chunk of provider.chat({
-    model: summarizeModel,
-    messages: redactMessagesForModel([
-      { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
-      { role: 'user', content: `Суммаризируй диалог:\n\n${transcript}` }
-    ]),
-    temperature: 0.2,
-    signal
-  })) {
-    summaryContent += chunk.content
+  try {
+    for await (const chunk of provider.chat({
+      model: summarizeModel,
+      messages: redactMessagesForModel([
+        { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
+        { role: 'user', content: `Суммаризируй диалог:\n\n${transcript}` }
+      ]),
+      temperature: 0.2,
+      signal: linkedSignal
+    })) {
+      summaryContent += chunk.content
+    }
+  } finally {
+    clearTimeout(timeoutId)
   }
 
   return summaryContent.trim()
@@ -200,6 +218,13 @@ export async function compressContextMessages(options: {
   summarizeThresholdPercent?: number
   /** Оставлять результаты только последних N tool-вызовов; более старые → [результат обрезан]. Дефолт 5. */
   maxRecentToolResults?: number
+  /** Реальный размер контекста модели (из API), если известен */
+  knownContextLength?: number
+  /**
+   * Не вызывать LLM-суммаризацию — только обрезка/dedup.
+   * Для Ollama без облачной summarize-модели: второй тяжёлый вызов часто не укладывается в таймаут шага.
+   */
+  preferTruncateOverLlmSummarize?: boolean
 }): Promise<ContextCompressionResult> {
   const minRecent = options.minRecentMessages ?? MIN_RECENT_CONTEXT_MESSAGES
   const summarizeModel = options.summarizeModel?.trim() || options.model
@@ -217,7 +242,7 @@ export async function compressContextMessages(options: {
     computeContextUsage(
       countPayloadChars(messages, options.toolsJsonChars),
       options.model,
-      undefined,
+      options.knownContextLength,
       options.summarizeThresholdPercent
     )
 
@@ -250,7 +275,7 @@ export async function compressContextMessages(options: {
 
     droppedMessageCount += older.length
 
-    if (options.ollamaUrl || options.providerConfig) {
+    if (!options.preferTruncateOverLlmSummarize && (options.ollamaUrl || options.providerConfig)) {
       try {
         let summary = ''
 
@@ -275,7 +300,7 @@ export async function compressContextMessages(options: {
           continue
         }
       } catch {
-        // fallback — обрезка ниже
+        // fallback — обрезка ниже (таймаут summarize или ошибка провайдера)
       }
     }
 
