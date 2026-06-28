@@ -5,10 +5,16 @@ import { tmpdir } from 'os'
 
 const userDataDir = mkdtempSync(join(tmpdir(), 'cv-bundled-source-'))
 
+const appState = vi.hoisted(() => ({
+  isPackaged: false
+}))
+
 vi.mock('electron', () => ({
   app: {
     getPath: (name: string) => (name === 'userData' ? userDataDir : process.cwd()),
-    isPackaged: false
+    get isPackaged() {
+      return appState.isPackaged
+    }
   }
 }))
 
@@ -30,7 +36,6 @@ import {
   syncBundledSourceIfEnabled,
   type GitRunResult
 } from '../electron/main/bundledSourceSync'
-import { app } from 'electron'
 import { getBundledSourceAppRoot } from '../electron/main/bundledSourceBuild'
 
 describe('bundledSourceSync', () => {
@@ -347,7 +352,7 @@ describe('forceSyncBundledSource', () => {
 
 describe('peekBundledSourceUpdate', () => {
   afterEach(() => {
-    vi.mocked(app).isPackaged = false
+    appState.isPackaged = false
     setGitRunnerForTests(null)
     rmSync(join(userDataDir, 'source'), { recursive: true, force: true })
   })
@@ -359,7 +364,7 @@ describe('peekBundledSourceUpdate', () => {
   })
 
   it('сообщает о новых коммитах без checkout', async () => {
-    vi.mocked(app).isPackaged = true
+    appState.isPackaged = true
     mkdirSync(join(userDataDir, 'source', '.git'), { recursive: true })
 
     setGitRunnerForTests(async (_cwd, args) => {
