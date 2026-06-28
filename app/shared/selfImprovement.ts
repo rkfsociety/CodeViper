@@ -110,7 +110,9 @@ ${itemLine} Корень исходников CodeViper (app/): \`${sourceRoot}\
 
 **Пути:** относительно корня app/ (например \`tests/foo.test.ts\`, \`../ROADMAP.md\`, \`../ROADMAP_DONE.md\`). **Запрещено:** Program Files, папка .exe, app.asar — это не исходники.
 
-**Файл из «Файлы» отсутствует (ENOENT):** сразу create_codeviper_file с полным содержимым; не повторять read_*.
+**Файл из «Файлы» отсутствует (ENOENT):** read_codeviper_file эталон из той же папки → create_codeviper_file с полным содержимым.
+
+**UI (app/src/components/*.tsx):** modal-backdrop, useModalA11y, Dialogs.module.css — без выдуманных UI-kit. Настройки приложения — через AgentSettings (settings.json), не localStorage.
 
 ${SELF_IMPROVE_TEST_IMPORTS_HINT}
 
@@ -119,9 +121,81 @@ ${SELF_IMPROVE_TEST_IMPORTS_HINT}
 Не вызывай list_directory «для разведки», если пути уже в ROADMAP.`
 }
 
-export const READ_FILE_ENOENT_CREATE_HINT = `Файл не существует. Если он в ROADMAP «Файлы» как цель работы — вызови create_codeviper_file (полное содержимое). Не повторяй read_file/read_codeviper_file для того же пути.`
+export const READ_FILE_ENOENT_CREATE_HINT = `Файл не существует. Если он в ROADMAP «Файлы» как цель работы — вызови create_codeviper_file (полное содержимое). Сначала read_codeviper_file 1–2 файлов из той же папки (импорты, модалки). Не выдумывай UI-библиотеки. Не повторяй read_* для того же пути.`
 
 export const SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT = `Для исходников CodeViper используй read_codeviper_file / create_codeviper_file / edit_codeviper_file, не инструменты проекта. Корень — в блоке «Исходники CodeViper», не папка установки .exe.`
+
+export const SELF_IMPROVE_UI_REFERENCE_REQUIRED_HINT = `Перед create_codeviper_file для src/components/*.tsx прочитай эталон: read_codeviper_file app/src/components/ConfirmDialog.tsx (или KeyboardShortcutsModal.tsx, App.tsx) — затем создавай в том же стиле (modal-backdrop, useModalA11y, без сторонних UI-kit).`
+
+/** project_* → *_codeviper_* при самоулучшении, если путь в app/ / tests/ / ROADMAP. */
+export const SELF_IMPROVE_PROJECT_TO_CVI_TOOL: Record<string, string> = {
+  read_file: 'read_codeviper_file',
+  write_file: 'write_codeviper_file',
+  create_file: 'create_codeviper_file',
+  edit_file: 'edit_codeviper_file',
+  list_directory: 'list_codeviper_directory'
+}
+
+export function extractSelfImproveToolPath(toolName: string, args: Record<string, string>): string {
+  if (toolName === 'read_multiple_files') return ''
+  return String(args.path ?? args.from ?? '').trim()
+}
+
+export function mapSelfImproveProjectTool(
+  toolName: string,
+  args: Record<string, string>
+): { toolName: string; args: Record<string, string> } {
+  const mapped = SELF_IMPROVE_PROJECT_TO_CVI_TOOL[toolName]
+  if (!mapped) return { toolName, args }
+  const pathArg = extractSelfImproveToolPath(toolName, args)
+  if (!pathArg || !isCodeViperSourceRelativePath(pathArg)) return { toolName, args }
+  return { toolName: mapped, args }
+}
+
+export function isNewUiComponentPath(filePath: string): boolean {
+  const p = filePath.trim().replace(/\\/g, '/')
+  return /(?:^|\/)src\/components\/[^/]+\.tsx$/i.test(p)
+}
+
+export function isCodeViperUiReferencePath(filePath: string): boolean {
+  const p = filePath.trim().replace(/\\/g, '/').toLowerCase()
+  return (
+    p.includes('/src/components/') ||
+    /(?:^|\/)src\/app\.tsx$/i.test(p) ||
+    /(?:^|\/)app\.tsx$/i.test(p)
+  )
+}
+
+export function hasReadCodeViperUiReference(readKeys: Iterable<string>): boolean {
+  for (const key of readKeys) {
+    const pathPart = key.includes(':') ? key.split(':').slice(1).join(':') : key
+    if (isCodeViperUiReferencePath(pathPart)) return true
+  }
+  return false
+}
+
+/** Блокирует типичные галлюцинации при create/edit исходников CodeViper. */
+export function validateSelfImproveMutatingContent(
+  filePath: string,
+  content: string
+): string | null {
+  if (!content.trim()) return null
+  void filePath
+  if (/@some\//i.test(content)) {
+    return 'Ошибка: выдуманный npm-пакет (@some/…) — в проекте нет. read_codeviper_file эталонного компонента (ConfirmDialog.tsx) и копируй паттерн импортов.'
+  }
+  if (/localStorage\.(get|set)Item\s*\(\s*['"]firstRunCompleted/i.test(content)) {
+    return 'Ошибка: firstRunCompleted хранится в AgentSettings (loadSettings/saveSettings), не в localStorage. read_codeviper_file electron/main/settings.ts и src/App.tsx.'
+  }
+  if (
+    /React\.useState/i.test(content) &&
+    !/import\s+.*\bReact\b/.test(content) &&
+    !/import\s*\{[^}]*\buseState\b/.test(content)
+  ) {
+    return "Ошибка: React.useState без import — используй `import { useState } from 'react'` как в остальных компонентах."
+  }
+  return null
+}
 
 export const READ_FILE_ALREADY_IN_RUN_HINT = `Этот файл уже читался в текущем прогоне — используй содержимое из предыдущего ответа инструмента, не вызывай read_* снова.`
 

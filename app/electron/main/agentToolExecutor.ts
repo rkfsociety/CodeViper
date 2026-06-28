@@ -24,11 +24,16 @@ import { parseReadMultiplePaths } from '../../shared/readMultiplePaths'
 import {
   isCodeViperSourceRelativePath,
   isReadOutputTruncated,
+  isNewUiComponentPath,
+  hasReadCodeViperUiReference,
+  mapSelfImproveProjectTool,
+  validateSelfImproveMutatingContent,
   EDIT_OLD_STRING_NOT_FOUND_HINT,
   READ_FILE_ENOENT_CREATE_HINT,
   READ_FILE_ALREADY_IN_RUN_HINT,
   READ_FILE_TRUNCATED_HINT,
-  SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT
+  SELF_IMPROVE_WRONG_PROJECT_TOOL_HINT,
+  SELF_IMPROVE_UI_REFERENCE_REQUIRED_HINT
 } from '../../shared/selfImprovement'
 
 // Read-only инструменты — безопасно запускать параллельно (Promise.all).
@@ -350,6 +355,14 @@ export class ToolExecutor {
     args: Record<string, string>,
     id?: string
   ): Promise<ToolInvocationResult> {
+    let toolName = name
+    let toolArgs = args
+    if (this.selfImproveMode) {
+      const mapped = mapSelfImproveProjectTool(toolName, toolArgs)
+      toolName = mapped.toolName
+      toolArgs = mapped.args
+    }
+
     const debug = this.settings.debugAgent === true
     void agentLogger.write(buildToolCallLogEntry(debug, step, name, args))
     const callTrace = buildToolCallTraceData(step, name, args)
@@ -358,17 +371,22 @@ export class ToolExecutor {
       console.log(`[CodeViper:agent] ▶ ${name}`, args)
     }
 
+    const preflight = this.preflightSelfImproveTool(toolName, toolArgs)
     const toolStartMs = Date.now()
     let output = ''
     let threw = false
-    try {
-      output = await this.executeTool(name, args)
-    } catch (error) {
-      threw = true
-      output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+    if (preflight) {
+      output = preflight
+    } else {
+      try {
+        output = await this.executeTool(toolName, toolArgs)
+      } catch (error) {
+        threw = true
+        output = `Ошибка: ${error instanceof Error ? error.message : String(error)}`
+      }
     }
 
-    output = this.enrichToolOutput(name, args, output)
+    output = this.enrichToolOutput(toolName, toolArgs, output)
     const durationMs = Date.now() - toolStartMs
     const toolOk = isToolResultOk(threw, output)
 
@@ -392,6 +410,30 @@ export class ToolExecutor {
     }
 
     return { id, name, output }
+  }
+
+  /** Блокировка/валидация до вызова handler в режиме самоулучшения. */
+  private preflightSelfImproveTool(toolName: string, args: Record<string, string>): string | null {
+    if (!this.selfImproveMode) return null
+
+    if (toolName === 'create_codeviper_file' || toolName === 'write_codeviper_file') {
+      const contentErr = validateSelfImproveMutatingContent(args.path ?? '', args.content ?? '')
+      if (contentErr) return contentErr
+      if (
+        toolName === 'create_codeviper_file' &&
+        isNewUiComponentPath(args.path ?? '') &&
+        !hasReadCodeViperUiReference(this.readPathsThisRun.keys())
+      ) {
+        return SELF_IMPROVE_UI_REFERENCE_REQUIRED_HINT
+      }
+    }
+
+    if (toolName === 'edit_codeviper_file') {
+      const contentErr = validateSelfImproveMutatingContent(args.path ?? '', args.new_string ?? '')
+      if (contentErr) return contentErr
+    }
+
+    return null
   }
 
   async executeParallel(toolCalls: ToolCallInput[], step: number): Promise<ToolInvocationResult[]> {

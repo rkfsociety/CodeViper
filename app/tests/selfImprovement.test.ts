@@ -23,7 +23,11 @@ import {
   isPlanComplete,
   formatPlanSummary,
   buildSelfImprovementContinueNudge,
-  isReadOutputTruncated
+  isReadOutputTruncated,
+  mapSelfImproveProjectTool,
+  validateSelfImproveMutatingContent,
+  isNewUiComponentPath,
+  hasReadCodeViperUiReference
 } from '../shared/selfImprovement'
 
 describe('selfImprovement', () => {
@@ -75,6 +79,45 @@ describe('selfImprovement', () => {
     expect(isCodeViperSourceRelativePath('tests/agent.test.ts')).toBe(true)
     expect(isCodeViperSourceRelativePath('../ROADMAP.md')).toBe(true)
     expect(isCodeViperSourceRelativePath('src/App.tsx')).toBe(false)
+  })
+
+  it('редиректит project tools на codeviper при пути app/', () => {
+    expect(
+      mapSelfImproveProjectTool('read_file', {
+        path: 'app/src/components/Foo.tsx'
+      }).toolName
+    ).toBe('read_codeviper_file')
+    expect(mapSelfImproveProjectTool('read_file', { path: 'src/App.tsx' }).toolName).toBe(
+      'read_file'
+    )
+    expect(mapSelfImproveProjectTool('edit_file', { path: 'app/src/App.tsx' }).toolName).toBe(
+      'edit_codeviper_file'
+    )
+  })
+
+  it('блокирует галлюцинации в create/edit самоулучшения', () => {
+    expect(
+      validateSelfImproveMutatingContent('app/src/components/X.tsx', "import x from '@some/ui'")
+    ).toMatch(/@some/)
+    expect(
+      validateSelfImproveMutatingContent(
+        'app/src/App.tsx',
+        "localStorage.setItem('firstRunCompleted', 'true')"
+      )
+    ).toMatch(/AgentSettings/)
+    expect(
+      validateSelfImproveMutatingContent('app/src/App.tsx', 'const x = React.useState(false)')
+    ).toMatch(/useState/)
+    expect(validateSelfImproveMutatingContent('app/src/App.tsx', 'const ok = 1')).toBeNull()
+  })
+
+  it('требует эталон UI перед новым компонентом', () => {
+    expect(isNewUiComponentPath('app/src/components/OnboardingWizard.tsx')).toBe(true)
+    expect(isNewUiComponentPath('electron/main/agent.ts')).toBe(false)
+    expect(
+      hasReadCodeViperUiReference(['read_codeviper_file:app/src/components/ConfirmDialog.tsx'])
+    ).toBe(true)
+    expect(hasReadCodeViperUiReference(['read_codeviper_file:tests/foo.test.ts'])).toBe(false)
   })
 
   it('строит ROADMAP-hint', () => {
