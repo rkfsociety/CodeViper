@@ -58,9 +58,17 @@ export function registerModelsIpc(ctx: IpcContext): void {
 
   ipcMain.handle(
     'list-provider-models',
-    async (_e, config: { type: string; baseUrl?: string; apiKey?: string }) => {
+    async (_e, config: { type: string; baseUrl?: string; apiKey?: string; model?: string }) => {
       const runtime = new ModelRuntime(config)
       return runtime.listModels()
+    }
+  )
+
+  ipcMain.handle(
+    'ping-provider',
+    async (_e, config: { type: string; baseUrl?: string; apiKey?: string; model?: string }) => {
+      const runtime = new ModelRuntime(config)
+      return runtime.ping()
     }
   )
 

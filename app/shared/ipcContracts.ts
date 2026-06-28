@@ -30,7 +30,8 @@ export const ModelProviderSchema = z.enum([
   'gemini',
   'anthropic',
   'groq',
-  'together'
+  'together',
+  'custom'
 ])
 export const MemoryCategorySchema = z.enum(['pattern', 'mistake', 'preference', 'project', 'skill'])
 export const MemoryScopeSchema = z.enum(['global', 'project'])
@@ -180,6 +181,8 @@ export const AgentSettingsSchema = z.object({
   claudeApiKey: z.string().optional(),
   groqApiKey: z.string().optional(),
   togetherApiKey: z.string().optional(),
+  customBaseUrl: z.string().optional(),
+  customApiKey: z.string().optional(),
   commandTimeoutSec: z.number().optional(),
   commandBlocklist: z.array(z.string()).optional(),
   readonlyMode: z.boolean().optional(),
@@ -359,7 +362,8 @@ export const ReadAttachmentResultSchema = z.object({
 export const ListProviderModelsConfigSchema = z.object({
   type: z.string(),
   baseUrl: z.string().optional(),
-  apiKey: z.string().optional()
+  apiKey: z.string().optional(),
+  model: z.string().optional()
 })
 
 export const ProviderModelSchema = z.object({
@@ -417,6 +421,7 @@ export const IPC = {
   CHECK_MILVUS: 'check-milvus',
   LIST_OLLAMA_MODELS: 'list-ollama-models',
   LIST_PROVIDER_MODELS: 'list-provider-models',
+  PING_PROVIDER: 'ping-provider',
   PULL_OLLAMA_MODEL: 'pull-ollama-model',
   DELETE_OLLAMA_MODEL: 'delete-ollama-model',
   CHECK_AGENT_PREREQUISITES: 'check-agent-prerequisites',
@@ -566,6 +571,10 @@ export const Contracts = {
   [IPC.LIST_PROVIDER_MODELS]: {
     args: z.tuple([ListProviderModelsConfigSchema]),
     result: z.array(ProviderModelSchema)
+  },
+  [IPC.PING_PROVIDER]: {
+    args: z.tuple([ListProviderModelsConfigSchema]),
+    result: z.boolean()
   },
   [IPC.PULL_OLLAMA_MODEL]: {
     args: z.tuple([z.string(), z.string()]),

@@ -105,12 +105,20 @@ const codeviper = {
       'listOllamaModels'
     ),
 
-  listProviderModels: (config: { type: string; baseUrl?: string; apiKey?: string }) =>
+  listProviderModels: (config: {
+    type: string
+    baseUrl?: string
+    apiKey?: string
+    model?: string
+  }) =>
     withTimeout(
       ipcRenderer.invoke(IPC.LIST_PROVIDER_MODELS, config),
       IPC_TIMEOUT_MS,
       'listProviderModels'
     ),
+
+  pingProvider: (config: { type: string; baseUrl?: string; apiKey?: string; model?: string }) =>
+    withTimeout(ipcRenderer.invoke(IPC.PING_PROVIDER, config), IPC_TIMEOUT_MS, 'pingProvider'),
 
   checkOllama: (url?: string) =>
     withTimeout(ipcRenderer.invoke(IPC.CHECK_OLLAMA, url), IPC_TIMEOUT_MS, 'checkOllama'),

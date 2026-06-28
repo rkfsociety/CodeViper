@@ -1,8 +1,4 @@
-# Память проекта (уроки и решения)
-
-Краткие записи после разбора багов и инцидентов. Агент читает этот файл при работе в репозитории.
-
-Формат: `YYYY-MM-DD · тема — суть`
+2026-06-28 · custom OpenAI endpoint — провайдер `custom` в modelRuntime через `createOpenAiCompatibleProvider`; настройки `customBaseUrl`/`customApiKey`; ping через IPC `ping-provider` и тест `ModelRuntime custom provider` в providers.integration.test.ts.
 
 ---
 

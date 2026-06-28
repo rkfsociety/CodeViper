@@ -8,11 +8,12 @@ import type {
 } from '../../shared/modelProvider'
 import { OllamaProvider } from './providers/ollamaProvider'
 import { GeminiProvider } from './providers/geminiProvider'
-import { OpenAIProvider } from './providers/openaiProvider'
+import { OpenAIProvider, createOpenAiCompatibleProvider } from './providers/openaiProvider'
 import { ClaudeProvider } from './providers/claudeProvider'
 import { GroqProvider } from './providers/groqProvider'
 import { TogetherProvider } from './providers/togetherProvider'
 import {
+  CUSTOM_API_BASE_URL,
   DEEPSEEK_API_BASE_URL,
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
@@ -167,6 +168,13 @@ export class ModelRuntime {
       const apiKey = config.apiKey || ''
       const model = config.model || 'claude-3-5-sonnet-20241022'
       return new ClaudeProvider(apiKey, model)
+    }
+
+    if (config.type === 'custom') {
+      const baseUrl = config.baseUrl || CUSTOM_API_BASE_URL
+      const apiKey = config.apiKey || ''
+      const model = config.model || ''
+      return createOpenAiCompatibleProvider(baseUrl, apiKey, model)
     }
 
     // Fallback на Ollama

@@ -20,7 +20,8 @@ import {
   DEEPSEEK_MODEL_DEFAULT,
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
-  OPENROUTER_API_BASE_URL
+  OPENROUTER_API_BASE_URL,
+  CUSTOM_API_BASE_URL
 } from '../../shared/constants'
 import type { ResponseEmitter } from './agentResponseEmitter'
 import { redactMessagesForModel } from '../../shared/secretRedaction'
@@ -130,13 +131,15 @@ export class ContextManager {
   private buildProviderConfig(): ProviderConfig {
     const type = this.settings.modelProvider || 'ollama'
     const baseUrl =
-      type === 'deepseek'
-        ? DEEPSEEK_API_BASE_URL
-        : type === 'gemini'
-          ? GEMINI_API_BASE_URL
-          : type === 'openrouter'
-            ? OPENROUTER_API_BASE_URL
-            : this.settings.ollamaUrl
+      type === 'custom'
+        ? (this.settings.customBaseUrl || CUSTOM_API_BASE_URL).replace(/\/$/, '')
+        : type === 'deepseek'
+          ? DEEPSEEK_API_BASE_URL
+          : type === 'gemini'
+            ? GEMINI_API_BASE_URL
+            : type === 'openrouter'
+              ? OPENROUTER_API_BASE_URL
+              : this.settings.ollamaUrl
     const model =
       type === 'deepseek' && !/^deepseek/i.test(this.settings.model || '')
         ? DEEPSEEK_MODEL_DEFAULT
@@ -152,7 +155,9 @@ export class ContextManager {
             ? (this.settings.openrouterApiKey ?? this.settings.providerApiKey)
             : type === 'openai'
               ? (this.settings.openaiApiKey ?? this.settings.providerApiKey)
-              : undefined
+              : type === 'custom'
+                ? (this.settings.customApiKey ?? this.settings.providerApiKey)
+                : undefined
     return {
       type,
       baseUrl,

@@ -143,6 +143,8 @@ export function filterOpenRouterModelsByTier<T extends { name: string }>(
 }
 /** Провайдер по умолчанию */
 export const DEFAULT_MODEL_PROVIDER = 'ollama' as const
+/** Базовый URL OpenAI-совместимого локального сервера (LM Studio) */
+export const CUSTOM_API_BASE_URL = 'http://127.0.0.1:1234/v1'
 
 // ── MCP ───────────────────────────────────────────────────────────────────────
 /** Таймаут запроса манифеста MCP-сервера (мс) */

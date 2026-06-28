@@ -19,7 +19,8 @@ const ModelProviderSchema = z.enum([
   'gemini',
   'anthropic',
   'groq',
-  'together'
+  'together',
+  'custom'
 ])
 
 export const PersistedSettingsSchema = z.object({
@@ -48,6 +49,8 @@ export const PersistedSettingsSchema = z.object({
   claudeApiKey: z.string(),
   groqApiKey: z.string(),
   togetherApiKey: z.string(),
+  customBaseUrl: z.string(),
+  customApiKey: z.string(),
   gitSyncOnStartup: z.boolean(),
   gitSyncStrategy: GitSyncStrategySchema,
   liveRuntimeFromGit: z.boolean().optional(),
@@ -166,6 +169,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   claudeApiKey: '',
   groqApiKey: '',
   togetherApiKey: '',
+  customBaseUrl: '',
+  customApiKey: '',
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash',
   qdrantUrl: '',
@@ -207,6 +212,7 @@ export function resolveFirstRunCompleted(settings: LegacySettings): boolean {
     settings.claudeApiKey,
     settings.groqApiKey,
     settings.togetherApiKey,
+    settings.customApiKey,
     settings.providerApiKey
   ]
   if (apiKeys.some((key) => key?.trim())) return true
@@ -226,6 +232,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
     | 'openrouter'
     | 'gemini'
     | 'anthropic'
+    | 'custom'
 
   // Миграция: если есть старый providerApiKey, переносим в нужное поле
   const legacyKey = settings.providerApiKey?.trim() ?? ''
@@ -236,6 +243,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
     settings.openrouterApiKey?.trim() ?? (provider === 'openrouter' ? legacyKey : '')
   const geminiApiKey = settings.geminiApiKey?.trim() ?? (provider === 'gemini' ? legacyKey : '')
   const claudeApiKey = settings.claudeApiKey?.trim() ?? (provider === 'anthropic' ? legacyKey : '')
+  const customApiKey = settings.customApiKey?.trim() ?? (provider === 'custom' ? legacyKey : '')
 
   return {
     version: 1,
@@ -265,6 +273,8 @@ function normalize(settings: LegacySettings): PersistedSettings {
     claudeApiKey,
     groqApiKey: settings.groqApiKey?.trim() ?? '',
     togetherApiKey: settings.togetherApiKey?.trim() ?? '',
+    customBaseUrl: settings.customBaseUrl?.trim() ?? '',
+    customApiKey,
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)

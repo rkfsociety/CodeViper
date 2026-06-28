@@ -168,6 +168,7 @@ export interface AgentSettings {
     | 'anthropic'
     | 'groq'
     | 'together'
+    | 'custom'
   /** @deprecated Используй deepseekApiKey / openaiApiKey / openrouterApiKey */
   providerApiKey?: string
   /** API ключ DeepSeek */
@@ -190,6 +191,10 @@ export interface AgentSettings {
   groqApiKey?: string
   /** API ключ Together AI */
   togetherApiKey?: string
+  /** Базовый URL OpenAI-совместимого локального сервера (LM Studio, vLLM) */
+  customBaseUrl?: string
+  /** API ключ для custom-провайдера (часто пустой для LM Studio) */
+  customApiKey?: string
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
   commandTimeoutSec?: number
   /** Пользовательский список запрещённых паттернов команд (строки или регулярные выражения) */
@@ -670,7 +675,14 @@ export interface CodeViperAPI {
     type: string
     baseUrl?: string
     apiKey?: string
+    model?: string
   }) => Promise<{ name: string; size?: number; contextLength?: number }[]>
+  pingProvider: (config: {
+    type: string
+    baseUrl?: string
+    apiKey?: string
+    model?: string
+  }) => Promise<boolean>
   checkOllama: (url?: string) => Promise<boolean>
   checkQdrant: (url: string, apiKey?: string) => Promise<boolean>
   checkMilvus: (url: string, apiKey?: string) => Promise<boolean>

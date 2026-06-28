@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import styles from './SettingsModal.module.css'
 import type { AgentSettings, BenchmarkResult, OllamaModel } from '../../types'
 import {
+  CUSTOM_API_BASE_URL,
   DEEPSEEK_API_BASE_URL,
   DEEPSEEK_MODEL_DEFAULT,
   GEMINI_API_BASE_URL,
@@ -90,9 +91,19 @@ export function ModelTab({
   async function handlePing() {
     setPingState('checking')
     try {
-      const ok = await window.codeviper.checkOllama(
-        provider === 'ollama' ? settings.ollamaUrl : undefined
-      )
+      let ok: boolean
+      if (provider === 'ollama') {
+        ok = await window.codeviper.checkOllama(settings.ollamaUrl)
+      } else if (provider === 'custom') {
+        ok = await window.codeviper.pingProvider({
+          type: 'custom',
+          baseUrl: settings.customBaseUrl || CUSTOM_API_BASE_URL,
+          apiKey: settings.customApiKey,
+          model: settings.model
+        })
+      } else {
+        ok = await window.codeviper.checkOllama(undefined)
+      }
       setPingState(ok ? 'ok' : 'fail')
     } catch {
       setPingState('fail')
@@ -145,6 +156,7 @@ export function ModelTab({
       | 'anthropic'
       | 'groq'
       | 'together'
+      | 'custom'
   ) {
     const patch: Partial<AgentSettings> = { modelProvider: newProvider }
     if (newProvider === 'deepseek') {
@@ -158,6 +170,9 @@ export function ModelTab({
     }
     if (newProvider === 'anthropic' && !/^claude/i.test(settings.model || '')) {
       patch.model = 'claude-3-5-sonnet-20241022'
+    }
+    if (newProvider === 'custom' && !settings.customBaseUrl?.trim()) {
+      patch.customBaseUrl = CUSTOM_API_BASE_URL
     }
     onSettingsChange(patch)
   }
@@ -188,6 +203,7 @@ export function ModelTab({
                   | 'anthropic'
                   | 'groq'
                   | 'together'
+                  | 'custom'
               )
             }
           >
@@ -196,6 +212,7 @@ export function ModelTab({
             <option value="deepseek">DeepSeek API</option>
             <option value="gemini">Gemini API</option>
             <option value="openai">OpenAI-совместимый API</option>
+            <option value="custom">Custom endpoint (LM Studio, vLLM)</option>
             <option value="openrouter">OpenRouter</option>
             <option value="groq">Groq API</option>
             <option value="together">Together AI</option>
@@ -472,6 +489,71 @@ export function ModelTab({
                   {pingIcon}
                 </button>
               </div>
+            </label>
+          </>
+        </SettingItem>
+      )}
+
+      {provider === 'custom' && (
+        <SettingItem
+          tab="model"
+          label="Custom OpenAI endpoint"
+          desc="custom lm studio vllm локальный openai compatible base url api key model id"
+        >
+          <>
+            <div className={styles.hint}>
+              Локальный или произвольный <strong>OpenAI-совместимый</strong> сервер (LM Studio,
+              vLLM, llama.cpp server). Базовый URL по умолчанию: <code>{CUSTOM_API_BASE_URL}</code>.
+            </div>
+            <label>
+              API базовый URL
+              <input
+                placeholder={CUSTOM_API_BASE_URL}
+                value={settings.customBaseUrl ?? ''}
+                onChange={(e) => onSettingsChange({ customBaseUrl: e.target.value })}
+                onBlur={() => void onRefreshOllama()}
+              />
+            </label>
+            <label>
+              API ключ (опционально)
+              <div className="settings-api-key-row">
+                <input
+                  type={apiKeyVisible['custom'] ? 'text' : 'password'}
+                  placeholder="lm-studio или пусто"
+                  value={settings.customApiKey ?? ''}
+                  onChange={(e) => onSettingsChange({ customApiKey: e.target.value })}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => toggleKeyVisible('custom')}
+                  title={apiKeyVisible['custom'] ? 'Скрыть' : 'Показать'}
+                >
+                  {apiKeyVisible['custom'] ? '🙈' : '👁'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => void handlePing()}
+                  disabled={pingState === 'checking'}
+                  title="Проверить подключение (/models)"
+                >
+                  {pingIcon}
+                </button>
+              </div>
+            </label>
+            <label>
+              ID модели
+              <input
+                placeholder="local-model"
+                value={settings.model}
+                onChange={(e) => onSettingsChange({ model: e.target.value })}
+              />
+              <span className={styles.hint}>
+                Точное имя модели с сервера (как в LM Studio / vLLM). Список ниже загружается после
+                ping.
+              </span>
             </label>
           </>
         </SettingItem>

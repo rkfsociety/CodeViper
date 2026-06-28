@@ -54,7 +54,11 @@ const KeyboardShortcutsModal = lazy(() =>
 )
 import { useOllamaDownloadQueue } from './hooks/useOllamaDownloadQueue'
 import { deriveChatTitle } from '../shared/chatTitle'
-import { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL } from '../shared/constants'
+import {
+  CUSTOM_API_BASE_URL,
+  DEEPSEEK_API_BASE_URL,
+  GEMINI_API_BASE_URL
+} from '../shared/constants'
 import { makeId } from '../shared/makeId'
 import { tronStorage } from './lib/tron'
 import { PanelResizer } from './components/PanelResizer'
@@ -403,6 +407,28 @@ function AppContent() {
       return
     }
 
+    if (provider === 'custom') {
+      try {
+        const list = await window.codeviper.listProviderModels({
+          type: 'custom',
+          baseUrl: settings.customBaseUrl || CUSTOM_API_BASE_URL,
+          apiKey: settings.customApiKey,
+          model: settings.model
+        })
+        setModels(
+          list.map((m) => ({
+            name: m.name,
+            size: m.size ?? 0,
+            modifiedAt: '',
+            contextLength: m.contextLength
+          }))
+        )
+      } catch {
+        setModels([])
+      }
+      return
+    }
+
     if (provider === 'openrouter') {
       try {
         const list = await window.codeviper.listProviderModels({
@@ -458,7 +484,10 @@ function AppContent() {
     settings.deepseekApiKey,
     settings.openaiApiKey,
     settings.openrouterApiKey,
-    settings.geminiApiKey
+    settings.geminiApiKey,
+    settings.customBaseUrl,
+    settings.customApiKey,
+    settings.model
   ])
 
   const downloadQueue = useOllamaDownloadQueue({

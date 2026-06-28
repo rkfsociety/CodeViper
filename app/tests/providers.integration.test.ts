@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { OllamaProvider } from '../electron/main/providers/ollamaProvider'
 import { OpenAIProvider } from '../electron/main/providers/openaiProvider'
+import { ModelRuntime } from '../electron/main/modelRuntime'
 import { ClaudeProvider } from '../electron/main/providers/claudeProvider'
 import { GeminiProvider } from '../electron/main/providers/geminiProvider'
 import type { ChatOptions } from '../shared/modelProvider'
@@ -541,6 +542,55 @@ describe('OpenAIProvider', () => {
       reasoning_effort?: string
     }
     expect(body.reasoning_effort).toBeUndefined()
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ModelRuntime — custom OpenAI-compatible endpoint
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('ModelRuntime custom provider', () => {
+  let fetchMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('ping к mock server через OpenAI-compatible /models', async () => {
+    fetchMock.mockResolvedValue({ ok: true } as Response)
+
+    const runtime = new ModelRuntime({
+      type: 'custom',
+      baseUrl: 'http://localhost:1234/v1',
+      apiKey: 'lm-studio',
+      model: 'local-model'
+    })
+
+    expect(await runtime.ping()).toBe(true)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:1234/v1/models',
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer lm-studio' })
+      })
+    )
+  })
+
+  it('ping возвращает false при сетевой ошибке mock server', async () => {
+    fetchMock.mockRejectedValue(new Error('ECONNREFUSED'))
+
+    const runtime = new ModelRuntime({
+      type: 'custom',
+      baseUrl: 'http://localhost:9999/v1',
+      apiKey: '',
+      model: 'x'
+    })
+
+    expect(await runtime.ping()).toBe(false)
   })
 })
 

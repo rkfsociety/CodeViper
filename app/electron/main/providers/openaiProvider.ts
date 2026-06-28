@@ -8,6 +8,15 @@ import type {
 import { throwProviderHttpError } from '../../../shared/providerErrors'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
+/** OpenAI-совместимый endpoint (LM Studio, vLLM, локальный прокси). */
+export function createOpenAiCompatibleProvider(
+  baseUrl: string,
+  apiKey: string,
+  modelName: string
+): OpenAIProvider {
+  return new OpenAIProvider(baseUrl.replace(/\/$/, ''), apiKey, modelName)
+}
+
 export class OpenAIProvider extends StreamingChatProvider implements ModelProvider {
   /** Exponential backoff при HTTP 429: 1 с → 2 с → 4 с → 8 с. */
   protected override readonly BACKOFF_MS = [1000, 2000, 4000, 8000]

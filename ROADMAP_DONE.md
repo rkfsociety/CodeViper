@@ -51,6 +51,7 @@
 - RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
 
 ### UX и UI
+- Custom OpenAI endpoint: провайдер `custom` (baseUrl + apiKey + model id) для LM Studio / vLLM через `OpenAIProvider`
 - OnboardingWizard: 3-шаговая модалка (провайдер → модель → открыть проект) при `!firstRunCompleted`; «Пропустить» завершает onboarding; шаг 3 — кнопка «Примеры запросов» → `docs/example-prompts.md` на GitHub
 - Недавние проекты: `recentProjects` в settings (до 10), WelcomePanel и меню «Открыть»
 - Ctrl+` — показать/скрыть встроенный терминал
