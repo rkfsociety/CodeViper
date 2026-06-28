@@ -27,6 +27,16 @@ export interface BundledSourceSyncResult {
   cloneCreated?: boolean
 }
 
+export interface ForceBundledSourceSyncResult {
+  ok: boolean
+  updated: boolean
+  localHead?: string
+  built: boolean
+  restartNeeded: boolean
+  error?: string
+  message?: string
+}
+
 export interface GitRunResult {
   code: number
   stdout: string
@@ -385,4 +395,98 @@ export async function runBundledSourceStartupSync(
     })
 
   await Promise.race([syncPromise, new Promise<void>((resolve) => setTimeout(resolve, waitMs))])
+}
+
+/**
+ * Ручная синхронизация клона с GitHub + пересборка runtime (Настройки → Поведение).
+ * Работает только в packaged .exe; не зависит от liveRuntimeFromGit.
+ */
+export async function forceSyncBundledSource(): Promise<ForceBundledSourceSyncResult> {
+  if (process.env.CODEVIPER_E2E === '1') {
+    return {
+      ok: false,
+      updated: false,
+      built: false,
+      restartNeeded: false,
+      error: 'Недоступно в тестовом режиме'
+    }
+  }
+
+  if (!app.isPackaged) {
+    return {
+      ok: false,
+      updated: false,
+      built: false,
+      restartNeeded: false,
+      error: 'Доступно только в установленной версии (CodeViper.exe)'
+    }
+  }
+
+  await logBundledSourceSync('force sync start')
+
+  const syncResult = await syncBundledSource()
+  if (syncResult.error) {
+    await logBundledSourceSync('force sync failed', { error: syncResult.error })
+    return {
+      ok: false,
+      updated: syncResult.updated,
+      localHead: syncResult.localHead,
+      built: false,
+      restartNeeded: false,
+      error: syncResult.error
+    }
+  }
+
+  const { maybeBuildBundledSourceAfterSync } = await import('./bundledSourceBuild')
+  const buildResult = await maybeBuildBundledSourceAfterSync(syncResult, { force: true })
+
+  if (buildResult?.error) {
+    await logBundledSourceSync('force build failed', { error: buildResult.error })
+    return {
+      ok: false,
+      updated: syncResult.updated,
+      localHead: syncResult.localHead,
+      built: false,
+      restartNeeded: false,
+      error: buildResult.error
+    }
+  }
+
+  const built = buildResult?.built === true
+  const { isRuntimeUpdatePending } = await import('./runtimeUpdate')
+  const restartNeeded = isRuntimeUpdatePending()
+  const headShort = syncResult.localHead?.slice(0, 7)
+
+  let message: string
+  if (restartNeeded) {
+    message = headShort
+      ? `Обновлено до ${headShort}. Перезапустите приложение для применения.`
+      : 'Обновление готово. Перезапустите приложение для применения.'
+  } else if (built) {
+    message = headShort
+      ? syncResult.updated
+        ? `Обновлено до ${headShort}, runtime пересобран.`
+        : `Уже актуальная версия (${headShort}), runtime пересобран.`
+      : 'Runtime пересобран.'
+  } else if (syncResult.updated) {
+    message = headShort ? `Обновлено до ${headShort}.` : 'Синхронизация завершена.'
+  } else {
+    message = headShort ? `Уже актуальная версия (${headShort}).` : 'Уже актуальная версия.'
+  }
+
+  await logBundledSourceSync('force sync complete', {
+    updated: syncResult.updated,
+    localHead: syncResult.localHead,
+    built,
+    restartNeeded
+  })
+
+  return {
+    ok: true,
+    updated: syncResult.updated,
+    localHead: syncResult.localHead,
+    built,
+    restartNeeded,
+    message
+  }
 }

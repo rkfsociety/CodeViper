@@ -266,11 +266,12 @@ export async function buildBundledSourceRuntime(
 
 /** Фоновая сборка после pull, если изменился app/ или stale out/main. */
 export async function maybeBuildBundledSourceAfterSync(
-  syncResult: BundledSourceSyncResult
+  syncResult: BundledSourceSyncResult,
+  options?: { force?: boolean }
 ): Promise<BundledSourceBuildResult | null> {
   const appRoot = getBundledSourceAppRoot()
 
-  if (!shouldBuildBundledSourceAfterSync(syncResult, appRoot)) {
+  if (!options?.force && !shouldBuildBundledSourceAfterSync(syncResult, appRoot)) {
     await ensureRuntimeBuildHeadRecorded(syncResult.localHead, appRoot)
     await logBundledSourceBuild('skip: runtime up to date', {
       updated: syncResult.updated,

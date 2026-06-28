@@ -336,6 +336,36 @@
   margin-bottom: 0;
 }
 
+.runtimeSyncRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 4px 0 12px 44px;
+}
+
+.runtimeSyncOk {
+  color: var(--green, #7ee787);
+}
+
+.runtimeSyncError {
+  color: var(--red, #f85149);
+}
+
+.runtimeSyncLink {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent, #58a6ff);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+
+.runtimeSyncLink:hover {
+  opacity: 0.85;
+}
+
 .templateList {
   display: flex;
   flex-direction: column;

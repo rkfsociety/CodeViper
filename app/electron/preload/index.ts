@@ -482,6 +482,21 @@ const codeviper = {
       'flushCollectiveMemory'
     ) as Promise<{ ok: boolean; message: string; branch?: string; syncedCount: number }>,
 
+  forceSyncBundledRuntime: () =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.FORCE_SYNC_BUNDLED_RUNTIME),
+      600_000,
+      'forceSyncBundledRuntime'
+    ) as Promise<{
+      ok: boolean
+      updated: boolean
+      localHead?: string
+      built: boolean
+      restartNeeded: boolean
+      error?: string
+      message?: string
+    }>,
+
   onUpdateAvailable: (cb: (info: import('../../shared/updateInfo').UpdateInfo) => void) => {
     const handler = (
       _e: Electron.IpcRendererEvent,

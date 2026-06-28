@@ -484,6 +484,7 @@ export const IPC = {
   SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
   GET_COLLECTIVE_SYNC_STATUS: 'get-collective-sync-status',
   FLUSH_COLLECTIVE_MEMORY: 'flush-collective-memory',
+  FORCE_SYNC_BUNDLED_RUNTIME: 'force-sync-bundled-runtime',
 
   // ── Broadcast (main → renderer) ───────────────────────────────────────
   AGENT_STREAM: 'agent-stream',
@@ -847,6 +848,18 @@ export const Contracts = {
   },
   [IPC.FLUSH_COLLECTIVE_MEMORY]: {
     args: z.tuple([z.string()])
+  },
+  [IPC.FORCE_SYNC_BUNDLED_RUNTIME]: {
+    args: z.tuple([]),
+    result: z.object({
+      ok: z.boolean(),
+      updated: z.boolean(),
+      localHead: z.string().optional(),
+      built: z.boolean(),
+      restartNeeded: z.boolean(),
+      error: z.string().optional(),
+      message: z.string().optional()
+    })
   },
   [IPC.REGISTER_P2P_NODE]: {
     args: z.tuple([AgentSettingsSchema]),

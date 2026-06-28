@@ -5,6 +5,7 @@ import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { readAppState, writeAppState, clearAppState } from '../appState'
 import { installPendingUpdate } from '../updateChecker'
 import { dismissRuntimeUpdate } from '../runtimeUpdate'
+import { forceSyncBundledSource } from '../bundledSourceSync'
 import { getPluginsDirectory } from '../pluginLoader'
 import { loadUiLayout, saveUiLayout } from '../uiLayout'
 import type { AppState } from '../../../src/types'
@@ -76,6 +77,11 @@ export function registerAppIpc(ctx: IpcContext): void {
 
   ipcMain.on(IPC.DISMISS_RUNTIME_UPDATE, () => {
     dismissRuntimeUpdate()
+  })
+
+  ipcMain.handle(IPC.FORCE_SYNC_BUNDLED_RUNTIME, async (_e, ...a) => {
+    parseIpcArgs(Contracts[IPC.FORCE_SYNC_BUNDLED_RUNTIME].args, a)
+    return forceSyncBundledSource()
   })
 
   ipcMain.on(IPC.OPEN_EXTERNAL, (_e, url: string) => {

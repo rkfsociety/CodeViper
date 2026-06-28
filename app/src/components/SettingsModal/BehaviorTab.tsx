@@ -435,6 +435,8 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
             </span>
           </label>
 
+          <RuntimeForceSyncButton />
+
           <label className={styles.toggle}>
             <input
               type="checkbox"
@@ -718,5 +720,77 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
         </div>
       </SettingItem>
     </>
+  )
+}
+
+function RuntimeForceSyncButton() {
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState<{
+    kind: 'ok' | 'error'
+    text: string
+    restartNeeded?: boolean
+  } | null>(null)
+
+  const handleForceSync = async () => {
+    if (busy || !window.codeviper?.forceSyncBundledRuntime) return
+    setBusy(true)
+    setStatus(null)
+    try {
+      const result = await window.codeviper.forceSyncBundledRuntime()
+      if (!result.ok) {
+        setStatus({ kind: 'error', text: result.error ?? 'Не удалось обновить runtime' })
+        return
+      }
+      setStatus({
+        kind: 'ok',
+        text: result.message ?? (result.updated ? 'Обновление завершено' : 'Уже актуальная версия'),
+        restartNeeded: result.restartNeeded
+      })
+    } catch (err) {
+      setStatus({
+        kind: 'error',
+        text: err instanceof Error ? err.message : 'Не удалось обновить runtime'
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className={styles.runtimeSyncRow}>
+      <button
+        type="button"
+        className="btn"
+        disabled={busy || !window.codeviper?.forceSyncBundledRuntime}
+        onClick={() => void handleForceSync()}
+      >
+        {busy ? 'Обновляем runtime…' : 'Обновить runtime сейчас'}
+      </button>
+      {status && (
+        <p
+          className={`${styles.hint} ${styles.hintInline} ${status.kind === 'error' ? styles.runtimeSyncError : styles.runtimeSyncOk}`}
+          role="status"
+        >
+          {status.text}
+          {status.kind === 'ok' && status.restartNeeded && (
+            <>
+              {' '}
+              <button
+                type="button"
+                className={styles.runtimeSyncLink}
+                onClick={() => window.codeviper.installUpdate()}
+              >
+                Перезапустить
+              </button>
+            </>
+          )}
+        </p>
+      )}
+      <p className={`${styles.hint} ${styles.hintInline}`}>
+        Принудительно: <code>git fetch</code> + <code>master</code> в{' '}
+        <code>%APPDATA%/codeviper/source</code>, затем <code>npm run build</code>. Только для
+        установленного <code>.exe</code>.
+      </p>
+    </div>
   )
 }

@@ -18,6 +18,7 @@ vi.mock('../electron/main/settings', () => ({
 
 import {
   ensureBundledSourceClone,
+  forceSyncBundledSource,
   getBundledSourceRoot,
   resetBundledSourceCloneStateForTests,
   runBundledSourceStartupSync,
@@ -330,5 +331,13 @@ describe('runBundledSourceStartupSync', () => {
     const started = Date.now()
     await runBundledSourceStartupSync(true, { isPackaged: true, startupWaitMs: 50 })
     expect(Date.now() - started).toBeLessThan(150)
+  })
+})
+
+describe('forceSyncBundledSource', () => {
+  it('в dev-режиме возвращает ошибку (не packaged)', async () => {
+    const result = await forceSyncBundledSource()
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatch(/установлен/i)
   })
 })

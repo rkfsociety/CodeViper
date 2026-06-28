@@ -798,6 +798,15 @@ export interface CodeViperAPI {
     rejectedCount: number
     rejectionReasons?: string[]
   }>
+  forceSyncBundledRuntime: () => Promise<{
+    ok: boolean
+    updated: boolean
+    localHead?: string
+    built: boolean
+    restartNeeded: boolean
+    error?: string
+    message?: string
+  }>
   onUpdateAvailable: (cb: (info: UpdateInfo) => void) => () => void
   onRuntimeUpdateReady: (cb: (info: UpdateInfo) => void) => () => void
   dismissRuntimeUpdate: () => void
