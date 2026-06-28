@@ -54,7 +54,7 @@ cd CodeViper/app && npm install
 |---|---|
 | [Демонстрации (GIF)](docs/demos.md) | [Примеры запросов](docs/example-prompts.md) |
 | [Интеграции (MCP, P2P, коллективная память — gh/git или token)](docs/integrations.md) | [Разработка и live runtime](docs/development.md) |
-| [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) | [ROADMAP](ROADMAP.md) (124 задачи) · [выполнено](ROADMAP_DONE.md) |
+| [API (TypeDoc)](https://rkfsociety.github.io/CodeViper/) | [ROADMAP](ROADMAP.md) (123 задачи) · [выполнено](ROADMAP_DONE.md) |
 
 ## Участие
 

@@ -695,6 +695,11 @@ function AppContent() {
         toggleFileTree()
         return
       }
+      if (e.ctrlKey && !e.shiftKey && (e.key === '`' || e.code === 'Backquote')) {
+        e.preventDefault()
+        setTerminalOpen((open) => togglePanel('terminalOpen', open))
+        return
+      }
       if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
         const tag = (e.target as HTMLElement).tagName
         const editable = (e.target as HTMLElement).isContentEditable
@@ -726,7 +731,15 @@ function AppContent() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [createChat, toggleFileTree, settingsOpen, shortcutsOpen, quickOpenOpen, busyChats])
+  }, [
+    createChat,
+    toggleFileTree,
+    togglePanel,
+    settingsOpen,
+    shortcutsOpen,
+    quickOpenOpen,
+    busyChats
+  ])
 
   const createChatFromTemplate = useCallback(
     async (templateId: string, folderId: string | null = null) => {
