@@ -1,0 +1,34 @@
+---
+description: Основной порядок работы агента — git, сборка, коммит, язык
+alwaysApply: true
+---
+
+# Порядок работы агента
+
+## Язык
+
+Отвечать **только на русском**.
+
+## Перед правками кода
+
+1. `git status` + `git pull`
+2. Remote главнее: при расхождении — `git reset --hard origin/master` → `git pull` (незакоммиченное важное — сначала закоммитить)
+
+## После правок
+
+1. Изменения в `app/` → из `app/`: `npm run typecheck` → `npm run build` (папка `out/` в коммите)
+2. Задача из ROADMAP → см. `roadmap.mdc`; пользовательская фича → см. `readme.mdc`
+3. Фикс issue → в коммите `closes #N` (см. `github-issues.mdc`)
+4. `git add` → `git commit` → `git push` — **сразу**, не откладывать
+
+Пользователь не собирает проект сам — не просить «запусти build». UI проверять через установленный `.exe` (см. `user-launch.mdc`).
+
+## Память проекта
+
+Уроки из разборов — в `.cursor/memories.md`. Карта всех правил — `.cursor/README.md`.
+
+## Команды (из `app/`)
+
+`typecheck` · `build` · `test` · `lint` · `test:e2e`
+
+Перед коммитом с кодом: **typecheck → build → ROADMAP/README при необходимости → commit → push**.

@@ -1,0 +1,48 @@
+---
+description: Архитектура Electron, strict TS, shared, инструменты агента
+globs: app/**/*
+alwaysApply: false
+---
+
+# Код в app/
+
+## Процессы
+
+- **Main** (`electron/main/`) — Node.js, FS, git, агент
+- **Renderer** (`src/`) — React, только IPC, без `fs`/`child_process`
+- **shared/** — без Node API; импорт из main и renderer
+
+## TypeScript
+
+`strict`, `noUnusedLocals`, `noUnusedParameters`. Неиспользуемые параметры — префикс `_`.
+
+Настройки — только через `PersistedSettingsSchema` в `settings.ts` (`loadSettings()`).
+
+Константы и лимиты — `shared/constants.ts`, не хардкодить.
+
+## ChatChunk (стрим модели)
+
+Поля: `content`, `thinking?`, `stop_reason`, `tool_calls?`. **Нет** `.type` / `.text`.
+
+Конец стрима — `chunk.stop_reason`, не длина текста.
+
+## Новый инструмент агента
+
+1. Схема в `agentTools/`
+2. Имя в `AGENT_TOOL_NAMES` (`shared/toolCalls.ts`)
+3. Обработчик в `agentHandlers*.ts` → `getToolHandlers()` в `agent.ts`
+4. Мутирующий — в `MUTATING_TOOLS` (`actionVerification.ts`)
+
+## Импорты
+
+- `@/*` — только renderer (`app/src/`)
+- main/shared — относительные пути
+- Без barrel `index.ts` с реэкспортами
+
+## Ошибки
+
+- FS в `services.ts` — строка `Ошибка: …`, не throw
+- IPC handlers — throw допустим
+- `selfCommit.ts` — retry 1→2→4 с
+
+Детали архитектуры — `CLAUDE.md`.
