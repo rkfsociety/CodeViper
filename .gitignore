@@ -1,6 +1,14 @@
 app/node_modules
 app/dist
 app/out
+# Случайный вывод electron-vite в app/ (нормальный путь — app/out/)
+/app/index.js
+/app/runtimeHandlers.js
+/app/runtimeBootstrap-*.js
+/app/index-*.js
+/app/fileSearch-*.js
+/app/runtimeUpdate-*.js
+/package.json
 app/release
 app/resources/node/
 app/dist-electron
