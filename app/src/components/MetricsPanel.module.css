@@ -123,10 +123,82 @@
 .table th {
   color: #888;
   font-weight: normal;
-  padding: 3px 6px;
+  padding: 0;
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid #333;
+}
+
+.sortable {
+  padding: 0;
+}
+
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 3px 6px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.sortBtn:hover {
+  color: #bbb;
+  background: #2a2a2a;
+}
+
+.sortActive .sortBtn {
+  color: #4ec9b0;
+}
+
+.sortIcon {
+  font-size: 9px;
+  opacity: 0.8;
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 3px;
+}
+
+.sectionTitleRow .sectionTitle {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.toolSorts {
+  display: flex;
+  gap: 4px;
+}
+
+.toolSortBtn {
+  background: none;
+  border: 1px solid #444;
+  color: #777;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.toolSortBtn:hover {
+  background: #333;
+  color: #aaa;
+}
+
+.toolSortActive {
+  border-color: #4ec9b0;
+  color: #4ec9b0;
+  background: #1a2e2a;
 }
 
 .table td {
@@ -141,6 +213,11 @@
 
 .right {
   text-align: right !important;
+}
+
+.sortBtn.right,
+.right .sortBtn {
+  justify-content: flex-end;
 }
 
 .modelCell {
