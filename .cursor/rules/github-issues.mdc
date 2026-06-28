@@ -1,0 +1,14 @@
+---
+description: Закрытие GitHub issues при фиксе багов
+alwaysApply: true
+---
+
+# GitHub issues
+
+При исправлении бага из issue (trace-report, «На GitHub», ручной репорт):
+
+1. В **сообщении коммита** — `closes #N` или `fix #N` (GitHub закроет issue автоматически).
+2. Не ограничиваться `(issue #22)` — такое упоминание **не** закрывает issue.
+3. Если фикс уже в master без `closes`/`fix` — закрыть вручную: `gh issue close N --comment "…"`.
+
+Пример: `fix: grep без query не падает (closes #22)`
