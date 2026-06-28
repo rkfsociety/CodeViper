@@ -17,6 +17,7 @@ import { createUnifiedDiff } from './diffUtil'
 import { applySelectedHunks } from '../../shared/diffPreview'
 import { runCodeViperCommand } from './codeviperSource'
 import { resolveAgentHandlerFactories, getActiveAgentSourceRootPath } from './runtimeBootstrap'
+import { resolveToolPathArg } from './agentHandlersUtils'
 import type { OllamaMessage } from './agentContext'
 import type { LoopGuard } from './agentLoopGuard'
 import { normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
@@ -29,6 +30,7 @@ import {
   mapSelfImproveProjectTool,
   validateSelfImproveMutatingContent,
   EDIT_OLD_STRING_NOT_FOUND_HINT,
+  EDIT_WRONG_ARGS_HINT,
   READ_FILE_ENOENT_CREATE_HINT,
   READ_FILE_ALREADY_IN_RUN_HINT,
   READ_FILE_TRUNCATED_HINT,
@@ -220,6 +222,14 @@ export class ToolExecutor {
       /old_string не найден/i.test(result)
     ) {
       result += `\n\n${EDIT_OLD_STRING_NOT_FOUND_HINT}`
+    }
+
+    if (
+      (name === 'edit_file' || name === 'edit_codeviper_file') &&
+      (/edit_\* требует path, old_string/i.test(result) ||
+        /Cannot read properties of undefined \(reading '(?:trim|replace)'\)/i.test(result))
+    ) {
+      result += `\n\n${EDIT_WRONG_ARGS_HINT}`
     }
 
     if (name === 'read_file' || name === 'read_codeviper_file') {
@@ -433,7 +443,8 @@ export class ToolExecutor {
     }
 
     if (toolName === 'edit_codeviper_file') {
-      const contentErr = validateSelfImproveMutatingContent(args.path ?? '', args.new_string ?? '')
+      const path = resolveToolPathArg(args as Record<string, unknown>) ?? ''
+      const contentErr = validateSelfImproveMutatingContent(path, args.new_string ?? '')
       if (contentErr) return contentErr
     }
 

@@ -63,6 +63,9 @@ export function getCodeViperSourceRoot(): string {
 
 /** Убирает лишний префикс app/, если корень исходников уже .../app */
 export function normalizeCodeViperPath(sourceRoot: string, filePath: string): string {
+  if (typeof filePath !== 'string' || !filePath.trim()) {
+    throw new Error('Не указан path — путь к файлу в исходниках CodeViper')
+  }
   const rel = filePath.trim().replace(/\\/g, '/')
   if (!rel) return rel
 

@@ -22,6 +22,7 @@ import {
   parseTreeDepth,
   formatCommandResult,
   missingToolArg,
+  resolveEditToolArgs,
   resolveToolPathArg
 } from './agentHandlersUtils'
 
@@ -66,9 +67,11 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
     },
 
     read_codeviper_file: async (args) => {
+      const path = resolveToolPathArg(args as Record<string, unknown>)
+      if (!path) throw new Error(missingToolArg('path'))
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
-      return readCodeViperFilePartial(args.path, offset, limit)
+      return readCodeViperFilePartial(path, offset, limit)
     },
 
     write_codeviper_file: async (args) => {
@@ -82,13 +85,16 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
     },
 
     edit_codeviper_file: async (args) => {
+      const resolved = resolveEditToolArgs(args as Record<string, unknown>)
+      if (!resolved.ok) throw new Error(resolved.error)
+      const { path, old_string, new_string, replace_all } = resolved.args
       const count = await editCodeViperFile(
-        args.path,
-        args.old_string,
-        args.new_string,
-        parseToolBool(args.replace_all)
+        path,
+        old_string,
+        new_string,
+        parseToolBool(replace_all)
       )
-      return `Файл CodeViper изменён: ${args.path} (замен: ${count})`
+      return `Файл CodeViper изменён: ${path} (замен: ${count})`
     },
 
     append_codeviper_file: async (args) => {

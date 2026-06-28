@@ -3,6 +3,75 @@ export function missingToolArg(label: string): string {
   return `Не указан параметр ${label}`
 }
 
+export type ResolvedEditArgs = {
+  path: string
+  old_string: string
+  new_string: string
+  replace_all?: string
+}
+
+export type ResolveEditToolArgsResult =
+  | { ok: true; args: ResolvedEditArgs }
+  | { ok: false; error: string }
+
+/** path + old_string + new_string для edit_file / edit_codeviper_file (с алиасами path). */
+export function resolveEditToolArgs(args: Record<string, unknown>): ResolveEditToolArgsResult {
+  const path = resolveToolPathArg(args)
+  if (!path) {
+    return {
+      ok: false,
+      error: `${missingToolArg('path')} Укажи path (или file_path).`
+    }
+  }
+
+  const oldString = String(args.old_string ?? args.oldString ?? '')
+  const hasOld = oldString.length > 0
+  const contentBody = String(args.content ?? args.new_content ?? '').trim()
+  const hasNewContentAlias = contentBody.length > 0
+
+  if (!hasOld && hasNewContentAlias) {
+    return {
+      ok: false,
+      error:
+        'edit_* требует path, old_string и new_string (точечная замена фрагмента). ' +
+        'Параметры content/new_content не принимаются. ' +
+        'Сначала read_* — скопируй точный фрагмент в old_string. ' +
+        'Новый файл → create_*; полная перезапись → write_*.'
+    }
+  }
+
+  if (!hasOld) {
+    return {
+      ok: false,
+      error: `${missingToolArg('old_string')} Прочитай файл и скопируй точный фрагмент для замены.`
+    }
+  }
+
+  const newRaw = args.new_string ?? args.newString
+  let newString: string
+  if (newRaw !== undefined && newRaw !== null) {
+    newString = String(newRaw)
+  } else if (hasNewContentAlias) {
+    newString = contentBody
+  } else {
+    return {
+      ok: false,
+      error: `${missingToolArg('new_string')} Укажи новый фрагмент (может быть пустой строкой для удаления).`
+    }
+  }
+
+  const replaceAll = args.replace_all ?? args.replaceAll
+  return {
+    ok: true,
+    args: {
+      path,
+      old_string: oldString,
+      new_string: newString,
+      ...(replaceAll !== undefined ? { replace_all: String(replaceAll) } : {})
+    }
+  }
+}
+
 /** path из args.path, paths[0] (Gemini), file_path — для grep/find. */
 export function resolveToolPathArg(args: Record<string, unknown>): string | undefined {
   const direct = String(args.path ?? '').trim()

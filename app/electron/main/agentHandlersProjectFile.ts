@@ -19,7 +19,7 @@ import {
 } from './services'
 import { parseToolBool } from '../../shared/fileEdit'
 import { parseReadMultiplePaths } from '../../shared/readMultiplePaths'
-import { parseTreeDepth } from './agentHandlersUtils'
+import { parseTreeDepth, resolveEditToolArgs } from './agentHandlersUtils'
 import { gitLog } from './gitTools'
 import type { ProjectHandlerContext } from './agentHandlersProjectContext'
 
@@ -160,10 +160,13 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
     }),
 
     edit_file: guardWrite(async (args) => {
-      assertInsideProject(args.path)
+      const resolved = resolveEditToolArgs(args as Record<string, unknown>)
+      if (!resolved.ok) throw new Error(resolved.error)
+      const { path, old_string, new_string, replace_all } = resolved.args
+      assertInsideProject(path)
       let beforeContent = ''
       try {
-        const absPath = join(projectPath, args.path)
+        const absPath = join(projectPath, path)
         beforeContent = await readFile(absPath, 'utf-8')
         editSnapshots.set(absPath, beforeContent)
       } catch {
@@ -171,22 +174,22 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       }
       const count = await safeEditFile(
         projectPath,
-        args.path,
-        args.old_string,
-        args.new_string,
-        parseToolBool(args.replace_all)
+        path,
+        old_string,
+        new_string,
+        parseToolBool(replace_all)
       )
       if (beforeContent) {
         let afterContent = ''
         try {
-          afterContent = await readFile(join(projectPath, args.path), 'utf-8')
+          afterContent = await readFile(join(projectPath, path), 'utf-8')
         } catch {
           /* ignore */
         }
-        const diff = createUnifiedDiff(beforeContent, afterContent, args.path)
-        if (diff) void appendFileHistory({ tool: 'edit_file', path: args.path, projectPath, diff })
+        const diff = createUnifiedDiff(beforeContent, afterContent, path)
+        if (diff) void appendFileHistory({ tool: 'edit_file', path, projectPath, diff })
       }
-      return `Файл изменён: ${args.path} (замен: ${count})`
+      return `Файл изменён: ${path} (замен: ${count})`
     }),
 
     undo_edit: async (args) => {
