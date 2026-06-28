@@ -13,11 +13,14 @@ vi.mock('electron', () => ({
 
 import {
   buildBundledSourceRuntime,
+  ensureRuntimeBuildHeadRecorded,
   getBundledRuntimeMainPath,
+  getRuntimeBuildHead,
   isBundledRuntimeMainStale,
   needsBundledSourceNpmInstall,
   setBundledSourceCommandRunnerForTests,
-  shouldBuildBundledSourceAfterSync
+  shouldBuildBundledSourceAfterSync,
+  writeRuntimeBuildHead
 } from '../electron/main/bundledSourceBuild'
 
 function setupMinimalApp(appRoot: string): void {
@@ -69,6 +72,33 @@ describe('bundledSourceBuild', () => {
   it('shouldBuildBundledSourceAfterSync при appDirChanged', () => {
     setupMinimalApp(appRoot)
     expect(shouldBuildBundledSourceAfterSync({ updated: true, appDirChanged: true })).toBe(true)
+  })
+
+  it('shouldBuildBundledSourceAfterSync: false если out собран для текущего HEAD', async () => {
+    setupMinimalApp(appRoot)
+    const mainOut = join(appRoot, 'out', 'main')
+    mkdirSync(mainOut, { recursive: true })
+    writeFileSync(join(mainOut, 'index.js'), 'built\n', 'utf8')
+    const old = Date.now() - 60_000
+    utimesSync(join(mainOut, 'index.js'), old / 1000, old / 1000)
+    writeFileSync(join(appRoot, 'electron', 'main', 'agent.ts'), 'export const x = 1\n', 'utf8')
+
+    await writeRuntimeBuildHead('abc123def456', appRoot)
+    expect(
+      shouldBuildBundledSourceAfterSync({
+        updated: false,
+        localHead: 'abc123def456'
+      })
+    ).toBe(false)
+  })
+
+  it('ensureRuntimeBuildHeadRecorded мигрирует маркер без пересборки', async () => {
+    setupMinimalApp(appRoot)
+    mkdirSync(join(appRoot, 'out', 'main'), { recursive: true })
+    writeFileSync(join(appRoot, 'out', 'main', 'index.js'), 'ok\n', 'utf8')
+
+    await ensureRuntimeBuildHeadRecorded('deadbeef', appRoot)
+    expect(getRuntimeBuildHead(appRoot)).toBe('deadbeef')
   })
 
   it('build обновляет out/main/index.js после изменения в клоне', async () => {

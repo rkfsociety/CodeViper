@@ -1,10 +1,11 @@
-import { appendFile, mkdir } from 'fs/promises'
-import { existsSync, readdirSync, statSync } from 'fs'
+import { appendFile, mkdir, writeFile } from 'fs/promises'
+import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import {
   BUNDLED_SOURCE_APP_DIR_NAME,
-  BUNDLED_SOURCE_BUILD_TIMEOUT_SEC
+  BUNDLED_SOURCE_BUILD_TIMEOUT_SEC,
+  RUNTIME_BUILD_HEAD_REL
 } from '../../shared/constants'
 import { runCommandInAppRoot } from './codeviperSource'
 import {
@@ -82,6 +83,39 @@ export function getBundledRuntimeMainPath(): string {
   return join(getBundledSourceAppRoot(), RUNTIME_MAIN_REL)
 }
 
+/** HEAD коммита, для которого последний раз успешно собран out/ в клоне. */
+export function getRuntimeBuildHead(appRoot = getBundledSourceAppRoot()): string | null {
+  const file = join(appRoot, RUNTIME_BUILD_HEAD_REL)
+  if (!existsSync(file)) return null
+  try {
+    const head = readFileSync(file, 'utf8').trim()
+    return head || null
+  } catch {
+    return null
+  }
+}
+
+export async function writeRuntimeBuildHead(
+  head: string,
+  appRoot = getBundledSourceAppRoot()
+): Promise<void> {
+  const file = join(appRoot, RUNTIME_BUILD_HEAD_REL)
+  await mkdir(join(appRoot, 'out'), { recursive: true })
+  await writeFile(file, `${head.trim()}\n`, 'utf8')
+}
+
+/** Записать маркер для уже собранного out/ (миграция без пересборки). */
+export async function ensureRuntimeBuildHeadRecorded(
+  localHead: string | undefined,
+  appRoot = getBundledSourceAppRoot()
+): Promise<void> {
+  if (!localHead?.trim()) return
+  if (getRuntimeBuildHead(appRoot)) return
+  const mainOut = join(appRoot, RUNTIME_MAIN_REL)
+  if (!existsSync(mainOut)) return
+  await writeRuntimeBuildHead(localHead, appRoot)
+}
+
 function maxMtimeInTree(dir: string): number {
   if (!existsSync(dir)) return 0
 
@@ -155,6 +189,13 @@ export function shouldBuildBundledSourceAfterSync(
   if (!existsSync(join(appRoot, 'package.json'))) return false
   if (syncResult.cloneCreated) return true
   if (syncResult.appDirChanged) return true
+
+  const mainOut = join(appRoot, RUNTIME_MAIN_REL)
+  const localHead = syncResult.localHead?.trim()
+  if (localHead && existsSync(mainOut) && getRuntimeBuildHead(appRoot) === localHead) {
+    return false
+  }
+
   return isBundledRuntimeMainStale(appRoot)
 }
 
@@ -200,19 +241,37 @@ export async function buildBundledSourceRuntime(
 export async function maybeBuildBundledSourceAfterSync(
   syncResult: BundledSourceSyncResult
 ): Promise<BundledSourceBuildResult | null> {
-  if (!shouldBuildBundledSourceAfterSync(syncResult)) {
+  const appRoot = getBundledSourceAppRoot()
+
+  if (!shouldBuildBundledSourceAfterSync(syncResult, appRoot)) {
+    await ensureRuntimeBuildHeadRecorded(syncResult.localHead, appRoot)
     await logBundledSourceBuild('skip: runtime up to date', {
       updated: syncResult.updated,
-      appDirChanged: syncResult.appDirChanged
+      appDirChanged: syncResult.appDirChanged,
+      localHead: syncResult.localHead
     })
     return null
   }
 
-  return buildBundledSourceRuntime().then(async (result) => {
+  const previousBuildHead = getRuntimeBuildHead(appRoot)
+
+  return buildBundledSourceRuntime(appRoot).then(async (result) => {
     if (result.built) {
-      void import('./runtimeUpdate').then(({ markRuntimeUpdateReady }) =>
-        markRuntimeUpdateReady(syncResult.localHead)
-      )
+      if (syncResult.localHead) {
+        await writeRuntimeBuildHead(syncResult.localHead, appRoot)
+      }
+
+      const needsRestartBanner =
+        syncResult.updated ||
+        syncResult.cloneCreated ||
+        syncResult.appDirChanged ||
+        previousBuildHead !== syncResult.localHead
+
+      if (needsRestartBanner) {
+        void import('./runtimeUpdate').then(({ markRuntimeUpdateReady }) =>
+          markRuntimeUpdateReady(syncResult.localHead)
+        )
+      }
       // Подхватить IPC из свежего runtimeHandlers.js без обязательного relaunch
       try {
         const { loadSettings } = await import('./settings')
