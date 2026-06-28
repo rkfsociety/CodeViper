@@ -121,6 +121,8 @@ ${SELF_IMPROVE_TEST_IMPORTS_HINT}
 
 **План set_self_improvement_plan** обязан включать: реализация → run_codeviper_command (\`npm run typecheck\` затем тесты из «Проверка») → правка ROADMAP.md и ROADMAP_DONE.md → README → commit_and_push_self_edits.
 
+Первый шаг: \`read_roadmap_item\` number=${itemNum ?? 'N'} (точные Цель/Файлы/Действие/Проверка), затем read_codeviper_file для путей из «Файлы».
+
 Не вызывай list_directory «для разведки», если пути уже в ROADMAP.`
 }
 
@@ -339,6 +341,18 @@ export function resolvePlanToolArg(args: Record<string, unknown> | null | undefi
     const value = args[key]
     if (value !== undefined && value !== null) return value
   }
+
+  const action = firstNonEmptyString(args.action, args.действие)
+  const check = firstNonEmptyString(args.check, args.проверка)
+  const roadmap = firstNonEmptyString(args.roadmap)
+  if (action || check || roadmap) {
+    const lines: string[] = []
+    if (action) lines.push(`- Реализация: ${action}`)
+    if (check) lines.push(check.startsWith('-') ? check : `- ${check}`)
+    if (roadmap) lines.push(roadmap.startsWith('-') ? roadmap : `- ${roadmap}`)
+    return lines.join('\n')
+  }
+
   return undefined
 }
 
@@ -568,6 +582,11 @@ export function planProgress(plan: SelfImprovementItem[]): {
   }
 }
 
+/** Есть невыполненные пункты, по которым ещё можно работать (не заблокированы). */
+export function hasActionablePending(plan: SelfImprovementItem[]): boolean {
+  return plan.some((item) => !item.done && !item.blocked)
+}
+
 export function isItemBlocked(item: SelfImprovementItem): boolean {
   return Boolean(item.blocked)
 }
@@ -614,7 +633,7 @@ ROADMAP.md — формат пункта:
 ${SELF_IMPROVE_TEST_IMPORTS_HINT}
 
 Алгоритм:
-1. read_codeviper_file ../ROADMAP.md → пункт N; read_codeviper_file для путей из «Файлы» (ENOENT → create_codeviper_file)
+1. read_roadmap_item number=N (предпочтительно) или read_codeviper_file ../ROADMAP.md → пункт N; read_codeviper_file для путей из «Файлы» (ENOENT → create_codeviper_file)
 2. set_self_improvement_plan — Действие + Проверка + обновление ROADMAP.md, ROADMAP_DONE.md и README.md
 3. create_codeviper_file / edit_codeviper_file → complete_self_improvement_item(id)
 4. run_codeviper_command — сначала \`npm run typecheck\`, затем команды из «Проверка» (npm test …)
@@ -630,12 +649,12 @@ export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_im
 - Реализация: …
 - npm run typecheck
 - ROADMAP: удалить пункт; ROADMAP_DONE: запись
-Только tool_calling. read_codeviper_file ../ROADMAP.md и файлы из «Файлы» (*_codeviper_*, не read_file).`
+Только tool_calling. read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) и файлы из «Файлы» (*_codeviper_*, не read_file).`
 
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
   'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'
 
-export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_codeviper_file ../ROADMAP.md → read_codeviper_file файлы из «Файлы» (ENOENT → create_codeviper_file) → set_self_improvement_plan. Не list_directory и не read_file проекта для app/.`
+export const START_SELF_IMPROVEMENT_EXPLORATION_NUDGE = `Start: read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) → read_codeviper_file файлы из «Файлы» (ENOENT → create_codeviper_file) → set_self_improvement_plan. Не list_directory и не read_file проекта для app/. Не угадывай файлы (agent.ts в корне нет — смотри «Файлы» в ROADMAP).`
 
 export const ROADMAP_DOCS_NOT_UPDATED_NUDGE = `Код и тесты готовы, но ROADMAP.md / ROADMAP_DONE.md / README.md не обновлены. edit_codeviper_file: удалить выполненный пункт из ROADMAP.md, перенумеровать с 1, запись в ROADMAP_DONE.md («Сделано»), счётчик в README — затем commit_and_push_self_edits.`
 

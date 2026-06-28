@@ -385,6 +385,25 @@ export async function createCodeViperPr(title?: string, body?: string): Promise<
   }
 
   const base = await getDefaultBaseBranch(source)
+
+  try {
+    const ahead = await runGitWithRetry(
+      source,
+      ['rev-list', '--count', `${base}..${branch}`],
+      'rev-list'
+    )
+    const commitCount = parseInt(ahead.stdout.trim(), 10)
+    if (!Number.isFinite(commitCount) || commitCount < 1) {
+      return {
+        ok: false,
+        message:
+          'нет коммитов относительно базовой ветки — сначала edit_codeviper_file и commit_and_push_self_edits, затем create_codeviper_pr'
+      }
+    }
+  } catch {
+    return { ok: false, message: 'не удалось проверить коммиты ветки — PR не создан' }
+  }
+
   const prTitle = title?.trim() || `Правки агента: ${branch}`
   const prBody =
     body?.trim() ||

@@ -145,11 +145,10 @@ export async function writeCodeViperFile(filePath: string, content: string): Pro
 
 function assertCodeViperPath(filePath: string): { root: string; rel: string } {
   const root = getCodeViperSourceRoot()
-  const rel = normalizeCodeViperPath(root, filePath)
-  if (!isAllowedSelfPath(root, rel)) {
+  if (!isAllowedSelfPath(root, filePath)) {
     throw new Error('Доступ запрещён: путь вне исходников CodeViper или в исключённой папке')
   }
-  return { root, rel }
+  return codeViperReadRoot(root, filePath)
 }
 
 export async function createCodeViperFile(filePath: string, content: string): Promise<void> {

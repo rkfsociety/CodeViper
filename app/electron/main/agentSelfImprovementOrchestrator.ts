@@ -12,6 +12,7 @@ import {
   buildSelfImprovementContinueNudge,
   ROADMAP_DOCS_NOT_UPDATED_NUDGE,
   incrementAttempt,
+  hasActionablePending,
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
@@ -108,6 +109,11 @@ export class SelfImprovementOrchestrator {
     }
 
     if (current && this.plan.hasPending()) {
+      if (!hasActionablePending(current)) {
+        this.emitPlan(current)
+        return { action: 'done' }
+      }
+
       this.selfImprovePlanNudges = 0
       if (this.currentPlanItemId) {
         const item = current.find((i) => i.id === this.currentPlanItemId)

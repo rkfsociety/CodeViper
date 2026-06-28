@@ -12,6 +12,7 @@ import {
   selfImprovementStepLimit,
   parsePlanItemsJson,
   parsePlanFromAssistantText,
+  hasActionablePending,
   resolvePlanToolArg,
   parseChecklistAsPlan,
   parseBulletListAsPlan,
@@ -199,6 +200,26 @@ describe('selfImprovement', () => {
     )
     expect(resolvePlanToolArg({ steps: ['x'] })).toEqual(['x'])
     expect(resolvePlanToolArg({})).toBeUndefined()
+  })
+
+  it('resolvePlanToolArg собирает план из action/check/roadmap (qwen fix trace)', () => {
+    const raw = resolvePlanToolArg({
+      action: 'edit_codeviper_file modelRuntime.ts',
+      check: 'npm run typecheck'
+    })
+    expect(typeof raw).toBe('string')
+    const items = parsePlanItemsJson(raw)
+    expect(items.length).toBeGreaterThanOrEqual(2)
+    expect(items[0].title).toContain('edit_codeviper_file')
+  })
+
+  it('hasActionablePending — заблокированные не считаются активными', () => {
+    const plan = [
+      { id: '1', title: 'A', done: false, blocked: true },
+      { id: '2', title: 'B', done: false, blocked: true }
+    ]
+    expect(hasActionablePending(plan)).toBe(false)
+    expect(hasActionablePending([{ id: '1', title: 'A', done: false }])).toBe(true)
   })
 
   it('парсит маркированный список вместо JSON (Gemini, fix #20)', () => {

@@ -21,7 +21,8 @@ import {
   getBundledNodeBin,
   getCodeViperSourceRoot,
   isAllowedSelfPath,
-  normalizeCodeViperPath
+  normalizeCodeViperPath,
+  editCodeViperFile
 } from '../electron/main/codeviperSource'
 
 describe('codeviperSource', () => {
@@ -45,6 +46,14 @@ describe('codeviperSource', () => {
     expect(isAllowedSelfPath(root, '../ROADMAP.md')).toBe(true)
     expect(isAllowedSelfPath(root, '../README.md')).toBe(true)
     expect(isAllowedSelfPath(root, '../../secret/ROADMAP.md')).toBe(false)
+  })
+
+  it('edit_codeviper_file не отклоняет ../README.md как «вне проекта»', async () => {
+    try {
+      await editCodeViperFile('../README.md', '__cv_test_marker_never_exists__', 'x')
+    } catch (err) {
+      expect(String(err)).not.toMatch(/вне проекта/i)
+    }
   })
 
   it('normalizeCodeViperPath убирает app/ при корне app/', () => {
