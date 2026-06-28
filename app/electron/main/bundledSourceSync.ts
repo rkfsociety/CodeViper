@@ -8,7 +8,8 @@ import {
   BUNDLED_SOURCE_DIR_NAME,
   BUNDLED_SOURCE_FIRST_CLONE_WAIT_MS,
   BUNDLED_SOURCE_STARTUP_WAIT_MS,
-  CODEVIPER_GITHUB_CLONE_URL
+  CODEVIPER_GITHUB_CLONE_URL,
+  CODEVIPER_RUNTIME_SYNC_BRANCH
 } from '../../shared/constants'
 import { loadSettings, saveSettings } from './settings'
 import { prependWindowsGitToPath } from './windowsGitEnv'
@@ -181,7 +182,15 @@ export async function ensureBundledSourceClone(): Promise<string | null> {
     await logBundledSourceSync('clone start', { root, url: CODEVIPER_GITHUB_CLONE_URL })
     const clone = await runGit(
       parent,
-      ['clone', '--depth', '1', CODEVIPER_GITHUB_CLONE_URL, BUNDLED_SOURCE_DIR_NAME],
+      [
+        'clone',
+        '--depth',
+        '1',
+        '--branch',
+        CODEVIPER_RUNTIME_SYNC_BRANCH,
+        CODEVIPER_GITHUB_CLONE_URL,
+        BUNDLED_SOURCE_DIR_NAME
+      ],
       GIT_CLONE_TIMEOUT_MS
     )
 
@@ -198,7 +207,41 @@ export async function ensureBundledSourceClone(): Promise<string | null> {
   })
 }
 
-/** git pull --ff-only в клоне; при отсутствии клона — попытка git clone. */
+/**
+ * Клон в userData — кэш runtime с master, не рабочая копия самоулучшения.
+ * После agent/* checkout и локальных правок — fetch + принудительный master.
+ */
+async function prepareBundledSourceForRuntimeSync(
+  root: string
+): Promise<{ ok: boolean; error?: string }> {
+  const remoteRef = `origin/${CODEVIPER_RUNTIME_SYNC_BRANCH}`
+
+  const fetch = await runGit(root, ['fetch', 'origin', CODEVIPER_RUNTIME_SYNC_BRANCH, '--quiet'])
+  if (fetch.code !== 0) {
+    return {
+      ok: false,
+      error: (fetch.stderr || fetch.stdout || 'git fetch failed').trim()
+    }
+  }
+
+  const checkout = await runGit(root, [
+    'checkout',
+    '-f',
+    '-B',
+    CODEVIPER_RUNTIME_SYNC_BRANCH,
+    remoteRef
+  ])
+  if (checkout.code !== 0) {
+    return {
+      ok: false,
+      error: (checkout.stderr || checkout.stdout || 'git checkout failed').trim()
+    }
+  }
+
+  return { ok: true }
+}
+
+/** Синхронизация клона с origin/master; при отсутствии клона — git clone. */
 export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
   const root = getBundledSourceRoot()
   let cloneCreated = false
@@ -215,14 +258,13 @@ export async function syncBundledSource(): Promise<BundledSourceSyncResult> {
   const before = await runGit(root, ['rev-parse', 'HEAD'])
   const headBefore = before.stdout.trim()
 
-  const pull = await runGit(root, ['pull', '--ff-only'])
-  if (pull.code !== 0) {
-    const error = (pull.stderr || pull.stdout || 'git pull --ff-only failed').trim()
-    await logBundledSourceSync('pull failed', { root, error, code: pull.code })
+  const prepared = await prepareBundledSourceForRuntimeSync(root)
+  if (!prepared.ok) {
+    await logBundledSourceSync('sync failed', { root, error: prepared.error })
     return {
       updated: false,
       localHead: headBefore || undefined,
-      error
+      error: prepared.error
     }
   }
 

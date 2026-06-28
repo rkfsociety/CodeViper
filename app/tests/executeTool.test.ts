@@ -132,6 +132,20 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(emitPlan).toHaveBeenCalledOnce()
   })
 
+  it('set_self_improvement_plan принимает plan как массив строк (Gemini)', async () => {
+    const store = new SelfImprovementPlanStore()
+    const emitPlan = vi.fn()
+    const handlers = createSelfImprovementToolHandlers(store, emitPlan)
+
+    const result = await handlers.set_self_improvement_plan!({
+      plan: ['Изучить App.tsx', 'Реализовать сплиттер', 'npm run typecheck']
+    })
+
+    expect(result).toContain('Изучить App.tsx')
+    expect(store.get()).toHaveLength(3)
+    expect(emitPlan).toHaveBeenCalledOnce()
+  })
+
   it('complete_self_improvement_item отмечает пункт выполненным', async () => {
     const store = new SelfImprovementPlanStore()
     store.set([

@@ -12,6 +12,7 @@ import {
   selfImprovementStepLimit,
   parsePlanItemsJson,
   parsePlanFromAssistantText,
+  resolvePlanToolArg,
   parseChecklistAsPlan,
   parseBulletListAsPlan,
   parseLoosePlanLines,
@@ -123,6 +124,27 @@ describe('selfImprovement', () => {
     const items = parsePlanItemsJson([{ id: '1', title: 'Шаг A' }])
     expect(items).toHaveLength(1)
     expect(items[0].title).toBe('Шаг A')
+  })
+
+  it('принимает plan как массив строк (Gemini, trace 1782640816802)', () => {
+    const plan = [
+      'Изучить App.tsx и App.module.css для реализации сплиттера',
+      'Реализовать компонент сплиттера и логику сохранения ширины в localStorage',
+      'Проверить типы и работоспособность через npm run typecheck и npm test'
+    ]
+    const items = parsePlanItemsJson(plan)
+    expect(items).toHaveLength(3)
+    expect(items[0].title).toContain('App.tsx')
+    expect(items[2].id).toBe('3')
+  })
+
+  it('resolvePlanToolArg читает plan если items отсутствует', () => {
+    expect(resolvePlanToolArg({ plan: ['шаг 1', 'шаг 2'] })).toEqual(['шаг 1', 'шаг 2'])
+    expect(resolvePlanToolArg({ items: '[{"id":"1","title":"A"}]' })).toBe(
+      '[{"id":"1","title":"A"}]'
+    )
+    expect(resolvePlanToolArg({ steps: ['x'] })).toEqual(['x'])
+    expect(resolvePlanToolArg({})).toBeUndefined()
   })
 
   it('парсит маркированный список вместо JSON (Gemini, fix #20)', () => {

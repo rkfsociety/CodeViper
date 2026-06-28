@@ -254,7 +254,11 @@ export interface ToolArgs {
   write_skill_data: { skill_id: string; content: string }
   list_roadmap: Record<string, never>
   read_roadmap_item: { number: string }
-  set_self_improvement_plan: { items: string }
+  set_self_improvement_plan: {
+    items?: string | unknown[]
+    plan?: string[] | unknown[]
+    steps?: string[] | unknown[]
+  }
   complete_self_improvement_item: { id: string | number }
   get_self_improvement_plan: Record<string, never>
   list_codeviper_directory: { path?: string; max_depth?: string }

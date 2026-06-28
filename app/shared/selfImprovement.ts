@@ -243,6 +243,34 @@ export function normalizePlanItemsInput(raw: unknown): string {
   return String(raw ?? '')
 }
 
+const PLAN_TOOL_ARG_KEYS = ['items', 'plan', 'steps', 'plan_items'] as const
+
+/** items / plan / steps — Gemini часто шлёт plan вместо items (см. trace #1782640816802). */
+export function resolvePlanToolArg(args: Record<string, unknown> | null | undefined): unknown {
+  if (!args) return undefined
+  for (const key of PLAN_TOOL_ARG_KEYS) {
+    const value = args[key]
+    if (value !== undefined && value !== null) return value
+  }
+  return undefined
+}
+
+function parseStringArrayPlan(parsed: unknown[]): SelfImprovementItem[] | null {
+  if (!parsed.length || !parsed.every((entry) => typeof entry === 'string')) return null
+  const items: SelfImprovementItem[] = []
+  for (const entry of parsed) {
+    const title = entry.trim()
+    if (!title) continue
+    items.push({
+      id: String(items.length + 1),
+      title,
+      done: false,
+      attemptCount: 0
+    })
+  }
+  return items.length ? items : null
+}
+
 /** Маркированный список «- пункт» / «1. пункт» (Gemini иногда шлёт вместо JSON). */
 export function parseBulletListAsPlan(text: string): SelfImprovementItem[] | null {
   const items: SelfImprovementItem[] = []
@@ -334,6 +362,9 @@ export function parsePlanItemsJson(raw: unknown): SelfImprovementItem[] {
   if (!Array.isArray(parsed) || !parsed.length) {
     throw new Error('items: нужен непустой JSON-массив')
   }
+
+  const stringPlan = parseStringArrayPlan(parsed)
+  if (stringPlan) return stringPlan
 
   return parsed.map((entry, index) => {
     if (!entry || typeof entry !== 'object') {

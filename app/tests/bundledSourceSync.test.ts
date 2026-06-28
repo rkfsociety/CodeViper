@@ -121,7 +121,7 @@ describe('bundledSourceSync', () => {
     expect(gitCalls.some((args) => args[0] === 'clone')).toBe(false)
   })
 
-  it('после успешного pull с новым HEAD — updated: true', async () => {
+  it('после успешного sync с новым HEAD — updated: true', async () => {
     const root = join(userDataDir, 'source')
     mkdirSync(join(root, '.git'), { recursive: true })
 
@@ -130,9 +130,12 @@ describe('bundledSourceSync', () => {
       if (args[0] === 'rev-parse' && args[1] === 'HEAD') {
         return { code: 0, stdout: `${head}\n`, stderr: '' }
       }
-      if (args[0] === 'pull') {
+      if (args[0] === 'fetch') {
         head = 'bbb2222'
-        return { code: 0, stdout: 'Already up to date.\n', stderr: '' }
+        return { code: 0, stdout: '', stderr: '' }
+      }
+      if (args[0] === 'checkout') {
+        return { code: 0, stdout: '', stderr: '' }
       }
       if (args[0] === 'diff') {
         return { code: 0, stdout: 'app/electron/main/agent.ts\n', stderr: '' }
@@ -152,8 +155,8 @@ describe('bundledSourceSync', () => {
       if (args[0] === 'rev-parse') {
         return { code: 0, stdout: 'samehash\n', stderr: '' }
       }
-      if (args[0] === 'pull') {
-        return { code: 0, stdout: 'Already up to date.\n', stderr: '' }
+      if (args[0] === 'fetch' || args[0] === 'checkout') {
+        return { code: 0, stdout: '', stderr: '' }
       }
       return { code: 1, stdout: '', stderr: 'unexpected' }
     })
@@ -162,24 +165,57 @@ describe('bundledSourceSync', () => {
     expect(result).toEqual({ updated: false, localHead: 'samehash' })
   })
 
-  it('ошибка pull возвращает error и localHead до pull', async () => {
+  it('ошибка fetch возвращает error и localHead до sync', async () => {
     const root = join(userDataDir, 'source')
     mkdirSync(join(root, '.git'), { recursive: true })
 
     setGitRunnerForTests(async (_cwd, args): Promise<GitRunResult> => {
       if (args[0] === 'rev-parse') {
-        return { code: 0, stdout: 'beforepull\n', stderr: '' }
+        return { code: 0, stdout: 'beforesync\n', stderr: '' }
       }
-      if (args[0] === 'pull') {
-        return { code: 1, stdout: '', stderr: 'fatal: not possible to fast-forward\n' }
+      if (args[0] === 'fetch') {
+        return { code: 1, stdout: '', stderr: 'fatal: unable to access\n' }
       }
       return { code: 1, stdout: '', stderr: 'unexpected' }
     })
 
     const result = await syncBundledSource()
     expect(result.updated).toBe(false)
-    expect(result.localHead).toBe('beforepull')
-    expect(result.error).toMatch(/fast-forward/)
+    expect(result.localHead).toBe('beforesync')
+    expect(result.error).toMatch(/unable to access/)
+  })
+
+  it('sync сбрасывает agent/* на master через fetch + checkout -f', async () => {
+    const root = join(userDataDir, 'source')
+    mkdirSync(join(root, '.git'), { recursive: true })
+    const gitCalls: string[][] = []
+
+    setGitRunnerForTests(async (_cwd, args): Promise<GitRunResult> => {
+      gitCalls.push(args)
+      if (args[0] === 'rev-parse') {
+        return { code: 0, stdout: 'agenthead\n', stderr: '' }
+      }
+      if (args[0] === 'fetch' || args[0] === 'checkout') {
+        return { code: 0, stdout: '', stderr: '' }
+      }
+      if (args[0] === 'diff') {
+        return { code: 0, stdout: '', stderr: '' }
+      }
+      return { code: 1, stdout: '', stderr: 'unexpected' }
+    })
+
+    await syncBundledSource()
+    expect(gitCalls.some((args) => args[0] === 'fetch' && args.includes('master'))).toBe(true)
+    expect(
+      gitCalls.some(
+        (args) =>
+          args[0] === 'checkout' &&
+          args.includes('-f') &&
+          args.includes('-B') &&
+          args.includes('master')
+      )
+    ).toBe(true)
+    expect(gitCalls.some((args) => args[0] === 'pull')).toBe(false)
   })
 
   it('syncBundledSourceIfEnabled не вызывает git при liveRuntimeFromGit=false', async () => {
@@ -203,7 +239,7 @@ describe('bundledSourceSync', () => {
 
     setGitRunnerForTests(async (_cwd, args): Promise<GitRunResult> => {
       if (args[0] === 'rev-parse') return { code: 0, stdout: 'same\n', stderr: '' }
-      if (args[0] === 'pull') return { code: 0, stdout: '', stderr: '' }
+      if (args[0] === 'fetch' || args[0] === 'checkout') return { code: 0, stdout: '', stderr: '' }
       return { code: 1, stdout: '', stderr: '' }
     })
 
@@ -236,7 +272,7 @@ describe('runBundledSourceStartupSync', () => {
     )
   })
 
-  it('packaged + liveRuntimeFromGit — вызывает git pull', async () => {
+  it('packaged + liveRuntimeFromGit — вызывает git fetch master', async () => {
     const root = join(userDataDir, 'source')
     mkdirSync(join(root, '.git'), { recursive: true })
     const gitCalls: string[][] = []
@@ -244,12 +280,12 @@ describe('runBundledSourceStartupSync', () => {
     setGitRunnerForTests(async (_cwd, args): Promise<GitRunResult> => {
       gitCalls.push(args)
       if (args[0] === 'rev-parse') return { code: 0, stdout: 'head\n', stderr: '' }
-      if (args[0] === 'pull') return { code: 0, stdout: '', stderr: '' }
+      if (args[0] === 'fetch' || args[0] === 'checkout') return { code: 0, stdout: '', stderr: '' }
       return { code: 1, stdout: '', stderr: '' }
     })
 
     await runBundledSourceStartupSync(true, { isPackaged: true, startupWaitMs: 100 })
-    expect(gitCalls.some((args) => args[0] === 'pull')).toBe(true)
+    expect(gitCalls.some((args) => args[0] === 'fetch' && args.includes('master'))).toBe(true)
   })
 
   it('не packaged — sync не вызывается', async () => {
@@ -284,7 +320,7 @@ describe('runBundledSourceStartupSync', () => {
 
     setGitRunnerForTests(async (_cwd, args): Promise<GitRunResult> => {
       if (args[0] === 'rev-parse') return { code: 0, stdout: 'head\n', stderr: '' }
-      if (args[0] === 'pull') {
+      if (args[0] === 'fetch' || args[0] === 'checkout') {
         await new Promise((resolve) => setTimeout(resolve, 200))
         return { code: 0, stdout: '', stderr: '' }
       }

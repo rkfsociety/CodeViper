@@ -3,6 +3,7 @@ import {
   parsePlanItemsJson,
   parsePlanFromAssistantText,
   normalizePlanItemsInput,
+  resolvePlanToolArg,
   formatPlanSummary,
   type SelfImprovementItem
 } from '../../shared/selfImprovement'
@@ -57,7 +58,7 @@ export function createSelfImprovementToolHandlers(
     },
 
     set_self_improvement_plan: async (args: any) => {
-      const items = plan.set(parseSelfImprovementPlanItems(args?.items))
+      const items = plan.set(parseSelfImprovementPlanItems(resolvePlanToolArg(args)))
       emitPlan(items)
       return `${formatPlanSummary(items)}\n\nНачни выполнение пункта 1 через инструменты.`
     },

@@ -302,9 +302,13 @@ export const OLLAMA_TOOLS = [
             type: 'string',
             description:
               'JSON: [{"id":"1","title":"…"}] или список строк «- шаг 1\\n- шаг 2». title обязателен (алиасы: action, item).'
+          },
+          plan: {
+            type: 'array',
+            description:
+              'Алиас для items: массив строк шагов или [{id, title}] (Gemini иногда шлёт plan вместо items).'
           }
-        },
-        required: ['items']
+        }
       }
     }
   },

@@ -154,6 +154,8 @@ export const CODEVIPER_GITHUB_OWNER = 'rkfsociety'
 export const CODEVIPER_GITHUB_REPO = 'CodeViper'
 /** Публичный URL для git clone (установщик и авто-клон в userData/source) */
 export const CODEVIPER_GITHUB_CLONE_URL = `https://github.com/${CODEVIPER_GITHUB_OWNER}/${CODEVIPER_GITHUB_REPO}`
+/** Ветка для live runtime sync в %APPDATA%/CodeViper/source (не agent/*) */
+export const CODEVIPER_RUNTIME_SYNC_BRANCH = 'master'
 
 // ── Live runtime (блок 0) ─────────────────────────────────────────────────────
 /** Подпапка клона репозитория относительно userData (%APPDATA%/CodeViper/source) */
