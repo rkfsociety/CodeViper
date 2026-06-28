@@ -51,6 +51,7 @@
 - RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
 
 ### UX и UI
+- OnboardingWizard: 3-шаговая модалка (провайдер → модель → открыть проект) при `!firstRunCompleted`; «Пропустить» завершает onboarding
 - Недавние проекты: `recentProjects` в settings (до 10), WelcomePanel и меню «Открыть»
 - Ctrl+` — показать/скрыть встроенный терминал
 - Quick Open (Ctrl+P): fuzzy-поиск по дереву проекта → превью файла

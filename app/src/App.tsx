@@ -28,6 +28,7 @@ import { UpdateBanner } from './components/UpdateBanner'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { PromptDialog } from './components/PromptDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
+import { OnboardingWizard } from './components/OnboardingWizard'
 import { ToastProvider, useToast } from './components/Toast'
 import { useAgentWaitingApprovalNotify } from './hooks/useAgentWaitingApprovalNotify'
 
@@ -686,6 +687,20 @@ function AppContent() {
     [flushCurrentChat, refreshChatStore]
   )
 
+  const pickProjectFromOnboarding = useCallback(async () => {
+    let chatId = activeChatId
+    if (!chatId) {
+      await createChat()
+      chatId = activeChatIdRef.current
+    }
+    if (!chatId) return
+    const folder = await window.codeviper.selectProjectFolder()
+    if (!folder) return
+    recordRecentProject(folder)
+    await window.codeviper.updateChat(chatId, { projectPath: folder })
+    await refreshChatStore()
+  }, [activeChatId, createChat, recordRecentProject, refreshChatStore])
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.ctrlKey && e.key.toLowerCase() === 'p') {
@@ -1300,6 +1315,16 @@ function AppContent() {
             />
           </Suspense>
         )}
+
+        <OnboardingWizard
+          open={settingsReady && settings.firstRunCompleted !== true && !window.codeviper.isE2e}
+          settings={settings}
+          models={models}
+          ollamaOnline={ollamaOnline}
+          onSettingsChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+          onPickProject={pickProjectFromOnboarding}
+          onComplete={() => {}}
+        />
 
         <ConfirmDialog
           open={showSecurityNotice}
