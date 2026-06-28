@@ -48,6 +48,11 @@ import {
   getBundledShellPaths,
   isBundledRuntimeFromClone
 } from './runtimeBootstrap'
+import {
+  getAppWindowTitle,
+  refreshAppWindowTitle,
+  registerMainWindowForTitle
+} from './appWindowTitle'
 
 if (process.env.CODEVIPER_E2E === '1') {
   const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
@@ -165,10 +170,6 @@ function ensureSessionCsp(): void {
   })
 }
 
-function appWindowTitle(): string {
-  return `CodeViper ${app.getVersion()}`
-}
-
 function loadMainWindowContent(win: BrowserWindow): void {
   if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -212,7 +213,7 @@ async function createWindow(): Promise<void> {
   const shell = getBundledShellPaths()
   mainWindow = new BrowserWindow({
     ...windowOptionsFromState(windowState),
-    title: appWindowTitle(),
+    title: getAppWindowTitle(),
     backgroundColor: '#0d1117',
     ...(icon ? { icon } : {}),
     webPreferences: {
@@ -232,10 +233,15 @@ async function createWindow(): Promise<void> {
   }
 
   trackWindowState(mainWindow)
+  registerMainWindowForTitle(mainWindow)
 
   mainWindow.on('page-title-updated', (event) => {
     event.preventDefault()
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setTitle(appWindowTitle())
+    refreshAppWindowTitle()
+  })
+
+  mainWindow.on('closed', () => {
+    registerMainWindowForTitle(null)
   })
 
   mainWindow.on('close', (event) => {

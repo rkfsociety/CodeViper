@@ -63,6 +63,7 @@ export default [
         console: 'readonly',
         // App globals
         __APP_VERSION__: 'readonly',
+        __BUILD_COMMIT__: 'readonly',
         // Electron
         Electron: 'readonly'
       }

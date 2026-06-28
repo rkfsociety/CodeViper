@@ -1,10 +1,28 @@
+import { execSync } from 'child_process'
 import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import pkg from './package.json'
 
+function resolveBuildCommit(): string {
+  try {
+    return execSync('git rev-parse --short=7 HEAD', {
+      cwd: resolve(__dirname, '..'),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim()
+  } catch {
+    return ''
+  }
+}
+
+const buildCommit = resolveBuildCommit()
+
 export default defineConfig({
   main: {
+    define: {
+      __BUILD_COMMIT__: JSON.stringify(buildCommit)
+    },
     plugins: [externalizeDepsPlugin()],
     build: {
       lib: {

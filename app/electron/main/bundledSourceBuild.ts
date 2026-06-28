@@ -317,6 +317,8 @@ export async function maybeBuildBundledSourceAfterSync(
           /* fallback: пользователь перезапустит по баннеру */
         }
       }
+
+      void import('./appWindowTitle').then(({ refreshAppWindowTitle }) => refreshAppWindowTitle())
     }
     return result
   })
