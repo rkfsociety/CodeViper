@@ -19,11 +19,12 @@ export class SelfImprovementPlanStore {
     return this.activePlan
   }
 
-  complete(id: string): SelfImprovementItem[] {
+  complete(id: string | number): SelfImprovementItem[] {
     if (!this.activePlan) throw new Error('План не задан — сначала set_self_improvement_plan')
 
-    const item = this.activePlan.find((entry) => entry.id === id)
-    if (!item) throw new Error(`Пункт не найден: ${id}`)
+    const normalizedId = String(id).trim()
+    const item = this.activePlan.find((entry) => entry.id === normalizedId)
+    if (!item) throw new Error(`Пункт не найден: ${normalizedId}`)
 
     item.done = true
     return this.activePlan

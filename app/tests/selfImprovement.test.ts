@@ -99,6 +99,22 @@ describe('selfImprovement', () => {
     expect(items[0].title).toBe('Реализовать toast')
   })
 
+  it('принимает action/check вместо title (ROADMAP, fix #23)', () => {
+    const items = parsePlanItemsJson([
+      {
+        id: 1,
+        action: 'Добавить обработчик keydown в App.tsx',
+        check: 'npm run typecheck'
+      },
+      { id: 2, action: 'Обновить ROADMAP.md' }
+    ])
+    expect(items).toHaveLength(2)
+    expect(items[0].title).toContain('keydown')
+    expect(items[0].title).toContain('npm run typecheck')
+    expect(items[1].title).toBe('Обновить ROADMAP.md')
+    expect(items[0].id).toBe('1')
+  })
+
   it('принимает items как массив объектов', () => {
     const items = parsePlanItemsJson([{ id: '1', title: 'Шаг A' }])
     expect(items).toHaveLength(1)

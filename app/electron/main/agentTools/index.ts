@@ -252,7 +252,7 @@ export interface ToolArgs {
   list_roadmap: Record<string, never>
   read_roadmap_item: { number: string }
   set_self_improvement_plan: { items: string }
-  complete_self_improvement_item: { id: string }
+  complete_self_improvement_item: { id: string | number }
   get_self_improvement_plan: Record<string, never>
   list_codeviper_directory: { path?: string; max_depth?: string }
   grep_codeviper_files: { query: string; path?: string }

@@ -189,6 +189,16 @@ export function selfImprovementStepLimit(configuredMaxSteps: number): number {
 
 const PLAN_ITEM_TITLE_KEYS = ['title', 'text', 'item', 'name', 'description', 'label'] as const
 
+function firstNonEmptyString(...values: unknown[]): string {
+  for (const value of values) {
+    if (value == null) continue
+    const text = String(value).trim()
+    if (text) return text
+  }
+  return ''
+}
+
+/** title и алиасы; при отсутствии — поля ROADMAP action/check (Gemini fix #23). */
 export function extractPlanItemTitle(record: Record<string, unknown>): string {
   for (const key of PLAN_ITEM_TITLE_KEYS) {
     const value = record[key]
@@ -196,6 +206,13 @@ export function extractPlanItemTitle(record: Record<string, unknown>): string {
     const text = String(value).trim()
     if (text) return text
   }
+
+  const action = firstNonEmptyString(record.action, record.действие)
+  const check = firstNonEmptyString(record.check, record.проверка)
+  if (action && check) return `${action} (проверка: ${check})`
+  if (action) return action
+  if (check) return check
+
   return ''
 }
 
@@ -259,7 +276,7 @@ export function parsePlanItemsJson(raw: unknown): SelfImprovementItem[] {
     if (!title) {
       const keys = Object.keys(record).join(', ') || '(пусто)'
       throw new Error(
-        `items[${index}]: пустой title — используйте поле title (не item). Ключи: ${keys}`
+        `items[${index}]: пустой title — используйте title или action/check (алиасы: item, text). Ключи: ${keys}`
       )
     }
 

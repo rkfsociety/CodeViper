@@ -41,13 +41,15 @@ export function createSelfImprovementToolHandlers(
     },
 
     complete_self_improvement_item: async (args: any) => {
-      const items = plan.complete(args.id)
+      const itemId = String(args?.id ?? '').trim()
+      if (!itemId) return 'Укажите id пункта из set_self_improvement_plan (строка или число).'
+      const items = plan.complete(itemId)
       emitPlan(items)
       const pending = items.filter((item) => !item.done)
       if (!pending.length) {
-        return `Пункт ${args.id} выполнен. Все пункты плана завершены.`
+        return `Пункт ${itemId} выполнен. Все пункты плана завершены.`
       }
-      return `Пункт ${args.id} выполнен. Следующий: «${pending[0].title}» (id: ${pending[0].id})`
+      return `Пункт ${itemId} выполнен. Следующий: «${pending[0].title}» (id: ${pending[0].id})`
     },
 
     get_self_improvement_plan: async () => {

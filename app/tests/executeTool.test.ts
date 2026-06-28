@@ -149,6 +149,17 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(emitPlan).toHaveBeenCalledOnce()
   })
 
+  it('complete_self_improvement_item принимает числовой id (Gemini, fix #23)', async () => {
+    const store = new SelfImprovementPlanStore()
+    store.set([{ id: '1', title: 'A', done: false }])
+    const handlers = createSelfImprovementToolHandlers(store, vi.fn())
+
+    const result = await handlers.complete_self_improvement_item!({ id: 1 })
+
+    expect(result).toContain('1')
+    expect(store.get()?.[0].done).toBe(true)
+  })
+
   it('complete последнего пункта сообщает о завершении плана', async () => {
     const store = new SelfImprovementPlanStore()
     store.set([{ id: '1', title: 'A', done: false }])
