@@ -80,6 +80,10 @@ export const ORCHESTRATOR_DEFAULT_OLLAMA_MODEL = 'qwen2.5:3b'
 // ── UI ────────────────────────────────────────────────────────────────────────
 /** Debounce перед запросом превью контекста (мс) */
 export const CONTEXT_PREVIEW_DEBOUNCE_MS = 1000
+/** Интервал автообновления панели «Метрики» (мс) */
+export const METRICS_PANEL_POLL_INTERVAL_MS = 5_000
+/** Debounce перед повторным запросом метрик по событиям агента (мс) */
+export const METRICS_PANEL_EVENT_DEBOUNCE_MS = 400
 
 // ── Провайдеры моделей ────────────────────────────────────────────────────────
 /** URL DeepSeek API (OpenAI-совместимый) */

@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  METRICS_PANEL_EVENT_DEBOUNCE_MS,
+  METRICS_PANEL_POLL_INTERVAL_MS
+} from '../../shared/constants'
+import type { AgentStreamEvent } from '../types'
 import styles from './MetricsPanel.module.css'
 
 interface MetricRow {
@@ -94,10 +99,23 @@ function successPct(successRuns: number, runs: number): string {
   return `${Math.round((successRuns / runs) * 100)}%`
 }
 
+function shouldRefreshMetricsOnStreamEvent(event: AgentStreamEvent): boolean {
+  if (event.type === 'done' || event.type === 'error') return true
+  if (event.type === 'tool_end' || event.type === 'generation_metrics') return true
+  if (event.type !== 'trace' || !event.traceEvent) return false
+  return (
+    event.traceEvent.kind === 'run_end' ||
+    event.traceEvent.kind === 'tool_call' ||
+    event.traceEvent.kind === 'llm_response'
+  )
+}
+
 export function MetricsPanel() {
   const [days, setDays] = useState<7 | 14 | 30 | 90>(30)
   const [metrics, setMetrics] = useState<AgentMetrics | null>(null)
   const [loading, setLoading] = useState(false)
+  const inFlightRef = useRef(false)
+  const eventDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [modelSort, setModelSort] = useState<{ key: ModelSortKey; dir: SortDir }>({
     key: 'runs',
     dir: 'desc'
@@ -107,15 +125,52 @@ export function MetricsPanel() {
     dir: 'desc'
   })
 
+  const loadMetrics = useCallback(
+    async (opts?: { showLoading?: boolean }) => {
+      if (inFlightRef.current) return
+      inFlightRef.current = true
+      if (opts?.showLoading) {
+        setLoading(true)
+        setMetrics(null)
+      }
+      try {
+        const m = (await window.codeviper.getAgentMetrics(days)) as AgentMetrics
+        setMetrics(m)
+      } catch {
+        if (opts?.showLoading) setMetrics(null)
+      } finally {
+        inFlightRef.current = false
+        if (opts?.showLoading) setLoading(false)
+      }
+    },
+    [days]
+  )
+
+  const scheduleRefresh = useCallback(() => {
+    if (eventDebounceRef.current) clearTimeout(eventDebounceRef.current)
+    eventDebounceRef.current = setTimeout(() => {
+      eventDebounceRef.current = null
+      void loadMetrics()
+    }, METRICS_PANEL_EVENT_DEBOUNCE_MS)
+  }, [loadMetrics])
+
   useEffect(() => {
-    setLoading(true)
-    setMetrics(null)
-    window.codeviper
-      .getAgentMetrics(days)
-      .then((m) => setMetrics(m as AgentMetrics))
-      .catch(() => setMetrics(null))
-      .finally(() => setLoading(false))
-  }, [days])
+    void loadMetrics({ showLoading: true })
+    const timer = setInterval(() => void loadMetrics(), METRICS_PANEL_POLL_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [loadMetrics])
+
+  useEffect(() => {
+    return () => {
+      if (eventDebounceRef.current) clearTimeout(eventDebounceRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    return window.codeviper.onAgentStream((event) => {
+      if (shouldRefreshMetricsOnStreamEvent(event)) scheduleRefresh()
+    })
+  }, [scheduleRefresh])
 
   const sortedByModel = useMemo(() => {
     if (!metrics) return []
