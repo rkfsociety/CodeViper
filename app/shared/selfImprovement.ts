@@ -757,7 +757,12 @@ export const CREATE_SELF_IMPROVEMENT_PLAN_NUDGE = `⚠️ Нужен set_self_im
 - ROADMAP: удалить пункт; ROADMAP_DONE: запись
 Только tool_calling. read_roadmap_item number=N (или read_codeviper_file ../ROADMAP.md) и файлы из «Файлы» (*_codeviper_*, не read_file).`
 
-export const AUTO_ADOPT_ROADMAP_PLAN_AFTER_NUDGES = 2
+export const AUTO_ADOPT_ROADMAP_PLAN_AFTER_NUDGES = 1
+
+/** qwen2.5-coder иногда пишет «read_roadmap_item number=1» текстом вместо native tool call. */
+export function isPseudoReadRoadmapItemText(text: string): boolean {
+  return /^\s*read_roadmap_item\s+number\s*=\s*\d+\s*$/i.test(text.trim())
+}
 
 export const SELF_IMPROVE_PLAN_STUCK_MESSAGE =
   'Самоулучшение stuck: plan-текст вместо set_self_improvement_plan. qwen2.5-coder:7b / llama3.1:8b или перефразируй.'

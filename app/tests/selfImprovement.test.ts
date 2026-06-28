@@ -27,6 +27,7 @@ import {
   buildPlanFromRoadmapItem,
   parseRoadmapItemFromToolOutput,
   parseRoadmapFieldsFromAssistantText,
+  isPseudoReadRoadmapItemText,
   isReadOutputTruncated,
   mapSelfImproveProjectTool,
   validateSelfImproveMutatingContent,
@@ -335,5 +336,11 @@ tool_response {"name": "read_codeviper_file", "arguments": {"path": "agent.ts"}}
     const vague = `Действие: Реализация пункта 1 из дорожной карты.
 Проверка: npm run typecheck`
     expect(parseRoadmapFieldsFromAssistantText(vague)).toBeNull()
+  })
+
+  it('isPseudoReadRoadmapItemText распознаёт текстовый echo tool call', () => {
+    expect(isPseudoReadRoadmapItemText('read_roadmap_item number=1')).toBe(true)
+    expect(isPseudoReadRoadmapItemText('  read_roadmap_item number = 2  ')).toBe(true)
+    expect(isPseudoReadRoadmapItemText('read_roadmap_item number=1 и ещё текст')).toBe(false)
   })
 })

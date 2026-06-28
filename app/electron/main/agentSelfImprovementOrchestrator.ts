@@ -102,7 +102,7 @@ export class SelfImprovementOrchestrator {
       }
       this.cachedRoadmapItem = parsed
 
-      if (this.readRoadmapRepeatCount >= 2 && this.autoAdoptRoadmapPlan()) {
+      if (this.readRoadmapRepeatCount >= 1 && this.autoAdoptRoadmapPlan()) {
         const current = this.plan.get()
         return current
           ? `${ROADMAP_ITEM_ALREADY_READ_NUDGE}\n\n${buildSelfImprovementContinueNudge(current)}`
@@ -220,6 +220,18 @@ export class SelfImprovementOrchestrator {
               requireTool: true,
               clearDraft: true
             }
+          }
+        }
+      }
+
+      if (this.cachedRoadmapItem && this.autoAdoptRoadmapPlan()) {
+        const planNow = this.plan.get()
+        if (planNow) {
+          return {
+            action: 'continue',
+            nudgeMessage: buildSelfImprovementContinueNudge(planNow),
+            requireTool: true,
+            clearDraft: true
           }
         }
       }
