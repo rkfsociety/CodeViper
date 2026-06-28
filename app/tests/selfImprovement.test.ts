@@ -78,6 +78,11 @@ describe('selfImprovement', () => {
         path: 'app/shared/ipcContracts.ts'
       })
     ).toBeNull()
+    expect(
+      checkTaskScopeViolation(msg, new Set(['edit_codeviper_file']), 'edit_codeviper_file', {
+        path: 'README.md'
+      })
+    ).toContain('integrations.ts')
   })
 
   it('определяет пути исходников CodeViper', () => {

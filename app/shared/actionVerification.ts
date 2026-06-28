@@ -159,6 +159,20 @@ export function looksLikeFakeToolOutput(assistantText: string): boolean {
   return FAKE_TOOL_OUTPUT_PATTERNS.some((pattern) => pattern.test(text))
 }
 
+/** Модель описала вызов инструмента текстом/bash вместо native tool call (qwen2.5-coder). */
+const PSEUDO_TOOL_INVOCATION_PATTERNS: RegExp[] = [
+  /(?:^|\n)\s*(?:bash|shell|sh)\s*\n\s*(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)/im,
+  /(?:^|\n)\s*(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)\s+\S/m,
+  /(?:Используем|вызови|выполним)\s+`?(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)/iu,
+  /(?:Пример команды|### Пример)[\s\S]{0,200}(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)/iu
+]
+
+export function looksLikePseudoToolInvocation(assistantText: string): boolean {
+  const text = assistantText.trim()
+  if (!text) return false
+  return PSEUDO_TOOL_INVOCATION_PATTERNS.some((pattern) => pattern.test(text))
+}
+
 export function claimsActionCompleted(assistantText: string): boolean {
   const text = assistantText.trim()
   if (!text) return false
@@ -242,6 +256,7 @@ export function shouldRetryForMissingTools(
   return (
     claimsActionCompleted(assistantText) ||
     looksLikeAdviceInsteadOfAction(assistantText) ||
+    looksLikePseudoToolInvocation(assistantText) ||
     assistantText.length > 80
   )
 }

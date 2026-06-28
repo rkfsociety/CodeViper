@@ -354,6 +354,9 @@ const codeviper = {
   exportChats: () =>
     withTimeout(ipcRenderer.invoke(IPC.EXPORT_CHATS), IPC_TIMEOUT_MS * 3, 'exportChats'),
 
+  exportChat: (chatId: string) =>
+    withTimeout(ipcRenderer.invoke(IPC.EXPORT_CHAT, chatId), IPC_TIMEOUT_MS * 3, 'exportChat'),
+
   importChats: (chats: unknown[]) =>
     withTimeout(ipcRenderer.invoke(IPC.IMPORT_CHATS, chats), IPC_TIMEOUT_MS * 3, 'importChats'),
 

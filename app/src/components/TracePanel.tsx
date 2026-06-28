@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { chatExportJsonFilename } from '../../shared/chatExport'
 import type { AgentTraceEvent } from '../types'
 import { getTraceEvents, clearTraceEvents, onTraceUpdate, hydrateTraceEvents } from '../traceBuffer'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -55,6 +56,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
   )
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [exporting, setExporting] = useState(false)
+  const [exportingChat, setExportingChat] = useState(false)
   const [reporting, setReporting] = useState(false)
   const [reportConfirmOpen, setReportConfirmOpen] = useState(false)
   const [reportStatus, setReportStatus] = useState<string | null>(null)
@@ -165,7 +167,26 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
     }
   }
 
+  async function handleExportChat() {
+    if (!chatId || exportingChat) return
+    setExportingChat(true)
+    try {
+      const payload = await window.codeviper.exportChat(chatId)
+      if (!payload) return
+      const json = JSON.stringify(payload, null, 2)
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = chatExportJsonFilename(payload.chat)
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } finally {
+      setExportingChat(false)
+    }
+  }
+
   const canExport = Boolean(chatId && events.length > 0 && !exporting)
+  const canExportChat = Boolean(chatId && !exportingChat)
   const canReport = Boolean(chatId && events.length > 0 && !reporting)
 
   return (
@@ -173,6 +194,16 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
       <div className={styles.header}>
         <span>Трассировка агента</span>
         <div className={styles.headerActions}>
+          {chatId && (
+            <button
+              className={styles.exportBtn}
+              onClick={() => void handleExportChat()}
+              disabled={!canExportChat}
+              title="Скачать JSON чата: сообщения, метаданные и трейс агента"
+            >
+              {exportingChat ? 'Экспорт…' : 'Чат JSON'}
+            </button>
+          )}
           {events.length > 0 && (
             <>
               <button

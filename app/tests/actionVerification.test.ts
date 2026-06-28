@@ -3,6 +3,7 @@ import {
   acceptTextAfterReadTools,
   claimsActionCompleted,
   looksLikeAdviceInsteadOfAction,
+  looksLikePseudoToolInvocation,
   looksLikeAlreadyImplementedConclusion,
   looksLikeFakeToolOutput,
   MUTATING_TOOLS,
@@ -147,5 +148,18 @@ describe('actionVerification', () => {
 Файлы: openaiProvider.ts
 Действие: переиспользовать OpenAI client`
     expect(shouldRetryForMissingTools(roadmapMsg, fake, new Set(), true)).toBe(true)
+  })
+
+  it('looksLikePseudoToolInvocation ловит grep/bash текстом вместо tool call', () => {
+    const text = `### Пример команды:
+
+bash
+grep_codeviper_files openaiProvider.ts "baseUrl|apiKey"
+
+Эта команда выполнит поиск.`
+    expect(looksLikePseudoToolInvocation(text)).toBe(true)
+    expect(
+      looksLikePseudoToolInvocation('Сейчас прочитаю openaiProvider.ts через read_codeviper_file.')
+    ).toBe(false)
   })
 })

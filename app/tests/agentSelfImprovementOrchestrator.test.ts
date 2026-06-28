@@ -70,4 +70,39 @@ describe('SelfImprovementOrchestrator', () => {
     expect(orchestrator.handleNoToolCalls(fake, undefined, true)).toEqual({ action: 'passthrough' })
     expect(store.get()?.[0].blocked).toBeFalsy()
   })
+
+  it('setRoadmapItemDetail автоматически создаёт план при старте', () => {
+    const { store, orchestrator } = createOrchestrator()
+    orchestrator.setRoadmapContext(1)
+    orchestrator.setRoadmapItemDetail({
+      num: 1,
+      action: 'переиспользовать OpenAI client с custom baseURL',
+      verification: 'ping к mock server'
+    })
+    expect(store.has()).toBe(true)
+    expect(store.get()?.[0].title).toContain('OpenAI client')
+  })
+
+  it('handleNoToolCalls усиливает nudge при pseudo tool invocation', () => {
+    const { store, orchestrator } = createOrchestrator()
+    store.adopt(
+      buildPlanFromRoadmapItem({
+        num: 1,
+        action: 'правка openaiProvider.ts',
+        verification: 'npm test'
+      })
+    )
+    const pseudo = `### Пример команды:
+
+bash
+grep_codeviper_files openaiProvider.ts "baseUrl"
+
+Далее read_codeviper_file.`
+    const result = orchestrator.handleNoToolCalls(pseudo, undefined, true)
+    expect(result.action).toBe('continue')
+    if (result.action === 'continue') {
+      expect(result.nudgeMessage).toContain('STOP')
+      expect(result.nudgeMessage).toContain('Следующий пункт')
+    }
+  })
 })

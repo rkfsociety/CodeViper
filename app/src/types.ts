@@ -11,6 +11,7 @@ export type {
 } from '../shared/agentPrerequisites'
 export type { PermissionMode } from '../shared/permissions'
 export type { UiLayoutState } from '../shared/uiLayout'
+export type { ChatExportPayload } from '../shared/chatExport'
 export { PERMISSION_MODES, PERMISSION_MODE_LABELS } from '../shared/permissions'
 export { isThinkingModel } from '../shared/reasoning'
 
@@ -754,6 +755,7 @@ export interface CodeViperAPI {
   setActiveChat: (id: string | null) => Promise<void>
   moveChatToFolder: (chatId: string, folderId: string | null) => Promise<void>
   exportChats: () => Promise<ChatStore>
+  exportChat: (chatId: string) => Promise<import('../shared/chatExport').ChatExportPayload | null>
   importChats: (chats: SavedChat[]) => Promise<ImportResult>
   exportTrace: (
     chatId: string,

@@ -438,6 +438,7 @@ export const IPC = {
   SET_ACTIVE_CHAT: 'set-active-chat',
   MOVE_CHAT_TO_FOLDER: 'move-chat-to-folder',
   EXPORT_CHATS: 'export-chats',
+  EXPORT_CHAT: 'export-chat',
   IMPORT_CHATS: 'import-chats',
   EXPORT_TRACE: 'export-trace',
   LOAD_CHAT_TRACE: 'load-chat-trace',
@@ -674,6 +675,17 @@ export const Contracts = {
   [IPC.EXPORT_CHATS]: {
     args: z.tuple([]),
     result: ChatStoreSchema
+  },
+  [IPC.EXPORT_CHAT]: {
+    args: z.tuple([z.string()]),
+    result: z
+      .object({
+        exportSchemaVersion: z.literal(1),
+        exportedAt: z.number(),
+        chat: SavedChatSchema,
+        trace: z.array(AgentTraceEventSchema)
+      })
+      .nullable()
   },
   [IPC.IMPORT_CHATS]: {
     args: z.tuple([z.array(SavedChatSchema)]),

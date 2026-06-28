@@ -7,6 +7,7 @@ import styles from './ChatHistoryPanel.module.css'
 import { useChatContext } from '../contexts/ChatContext'
 import { useChatBusy } from '../contexts/QueueContext'
 import { CHAT_TEMPLATES } from '../../shared/chatTemplates'
+import { chatExportJsonFilename, chatsToMarkdown } from '../../shared/chatExport'
 
 export type AgentMode = 'chat' | 'code'
 
@@ -61,26 +62,6 @@ function downloadBlob(blob: Blob, filename: string): void {
   a.download = filename
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
-
-function chatsToMarkdown(chats: SavedChat[]): string {
-  const ROLE_LABEL: Record<string, string> = {
-    user: 'Вы',
-    assistant: 'CodeViper',
-    tool: 'Инструмент',
-    system: 'Система'
-  }
-  const parts: string[] = [`# История чатов CodeViper\n`]
-  for (const chat of chats) {
-    parts.push(`## ${chat.title}`)
-    parts.push(`*Проект: ${chat.projectPath || 'не указан'} · ${chat.updatedAt.slice(0, 10)}*\n`)
-    for (const msg of chat.messages) {
-      const label = ROLE_LABEL[msg.role] ?? msg.role
-      parts.push(`**${label}:**\n\n${msg.content}\n`)
-    }
-    parts.push('---\n')
-  }
-  return parts.join('\n')
 }
 
 function validateImportPayload(raw: unknown): SavedChat[] {
@@ -200,6 +181,20 @@ export function ChatHistoryPanel({
       const chatStore = await window.codeviper.exportChats()
       const md = chatsToMarkdown(chatStore.chats)
       downloadBlob(new Blob([md], { type: 'text/markdown' }), 'codeviper-chats.md')
+    } catch (e) {
+      setIoStatus(`Ошибка экспорта: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+
+  const handleExportChat = useCallback(async (chat: SavedChat) => {
+    try {
+      const payload = await window.codeviper.exportChat(chat.id)
+      if (!payload) {
+        setIoStatus('Чат не найден')
+        return
+      }
+      const json = JSON.stringify(payload, null, 2)
+      downloadBlob(new Blob([json], { type: 'application/json' }), chatExportJsonFilename(chat))
     } catch (e) {
       setIoStatus(`Ошибка экспорта: ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -472,6 +467,17 @@ export function ChatHistoryPanel({
           )}
         </div>
         <div className={styles.actions}>
+          <button
+            className={`btn ${styles.historyBtn}`}
+            title="Экспорт чата для анализа (JSON: сообщения, метаданные, трейс)"
+            aria-label="Экспорт чата"
+            onClick={(e) => {
+              e.stopPropagation()
+              void handleExportChat(chat)
+            }}
+          >
+            ⤓
+          </button>
           <button
             className={`btn ${styles.historyBtn}${chat.pinned ? ' active' : ''}`}
             title={chat.pinned ? 'Открепить' : 'Закрепить'}

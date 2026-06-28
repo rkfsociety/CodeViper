@@ -227,7 +227,7 @@ export function isReadOutputTruncated(output: string): boolean {
   )
 }
 
-const PATH_SCOPED_AGENT_TOOLS = new Set([
+const PATH_SCOPED_READ_TOOLS = new Set([
   'read_file',
   'read_codeviper_file',
   'search_in_file',
@@ -235,6 +235,18 @@ const PATH_SCOPED_AGENT_TOOLS = new Set([
   'find_symbol',
   'find_references'
 ])
+
+/** edit/create/write — scope проверяем всегда (trace: edit README вместо файлов из «Файлы:»). */
+const PATH_SCOPED_MUTATING_TOOLS = new Set([
+  'edit_file',
+  'edit_codeviper_file',
+  'create_file',
+  'create_codeviper_file',
+  'write_file',
+  'write_codeviper_file'
+])
+
+const PATH_SCOPED_AGENT_TOOLS = new Set([...PATH_SCOPED_READ_TOOLS, ...PATH_SCOPED_MUTATING_TOOLS])
 
 function normalizeScopePath(p: string): string {
   return p.trim().replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase()
@@ -278,8 +290,9 @@ export function checkTaskScopeViolation(
   toolName: string,
   args: Record<string, string>
 ): string | null {
-  if (mutatingToolsUsed.size > 0) return null
   if (!PATH_SCOPED_AGENT_TOOLS.has(toolName)) return null
+  // После успешной правки в scope — read вне списка не блокируем; mutating вне scope — всегда.
+  if (mutatingToolsUsed.size > 0 && PATH_SCOPED_READ_TOOLS.has(toolName)) return null
   const scoped = parseTaskScopedFiles(userMessage)
   if (!scoped?.length) return null
   const toolPath = args.path?.trim()

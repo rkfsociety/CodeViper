@@ -276,7 +276,7 @@ export class AgentRunner {
     const roadmapItemNum = isRoadmapSelfImprovementTask(userMessage)
       ? parseRoadmapTaskItemNumber(userMessage)
       : null
-    this.selfImproveOrchestrator.setRoadmapContext(roadmapItemNum)
+    this.selfImproveOrchestrator.setRoadmapContext(roadmapItemNum, userMessage)
 
     if (taskMode === 'self-improve') {
       this.selfImprovementPlan.reset()

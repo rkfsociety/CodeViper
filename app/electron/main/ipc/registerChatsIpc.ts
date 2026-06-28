@@ -4,6 +4,7 @@ import {
   createFolder,
   deleteChat,
   deleteFolder,
+  exportChatForAnalysis,
   exportChats,
   getChatStore,
   importChats,
@@ -76,6 +77,8 @@ export function registerChatsIpc(): void {
   )
 
   ipcMain.handle('export-chats', async () => exportChats())
+
+  ipcMain.handle('export-chat', async (_e, chatId: string) => exportChatForAnalysis(chatId))
 
   ipcMain.handle('import-chats', async (_e, chats: SavedChat[]) => importChats(chats))
 }

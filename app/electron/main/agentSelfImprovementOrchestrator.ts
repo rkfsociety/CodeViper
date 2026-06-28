@@ -2,7 +2,14 @@ import type { AgentStreamPayload } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
 import type { ModelRuntime } from './modelRuntime'
 import type { AgentSettings } from '../../src/types'
-import { looksLikeFakeToolOutput } from '../../shared/actionVerification'
+import {
+  acceptTextAfterReadTools,
+  looksLikeAdviceInsteadOfAction,
+  looksLikeFakeToolOutput,
+  looksLikePseudoToolInvocation,
+  shouldRetryForMissingTools,
+  TOOL_VERIFICATION_NUDGE
+} from '../../shared/actionVerification'
 import {
   parsePlanFromAssistantText,
   syncPlanFromChecklist,
@@ -58,6 +65,9 @@ export class SelfImprovementOrchestrator {
   private cachedRoadmapItem: RoadmapPlanSource | null = null
   private readRoadmapRepeatCount = 0
   private lastReadRoadmapNum: number | null = null
+  private userMessage = ''
+  private lastNoToolText: string | null = null
+  private textOnlyStreak = 0
 
   constructor(
     private readonly plan: SelfImprovementPlanStore,
@@ -69,18 +79,24 @@ export class SelfImprovementOrchestrator {
   ) {}
 
   /** Контекст ROADMAP-задачи на один прогон run(). */
-  setRoadmapContext(itemNum: number | null): void {
+  setRoadmapContext(itemNum: number | null, userMessage = ''): void {
     this.roadmapItemNum = itemNum
+    this.userMessage = userMessage
     this.roadmapDocsUpdated = false
     this.cachedRoadmapItem = null
     this.readRoadmapRepeatCount = 0
     this.lastReadRoadmapNum = null
+    this.lastNoToolText = null
+    this.textOnlyStreak = 0
   }
 
   /** Предзагрузка пункта ROADMAP (agent.ts читает до первого шага модели). */
   setRoadmapItemDetail(detail: RoadmapPlanSource): void {
     this.cachedRoadmapItem = detail
     this.lastReadRoadmapNum = detail.num
+    if (!this.plan.has()) {
+      this.autoAdoptRoadmapPlan()
+    }
   }
 
   /**
@@ -191,6 +207,30 @@ export class SelfImprovementOrchestrator {
         return { action: 'done' }
       }
 
+      if (
+        assistantText &&
+        acceptTextAfterReadTools(assistantText, new Set(), usedTools) &&
+        !looksLikePseudoToolInvocation(assistantText)
+      ) {
+        return { action: 'passthrough' }
+      }
+
+      if (assistantText) {
+        const normalized = assistantText.trim().slice(0, 400)
+        const isRepeat = this.lastNoToolText != null && this.lastNoToolText === normalized
+        const isPseudoOrAdvice =
+          looksLikePseudoToolInvocation(assistantText) ||
+          looksLikeAdviceInsteadOfAction(assistantText) ||
+          (this.userMessage.length > 0 &&
+            shouldRetryForMissingTools(this.userMessage, assistantText, new Set(), usedTools))
+        if (isRepeat || isPseudoOrAdvice) {
+          this.textOnlyStreak++
+        } else {
+          this.textOnlyStreak = 0
+        }
+        this.lastNoToolText = normalized
+      }
+
       this.selfImprovePlanNudges = 0
       if (this.currentPlanItemId) {
         const item = current.find((i) => i.id === this.currentPlanItemId)
@@ -207,9 +247,12 @@ export class SelfImprovementOrchestrator {
       this.emitPlan(current)
       const nextItem = current.find((i) => !i.done && !i.blocked)
       if (nextItem) this.currentPlanItemId = nextItem.id
+      const baseNudge = buildSelfImprovementContinueNudge(current)
+      const nudgeMessage =
+        this.textOnlyStreak >= 1 ? `${TOOL_VERIFICATION_NUDGE}\n\n${baseNudge}` : baseNudge
       return {
         action: 'continue',
-        nudgeMessage: buildSelfImprovementContinueNudge(current),
+        nudgeMessage,
         requireTool: true,
         clearDraft: false,
         emitAssistant:

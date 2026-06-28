@@ -18,6 +18,7 @@ import {
   deleteFolder,
   moveChatToFolder,
   setActiveChat,
+  exportChatForAnalysis,
   makeChatTitle,
   deriveChatTitle,
   trimChatMessages
@@ -148,5 +149,18 @@ describe('защита от потери при повреждении', () => {
 
     const backups = readdirSync(USER_DATA).filter((f) => f.includes('.corrupt-'))
     expect(backups).toHaveLength(1)
+  })
+
+  it('exportChatForAnalysis возвращает чат с сообщениями', async () => {
+    const created = await createChat()
+    await updateChat(created.id, {
+      title: 'Экспорт',
+      messages: [{ id: 'm1', role: 'user', content: 'тест', timestamp: 1 }]
+    })
+    const payload = await exportChatForAnalysis(created.id)
+    expect(payload?.chat.title).toBe('Экспорт')
+    expect(payload?.chat.messages).toHaveLength(1)
+    expect(payload?.exportSchemaVersion).toBe(1)
+    expect(await exportChatForAnalysis('missing')).toBeNull()
   })
 })

@@ -5,7 +5,8 @@ import { join } from 'path'
 import { makeId } from '../../shared/makeId'
 import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
 import { clearChatFromRAG, addMessageToRAG } from './contextRAG'
-import { clearChatTrace } from './traceStorage'
+import { buildChatExportPayload, type ChatExportPayload } from '../../shared/chatExport'
+import { clearChatTrace, loadChatTrace } from './traceStorage'
 import type { VectorStoreConfig } from './vectorStore'
 import type {
   ChatFolder,
@@ -392,6 +393,15 @@ export interface ImportResult {
 
 export async function exportChats(): Promise<ChatStore> {
   return getChatStore()
+}
+
+export async function exportChatForAnalysis(chatId: string): Promise<ChatExportPayload | null> {
+  const index = await loadIndex()
+  const entry = index.chats.find((c) => c.id === chatId)
+  if (!entry) return null
+  const chat = await hydrateChat(entry)
+  const trace = await loadChatTrace(chatId)
+  return buildChatExportPayload(chat, trace)
 }
 
 export async function importChats(incoming: SavedChat[]): Promise<ImportResult> {
