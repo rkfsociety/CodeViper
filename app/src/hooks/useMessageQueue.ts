@@ -33,6 +33,7 @@ export interface UseMessageQueueOptions {
   doneRunIdRef: MutableRefObject<number>
   processNextQueuedRunRef: MutableRefObject<() => Promise<void>>
   appendMessage: (message: ChatMessage) => void
+  replaceMessages: (messages: ChatMessage[]) => void
   onRunStart: () => void
   onBusyChange?: (busy: boolean) => void
   /** Вызывается при полном сбросе очереди (смена чата и т.п.) — сбрасывает состояние стрима */
@@ -47,6 +48,41 @@ export interface UseMessageQueueOptions {
   incognitoRef?: MutableRefObject<boolean>
 }
 
+export interface AssistantRegeneratePlan {
+  truncated: ChatMessage[]
+  userContent: string
+  userImages?: ChatMessage['images']
+}
+
+/** Обрезка истории до user-turn перед ответом assistant (unit-тест). */
+export function planAssistantRegenerate(
+  messages: ChatMessage[],
+  assistantMessageId: string
+): AssistantRegeneratePlan | null {
+  const assistantIdx = messages.findIndex((m) => m.id === assistantMessageId)
+  if (assistantIdx < 0) return null
+  if (messages[assistantIdx]?.role !== 'assistant') return null
+
+  let userIdx = -1
+  for (let i = assistantIdx - 1; i >= 0; i--) {
+    if (messages[i]?.role === 'user') {
+      userIdx = i
+      break
+    }
+  }
+  if (userIdx < 0) return null
+
+  const userMsg = messages[userIdx]!
+  const userContent = userMsg.content.trim()
+  if (!userContent) return null
+
+  return {
+    truncated: messages.slice(0, userIdx),
+    userContent: userMsg.content,
+    userImages: userMsg.images
+  }
+}
+
 export function useMessageQueue({
   chatIdRef,
   projectPathRef,
@@ -56,6 +92,7 @@ export function useMessageQueue({
   doneRunIdRef,
   processNextQueuedRunRef,
   appendMessage,
+  replaceMessages,
   onRunStart,
   onBusyChange,
   onReset,
@@ -364,12 +401,34 @@ export function useMessageQueue({
     return [...queueRef.current]
   }
 
+  async function regenerateAssistantReply(assistantMessageId: string): Promise<boolean> {
+    if (!chatIdRef.current || !projectPathRef.current) return false
+    if (agentRunningRef.current) return false
+
+    const plan = planAssistantRegenerate(messagesRef.current, assistantMessageId)
+    if (!plan) return false
+
+    replaceMessages(plan.truncated)
+
+    const userMsg: ChatMessage = {
+      id: makeId(),
+      role: 'user',
+      content: plan.userContent,
+      timestamp: Date.now(),
+      ...(plan.userImages?.length ? { images: plan.userImages } : {})
+    }
+    appendMessage(userMsg)
+    await submitMessage(userMsg.id, plan.userContent)
+    return true
+  }
+
   return {
     submitMessage,
     confirmDangerRun,
     stopAgent,
     executeRun,
     replayRun,
+    regenerateAssistantReply,
     resetQueue,
     getQueueSnapshot,
     queueSize,

@@ -19,6 +19,7 @@ export const MessageRow = memo(function MessageRow({
   onPin,
   onRetry,
   onEdit,
+  onRegenerate,
   onFileTimeline,
   onSaveAsSkill
 }: {
@@ -32,6 +33,7 @@ export const MessageRow = memo(function MessageRow({
   onPin: (id: string) => void
   onRetry: (message: ChatMessage) => void
   onEdit: (message: ChatMessage) => void
+  onRegenerate?: (message: ChatMessage) => void
   onFileTimeline?: (path: string) => void
   onSaveAsSkill?: (content: string) => void
 }) {
@@ -84,6 +86,15 @@ export const MessageRow = memo(function MessageRow({
                   ✎ Изменить
                 </button>
               </>
+            )}
+            {!busy && message.role === 'assistant' && onRegenerate && (
+              <button
+                type="button"
+                className="message-menu-item"
+                onClick={() => onRegenerate(message)}
+              >
+                ↺ Перегенерировать
+              </button>
             )}
             {!busy && message.role === 'assistant' && onSaveAsSkill && (
               <button

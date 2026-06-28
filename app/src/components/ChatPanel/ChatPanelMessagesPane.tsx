@@ -20,6 +20,7 @@ interface Props {
   togglePinMessage: (id: string) => void
   retryUserMessage: (message: ChatMessage) => void
   editUserMessage: (message: ChatMessage) => void
+  regenerateAssistantMessage: (message: ChatMessage) => void
   onFileTimeline: (path: string) => void
   onSaveAsSkill: (content: string) => void
   respondPreview: (messageId: string, previewId: string, apply: boolean) => void
@@ -41,6 +42,7 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
   togglePinMessage,
   retryUserMessage,
   editUserMessage,
+  regenerateAssistantMessage,
   onFileTimeline,
   onSaveAsSkill,
   respondPreview,
@@ -113,6 +115,7 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
       togglePinMessage={togglePinMessage}
       retryUserMessage={retryUserMessage}
       editUserMessage={editUserMessage}
+      regenerateAssistantMessage={regenerateAssistantMessage}
       onFileTimeline={onFileTimeline}
       onSaveAsSkill={onSaveAsSkill}
       respondPreview={respondPreview}

@@ -30,6 +30,7 @@ interface Props {
   togglePinMessage: (id: string) => void
   retryUserMessage: (message: ChatMessage) => void
   editUserMessage: (message: ChatMessage) => void
+  regenerateAssistantMessage: (message: ChatMessage) => void
   onFileTimeline: (path: string) => void
   onSaveAsSkill: (content: string) => void
   respondPreview: (messageId: string, previewId: string, apply: boolean) => void
@@ -73,6 +74,7 @@ export function ChatMessages({
   togglePinMessage,
   retryUserMessage,
   editUserMessage,
+  regenerateAssistantMessage,
   onFileTimeline,
   onSaveAsSkill,
   respondPreview,
@@ -160,6 +162,7 @@ export function ChatMessages({
                   onPin={togglePinMessage}
                   onRetry={retryUserMessage}
                   onEdit={editUserMessage}
+                  onRegenerate={regenerateAssistantMessage}
                   onFileTimeline={onFileTimeline}
                   onSaveAsSkill={onSaveAsSkill}
                 />

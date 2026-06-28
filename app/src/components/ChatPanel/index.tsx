@@ -381,6 +381,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     stopAgent,
     executeRun,
     replayRun,
+    regenerateAssistantReply,
     resetQueue,
     getQueueSnapshot,
     queueSize,
@@ -395,6 +396,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     doneRunIdRef,
     processNextQueuedRunRef,
     appendMessage,
+    replaceMessages: commitMessages,
     onRunStart: resetStreamState,
     onReset: resetStreamState,
     onBusyChange: (busy: boolean) => chatId && markChatBusy(chatId, busy),
@@ -659,6 +661,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       await submitMessage(msg.id, message.content)
     },
     [busy, chatId, projectPath, submitMessage]
+  )
+
+  const regenerateAssistantMessage = useCallback(
+    (message: ChatMessage) => {
+      if (busy || !chatId || !projectPath) return
+      void regenerateAssistantReply(message.id)
+    },
+    [busy, chatId, projectPath, regenerateAssistantReply]
   )
 
   const editUserMessage = useCallback((message: ChatMessage) => {
@@ -951,6 +961,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         togglePinMessage={togglePinMessage}
         retryUserMessage={retryUserMessage}
         editUserMessage={editUserMessage}
+        regenerateAssistantMessage={regenerateAssistantMessage}
         onFileTimeline={setFileTimelinePath}
         onSaveAsSkill={handleSaveAsSkill}
         respondPreview={respondPreview}
