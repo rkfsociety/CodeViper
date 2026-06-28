@@ -45,6 +45,12 @@ import { CLOUD_KNOWN_MODELS, FILE_LIMIT, shouldShowAssistantMessage } from './he
 import type { DroppedFile } from './ChatInput'
 import { ChatPanelMessagesPane } from './ChatPanelMessagesPane'
 import { ChatStatusBar } from './ChatStatusBar'
+import {
+  CHAT_INPUT_DRAFT_DEBOUNCE_MS,
+  clearChatInputDraft,
+  loadChatInputDraft,
+  saveChatInputDraft
+} from '../../lib/chatInputDraft'
 
 const FileTimelinePanel = lazy(() =>
   import('../FileTimelinePanel').then((m) => ({ default: m.FileTimelinePanel }))
@@ -104,6 +110,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   } = useChatContext()
   const { markChatBusy } = useChatBusy()
   const [input, setInput] = useState('')
+  const inputRef = useRef(input)
+  inputRef.current = input
+  const prevChatIdForDraftRef = useRef<string | null>(null)
   const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string; size?: number }[]>(
     []
   )
@@ -500,7 +509,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   // ── Сброс при смене чата ─────────────────────────────────────────────────
   useEffect(() => {
-    setInput('')
+    const prevChatId = prevChatIdForDraftRef.current
+    if (prevChatId && prevChatId !== chatId && !incognito) {
+      saveChatInputDraft(prevChatId, inputRef.current)
+    }
+    prevChatIdForDraftRef.current = chatId ?? null
+
+    if (chatId && !incognito) {
+      setInput(loadChatInputDraft(chatId))
+    } else {
+      setInput('')
+    }
     setDroppedFiles([])
     setClipboardImages([])
     setPrerequisiteBlock(null)
@@ -510,6 +529,21 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setPlanItems(null)
     resetQueue()
   }, [chatId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!chatId || incognito) return
+    const timer = setTimeout(() => {
+      saveChatInputDraft(chatId, input)
+    }, CHAT_INPUT_DRAFT_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [input, chatId, incognito])
+
+  useEffect(() => {
+    if (!chatId || incognito) return
+    return () => {
+      saveChatInputDraft(chatId, inputRef.current)
+    }
+  }, [chatId, incognito])
 
   // Следим за тем, находится ли пользователь внизу чата — логика в ChatPanelMessagesPane
   const scrollToBottomRef = useRef<((force?: boolean) => void) | null>(null)
@@ -795,6 +829,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     }
     appendMessage(userMessage)
     setInput('')
+    if (chatId && !incognito) clearChatInputDraft(chatId)
     setDroppedFiles([])
     setClipboardImages([])
     scrollToBottomRef.current?.(true)
