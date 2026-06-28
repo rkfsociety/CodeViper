@@ -94,6 +94,9 @@ export interface ModelProvider {
 
   /** Подготовить к использованию модель (выгрузить другие и т.д.) — опционально */
   prepareModel?(model: string): Promise<{ unloaded: string[] }>
+
+  /** Preflight: ListModels + проверка имени модели перед прогоном агента */
+  preflightModel?(model: string, signal?: AbortSignal): Promise<void>
 }
 
 export interface ProviderConfig {

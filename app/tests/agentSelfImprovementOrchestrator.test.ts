@@ -181,8 +181,11 @@ ID: 2`
     expect(store.has()).toBe(true)
     if (result.action === 'continue') {
       expect(result.requireTool).toBe(true)
+      expect(result.injectHardToolHint).toBe(true)
       expect(result.nudgeMessage).toMatch(/Следующий/i)
     }
+    expect(store.get()?.[0].attemptCount ?? 0).toBe(0)
+    expect(store.get()?.[0].blocked).toBeFalsy()
   })
 
   it('handleNoToolCalls усиливает nudge при pseudo tool invocation', () => {

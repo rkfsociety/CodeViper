@@ -7,6 +7,7 @@ import type {
 } from '../../../shared/modelProvider'
 import { getModelContextLimitTokens } from '../../../shared/contextLimits'
 import { modelsMatch } from '../../../shared/modelRouter'
+import { ModelPreflightError, formatListModelsHttpError } from '../../../shared/modelPreflight'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
 function translateOllamaError(status: number, raw: string): string {
@@ -136,6 +137,29 @@ export class OllamaProvider extends StreamingChatProvider implements ModelProvid
       return res.ok
     } catch {
       return false
+    }
+  }
+
+  async preflightModel(model: string, signal?: AbortSignal): Promise<void> {
+    const trimmed = model.trim()
+    if (!trimmed) throw new ModelPreflightError('Модель не выбрана.')
+
+    const res = await fetch(`${this.baseUrl}/api/tags`, {
+      signal: signal ?? AbortSignal.timeout(8_000)
+    })
+    if (!res.ok) {
+      throw new ModelPreflightError(
+        formatListModelsHttpError(res.status, 'Ollama', trimmed),
+        res.status
+      )
+    }
+
+    const data = (await res.json()) as { models?: Array<{ name: string }> }
+    const names = (data.models ?? []).map((m) => m.name)
+    if (!names.some((n) => modelsMatch(n, trimmed))) {
+      throw new ModelPreflightError(
+        `Модель «${trimmed}» не установлена в Ollama. Выполните: ollama pull ${trimmed}`
+      )
     }
   }
 

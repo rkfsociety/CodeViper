@@ -214,6 +214,15 @@ export function isCompactPromptModel(name: string, parameterSize?: string): bool
   return /:(7|8)b\b/i.test(n) || /[-_](7|8)b\b/i.test(n)
 }
 
+/** Модели ≥14B — extended-блок длинных инструкций в system prompt. */
+export function isExtendedPromptModel(name: string, parameterSize?: string): boolean {
+  const sizeB = parseParamSizeB(parameterSize)
+  if (sizeB !== null) return sizeB >= 14
+  const n = normalizeModelTag(name || '')
+  if (!n) return false
+  return /:(1[4-9]|[2-9]\d)b\b/i.test(n) || /[-_](1[4-9]|[2-9]\d)b\b/i.test(n)
+}
+
 /**
  * Фильтрует модели, слишком маленькие для агент-режима (< MIN_AGENT_PARAMS_B B).
  * Если размер неизвестен — пропускаем модель (на всякий случай оставляем).

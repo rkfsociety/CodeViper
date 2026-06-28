@@ -58,6 +58,14 @@ vi.mock('../electron/main/modelRuntime', () => {
     return Promise.resolve('gpu')
   }
 
+  MockModelRuntime.prototype.ping = function () {
+    return Promise.resolve(true)
+  }
+
+  MockModelRuntime.prototype.preflightModel = function () {
+    return Promise.resolve()
+  }
+
   MockModelRuntime.prototype.chat = async function* () {
     if (!chatState.impl) throw new Error('chatState.impl не задан в тесте')
     yield* chatState.impl()

@@ -21,6 +21,7 @@ import {
   OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
 import { ProviderBillingError } from '../../shared/providerErrors'
+import { ModelPreflightError } from '../../shared/modelPreflight'
 
 // ─── Circuit Breaker ──────────────────────────────────────────────────────────
 
@@ -189,6 +190,25 @@ export class ModelRuntime {
 
   async listModels(): Promise<LoadedModel[]> {
     return this.provider.listModels()
+  }
+
+  /** Preflight ListModels + проверка имени модели перед прогоном агента. */
+  async preflightModel(model: string, signal?: AbortSignal): Promise<void> {
+    const trimmed = model.trim()
+    if (!trimmed) {
+      throw new ModelPreflightError('Модель не выбрана. Укажите модель в настройках.')
+    }
+
+    const pingOk = await this.ping(signal)
+    if (!pingOk) {
+      throw new ModelPreflightError(
+        'Провайдер недоступен (ping не прошёл). Проверьте URL и API-ключ.'
+      )
+    }
+
+    if (this.provider.preflightModel) {
+      await this.provider.preflightModel(trimmed, signal)
+    }
   }
 
   async *chat(options: ChatOptions): AsyncGenerator<ChatChunk> {

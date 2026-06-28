@@ -52,6 +52,14 @@ vi.mock('../electron/main/modelRuntime', async (importOriginal) => {
     return Promise.resolve('gpu')
   }
 
+  MockModelRuntime.prototype.ping = function () {
+    return Promise.resolve(true)
+  }
+
+  MockModelRuntime.prototype.preflightModel = function () {
+    return Promise.resolve()
+  }
+
   MockModelRuntime.prototype.chat = async function* () {
     throw new original.CircuitBreakerOpenError(openUntilMs)
   }

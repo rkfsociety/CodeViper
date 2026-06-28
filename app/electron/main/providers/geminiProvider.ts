@@ -12,6 +12,8 @@ import {
   resolveGeminiModelId
 } from '../../../shared/constants'
 import { simplifySchemaForGemini } from '../../../shared/geminiToolSchema'
+import { ModelPreflightError, formatListModelsHttpError } from '../../../shared/modelPreflight'
+import { modelsMatch } from '../../../shared/modelRouter'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
 // ── Gemini REST types ──────────────────────────────────────────────────────────
@@ -218,6 +220,36 @@ export class GeminiProvider extends StreamingChatProvider implements ModelProvid
       return res.ok
     } catch {
       return false
+    }
+  }
+
+  async preflightModel(model: string, signal?: AbortSignal): Promise<void> {
+    const trimmed = resolveGeminiModelId(model.trim())
+    if (!trimmed) throw new ModelPreflightError('Модель не выбрана.')
+
+    await this.rateLimiter.waitForSlot()
+    const res = await fetch(`${this.modelsUrl()}&pageSize=100`, {
+      signal: signal ?? AbortSignal.timeout(8_000)
+    })
+    if (!res.ok) {
+      throw new ModelPreflightError(
+        formatListModelsHttpError(res.status, 'Gemini', trimmed),
+        res.status
+      )
+    }
+
+    const data = (await res.json()) as {
+      models?: Array<{ name?: string; supportedGenerationMethods?: string[] }>
+    }
+    const names = (data.models ?? [])
+      .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+      .map((m) => (m.name ?? '').replace(/^models\//, ''))
+      .filter(Boolean)
+
+    if (names.length > 0 && !names.some((n) => modelsMatch(n, trimmed))) {
+      throw new ModelPreflightError(
+        `Модель «${trimmed}» не найдена в Gemini API (ListModels). Возможно, устаревший preview-id.`
+      )
     }
   }
 

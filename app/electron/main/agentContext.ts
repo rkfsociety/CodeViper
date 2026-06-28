@@ -35,6 +35,7 @@ import type { ProviderConfig } from '../../shared/modelProvider'
 import { redactMessagesForModel, redactSecrets } from '../../shared/secretRedaction'
 import { QdrantClient } from '@qdrant/js-client-rest'
 import { pickHardToolCallingSystemHint } from '../../shared/actionVerification'
+import { pickBaseSystemPrompt } from '../../shared/agentPromptLayers'
 
 /** Префикс ответа grep_files / search_in_project при отсутствии совпадений. */
 export const GREP_EMPTY_RESULT_PREFIX = 'Совпадений не найдено'
@@ -137,19 +138,6 @@ export interface OllamaMessage {
   images?: { name: string; dataUrl: string }[]
 }
 
-const BASE_SYSTEM_PROMPT = `Ты CodeViper, локальный AI-агент для программирования.
-Работай только внутри открытого проекта. Если задача про код, сразу используй инструменты.
-Отвечай на том же языке, что и пользователь — включая внутренние размышления (thinking). Не показывай tool calls как текст и не дублируй рассуждения в основном ответе.
-Перед правками сначала читай файл. Для точечных правок используй preview_patch (old_string → new_string) — он безопаснее: меняет только указанный фрагмент, не трогая остальное. preview_edit и write_file — только для новых файлов или полного переписывания (передавать ВСЕ содержимое).
-Говори кратко и только по делу. Не утверждай, что действие выполнено, пока инструмент не сработал.
-
-**Не исследуй проект без необходимости.** Если ты знаешь, какой файл нужно изменить — читай сразу его. Не вызывай list_directory, find_files и аналоги без явной причины — это трата токенов.
-
-Если задача состоит из нескольких шагов, используй todo-лист. После выполнения каждого шага сразу отмечай его через complete_todo_item и продолжай следующий — не останавливайся и не жди подтверждения. Если пользователь уточнил задачу, продолжай работу.
-
-Навыки и память подставляются автоматически, когда релевантны. Перед create_skill проверь list_skills.
-Для правил конкретного проекта обновляй .codeviper/rules.md через write_file.`
-
 const CLARIFY_PROMPT = `## Уточнение
 Если задача действительно неоднозначна, задай 1–3 коротких вопроса и остановись. Не переспрашивай по очевидным вещам.`
 
@@ -195,12 +183,12 @@ function buildSystemPrompt(
 ): string {
   // В режиме Chat — только базовый промпт: без инструментов, дерева проекта и памяти.
   if (chatMode) {
-    const base = BASE_SYSTEM_PROMPT
+    const base = pickBaseSystemPrompt(model)
     return customSystemPrompt.trim() ? `${base}\n\n${customSystemPrompt.trim()}` : base
   }
 
-  const parts = [BASE_SYSTEM_PROMPT]
-  if (selfImproveMode) parts.push(buildSelfEditContext(app.isPackaged))
+  const parts = [pickBaseSystemPrompt(model)]
+  if (selfImproveMode) parts.push(buildSelfEditContext(app.isPackaged, model))
 
   // Для не-think моделей даём краткую подсказку к последовательной работе.
   if (cotReasoning) {
@@ -561,10 +549,12 @@ export async function buildAgentContextPreview(
   const toolsContent = chatMode ? '' : formatAgentToolsSummary(selfImproveMode)
 
   const sections: AgentContextSection[] = [
-    section('instructions', 'Инструкции агента', BASE_SYSTEM_PROMPT)
+    section('instructions', 'Инструкции агента', pickBaseSystemPrompt(model))
   ]
   if (selfImproveMode) {
-    sections.push(section('self-edit', 'Саморедактирование', buildSelfEditContext(app.isPackaged)))
+    sections.push(
+      section('self-edit', 'Саморедактирование', buildSelfEditContext(app.isPackaged, model))
+    )
   }
 
   if (projectContent) {

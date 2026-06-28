@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
 import { dirname, join, resolve, sep } from 'path'
+import { pickSelfEditContextBlock } from '../../shared/agentPromptLayers'
 import {
   isInsideProject,
   runCommand,
@@ -233,37 +234,15 @@ export async function runCodeViperCommand(command: string) {
   return runCommandInAppRoot(root, command)
 }
 
-export function buildSelfEditContext(isPackaged = false): string {
+export function buildSelfEditContext(isPackaged = false, model = ''): string {
   const root = getCodeViperSourceRoot()
-  const buildCmd = !isPackaged ? ', npm run build' : ''
   const buildStep = !isPackaged ? ' && npm run build' : ''
+  const layers = pickSelfEditContextBlock(model)
   return `# Исходники CodeViper (саморедактирование)
 Корень app/: ${root}
 Репозиторий (ROADMAP.md, ROADMAP_DONE.md, README.md): ${join(root, '..')}
 
-**Не путать с папкой установки** (Program Files, рядом с CodeViper.exe) — для правок только пути выше и инструменты \`*_codeviper_*\`.
+**Не путать с папкой установки** (Program Files, рядом с CodeViper.exe).
 
-Инструменты для правки **своего** кода (работают независимо от проекта в чате):
-- list_codeviper_directory — структура исходников
-- read_codeviper_file / write_codeviper_file — чтение и полная перезапись
-- create_codeviper_file — новый файл (ошибка, если уже есть)
-- edit_codeviper_file — точечная замена old_string → new_string
-- append_codeviper_file — дописать в конец существующего файла
-- run_codeviper_command — команды в корне app/ (npm run typecheck, npm test${buildCmd})
-- create_codeviper_branch <name> — создать ветку agent/<name> вместо коммита в master
-- push_codeviper_branch — запушить ветку agent/... на GitHub
-- create_codeviper_pr — создать Pull Request из ветки agent/* (gh pr create); PR не mержится автоматически
-
-Навыки (instructions без пересборки): create_skill / update_skill — всегда глобальные, %APPDATA%/CodeViper/ViperSkills.md.
-
-**Тесты** (\`tests/*.test.ts\`): \`../electron/main/...\`, \`../shared/...\`, \`../src/types\` — не \`./modelRuntime\`.
-
-Типичный workflow «улучши себя»:
-1. list_codeviper_directory + read_codeviper_file — изучить agent.ts, skills.ts, shared/
-2. create_codeviper_branch fix-<тема> — создать ветку для изменений
-3. create_skill — если достаточно инструкции; иначе write_codeviper_file — правка кода
-4. run_codeviper_command: npm run typecheck && npm test${buildStep}
-5. commit_and_push_self_edits — закоммитить изменения
-6. create_codeviper_pr — открыть PR на ревью (ветка пушится автоматически; PR не mержится сам)
-7. Кратко сообщить, что изменено; для main process нужен перезапуск приложения`
+${layers}${isPackaged ? '' : `\n\nrun_codeviper_command: npm run typecheck && npm test${buildStep}`}`
 }

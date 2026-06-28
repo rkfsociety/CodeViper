@@ -20,6 +20,7 @@ import {
   pickRoadmapItemAlreadyReadNudge,
   pickToolVerificationNudge,
   buildSelfImprovementContinueNudge,
+  looksLikeSelfImproveTextPlan,
   ROADMAP_DOCS_NOT_UPDATED_NUDGE,
   SELF_IMPROVE_PLAN_STUCK_MESSAGE,
   SELF_IMPROVE_PLAN_ALL_BLOCKED_MESSAGE,
@@ -277,6 +278,18 @@ export class SelfImprovementOrchestrator {
 
       // Не принимать длинный текст как финальный ответ при незавершённом плане (trace 1782678329979:
       // qwen после read_codeviper_file писал «### Действие» текстом и прогон завершался «ok»).
+
+      // Текст-план / рассуждение без tool calls — сразу retry, без incrementAttempt (не ждать 3 блокировок).
+      if (assistantText && looksLikeSelfImproveTextPlan(assistantText)) {
+        this.emitPlan(current)
+        return {
+          action: 'continue',
+          nudgeMessage: `${pickToolVerificationNudge(model)}\n\n${buildSelfImprovementContinueNudge(current, model)}`,
+          requireTool: true,
+          clearDraft: true,
+          injectHardToolHint: true
+        }
+      }
 
       if (assistantText) {
         const normalized = assistantText.trim().slice(0, 400)

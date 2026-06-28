@@ -6,6 +6,8 @@ import type {
   ModelPlacement
 } from '../../../shared/modelProvider'
 import { throwProviderHttpError } from '../../../shared/providerErrors'
+import { ModelPreflightError, formatListModelsHttpError } from '../../../shared/modelPreflight'
+import { modelsMatch } from '../../../shared/modelRouter'
 import { StreamingChatProvider, type ChunkParser, type FetchInit } from './streamingChatProvider'
 
 /** OpenAI-совместимый endpoint (LM Studio, vLLM, локальный прокси). */
@@ -281,6 +283,36 @@ export class OpenAIProvider extends StreamingChatProvider implements ModelProvid
       return res.ok
     } catch {
       return false
+    }
+  }
+
+  async preflightModel(model: string, signal?: AbortSignal): Promise<void> {
+    const trimmed = model.trim()
+    if (!trimmed) throw new ModelPreflightError('Модель не выбрана.')
+
+    const url = this.listModelsUrl ?? `${this.baseUrl}/models`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${this.apiKey}`, ...this.extraHeaders },
+      signal: signal ?? AbortSignal.timeout(8_000)
+    })
+    if (!res.ok) {
+      throw new ModelPreflightError(
+        formatListModelsHttpError(res.status, 'OpenAI-compatible', trimmed),
+        res.status
+      )
+    }
+
+    const data = (await res.json()) as {
+      data?: Array<{ id?: string; slug?: string; name?: string }>
+    }
+    const names = (data.data ?? [])
+      .map((item) => item.id || item.slug || item.name || '')
+      .filter(Boolean)
+
+    if (names.length > 0 && !names.some((n) => modelsMatch(n, trimmed))) {
+      throw new ModelPreflightError(
+        `Модель «${trimmed}» не найдена в каталоге провайдера (ListModels).`
+      )
     }
   }
 

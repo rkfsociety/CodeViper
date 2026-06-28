@@ -6,6 +6,7 @@ import {
   resolveMaxCostPerRunUsd
 } from '../../shared/constants'
 import { formatCostUsd, getRequestTokenCount } from '../../shared/generationMetrics'
+import { ModelPreflightError } from '../../shared/modelPreflight'
 import {
   MUTATING_TOOLS,
   EXPLORATION_STALL_NUDGE,
@@ -275,6 +276,21 @@ export class AgentRunner {
       }
     })
     this.emitter.trace('run_start', runStartTrace.label, runStartTrace.data)
+
+    try {
+      await this.ctx.modelRuntime.preflightModel(this.settings.model, this.emitter.abortSignal)
+    } catch (error) {
+      const message =
+        error instanceof ModelPreflightError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : String(error)
+      this.emitter.emit({ type: 'error', content: message })
+      traceRunEnd('error', { error: message, steps: 0 })
+      this.emitter.emit({ type: 'done' })
+      return
+    }
 
     this.toolExecutor.beginRun(taskMode === 'self-improve')
     const roadmapItemNum = isRoadmapSelfImprovementTask(userMessage)

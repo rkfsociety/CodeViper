@@ -1,5 +1,8 @@
 import { isCompactPromptModel } from './recommendedModels'
-import { pickToolVerificationNudge } from './actionVerification'
+import {
+  looksLikeAlreadyImplementedConclusion,
+  pickToolVerificationNudge
+} from './actionVerification'
 
 /** Ветка git по умолчанию для автономного самоулучшения (не master/main). */
 export const DEFAULT_SELF_IMPROVE_BRANCH = 'agent/self-improve'
@@ -931,6 +934,22 @@ export function pickRoadmapItemAlreadyReadNudge(model: string): string {
   return isCompactPromptModel(model)
     ? ROADMAP_ITEM_ALREADY_READ_NUDGE_COMPACT
     : ROADMAP_ITEM_ALREADY_READ_NUDGE
+}
+
+/** Модель выдала текстовый план/рассуждение вместо tool calls (self-improve). */
+export function looksLikeSelfImproveTextPlan(assistantText: string): boolean {
+  const text = assistantText.trim()
+  if (!text || text.length < 80) return false
+  if (looksLikeAlreadyImplementedConclusion(text)) return false
+
+  return (
+    /(?:^|\n)\s*#{1,3}\s*(?:Действие|Проверка|План|Шаги?)\b/im.test(text) ||
+    /(?:^|\n)\s*\d+\.\s+\*\*[^*]+\*\*/m.test(text) ||
+    /(?:давайте|давай)\s+начн(?:ем|ём)/iu.test(text) ||
+    /Теперь давайте начн/i.test(text) ||
+    /(?:^|\n)\s*[-*]\s+(?:Реализация|Проверка|Шаг)/im.test(text) ||
+    (text.length >= 200 && /(?:^|\n)\s*#{1,3}\s/m.test(text))
+  )
 }
 
 export { pickToolVerificationNudge }

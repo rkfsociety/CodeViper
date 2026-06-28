@@ -1,4 +1,5 @@
 import { isCompactPromptModel } from './recommendedModels'
+import { looksLikeEmbeddedToolCall } from './toolCalls'
 
 export const MUTATING_TOOLS = new Set([
   'write_file',
@@ -195,11 +196,23 @@ export function looksLikePseudoToolInvocation(assistantText: string): boolean {
   return PSEUDO_TOOL_INVOCATION_PATTERNS.some((pattern) => pattern.test(text))
 }
 
+/** Общий паттерн «Инструмент tool_name:» без native tool call. */
+const GENERIC_INSTRUMENT_LINE = /Инструмент\s+[\w_]+:/i
+
+/** JSON-блок { "name": "…", "arguments": … } в тексте без native tool_calls. */
+const INLINE_TOOL_JSON = /\{\s*"name"\s*:\s*"[\w_]+"[\s\S]{0,400}?"arguments"\s*:/i
+
 /** Текст упоминает инструменты, но в API-ответе не было tool_calls. */
 export function responseMentionsToolsWithoutCall(assistantText: string): boolean {
   const text = assistantText.trim()
   if (!text) return false
-  return looksLikeFakeToolOutput(text) || looksLikePseudoToolInvocation(text)
+  return (
+    looksLikeFakeToolOutput(text) ||
+    looksLikePseudoToolInvocation(text) ||
+    looksLikeEmbeddedToolCall(text) ||
+    GENERIC_INSTRUMENT_LINE.test(text) ||
+    INLINE_TOOL_JSON.test(text)
+  )
 }
 
 export function claimsActionCompleted(assistantText: string): boolean {
