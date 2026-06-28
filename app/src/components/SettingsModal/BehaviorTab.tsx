@@ -255,6 +255,27 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
             применяется.
           </div>
 
+          <label>
+            Запасные модели (fallback)
+            <textarea
+              rows={3}
+              placeholder={'gpt-4o-mini\ndeepseek-chat'}
+              value={(settings.fallbackModels ?? []).join('\n')}
+              onChange={(e) =>
+                onSettingsChange({
+                  fallbackModels: e.target.value
+                    .split(/[\n,]/)
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                })
+              }
+            />
+            <span className={styles.hint}>
+              По одной модели на строку (или через запятую). При HTTP 429 или 5xx агент пробует
+              следующую модель того же провайдера.
+            </span>
+          </label>
+
           <label className={styles.toggle}>
             <input
               type="checkbox"

@@ -105,6 +105,18 @@ function filterMessagesForCloud(messages: OllamaMessage[]): OllamaMessage[] {
   return pass2
 }
 
+/** primary + fallbackModels без дублей, порядок сохраняется. */
+export function buildModelFallbackChain(primary: string, fallbackModels?: string[]): string[] {
+  const chain: string[] = []
+  const primaryTrim = primary.trim()
+  if (primaryTrim) chain.push(primaryTrim)
+  for (const raw of fallbackModels ?? []) {
+    const name = raw.trim()
+    if (name && !chain.includes(name)) chain.push(name)
+  }
+  return chain.length > 0 ? chain : [primary]
+}
+
 export class ContextManager {
   readonly providerConfig: ProviderConfig
   readonly summarizeProviderConfig: ProviderConfig
@@ -227,6 +239,11 @@ export class ContextManager {
       return Math.max(50, Math.min(85, this.settings.contextSummarizeThreshold))
     }
     return 85
+  }
+
+  /** Цепочка моделей: основная + fallbackModels из настроек. */
+  resolveModelChain(primary = this.settings.model): string[] {
+    return buildModelFallbackChain(primary, this.settings.fallbackModels)
   }
 
   /** Ollama без облачной summarize-модели — только обрезка, без второго LLM-вызова. */

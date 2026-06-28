@@ -51,6 +51,7 @@ export const PersistedSettingsSchema = z.object({
   togetherApiKey: z.string(),
   customBaseUrl: z.string(),
   customApiKey: z.string(),
+  fallbackModels: z.array(z.string()).default([]),
   gitSyncOnStartup: z.boolean(),
   gitSyncStrategy: GitSyncStrategySchema,
   liveRuntimeFromGit: z.boolean().optional(),
@@ -171,6 +172,7 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   togetherApiKey: '',
   customBaseUrl: '',
   customApiKey: '',
+  fallbackModels: [],
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash',
   qdrantUrl: '',
@@ -275,6 +277,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
     togetherApiKey: settings.togetherApiKey?.trim() ?? '',
     customBaseUrl: settings.customBaseUrl?.trim() ?? '',
     customApiKey,
+    fallbackModels: (settings.fallbackModels ?? []).map((m) => m.trim()).filter(Boolean),
     gitSyncOnStartup: settings.gitSyncOnStartup !== false,
     gitSyncStrategy: GIT_SYNC_STRATEGIES.includes(settings.gitSyncStrategy as GitSyncStrategy)
       ? (settings.gitSyncStrategy as GitSyncStrategy)

@@ -183,6 +183,7 @@ export const AgentSettingsSchema = z.object({
   togetherApiKey: z.string().optional(),
   customBaseUrl: z.string().optional(),
   customApiKey: z.string().optional(),
+  fallbackModels: z.array(z.string()).optional(),
   commandTimeoutSec: z.number().optional(),
   commandBlocklist: z.array(z.string()).optional(),
   readonlyMode: z.boolean().optional(),

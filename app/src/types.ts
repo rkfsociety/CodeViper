@@ -195,6 +195,8 @@ export interface AgentSettings {
   customBaseUrl?: string
   /** API ключ для custom-провайдера (часто пустой для LM Studio) */
   customApiKey?: string
+  /** Запасные модели при HTTP 429/5xx — пробуются по порядку после основной */
+  fallbackModels?: string[]
   /** Таймаут выполнения команд агентом (сек); по умолчанию 120 */
   commandTimeoutSec?: number
   /** Пользовательский список запрещённых паттернов команд (строки или регулярные выражения) */
@@ -503,6 +505,7 @@ export interface AgentStreamPayload {
     | 'collective_sync'
     | 'run_checkpoint'
     | 'ollama_fallback_offer'
+    | 'model_fallback'
     | 'trace_report'
   content?: string
   /** Поля события retry_429 */
@@ -554,6 +557,9 @@ export interface AgentStreamPayload {
   error?: string
   /** URL Ollama для предложения fallback при circuit breaker open (type === 'ollama_fallback_offer') */
   ollamaFallbackUrl?: string
+  /** Переключение на запасную модель (type === 'model_fallback') */
+  fallbackFromModel?: string
+  fallbackToModel?: string
   /** Issue создан из трейса (type === 'trace_report') */
   traceReportAuto?: boolean
   traceReportIssueUrl?: string

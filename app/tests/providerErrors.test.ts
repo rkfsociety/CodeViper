@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   formatProviderHttpError,
   isProviderBillingError,
+  isProviderFallbackRetryableError,
   ProviderBillingError,
   throwProviderHttpError
 } from '../shared/providerErrors'
@@ -22,5 +23,16 @@ describe('providerErrors', () => {
     expect(isProviderBillingError(401, 'Invalid API key')).toBe(false)
     expect(() => throwProviderHttpError(401, 'Invalid API key')).toThrow(Error)
     expect(() => throwProviderHttpError(401, 'Invalid API key')).not.toThrow(ProviderBillingError)
+  })
+
+  it('isProviderFallbackRetryableError: 429 и 5xx — да, 401 и billing — нет', () => {
+    expect(isProviderFallbackRetryableError(new Error('OpenAI API error 429: rate limit'))).toBe(
+      true
+    )
+    expect(isProviderFallbackRetryableError(new Error('OpenAI API error 503: unavailable'))).toBe(
+      true
+    )
+    expect(isProviderFallbackRetryableError(new Error('OpenAI API error 401: bad key'))).toBe(false)
+    expect(isProviderFallbackRetryableError(new ProviderBillingError('HTTP 402'))).toBe(false)
   })
 })

@@ -23,7 +23,7 @@ import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
 import { TaskPlanner } from './taskPlanner'
 import { CircuitBreakerOpenError } from './modelRuntime'
-import { ProviderBillingError } from '../../shared/providerErrors'
+import { ProviderBillingError, isProviderFallbackRetryableError } from '../../shared/providerErrors'
 import { ensureSelfImproveBranch } from './selfCommit'
 import {
   resolveSelfImproveBranch,
@@ -524,88 +524,125 @@ export class AgentRunner {
         this.emitter.emit({ type: 'orchestrating', orchestrating: true })
 
         let response
-        try {
-          const stepTimeout = new Promise<never>((_, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new Error(
-                    `Шаг агента не завершился за ${AGENT_STEP_TIMEOUT_MS / 1000} с — запрос к модели прерван`
-                  )
-                ),
-              AGENT_STEP_TIMEOUT_MS
-            )
-          )
-          response = await Promise.race([
-            this.ctx.chat(messages, this.settings.model, taskPlanner.isSelfImprove, {
-              requireTool: requireToolNext,
-              skipCompression: true
-            }),
-            stepTimeout
-          ])
-        } catch (error) {
-          if (isAbortError(error)) {
-            this.emitter.handleAbort()
-            runSuccess = false
-            traceRunEnd('aborted')
-            return
-          }
-          if (error instanceof CircuitBreakerOpenError) {
-            const secsLeft = Math.ceil((error.openUntilMs - Date.now()) / 1000)
-            const cbMessage = `⚡ Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`
-            this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
-              step,
-              durationMs: Date.now() - stepStartMs,
-              error: cbMessage,
-              errorKind: 'circuit_breaker'
-            })
-            // Повторно эмитим состояние open — контекст мог быть сброшен в RESET при старте прогона
+        const modelChain = this.ctx.resolveModelChain(this.settings.model)
+        let chatDone = false
+
+        modelFallbackLoop: for (let mi = 0; mi < modelChain.length; mi++) {
+          const tryModel = modelChain[mi]
+          if (mi > 0) {
             this.emitter.emit({
-              type: 'circuit_breaker',
-              circuitBreakerState: 'open',
-              circuitBreakerOpenUntilMs: error.openUntilMs
+              type: 'model_fallback',
+              fallbackFromModel: modelChain[mi - 1],
+              fallbackToModel: tryModel
             })
-            // Если облачный провайдер недоступен — проверить Ollama и предложить fallback
-            const ollamaUrl = this.settings.ollamaUrl || 'http://127.0.0.1:11434'
-            const ollamaAvailable =
-              this.ctx.providerConfig.type !== 'ollama' && (await pingOllama(ollamaUrl))
-            if (ollamaAvailable) {
-              this.emitter.emit({ type: 'ollama_fallback_offer', ollamaFallbackUrl: ollamaUrl })
+            this.emitter.trace('nudge', `↪ Fallback: ${tryModel}`, {
+              step,
+              from: modelChain[mi - 1],
+              to: tryModel,
+              source: 'model_fallback'
+            })
+          }
+          try {
+            const stepTimeout = new Promise<never>((_, reject) =>
+              setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      `Шаг агента не завершился за ${AGENT_STEP_TIMEOUT_MS / 1000} с — запрос к модели прерван`
+                    )
+                  ),
+                AGENT_STEP_TIMEOUT_MS
+              )
+            )
+            response = await Promise.race([
+              this.ctx.chat(messages, tryModel, taskPlanner.isSelfImprove, {
+                requireTool: requireToolNext,
+                skipCompression: true
+              }),
+              stepTimeout
+            ])
+            chatDone = true
+            break modelFallbackLoop
+          } catch (error) {
+            if (
+              mi < modelChain.length - 1 &&
+              isProviderFallbackRetryableError(error) &&
+              !isAbortError(error)
+            ) {
+              void agentLogger.write({
+                event: 'model_fallback_retry',
+                from: tryModel,
+                to: modelChain[mi + 1],
+                error: error instanceof Error ? error.message : String(error)
+              })
+              continue modelFallbackLoop
+            }
+            if (isAbortError(error)) {
+              this.emitter.handleAbort()
+              runSuccess = false
+              traceRunEnd('aborted')
+              return
+            }
+            if (error instanceof CircuitBreakerOpenError) {
+              const secsLeft = Math.ceil((error.openUntilMs - Date.now()) / 1000)
+              const cbMessage = `⚡ Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`
+              this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+                step,
+                durationMs: Date.now() - stepStartMs,
+                error: cbMessage,
+                errorKind: 'circuit_breaker'
+              })
+              // Повторно эмитим состояние open — контекст мог быть сброшен в RESET при старте прогона
+              this.emitter.emit({
+                type: 'circuit_breaker',
+                circuitBreakerState: 'open',
+                circuitBreakerOpenUntilMs: error.openUntilMs
+              })
+              // Если облачный провайдер недоступен — проверить Ollama и предложить fallback
+              const ollamaUrl = this.settings.ollamaUrl || 'http://127.0.0.1:11434'
+              const ollamaAvailable =
+                this.ctx.providerConfig.type !== 'ollama' && (await pingOllama(ollamaUrl))
+              if (ollamaAvailable) {
+                this.emitter.emit({ type: 'ollama_fallback_offer', ollamaFallbackUrl: ollamaUrl })
+                runSuccess = false
+                traceRunEnd('error', { error: cbMessage, steps: step })
+                this.emitter.emit({ type: 'done' })
+                return
+              }
+              this.emitter.emit({
+                type: 'error',
+                content: cbMessage
+              })
               runSuccess = false
               traceRunEnd('error', { error: cbMessage, steps: step })
               this.emitter.emit({ type: 'done' })
               return
             }
-            this.emitter.emit({
-              type: 'error',
-              content: cbMessage
-            })
-            runSuccess = false
-            traceRunEnd('error', { error: cbMessage, steps: step })
-            this.emitter.emit({ type: 'done' })
-            return
-          }
-          if (error instanceof ProviderBillingError) {
-            this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+            if (error instanceof ProviderBillingError) {
+              this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+                step,
+                durationMs: Date.now() - stepStartMs,
+                error: error.message
+              })
+              this.emitter.emit({ type: 'error', content: error.message })
+              runSuccess = false
+              traceRunEnd('error', { error: error.message, steps: step })
+              this.emitter.emit({ type: 'done' })
+              return
+            }
+            const errMsg = error instanceof Error ? error.message : String(error)
+            const errTrace = buildLlmResponseTraceData({
               step,
               durationMs: Date.now() - stepStartMs,
-              error: error.message
+              error: errMsg
             })
-            this.emitter.emit({ type: 'error', content: error.message })
+            this.emitter.trace('llm_response', errTrace.label, errTrace.data)
             runSuccess = false
-            traceRunEnd('error', { error: error.message, steps: step })
-            this.emitter.emit({ type: 'done' })
-            return
+            throw error
           }
-          const errMsg = error instanceof Error ? error.message : String(error)
-          const errTrace = buildLlmResponseTraceData({
-            step,
-            durationMs: Date.now() - stepStartMs,
-            error: errMsg
-          })
-          this.emitter.trace('llm_response', errTrace.label, errTrace.data)
-          runSuccess = false
-          throw error
+        }
+        if (!chatDone || !response) {
+          throw new Error('Запрос к модели не выполнен')
         }
         requireToolNext = false
 

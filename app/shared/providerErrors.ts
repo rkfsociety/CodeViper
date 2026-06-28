@@ -34,3 +34,15 @@ export function throwProviderHttpError(status: number, detail: string): never {
   }
   throw new Error(message)
 }
+
+const FALLBACK_HTTP_STATUS_RE = /\b(?:429|5\d{2})\b/
+
+/** Ошибки провайдера, при которых AgentRunner пробует следующую модель из fallbackModels. */
+export function isProviderFallbackRetryableError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  if (error instanceof ProviderBillingError) return false
+  const msg = error.message
+  if (FALLBACK_HTTP_STATUS_RE.test(msg)) return true
+  if (/rate limit|too many requests|лимит запросов/i.test(msg)) return true
+  return false
+}
