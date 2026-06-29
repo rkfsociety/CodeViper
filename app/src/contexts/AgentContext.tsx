@@ -16,7 +16,7 @@ export interface AgentState {
   planAwaitingConfirm: { id: string; plan: string } | null
   exploring: boolean
   editing: boolean
-  retry429: { waitMs: number; attempt: number } | null
+  retry429: { waitMs: number; attempt: number; untilMs: number } | null
   circuitBreakerState: CircuitBreakerState | null
   circuitBreakerOpenUntilMs: number | null
   collectiveSyncStatus: 'idle' | 'queued' | 'syncing' | 'done' | 'error'
@@ -37,7 +37,7 @@ export type AgentAction =
   | { type: 'SET_PLAN_AWAITING_CONFIRM'; pending: { id: string; plan: string } | null }
   | { type: 'SET_EXPLORING'; active: boolean }
   | { type: 'SET_EDITING'; active: boolean }
-  | { type: 'SET_RETRY_429'; value: { waitMs: number; attempt: number } | null }
+  | { type: 'SET_RETRY_429'; value: { waitMs: number; attempt: number; untilMs: number } | null }
   | {
       type: 'SET_CIRCUIT_BREAKER'
       state: CircuitBreakerState | null

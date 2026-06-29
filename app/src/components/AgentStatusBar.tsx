@@ -105,18 +105,22 @@ export function AgentStatusBar({
     indexProgress ??
     (progress?.label?.startsWith('Индексация') ? progress.percent : null)
 
-  // Форсируем ре-рендер каждую секунду пока circuit breaker открыт, чтобы обновлять обратный отсчёт.
+  // Форсируем ре-рендер каждую секунду для живого обратного отсчёта (429, circuit breaker).
   const [, tick] = useReducer((n: number) => n + 1, 0)
   useEffect(() => {
-    if (circuitBreakerState !== 'open') return
+    if (circuitBreakerState !== 'open' && !retry429) return
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [circuitBreakerState])
+  }, [circuitBreakerState, retry429])
 
   const cbSecsLeft =
     circuitBreakerOpenUntilMs != null
       ? Math.max(0, Math.ceil((circuitBreakerOpenUntilMs - Date.now()) / 1000))
       : 0
+
+  const retrySecsLeft = retry429
+    ? Math.max(0, Math.ceil((retry429.untilMs - Date.now()) / 1000))
+    : 0
 
   const label =
     circuitBreakerState === 'open'
@@ -124,7 +128,7 @@ export function AgentStatusBar({
       : circuitBreakerState === 'half-open'
         ? `⚡ Проверяю соединение с провайдером…${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
         : retry429
-          ? `Лимит запросов, жду ${Math.round(retry429.waitMs / 1000)} с… (попытка ${retry429.attempt}/4)${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
+          ? `Лимит запросов, осталось ${retrySecsLeft} с… (попытка ${retry429.attempt}/4)${queueSize > 0 ? ` · в очереди ${queueSize}` : ''}`
           : resolvedIndexPercent != null
             ? agentStatusLabel(
                 agentPhase,

@@ -454,7 +454,11 @@ export function useAgentStream({
       if (event.type === 'retry_429') {
         const value =
           event.retryWaitMs != null && event.retryAttempt != null
-            ? { waitMs: event.retryWaitMs, attempt: event.retryAttempt }
+            ? {
+                waitMs: event.retryWaitMs,
+                attempt: event.retryAttempt,
+                untilMs: Date.now() + event.retryWaitMs
+              }
             : null
         dispatchRef.current({ type: 'SET_RETRY_429', value })
         if (event.retryWaitMs != null) {
