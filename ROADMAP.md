@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…212**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…232**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…212**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…232**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -1492,3 +1492,143 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
 - **Действие:** spawn bash-language-server; shellcheck diagnostics (опционально)  
 - **Проверка:** Ctrl+click на shell-функцию → переход к определению
+
+
+**213 · M · Авто-генерация аудио-версии README** — уровень 4
+- **Цель:** tool `generate_readme_audio` — TTS-озвучка README.md  
+- **Файлы:** `agentTools/integrations.ts`, `MessageBody.tsx`  
+- **Действие:** MD → текст без разметки → `speechSynthesis` или внешний TTS API; сохранение `.mp3`/`.wav`  
+- **Проверка:** аудиофайл создаётся и воспроизводится
+
+
+**214 · S · Авто-генерация аудио-версии CHANGELOG** — уровень 4
+- **Цель:** tool `generate_changelog_audio` — озвучка CHANGELOG.md  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** парсинг секций CHANGELOG → TTS по релизам  
+- **Проверка:** аудио соответствует тексту fixture CHANGELOG
+
+
+**215 · M · Авто-генерация видео-обзора проекта** — уровень 4
+- **Цель:** tool `generate_project_video` — скринкаст + TTS по README  
+- **Файлы:** `agentTools/integrations.ts`, `commandRunner.ts`  
+- **Действие:** ffmpeg + скриншоты UI; опционально Playwright record  
+- **Проверка:** `.mp4` создаётся из fixture-проекта (mock ffmpeg в unit-тесте)
+
+
+**216 · S · Авто-генерация GIF-демонстраций** — уровень 4
+- **Цель:** tool `generate_demo_gif` — короткая GIF из сценария UI  
+- **Файлы:** `agentTools/integrations.ts`, `docs/demos.md`  
+- **Действие:** Playwright/Puppeteer capture → gifencoder или ffmpeg  
+- **Проверка:** GIF в `docs/` открывается в браузере
+
+
+**217 · M · Авто-генерация UI-скриншотов** — уровень 4
+- **Цель:** tool `generate_ui_screenshots` — снимки ключевых экранов  
+- **Файлы:** `agentTools/integrations.ts`, `e2e/`  
+- **Действие:** E2E-сценарий → PNG в `docs/screenshots/`  
+- **Проверка:** скриншоты совпадают с baseline (pixel diff tolerance)
+
+
+**218 · S · Авто-генерация UI-тестов** — уровень 4
+- **Цель:** tool `generate_ui_tests` — Playwright spec из описания сценария  
+- **Файлы:** `agentTools/core.ts`, `e2e/`  
+- **Действие:** промпт → `*.spec.ts`; шаблон smoke  
+- **Проверка:** сгенерированный тест компилируется; `npm run test:e2e` — зелёный на mock
+
+
+**219 · M · Авто-генерация UX-отчётов** — уровень 4
+- **Цель:** tool `generate_ux_report` — эвристики UX по UI-компонентам  
+- **Файлы:** `agentTools/core.ts`, `app/src/components/`  
+- **Действие:** read-only: кнопки без label, контраст, размер touch-target  
+- **Проверка:** отчёт в MD без write_file
+
+
+**220 · S · Авто-генерация accessibility-отчётов** — уровень 4
+- **Цель:** tool `generate_a11y_report` — axe-core / эвристики a11y  
+- **Файлы:** `agentTools/integrations.ts`, `e2e/`  
+- **Действие:** статический обход JSX + опционально axe в E2E  
+- **Проверка:** отчёт содержит найденные a11y-проблемы из fixture
+
+
+**221 · M · Авто-генерация цветовых тем** — уровень 4
+- **Цель:** tool `generate_color_theme` — CSS-переменные из палитры/бренда  
+- **Файлы:** `styles.css`, `PerformanceTab.tsx`, `settings.ts`  
+- **Действие:** генерация `:root` theme block; preview в UI  
+- **Проверка:** тема применяется без поломки контраста основных панелей
+
+
+**222 · S · Авто-генерация иконок** — уровень 4
+- **Цель:** tool `generate_icons` — SVG/PNG иконки для UI  
+- **Файлы:** `agentTools/integrations.ts`, `app/resources/`  
+- **Действие:** prompt → SVG; размеры 16/24/32  
+- **Проверка:** иконки валидный SVG; отображаются в UI
+
+
+**223 · M · Авто-генерация логотипов** — уровень 4
+- **Цель:** tool `generate_logo` — логотип проекта (SVG)  
+- **Файлы:** `agentTools/integrations.ts`, `README.md`  
+- **Действие:** генерация SVG + опционально PNG; не перезаписывать без подтверждения  
+- **Проверка:** SVG открывается; README может ссылаться на файл
+
+
+**224 · S · Авто-генерация splash-screen** — уровень 4
+- **Цель:** splash при старте Electron из сгенерированного asset  
+- **Файлы:** `index.ts`, `agentTools/integrations.ts`, `app/resources/`  
+- **Действие:** PNG/SVG splash; `BrowserWindow` splash option  
+- **Проверка:** при запуске виден splash до ready-to-show
+
+
+**225 · M · Авто-генерация маркетинговых материалов** — уровень 4
+- **Цель:** tool `generate_marketing_assets` — баннеры, тексты для соцсетей  
+- **Файлы:** `agentTools/integrations.ts`, `docs/`  
+- **Действие:** MD + PNG шаблоны из README/features  
+- **Проверка:** пакет файлов в `docs/marketing/`
+
+
+**226 · S · Авто-генерация релизных баннеров** — уровень 4
+- **Цель:** tool `generate_release_banner` — изображение к тегу `vX.Y.Z`  
+- **Файлы:** `agentTools/integrations.ts`, `gitTools.ts`  
+- **Действие:** CHANGELOG summary → баннер PNG/SVG  
+- **Проверка:** баннер для fixture-тега создаётся
+
+
+**227 · M · Авто-генерация документации для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_docs` — MD из схемы plugin tool  
+- **Файлы:** `agentTools/core.ts`, `docs/plugin-authoring.md`  
+- **Действие:** scan plugins dir → API reference  
+- **Проверка:** документация покрывает fixture-плагин
+
+
+**228 · S · Авто-генерация примеров для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_examples` — working `.js` примеры  
+- **Файлы:** `docs/plugin-authoring.md`, `agentHandlersProjectFile.ts`  
+- **Действие:** шаблон plugin + sample tool handler  
+- **Проверка:** пример загружается hot-reload без ошибок
+
+
+**229 · M · Авто-генерация обучающих материалов** — уровень 4
+- **Цель:** tool `generate_tutorial` — пошаговый tutorial MD из структуры проекта  
+- **Файлы:** `agentTools/integrations.ts`, `docs/`  
+- **Действие:** оглавление + шаги + code snippets  
+- **Проверка:** tutorial читается; ссылки на файлы валидны
+
+
+**230 · S · Авто-генерация FAQ** — уровень 4
+- **Цель:** tool `generate_faq` — FAQ.md из issues/traces/частых вопросов  
+- **Файлы:** `agentTools/integrations.ts`, `docs/troubleshooting.md`  
+- **Действие:** агрегация → Q/A секции  
+- **Проверка:** FAQ.md создан; минимум 5 пар Q/A
+
+
+**231 · M · Авто-генерация руководства пользователя** — уровень 4
+- **Цель:** tool `generate_user_guide` — полное user guide из UI и вики  
+- **Файлы:** `agentTools/integrations.ts`, `docs/`  
+- **Действие:** разделы: установка, чат, настройки, интеграции  
+- **Проверка:** `docs/user-guide.md` покрывает основные сценарии
+
+
+**232 · S · Авто-генерация руководства разработчика** — уровень 4
+- **Цель:** tool `generate_dev_guide` — CONTRIBUTING + architecture summary  
+- **Файлы:** `agentTools/integrations.ts`, `CONTRIBUTING.md`  
+- **Действие:** из `CLAUDE.md`/структуры repo → dev guide MD  
+- **Проверка:** guide содержит команды typecheck/build/test из `app/`
