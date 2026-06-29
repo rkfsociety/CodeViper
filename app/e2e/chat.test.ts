@@ -5,9 +5,13 @@ test.describe('Чат', () => {
   test('панель агента и поле ввода присутствуют', async () => {
     const { app, page } = await launchApp()
     try {
-      // Заголовок панели агента
-      const agentHeader = page.locator('.panel-header', { hasText: 'Агент' })
-      await expect(agentHeader).toBeVisible({ timeout: 10_000 })
+      await ensureActiveChat(page)
+      await expect(page.locator('[data-testid="model-picker-btn"]')).toBeVisible({
+        timeout: 10_000
+      })
+      await expect(page.locator('section.panel-main textarea').first()).toBeVisible({
+        timeout: 10_000
+      })
     } finally {
       await closeApp(app)
     }
@@ -16,8 +20,10 @@ test.describe('Чат', () => {
   test('панель недавних чатов присутствует', async () => {
     const { app, page } = await launchApp()
     try {
-      const recentHeader = page.locator('.panel-header', { hasText: 'Недавние' })
-      await expect(recentHeader).toBeVisible({ timeout: 10_000 })
+      await expect(page.locator('section.panel-history .panel-header').first()).toHaveText(
+        'Недавние',
+        { timeout: 10_000 }
+      )
     } finally {
       await closeApp(app)
     }

@@ -1,4 +1,9 @@
-import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
+import {
+  _electron as electron,
+  expect,
+  type ElectronApplication,
+  type Page
+} from '@playwright/test'
 import { createRequire } from 'module'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -97,6 +102,7 @@ export async function ensureActiveChat(page: Page): Promise<void> {
   const newChatBtn = page.locator('button', { hasText: '+ Чат' })
   await newChatBtn.click({ timeout: 15_000 })
   await dismissBlockingModals(page)
+  await expect(page.locator('section.panel-main textarea').first()).toBeVisible({ timeout: 15_000 })
 }
 
 export async function closeApp(app: ElectronApplication): Promise<void> {
