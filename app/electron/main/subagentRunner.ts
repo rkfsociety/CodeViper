@@ -11,7 +11,7 @@ import { resolveAgentHandlerFactories } from './runtimeBootstrap'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './agentContext'
-import type { SubagentOptions, SubagentResult } from '../../shared/subagent'
+import type { SubagentOptions, SubagentResult, SubagentRole } from '../../shared/subagent'
 import { resolveAllowedTools, resolveMaxSteps } from '../../shared/subagent'
 import {
   DEEPSEEK_API_BASE_URL,
@@ -60,8 +60,42 @@ const SYSTEM_PROMPT_EDITOR = `Ты субагент-редактор CodeViper.
 Задача: выполнить конкретные изменения в файлах проекта согласно инструкции.
 Работай точечно, не трогай лишние файлы. По завершении кратко опиши что сделал.`
 
+const SYSTEM_PROMPT_REVIEWER = `Ты субагент-ревьюер CodeViper.
+Задача: провести code review или diff review, найти риски, регрессии, пропущенные тесты и спорные места.
+Используй только read-only инструменты. Не редактируй файлы и не предлагай фиксы патчами.
+Верни список находок по важности, а если проблем нет — явно напиши, что критичных замечаний не найдено.`
+
+const SYSTEM_PROMPT_TESTER = `Ты субагент-тестировщик CodeViper.
+Задача: запускать и анализировать тесты, локализовать падения и кратко объяснять результат.
+Можно использовать только тестовые и диагностические инструменты. Не редактируй файлы.
+Если запускаешь run_command, используй только команды для тестов, typecheck или build-проверок.`
+
+const REVIEW_TASK_RE =
+  /\b(review|reviewer|ревью|код-ревью|code review|diff review|проверь код|сделай обзор)\b/i
+const TEST_TASK_RE =
+  /\b(tests|tester|тесты|прогони тесты|запусти тесты|run tests|failing tests?|упали тесты|test suite|unit tests?|integration tests?)\b/i
+
+export function resolveAutoDelegationRole(
+  task: string
+): Extract<SubagentRole, 'reviewer' | 'tester'> | null {
+  const normalized = task.trim()
+  if (!normalized) return null
+  if (REVIEW_TASK_RE.test(normalized)) return 'reviewer'
+  if (TEST_TASK_RE.test(normalized)) return 'tester'
+  return null
+}
+
 function systemPromptForRole(role: SubagentOptions['role']): string {
-  return role === 'explorer' ? SYSTEM_PROMPT_EXPLORER : SYSTEM_PROMPT_EDITOR
+  switch (role) {
+    case 'explorer':
+      return SYSTEM_PROMPT_EXPLORER
+    case 'editor':
+      return SYSTEM_PROMPT_EDITOR
+    case 'reviewer':
+      return SYSTEM_PROMPT_REVIEWER
+    case 'tester':
+      return SYSTEM_PROMPT_TESTER
+  }
 }
 
 /**
@@ -87,7 +121,10 @@ export async function runSubagent(
     projectPath,
     settings.commandTimeoutSec != null ? settings.commandTimeoutSec * 1000 : undefined,
     {
-      readonlyMode: role === 'explorer' ? true : settings.readonlyMode,
+      readonlyMode:
+        role === 'explorer' || role === 'reviewer' || role === 'tester'
+          ? true
+          : settings.readonlyMode,
       commandBlocklist: settings.commandBlocklist,
       commandAllowlist: settings.commandAllowlist
     }

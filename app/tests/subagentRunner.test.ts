@@ -65,8 +65,11 @@ import {
   resolveMaxSteps,
   EXPLORER_ALLOWED_TOOLS,
   EDITOR_ALLOWED_TOOLS,
+  REVIEWER_ALLOWED_TOOLS,
+  TESTER_ALLOWED_TOOLS,
   SUBAGENT_MAX_STEPS
 } from '../shared/subagent'
+import { resolveAutoDelegationRole } from '../electron/main/subagentRunner'
 import type { AgentSettings } from '../src/types'
 
 function makeSettings(): AgentSettings {
@@ -133,6 +136,30 @@ describe('shared/subagent — контракт', () => {
     for (const t of EXPLORER_ALLOWED_TOOLS) {
       expect(EDITOR_ALLOWED_TOOLS).toContain(t)
     }
+  })
+
+  it('reviewer получает read-only diff/test инструменты', () => {
+    const tools = resolveAllowedTools('reviewer')
+    expect(tools).toEqual(REVIEWER_ALLOWED_TOOLS)
+    expect(tools).toContain('git_diff')
+    expect(tools).toContain('run_tests')
+    expect(tools).not.toContain('edit_file')
+  })
+
+  it('tester получает только тестовые и диагностические инструменты', () => {
+    const tools = resolveAllowedTools('tester')
+    expect(tools).toEqual(TESTER_ALLOWED_TOOLS)
+    expect(tools).toContain('run_tests')
+    expect(tools).toContain('run_command')
+    expect(tools).not.toContain('write_file')
+  })
+
+  it('resolveAutoDelegationRole отправляет review-задачи в reviewer', () => {
+    expect(resolveAutoDelegationRole('Сделай code review diff перед коммитом')).toBe('reviewer')
+  })
+
+  it('resolveAutoDelegationRole отправляет test-задачи в tester', () => {
+    expect(resolveAutoDelegationRole('Прогони тесты и покажи failing test')).toBe('tester')
   })
 })
 

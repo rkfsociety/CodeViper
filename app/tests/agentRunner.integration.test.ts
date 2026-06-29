@@ -16,6 +16,10 @@ const chatState = vi.hoisted(() => ({
   impl: null as null | (() => AsyncGenerator<{ content: string }>)
 }))
 
+const subagentState = vi.hoisted(() => ({
+  runSubagent: vi.fn()
+}))
+
 // ── Электрон ────────────────────────────────────────────────────────────────
 vi.mock('electron', () => ({
   app: { getPath: () => process.cwd() + '/.vitest-tmp/integration' }
@@ -74,6 +78,14 @@ vi.mock('../electron/main/modelRuntime', () => {
   return { ModelRuntime: MockModelRuntime }
 })
 
+vi.mock('../electron/main/subagentRunner', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../electron/main/subagentRunner')>()
+  return {
+    ...original,
+    runSubagent: subagentState.runSubagent
+  }
+})
+
 import { AgentRunner } from '../electron/main/agent'
 import type { AgentStreamPayload, AgentSettings } from '../src/types'
 
@@ -125,6 +137,7 @@ describe('AgentRunner — интеграционный прогон', () => {
     rmSync(projectDir, { recursive: true, force: true })
     vi.clearAllMocks()
     chatState.impl = null
+    subagentState.runSubagent.mockReset()
   })
 
   it('простой текстовый ответ — emit assistant + done', async () => {
@@ -344,5 +357,77 @@ describe('AgentRunner — интеграционный прогон', () => {
 
     const types = emitted.map((e) => e.type)
     expect(types).toContain('done')
+  })
+
+  it('автоделегирование review-задачи пишет trace и завершает прогон ответом Reviewer', async () => {
+    chatState.impl = makeResponses([[{ content: 'LLM не должен вызываться' }]])
+    subagentState.runSubagent.mockResolvedValue({
+      output: 'Найдены 2 риска в diff.',
+      steps: 2,
+      completed: true,
+      toolsUsed: ['git_diff', 'read_file']
+    })
+
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
+    await runner.run([], 'Сделай review последнего diff и перечисли риски')
+
+    expect(subagentState.runSubagent).toHaveBeenCalledOnce()
+    expect(subagentState.runSubagent.mock.calls[0][1]).toMatchObject({ role: 'reviewer' })
+
+    const traceEvents = emitted.filter((e) => e.type === 'trace').map((e) => e.traceEvent!)
+    expect(
+      traceEvents.some(
+        (event) => event.kind === 'tool_call' && String(event.data.tool) === 'delegate_to_reviewer'
+      )
+    ).toBe(true)
+    expect(
+      traceEvents.some(
+        (event) =>
+          event.kind === 'tool_result' &&
+          String(event.data.tool) === 'delegate_to_reviewer' &&
+          event.data.ok === true
+      )
+    ).toBe(true)
+
+    const assistant = emitted.find((e) => e.type === 'assistant') as
+      | { type: 'assistant'; content: string }
+      | undefined
+    expect(assistant?.content).toContain('Найдены 2 риска')
+  })
+
+  it('автоделегирование test-задачи пишет trace и завершает прогон ответом Tester', async () => {
+    chatState.impl = makeResponses([[{ content: 'LLM не должен вызываться' }]])
+    subagentState.runSubagent.mockResolvedValue({
+      output: '3 теста упали в auth.test.ts.',
+      steps: 3,
+      completed: true,
+      toolsUsed: ['run_tests', 'read_file']
+    })
+
+    const runner = new AgentRunner({ settings: makeSettings(), projectPath: projectDir, emit })
+    await runner.run([], 'Прогони тесты и покажи failing tests')
+
+    expect(subagentState.runSubagent).toHaveBeenCalledOnce()
+    expect(subagentState.runSubagent.mock.calls[0][1]).toMatchObject({ role: 'tester' })
+
+    const traceEvents = emitted.filter((e) => e.type === 'trace').map((e) => e.traceEvent!)
+    expect(
+      traceEvents.some(
+        (event) => event.kind === 'tool_call' && String(event.data.tool) === 'delegate_to_tester'
+      )
+    ).toBe(true)
+    expect(
+      traceEvents.some(
+        (event) =>
+          event.kind === 'tool_result' &&
+          String(event.data.tool) === 'delegate_to_tester' &&
+          event.data.ok === true
+      )
+    ).toBe(true)
+
+    const assistant = emitted.find((e) => e.type === 'assistant') as
+      | { type: 'assistant'; content: string }
+      | undefined
+    expect(assistant?.content).toContain('3 теста упали')
   })
 })

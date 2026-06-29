@@ -4,7 +4,7 @@
  */
 
 /** Роль субагента определяет доступный набор инструментов */
-export type SubagentRole = 'explorer' | 'editor'
+export type SubagentRole = 'explorer' | 'editor' | 'reviewer' | 'tester'
 
 /** Инструменты, доступные роли «разведчик» (read-only) */
 export const EXPLORER_ALLOWED_TOOLS: readonly string[] = [
@@ -37,10 +37,37 @@ export const EDITOR_ALLOWED_TOOLS: readonly string[] = [
   'run_command'
 ] as const
 
+/** Reviewer работает только в read-only режиме и может смотреть diff/статус/test output. */
+export const REVIEWER_ALLOWED_TOOLS: readonly string[] = [
+  ...EXPLORER_ALLOWED_TOOLS,
+  'git_status',
+  'git_diff',
+  'git_log',
+  'recent_changes',
+  'test_summary',
+  'run_tests'
+] as const
+
+/** Tester может запускать только тестовые сценарии и читать связанные файлы. */
+export const TESTER_ALLOWED_TOOLS: readonly string[] = [
+  'read_file',
+  'list_directory',
+  'find_files',
+  'get_file_info',
+  'read_multiple_files',
+  'git_status',
+  'git_diff',
+  'test_summary',
+  'run_tests',
+  'run_command'
+] as const
+
 /** Максимальное число шагов субагента по роли */
 export const SUBAGENT_MAX_STEPS: Record<SubagentRole, number> = {
   explorer: 10,
-  editor: 20
+  editor: 20,
+  reviewer: 12,
+  tester: 12
 }
 
 export interface SubagentOptions {
@@ -77,7 +104,14 @@ export function resolveAllowedTools(
   role: SubagentRole,
   disableTools?: string[]
 ): readonly string[] {
-  const base = role === 'explorer' ? EXPLORER_ALLOWED_TOOLS : EDITOR_ALLOWED_TOOLS
+  const base =
+    role === 'explorer'
+      ? EXPLORER_ALLOWED_TOOLS
+      : role === 'editor'
+        ? EDITOR_ALLOWED_TOOLS
+        : role === 'reviewer'
+          ? REVIEWER_ALLOWED_TOOLS
+          : TESTER_ALLOWED_TOOLS
   if (!disableTools?.length) return base
   const disabled = new Set(disableTools)
   return base.filter((t) => !disabled.has(t))

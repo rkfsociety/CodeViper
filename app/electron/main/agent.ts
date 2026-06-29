@@ -48,7 +48,7 @@ import {
   shouldAwaitPlanConfirmation,
   shouldRunOrchestratorAnalysis
 } from '../../shared/orchestrator'
-import { runSubagent } from './subagentRunner'
+import { resolveAutoDelegationRole, runSubagent } from './subagentRunner'
 
 import { ResponseEmitter } from './agentResponseEmitter'
 import {
@@ -405,6 +405,56 @@ export class AgentRunner {
           this.emitter.emit({ type: 'exploring', exploring: false, error: String(err) })
         }
       }
+    }
+
+    const autoDelegateRole =
+      taskMode !== 'self-improve' && this.settings.chatMode !== true
+        ? resolveAutoDelegationRole(userMessage)
+        : null
+    if (autoDelegateRole && this.projectPath) {
+      const traceLabel =
+        autoDelegateRole === 'reviewer'
+          ? '🤝 Автоделегирование: Reviewer'
+          : '🤝 Автоделегирование: Tester'
+      this.emitter.trace('tool_call', traceLabel, {
+        step: 0,
+        tool: `delegate_to_${autoDelegateRole}`,
+        auto: true,
+        role: autoDelegateRole,
+        task: userMessage
+      })
+      this.emitter.emit({
+        type: 'context',
+        content:
+          autoDelegateRole === 'reviewer'
+            ? '🤝 Задача похожа на ревью — делегирую её Reviewer-субагенту.'
+            : '🤝 Задача похожа на запуск/анализ тестов — делегирую её Tester-субагенту.'
+      })
+      const startedAt = Date.now()
+      const result = await runSubagent(this.settings, {
+        role: autoDelegateRole,
+        task: userMessage,
+        projectPath: this.projectPath,
+        signal: this.emitter.abortSignal
+      })
+      this.emitter.trace('tool_result', `${traceLabel} завершено`, {
+        step: 0,
+        tool: `delegate_to_${autoDelegateRole}`,
+        auto: true,
+        role: autoDelegateRole,
+        ok: result.completed,
+        durationMs: Date.now() - startedAt,
+        steps: result.steps,
+        toolsUsed: result.toolsUsed,
+        output: result.output
+      })
+      this.emitter.emit({ type: 'assistant', content: result.output })
+      traceRunEnd(result.completed ? 'ok' : 'error', {
+        steps: result.steps,
+        autoDelegatedTo: autoDelegateRole
+      })
+      this.emitter.emit({ type: 'done' })
+      return
     }
 
     const baseSystemPrompt = this.settings.customSystemPrompt ?? ''

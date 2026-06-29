@@ -20,7 +20,7 @@
 
 ---
 
-Локальный AI-агент с GUI: читает и правит код, запускает команды и git, самоулучшение по ROADMAP. Перед прогоном — preflight имени модели (ListModels, HTTP 404). Для моделей ≤8B — компактный system prompt; extended-инструкции — от 14B. Провайдеры — Ollama, OpenAI, custom endpoint (LM Studio, vLLM), Anthropic, Gemini, DeepSeek, OpenRouter; запасные модели при 429/5xx. Во время прогона размышления и планирование — в компактном скроллируемом блоке (~200px); после финального ответа блок скрывается. Возможности и сценарии — в [вики](https://github.com/rkfsociety/CodeViper/wiki).
+Локальный AI-агент с GUI: читает и правит код, запускает команды и git, самоулучшение по ROADMAP. Перед прогоном — preflight имени модели (ListModels, HTTP 404). Для моделей ≤8B — компактный system prompt; extended-инструкции — от 14B. Провайдеры — Ollama, OpenAI, custom endpoint (LM Studio, vLLM), Anthropic, Gemini, DeepSeek, OpenRouter; запасные модели при 429/5xx. Во время прогона размышления и планирование — в компактном скроллируемом блоке (~200px); после финального ответа блок скрывается. Задачи с «ревью» / «review» автоматически делегируются субагенту Reviewer, с «тесты» / «run tests» — субагенту Tester; в trace видны события `delegate_to_reviewer` / `delegate_to_tester`. Возможности и сценарии — в [вики](https://github.com/rkfsociety/CodeViper/wiki).
 
 **Требования:** Windows 10/11, Linux или macOS, [Node.js 18+](https://nodejs.org) (из исходников), 8 ГБ RAM.
 
