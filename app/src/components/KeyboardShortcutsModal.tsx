@@ -26,6 +26,10 @@ const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['Ctrl', 'Shift', 'N'], label: 'Новый чат' },
       { keys: ['Ctrl', 'P'], label: 'Быстрое открытие файла (Quick Open)' },
       { keys: ['Ctrl', 'B'], label: 'Показать / скрыть дерево файлов' },
+      {
+        keys: ['Ctrl', 'Shift', 'T'],
+        label: 'Экспорт трейса (или открыть панель трассировки)'
+      },
       { keys: ['Esc'], label: 'Остановить агента / Закрыть модалку' },
       { keys: ['?'], label: 'Показать шпаргалку горячих клавиш' }
     ]

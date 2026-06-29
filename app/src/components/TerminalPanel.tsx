@@ -8,11 +8,11 @@ interface Props {
   embedded?: boolean
 }
 
+const TERMINAL_WELCOME = 'CodeViper Terminal — команды выполняются в корне проекта.\n'
+
 export function TerminalPanel({ projectPath, embedded = false }: Props) {
   const [command, setCommand] = useState('')
-  const [output, setOutput] = useState<string>(
-    'CodeViper Terminal — команды выполняются в корне проекта.\n'
-  )
+  const [output, setOutput] = useState<string>(TERMINAL_WELCOME)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [selectedIdx, setSelectedIdx] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -79,6 +79,10 @@ export function TerminalPanel({ projectPath, embedded = false }: Props) {
     setCommand('')
   }
 
+  function clearOutput() {
+    setOutput(TERMINAL_WELCOME)
+  }
+
   return (
     <>
       {!embedded && <div className="panel-header">Терминал</div>}
@@ -126,7 +130,10 @@ export function TerminalPanel({ projectPath, embedded = false }: Props) {
             </ul>
           )}
         </div>
-        <button className="btn" onClick={run}>
+        <button type="button" className="btn" onClick={clearOutput} title="Очистить вывод">
+          Очистить
+        </button>
+        <button type="button" className="btn" onClick={run}>
           Run
         </button>
       </div>

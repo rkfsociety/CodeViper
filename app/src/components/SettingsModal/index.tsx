@@ -159,6 +159,7 @@ export function SettingsModal({
                 isActive={tab === 'integrations'}
                 isSearching={isSearching}
                 settings={settings}
+                chatProjectPath={chatProjectPath}
                 onSettingsChange={onSettingsChange}
               />
 

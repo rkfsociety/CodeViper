@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { MemoryEntry } from '../types'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { MemoryCategory, MemoryEntry } from '../types'
 import { Skeleton } from './Skeleton'
 import styles from './MemorySkills.module.css'
 
@@ -23,6 +23,27 @@ const CATEGORY_LABELS: Record<MemoryEntry['category'], string> = {
   preference: 'предпочтение',
   project: 'проект',
   skill: 'навык'
+}
+
+const MEMORY_CATEGORIES = Object.keys(CATEGORY_LABELS) as MemoryCategory[]
+
+function matchesMemoryFilter(
+  entry: MemoryEntry,
+  query: string,
+  category: MemoryCategory | ''
+): boolean {
+  if (category && entry.category !== category) return false
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  const haystack = [entry.content, entry.scope, CATEGORY_LABELS[entry.category], ...entry.tags]
+    .join(' ')
+    .toLowerCase()
+  return haystack.includes(q)
+}
+
+function formatCount(filtered: number, total: number, hasFilter: boolean): string {
+  if (!hasFilter || filtered === total) return String(filtered)
+  return `${filtered}/${total}`
 }
 
 function MemoryItem({ entry, onRemove, onVote }: MemoryItemProps) {
@@ -80,9 +101,21 @@ export function MemoryPanel({
   const [loading, setLoading] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [shareResult, setShareResult] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<MemoryCategory | ''>('')
 
   const localEntries = entries.filter((e) => e.source !== 'collective')
   const collectiveEntries = entries.filter((e) => e.source === 'collective')
+  const hasFilter = searchQuery.trim().length > 0 || categoryFilter !== ''
+
+  const filteredLocalEntries = useMemo(
+    () => localEntries.filter((e) => matchesMemoryFilter(e, searchQuery, categoryFilter)),
+    [localEntries, searchQuery, categoryFilter]
+  )
+  const filteredCollectiveEntries = useMemo(
+    () => collectiveEntries.filter((e) => matchesMemoryFilter(e, searchQuery, categoryFilter)),
+    [collectiveEntries, searchQuery, categoryFilter]
+  )
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -141,9 +174,37 @@ export function MemoryPanel({
         Самообучение после задач
       </label>
 
+      {(localEntries.length > 0 || collectiveEntries.length > 0) && (
+        <div className={styles.filters}>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по тексту, тегам, области…"
+            aria-label="Поиск в памяти"
+          />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as MemoryCategory | '')}
+            aria-label="Фильтр по категории"
+          >
+            <option value="">Все категории</option>
+            {MEMORY_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {CATEGORY_LABELS[cat]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className={styles.sectionTitle}>
         Локальная память{' '}
-        {loading ? <Skeleton inline width={28} height={14} /> : `(${localEntries.length})`}
+        {loading ? (
+          <Skeleton inline width={28} height={14} />
+        ) : (
+          `(${formatCount(filteredLocalEntries.length, localEntries.length, hasFilter)})`
+        )}
         <button
           type="button"
           className={`btn ${styles.shareBtn}`}
@@ -164,9 +225,15 @@ export function MemoryPanel({
         </div>
       )}
 
-      {localEntries.length > 0 && (
+      {hasFilter &&
+        localEntries.length + collectiveEntries.length > 0 &&
+        filteredLocalEntries.length + filteredCollectiveEntries.length === 0 && (
+          <div className="empty">Ничего не найдено.</div>
+        )}
+
+      {localEntries.length > 0 && filteredLocalEntries.length > 0 && (
         <div className={styles.list}>
-          {localEntries.map((entry) => (
+          {filteredLocalEntries.map((entry) => (
             <div key={entry.id} style={{ paddingBottom: 8 }}>
               <MemoryItem entry={entry} onRemove={remove} />
             </div>
@@ -177,15 +244,18 @@ export function MemoryPanel({
       {collectiveEntries.length > 0 && (
         <div>
           <div className={styles.sectionTitle}>
-            📚 Коллективная память {collectiveEntries.length}
+            📚 Коллективная память{' '}
+            {formatCount(filteredCollectiveEntries.length, collectiveEntries.length, hasFilter)}
           </div>
-          <div className={styles.list}>
-            {collectiveEntries.map((entry) => (
-              <div key={entry.id} style={{ paddingBottom: 8 }}>
-                <MemoryItem entry={entry} onRemove={remove} onVote={vote} />
-              </div>
-            ))}
-          </div>
+          {filteredCollectiveEntries.length > 0 && (
+            <div className={styles.list}>
+              {filteredCollectiveEntries.map((entry) => (
+                <div key={entry.id} style={{ paddingBottom: 8 }}>
+                  <MemoryItem entry={entry} onRemove={remove} onVote={vote} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

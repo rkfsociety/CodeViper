@@ -287,6 +287,8 @@ export interface AgentSettings {
   gitRepoRoot?: string
   /** Подключённые MCP-серверы с кэшем инструментов из /.well-known/mcp */
   mcpServers?: McpServerConfig[]
+  /** Шаблоны stdio MCP-серверов (JSON как в Cursor mcp.json): filesystem, fetch и т.д. */
+  mcpStdioServers?: Record<string, McpStdioServerConfig>
   /** Включённые плагины (имена плагинов из ~/.codeviper/plugins) */
   enabledPlugins?: string[]
   /** Путь к GGUF-файлу для локального оркестратора (node-llama-cpp) */
@@ -329,6 +331,12 @@ export interface McpToolDefinition {
   name: string
   description: string
   parameters: Record<string, unknown>
+}
+
+export interface McpStdioServerConfig {
+  command: string
+  args?: string[]
+  env?: Record<string, string>
 }
 
 export interface McpServerConfig {

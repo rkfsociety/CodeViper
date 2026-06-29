@@ -15,6 +15,31 @@
   color: var(--text-primary);
 }
 
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filters input,
+.filters select {
+  flex: 1;
+  min-width: 120px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--border);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.filters input:focus,
+.filters select:focus {
+  outline: none;
+  border-color: rgba(120, 180, 255, 0.45);
+  box-shadow: 0 0 0 2px rgba(56, 139, 253, 0.18);
+}
+
 .sectionTitle {
   font-size: 13px;
   color: var(--text-muted);

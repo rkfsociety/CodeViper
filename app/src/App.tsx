@@ -13,6 +13,7 @@ import type {
 } from './types'
 import { filterToolCallingModels, isToolCallingModel } from './types'
 import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
+import type { TracePanelHandle } from './components/TracePanel'
 import { useMemo } from 'react'
 import type { SetStateAction } from 'react'
 import { AgentProvider } from './contexts/AgentContext'
@@ -307,6 +308,7 @@ function AppContent() {
   const chatMessagesRef = useRef<Map<string, ChatMessage[]>>(new Map())
   const messagesRef = useRef(messages)
   const chatPanelRef = useRef<ChatPanelHandle>(null)
+  const tracePanelRef = useRef<TracePanelHandle>(null)
 
   activeChatIdRef.current = activeChatId
   chatMessagesRef.current = chatMessages
@@ -777,6 +779,15 @@ function AppContent() {
         void createChat()
         return
       }
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault()
+        if (tracePanelOpen) {
+          void tracePanelRef.current?.exportTrace()
+        } else {
+          setTracePanelOpen((open) => togglePanel('tracePanelOpen', open))
+        }
+        return
+      }
       if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'b') {
         e.preventDefault()
         toggleFileTree()
@@ -825,7 +836,8 @@ function AppContent() {
     settingsOpen,
     shortcutsOpen,
     quickOpenOpen,
-    busyChats
+    busyChats,
+    tracePanelOpen
   ])
 
   const createChatFromTemplate = useCallback(
@@ -1315,6 +1327,7 @@ function AppContent() {
               <section className="panel panel-trace" style={{ width: sidePanelWidths.trace }}>
                 <Suspense fallback={null}>
                   <TracePanel
+                    ref={tracePanelRef}
                     chatId={activeChatId}
                     projectPath={activeProjectPath}
                     onReplayFromStep={(stepTs, userMessage) => {

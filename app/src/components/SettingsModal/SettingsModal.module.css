@@ -339,6 +339,35 @@
   color: var(--red-bright, #f85149);
 }
 
+.mcpTemplateSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle, #30363d);
+}
+
+.mcpTemplateButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mcpTemplateJson {
+  margin: 0;
+  padding: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--text-secondary);
+  background: var(--color-bg-secondary, #161b22);
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .hint strong {
   color: var(--text-primary);
 }

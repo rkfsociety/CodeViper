@@ -28,6 +28,16 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     expand: () => 'Запусти npm run typecheck. Исправь все ошибки TypeScript.'
   },
   {
+    trigger: 'lint',
+    description: 'Проверить ESLint и исправить ошибки',
+    expand: () => 'Запусти npm run lint. Исправь все ошибки ESLint.'
+  },
+  {
+    trigger: 'build',
+    description: 'Собрать проект и исправить ошибки сборки',
+    expand: () => 'Запусти npm run build. Исправь все ошибки сборки.'
+  },
+  {
     trigger: 'commit',
     description: 'Сделать git commit текущих изменений',
     expand: () =>
@@ -38,6 +48,12 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: 'Code review — найти баги и предложить улучшения',
     expand: () =>
       'Проведи code review: найди баги, неочевидные ошибки, нарушения стиля. Предложи конкретные улучшения с кратким объяснением каждого.'
+  },
+  {
+    trigger: 'security',
+    description: 'Security review — секреты, injection, небезопасные команды',
+    expand: () =>
+      'Проведи security review: найди утечки секретов и ключей в коде, injection-уязвимости (SQL, XSS, command injection), небезопасные shell-команды и опасные API. Опиши риск каждой находки и предложи конкретные исправления.'
   },
   {
     trigger: 'fix',

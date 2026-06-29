@@ -41,7 +41,9 @@
 ### Агент и инструменты
 - `planBeforeExecute` в settings: тумблер «Сначала показать план» в BehaviorTab; пауза после плана с кнопкой «Выполнить» в чате
 - `firstRunCompleted` в settings: флаг завершения onboarding (default `false`, визард выставит `true`)
-- Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды, `disabledTools`
+- Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды (`/lint`, `/build`), `disabledTools`
+- Slash `/build`: expand → `npm run build` + исправление ошибок сборки
+- Slash `/security`: expand → security review (секреты, injection, небезопасные команды)
 - `list_pull_requests` — открытые PR и статус CI через gh (как панель PR в UI)
 - `format_project` — авто-форматирование проекта (Prettier / Black, детекция по package.json / pyproject.toml)
 - `list_roadmap` — список пунктов «В планах» из ROADMAP.md (num · title · chain)
@@ -55,6 +57,9 @@
 - `find_slow_code` — AST-анализ ts/js/py на медленные участки (вложенные циклы, await/sync I/O/JSON.parse в цикле); отчёт в чате
 
 ### UX и UI
+- Ctrl+Shift+T: экспорт трейса при открытой панели трассировки, иначе открыть TracePanel; shortcut в модалке `?`
+- Кнопка «Очистить» в TerminalPanel: сброс вывода к приветственному сообщению
+- Поиск в MemoryPanel: фильтр по тексту (content, теги, scope) и категории (паттерн, ошибка, …)
 - Custom OpenAI endpoint: провайдер `custom` (baseUrl + apiKey + model id) для LM Studio / vLLM через `OpenAIProvider`
 - Fallback-модели: `fallbackModels[]` в BehaviorTab; при HTTP 429/5xx AgentRunner пробует следующую модель
 - Чип индексации: `index_progress` в agent-stream → «Индекс N%» в AgentStatusBar при `index_project`
@@ -83,6 +88,7 @@
 ### P2P и интеграции
 - `server/p2p`: Fastify, auth, router, TLS, кредиты, согласие в UI, тумблер «Поделиться мощностью»
 - MCP health-check и `enabledTools`; webhooks; режим инкогнито; плагины с hot-reload и Zod-валидацией
+- Шаблоны MCP stdio: кнопки + filesystem / + fetch в IntegrationsTab → `mcpStdioServers` в settings.json
 
 ### Качество, CI, установщик
 - E2E windows/ubuntu/macos; coverage thresholds; `npm audit` в CI; TypeDoc + GitHub Pages

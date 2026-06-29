@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import styles from './SettingsModal.module.css'
 import type { AgentSettings, McpHealthResult, McpServerConfig } from '../../types'
+import {
+  addMcpStdioTemplate,
+  MCP_STDIO_TEMPLATE_IDS,
+  removeMcpStdioTemplate,
+  type McpStdioTemplateId
+} from '../../../shared/mcpServerTemplates'
 import { SettingItem } from './shared'
 import { P2PConsentModal } from '../P2PConsentModal'
 
@@ -8,10 +14,17 @@ interface Props {
   isActive: boolean
   isSearching: boolean
   settings: AgentSettings
+  chatProjectPath?: string
   onSettingsChange: (patch: Partial<AgentSettings>) => void
 }
 
-export function IntegrationsTab({ isActive, isSearching, settings, onSettingsChange }: Props) {
+export function IntegrationsTab({
+  isActive,
+  isSearching,
+  settings,
+  chatProjectPath,
+  onSettingsChange
+}: Props) {
   const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({})
   const [qdrantPingState, setQdrantPingState] = useState<'idle' | 'checking' | 'ok' | 'fail'>(
     'idle'
@@ -22,6 +35,7 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
   const [mcpUrl, setMcpUrl] = useState('')
   const [mcpBusy, setMcpBusy] = useState(false)
   const [mcpError, setMcpError] = useState<string | null>(null)
+  const [mcpTemplateError, setMcpTemplateError] = useState<string | null>(null)
   const [mcpHealth, setMcpHealth] = useState<Record<string, McpHealthResult>>({})
   const [p2pRegistering, setP2pRegistering] = useState(false)
   const [p2pStatus, setP2pStatus] = useState<{ ok: boolean; message: string } | null>(null)
@@ -92,6 +106,23 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
       setMilvusPingState('fail')
     }
     setTimeout(() => setMilvusPingState('idle'), 3000)
+  }
+
+  function handleAddMcpTemplate(id: McpStdioTemplateId) {
+    setMcpTemplateError(null)
+    try {
+      const next = addMcpStdioTemplate(settings.mcpStdioServers, id, {
+        projectPath: chatProjectPath
+      })
+      onSettingsChange({ mcpStdioServers: next })
+    } catch (error) {
+      setMcpTemplateError(error instanceof Error ? error.message : 'Не удалось добавить шаблон')
+    }
+  }
+
+  function handleRemoveMcpTemplate(id: string) {
+    setMcpTemplateError(null)
+    onSettingsChange({ mcpStdioServers: removeMcpStdioTemplate(settings.mcpStdioServers, id) })
   }
 
   async function handleAddMcpServer() {
@@ -631,6 +662,63 @@ export function IntegrationsTab({ isActive, isSearching, settings, onSettingsCha
               загрузит инструменты из <code>/.well-known/mcp</code>.
             </div>
           )}
+
+          <div className={styles.mcpTemplateSection}>
+            <div className={styles.sectionLabel}>Шаблоны stdio</div>
+            <div className={`${styles.hint} ${styles.hintInline}`}>
+              Готовый JSON как в Cursor <code>mcp.json</code> — сохраняется в настройках. Запуск
+              stdio-серверов — в следующих версиях; HTTP-серверы выше работают сразу.
+            </div>
+            <div className={styles.mcpTemplateButtons}>
+              {MCP_STDIO_TEMPLATE_IDS.map((id) => {
+                const added = Boolean(settings.mcpStdioServers?.[id])
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={added}
+                    title={
+                      added
+                        ? `Шаблон «${id}» уже в настройках`
+                        : `Добавить шаблон «${id}» в settings.json`
+                    }
+                    onClick={() => handleAddMcpTemplate(id)}
+                  >
+                    {added ? `✓ ${id}` : `+ ${id}`}
+                  </button>
+                )
+              })}
+            </div>
+
+            {Object.keys(settings.mcpStdioServers ?? {}).length > 0 && (
+              <div className={styles.mcpServerList}>
+                {Object.entries(settings.mcpStdioServers ?? {}).map(([id, config]) => (
+                  <div key={id} className={styles.mcpServerBlock}>
+                    <div className={styles.row}>
+                      <div className={styles.rowContent}>
+                        <span className={styles.mcpServerUrl}>{id}</span>
+                        <span className={styles.mcpServerMeta}>stdio · JSON</span>
+                      </div>
+                      <div className={styles.rowRight}>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => handleRemoveMcpTemplate(id)}
+                          title="Удалить шаблон"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
+                    <pre className={styles.mcpTemplateJson}>{JSON.stringify(config, null, 2)}</pre>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {mcpTemplateError && <div className={styles.mcpError}>{mcpTemplateError}</div>}
+          </div>
 
           <label>
             URL сервера

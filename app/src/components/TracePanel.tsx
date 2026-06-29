@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type MouseEvent
+} from 'react'
 import { chatExportJsonFilename } from '../../shared/chatExport'
 import type { AgentTraceEvent } from '../types'
 import { getTraceEvents, clearTraceEvents, onTraceUpdate, hydrateTraceEvents } from '../traceBuffer'
@@ -9,6 +17,10 @@ interface Props {
   chatId: string | null
   projectPath: string
   onReplayFromStep?: (stepTs: number, userMessage: string) => void
+}
+
+export interface TracePanelHandle {
+  exportTrace: () => Promise<void>
 }
 
 const KIND_COLORS: Record<AgentTraceEvent['kind'], string> = {
@@ -50,7 +62,10 @@ function isErrorTraceEvent(ev: AgentTraceEvent): boolean {
   return false
 }
 
-export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
+export const TracePanel = forwardRef<TracePanelHandle, Props>(function TracePanel(
+  { chatId, projectPath, onReplayFromStep },
+  ref
+) {
   const [events, setEvents] = useState<AgentTraceEvent[]>(() =>
     chatId ? getTraceEvents(chatId) : []
   )
@@ -123,7 +138,7 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
     onReplayFromStep(eventTs, userMessage)
   }
 
-  async function handleExport() {
+  const handleExport = useCallback(async () => {
     if (!chatId || events.length === 0 || exporting) return
     setExporting(true)
     try {
@@ -138,7 +153,15 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
     } finally {
       setExporting(false)
     }
-  }
+  }, [chatId, events, exporting, projectPath])
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      exportTrace: () => handleExport()
+    }),
+    [handleExport]
+  )
 
   function handleReportClick() {
     if (!chatId || events.length === 0 || reporting) return
@@ -302,4 +325,4 @@ export function TracePanel({ chatId, projectPath, onReplayFromStep }: Props) {
       </div>
     </div>
   )
-}
+})

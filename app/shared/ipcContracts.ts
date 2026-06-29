@@ -231,6 +231,16 @@ export const AgentSettingsSchema = z.object({
       })
     )
     .optional(),
+  mcpStdioServers: z
+    .record(
+      z.string(),
+      z.object({
+        command: z.string(),
+        args: z.array(z.string()).optional(),
+        env: z.record(z.string(), z.string()).optional()
+      })
+    )
+    .optional(),
   orchestratorModelPath: z.string().optional(),
   orchestratorBackend: z.enum(['gguf', 'ollama']).optional(),
   orchestratorOllamaModel: z.string().optional(),

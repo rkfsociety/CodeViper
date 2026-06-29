@@ -100,6 +100,16 @@ export const PersistedSettingsSchema = z.object({
       })
     )
     .optional(),
+  mcpStdioServers: z
+    .record(
+      z.string(),
+      z.object({
+        command: z.string(),
+        args: z.array(z.string()).optional(),
+        env: z.record(z.string(), z.string()).optional()
+      })
+    )
+    .optional(),
   promptTemplates: z
     .array(
       z.object({
@@ -329,6 +339,9 @@ function normalize(settings: LegacySettings): PersistedSettings {
       : {}),
     ...(settings.gitRepoRoot?.trim() ? { gitRepoRoot: settings.gitRepoRoot.trim() } : {}),
     ...(settings.mcpServers?.length ? { mcpServers: settings.mcpServers } : {}),
+    ...(settings.mcpStdioServers && Object.keys(settings.mcpStdioServers).length
+      ? { mcpStdioServers: settings.mcpStdioServers }
+      : {}),
     ...(settings.orchestratorModelPath?.trim()
       ? { orchestratorModelPath: settings.orchestratorModelPath.trim() }
       : {}),
