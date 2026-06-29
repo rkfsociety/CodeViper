@@ -13,9 +13,11 @@ alwaysApply: true
 
 1. Сравнивает изменения с последним тегом `v*`
 2. **Runtime-only** (handlers, agent, tests, docs) → **без тега**
-3. **Оболочка** (renderer, preload, IPC bootstrap, NSIS, Electron) → bump `version` при необходимости → тег `vX.Y.Z` → **`gh workflow run release.yml`** (push тега через `GITHUB_TOKEN` сам Release не запускает).
+3. **Оболочка** (renderer, preload, IPC bootstrap, NSIS, Electron) → bump `version` → **push на master** (обязателен) → тег `vX.Y.Z` → **`gh workflow run release.yml`**. Push на защищённый `master` не прошёл → job падает, тег не создаётся.
 
 Классификатор: `scripts/shell-release-paths.mjs`. Ручной прогон: `node scripts/auto-shell-release.mjs` (`DRY_RUN=1` — без push). Ручной релиз тега: `gh workflow run release.yml --ref vX.Y.Z`.
+
+**Release.yml:** `concurrency: release` (без параллельных прогонов); `prepare` — draft на GitHub; electron-builder — `releaseType: draft`; `publish` — снять draft после проверки артефактов.
 
 **Пропуск:** `[skip-release]` в сообщении коммита. **Форс:** `FORCE_SHELL_RELEASE=1` в CI.
 
