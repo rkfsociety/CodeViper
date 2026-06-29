@@ -66,6 +66,19 @@ describe('codeviperSource', () => {
     expect(normalized).toBe('electron/main/agentTools/integrations.ts')
   })
 
+  it('normalizeCodeViperPath перенаправляет components/ → src/components/', () => {
+    const root = getCodeViperSourceRoot()
+    const rootName = root.split(/[/\\]/).pop()?.toLowerCase()
+    if (rootName !== 'app') return
+
+    expect(normalizeCodeViperPath(root, 'app/components/AgentStatusBar.tsx')).toBe(
+      'src/components/AgentStatusBar.tsx'
+    )
+    expect(normalizeCodeViperPath(root, 'components/AgentStatusBar.tsx')).toBe(
+      'src/components/AgentStatusBar.tsx'
+    )
+  })
+
   it('getBundledNodeBin находит node.exe в resources/node', () => {
     const binaryName = process.platform === 'win32' ? 'node.exe' : join('bin', 'node')
     const expected = join(process.cwd(), 'resources', 'node', binaryName)

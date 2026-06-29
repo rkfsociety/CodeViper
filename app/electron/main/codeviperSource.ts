@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
-import { dirname, join, resolve, sep } from 'path'
+import { basename, dirname, join, relative, resolve, sep } from 'path'
+import { findFilesInTree } from './fileSearch'
 import { pickSelfEditContextBlock } from '../../shared/agentPromptLayers'
 import {
   isInsideProject,
@@ -74,10 +75,40 @@ export function normalizeCodeViperPath(sourceRoot: string, filePath: string): st
   if (rootName !== 'app') return filePath.trim()
 
   const stripped = rel.replace(/^\.\//, '')
-  if (stripped === 'app') return '.'
-  if (stripped.startsWith('app/')) return stripped.slice(4)
+  let normalized = filePath.trim()
+  if (stripped === 'app') normalized = '.'
+  else if (stripped.startsWith('app/')) normalized = stripped.slice(4)
+  else normalized = stripped
 
-  return filePath.trim()
+  if (rootName === 'app') {
+    const slash = normalized.replace(/\\/g, '/')
+    if (/^components\//i.test(slash) && !/^src\/components\//i.test(slash)) {
+      return `src/${slash}`
+    }
+  }
+
+  return normalized
+}
+
+/** Подсказка похожих путей при ENOENT (basename search в app/). */
+export async function formatCodeViperEnoentHint(
+  errorMessage: string,
+  requestedPath: string
+): Promise<string> {
+  if (!/ENOENT|no such file or directory/i.test(errorMessage)) return errorMessage
+
+  const root = getCodeViperSourceRoot()
+  const base = basename(requestedPath.replace(/\\/g, '/'))
+  if (!base || base === '.' || base === '..') return errorMessage
+
+  const normalizedRequested = normalizeCodeViperPath(root, requestedPath)
+  const { paths } = await findFilesInTree(root, base, { maxResults: 3 })
+  const rels = paths
+    .map((p) => relative(root, p).split(sep).join('/'))
+    .filter((r) => r !== normalizedRequested)
+  if (!rels.length) return errorMessage
+
+  return `${errorMessage}\n\nПохожие файлы: ${rels.join(', ')}. Попробуй read_codeviper_file ${rels[0]}`
 }
 
 export function isAllowedSelfPath(sourceRoot: string, targetPath: string): boolean {

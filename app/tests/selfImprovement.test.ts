@@ -5,6 +5,8 @@ import {
   isRoadmapItemBodyTask,
   parseRoadmapTaskItemNumber,
   parseTaskScopedFiles,
+  guessScopedCodeViperPath,
+  buildTaskScopeNudge,
   isPathWithinTaskScope,
   checkTaskScopeViolation,
   isCodeViperSourceRelativePath,
@@ -88,6 +90,14 @@ describe('selfImprovement', () => {
         path: 'README.md'
       })
     ).toContain('integrations.ts')
+  })
+
+  it('guessScopedCodeViperPath и scope nudge для UI-компонентов', () => {
+    expect(guessScopedCodeViperPath('AgentStatusBar.tsx')).toBe('src/components/AgentStatusBar.tsx')
+    expect(guessScopedCodeViperPath('app/components/Foo.tsx')).toBe('src/components/Foo.tsx')
+    const nudge = buildTaskScopeNudge(['AgentStatusBar.tsx'])
+    expect(nudge).toContain('src/components/AgentStatusBar.tsx')
+    expect(nudge).toContain('find_codeviper_files')
   })
 
   it('определяет пути исходников CodeViper', () => {

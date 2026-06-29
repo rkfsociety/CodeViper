@@ -23,8 +23,10 @@ import {
   formatCommandResult,
   missingToolArg,
   resolveEditToolArgs,
+  resolveToolContentArg,
   resolveToolPathArg
 } from './agentHandlersUtils'
+import { formatCodeViperEnoentHint } from './codeviperSource'
 
 export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
   const handlers: Partial<ToolHandlers> = {
@@ -71,17 +73,38 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
       if (!path) throw new Error(missingToolArg('path'))
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
-      return readCodeViperFilePartial(path, offset, limit)
+      try {
+        return await readCodeViperFilePartial(path, offset, limit)
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        throw new Error(await formatCodeViperEnoentHint(msg, path))
+      }
     },
 
     write_codeviper_file: async (args) => {
-      await writeCodeViperFile(args.path, args.content)
-      return `Файл CodeViper записан: ${args.path}`
+      const path = resolveToolPathArg(args as Record<string, unknown>)
+      if (!path) throw new Error(missingToolArg('path'))
+      const content = resolveToolContentArg(args as Record<string, unknown>)
+      if (content === undefined) {
+        throw new Error(
+          `${missingToolArg('content')} write_codeviper_file требует полное содержимое файла.`
+        )
+      }
+      await writeCodeViperFile(path, content)
+      return `Файл CodeViper записан: ${path}`
     },
 
     create_codeviper_file: async (args) => {
-      await createCodeViperFile(args.path, args.content)
-      return `Файл CodeViper создан: ${args.path}`
+      const path = resolveToolPathArg(args as Record<string, unknown>)
+      if (!path) throw new Error(missingToolArg('path'))
+      const content = resolveToolContentArg(args as Record<string, unknown>)
+      if (content === undefined) {
+        throw new Error(
+          `${missingToolArg('content')} create_codeviper_file требует полное содержимое нового файла.`
+        )
+      }
+      await createCodeViperFile(path, content)
+      return `Файл CodeViper создан: ${path}`
     },
 
     edit_codeviper_file: async (args) => {
@@ -98,8 +121,16 @@ export function createCodeViperToolHandlers(): Partial<ToolHandlers> {
     },
 
     append_codeviper_file: async (args) => {
-      await appendCodeViperFile(args.path, args.content)
-      return `Добавлено в конец CodeViper: ${args.path}`
+      const path = resolveToolPathArg(args as Record<string, unknown>)
+      if (!path) throw new Error(missingToolArg('path'))
+      const content = resolveToolContentArg(args as Record<string, unknown>)
+      if (content === undefined) {
+        throw new Error(
+          `${missingToolArg('content')} append_codeviper_file требует текст для добавления.`
+        )
+      }
+      await appendCodeViperFile(path, content)
+      return `Добавлено в конец CodeViper: ${path}`
     },
 
     delete_codeviper_file: async (args) => {

@@ -436,6 +436,7 @@ export class AgentRunner {
       } else if (isRoadmapItemBodyTask(userMessage)) {
         const fields = parseRoadmapFieldsFromAssistantText(userMessage)
         if (fields) {
+          this.selfImproveOrchestrator.setRoadmapItemDetail(fields)
           const openAiHint = buildOpenAiCustomEndpointHint(fields)
           if (openAiHint) hintParts.push(openAiHint)
         }

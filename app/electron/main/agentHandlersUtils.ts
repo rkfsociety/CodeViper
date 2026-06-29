@@ -72,6 +72,13 @@ export function resolveEditToolArgs(args: Record<string, unknown>): ResolveEditT
   }
 }
 
+/** content из args.content / contents — для create/write/append. */
+export function resolveToolContentArg(args: Record<string, unknown>): string | undefined {
+  const direct = args.content ?? args.contents
+  if (direct !== undefined && direct !== null) return String(direct)
+  return undefined
+}
+
 /** path из args.path, paths[0] (Gemini), file_path — для grep/find. */
 export function resolveToolPathArg(args: Record<string, unknown>): string | undefined {
   const direct = String(args.path ?? '').trim()

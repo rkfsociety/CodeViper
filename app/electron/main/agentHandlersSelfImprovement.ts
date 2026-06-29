@@ -66,7 +66,11 @@ export function createSelfImprovementToolHandlers(
     },
 
     set_self_improvement_plan: async (args: any) => {
-      const items = plan.set(parseSelfImprovementPlanItems(resolvePlanToolArg(args)))
+      const planArg = resolvePlanToolArg(args)
+      if (planArg === undefined && (args?.item_id != null || args?.id != null)) {
+        return 'Ошибка: set_self_improvement_plan требует items (JSON-массив [{id, title}, ...] или список «- шаг»), не item_id/id. Для отметки шага — complete_self_improvement_item.'
+      }
+      const items = plan.set(parseSelfImprovementPlanItems(planArg))
       emitPlan(items)
       return `${formatPlanSummary(items)}\n\nНачни выполнение пункта 1 через инструменты.`
     },

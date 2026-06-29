@@ -53,4 +53,21 @@ describe('createCodeViperToolHandlers', () => {
     })
     expect(result).toContain('App.tsx')
   })
+
+  it('create_codeviper_file без content — понятная ошибка, не trim crash', async () => {
+    const handlers = createCodeViperToolHandlers()
+    await expect(
+      handlers.create_codeviper_file!({ path: 'src/components/New.tsx' } as {
+        path: string
+        content: string
+      })
+    ).rejects.toThrow(/Не указан параметр content/)
+  })
+
+  it('read_codeviper_file при ENOENT подсказывает похожий путь', async () => {
+    const handlers = createCodeViperToolHandlers()
+    await expect(handlers.read_codeviper_file!({ path: 'wrong/App.tsx' })).rejects.toThrow(
+      /Похожие файлы:.*src\/components\/App\.tsx/
+    )
+  })
 })

@@ -1,3 +1,5 @@
+2026-06-29 · trace 1782748787537 — aria-live ROADMAP (qwen2.5-coder:7b, копипаст тела пункта): `app/components/` вместо `src/components/`; scope nudge «edit без read»; `create_codeviper_file` без content → trim crash; `set_self_improvement_plan` с `item_id`; 10× edit без old_string. Исправлено: автоплан при `isRoadmapItemBodyTask`, `components/`→`src/components/`, ENOENT hint с find, валидация content, scope nudge с find/read, ошибка item_id vs items.
+
 2026-06-29 · runtime 7B/self-improve — preflight ListModels перед прогоном (`ModelPreflightError`, 404); детектор pseudo tool calls (`Инструмент X:`, inline JSON name/arguments); text-plan в self-improve → nudge+retry без incrementAttempt; `agentPromptLayers` — core для ≤8B, extended только ≥14B.
 
 2026-06-29 · trace 1782686538797 (follow-up) — оркестратор: `responseMentionsToolsWithoutCall` → retry + `injectHardToolCallingSystemHint`, abort после 3 симуляций; compact nudges/prompts для моделей ≤8B (`isCompactPromptModel`).

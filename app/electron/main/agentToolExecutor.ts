@@ -32,6 +32,7 @@ import {
   validateSelfImproveEditArgs,
   EDIT_OLD_STRING_NOT_FOUND_HINT,
   EDIT_WRONG_ARGS_HINT,
+  CREATE_MISSING_CONTENT_HINT,
   TYPECHECK_FAILED_REVERT_HINT,
   MISSING_PING_SCRIPT_HINT,
   READ_FILE_ENOENT_CREATE_HINT,
@@ -233,6 +234,17 @@ export class ToolExecutor {
         /Cannot read properties of undefined \(reading '(?:trim|replace)'\)/i.test(result))
     ) {
       result += `\n\n${EDIT_WRONG_ARGS_HINT}`
+    }
+
+    if (
+      (name === 'create_codeviper_file' ||
+        name === 'write_codeviper_file' ||
+        name === 'create_file' ||
+        name === 'write_file') &&
+      (/Не указан параметр content/i.test(result) ||
+        /Cannot read properties of undefined \(reading 'trim'\)/i.test(result))
+    ) {
+      result += `\n\n${CREATE_MISSING_CONTENT_HINT}`
     }
 
     if (name === 'run_codeviper_command') {
