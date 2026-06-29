@@ -156,7 +156,7 @@
     "electron-devtools-installer": "^4.0.0",
     "electron-vite": "^5.0.0",
     "eslint": "^9.20.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "gifenc": "^1.0.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
