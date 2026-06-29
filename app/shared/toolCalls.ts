@@ -31,6 +31,7 @@ export const AGENT_TOOL_NAMES = [
   'run_command',
   'run_script',
   'review_code',
+  'format_project',
   'git_status',
   'git_diff',
   'git_log',

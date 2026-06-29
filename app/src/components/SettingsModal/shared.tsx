@@ -78,7 +78,7 @@ export const TOOL_GROUPS: { id: string; label: string; desc: string; tools: stri
     id: 'commands',
     label: 'Команды',
     desc: 'Shell, скрипты, линтер',
-    tools: ['run_command', 'run_script', 'review_code']
+    tools: ['run_command', 'run_script', 'review_code', 'format_project']
   },
   {
     id: 'git',

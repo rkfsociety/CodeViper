@@ -514,6 +514,29 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'format_project',
+      description:
+        'Отформатировать код проекта: Prettier для JS/TS/JSON/CSS/MD или Black для Python. Авто-определяет форматтер по package.json (скрипт format / prettier) или pyproject.toml. Изменяет файлы на диске.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Подпапка для форматирования (относительно корня проекта)'
+          },
+          formatter: {
+            type: 'string',
+            enum: ['auto', 'prettier', 'black'],
+            description: 'Форматтер: auto (по умолчанию), prettier или black'
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'run_tests',
       description:
         'Запустить тесты проекта и вернуть структурированный результат: сколько прошло/упало, имена упавших тестов, стек ошибок. Авто-определяет runner (vitest/jest/pytest/cargo/go) по файлам проекта. Используй после правок, чтобы убедиться, что тесты проходят. При падениях — исправь код и вызови снова.',

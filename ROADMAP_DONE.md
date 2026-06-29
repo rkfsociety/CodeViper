@@ -43,6 +43,7 @@
 - `firstRunCompleted` в settings: флаг завершения onboarding (default `false`, визард выставит `true`)
 - Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды, `disabledTools`
 - `list_pull_requests` — открытые PR и статус CI через gh (как панель PR в UI)
+- `format_project` — авто-форматирование проекта (Prettier / Black, детекция по package.json / pyproject.toml)
 - `list_roadmap` — список пунктов «В планах» из ROADMAP.md (num · title · chain)
 - `read_roadmap_item` — полный блок пункта N: цель, файлы, действие, проверка
 - `set_self_improvement_plan`: алиасы title/item/name; action/check (ROADMAP, fix #23); `complete_self_improvement_item` — id и алиас `item_id` (Gemini); валидационные ответы инструментов в trace как ошибка; `grep_*` — алиас `paths[0]` для `path`; Gemini — минимальные JSON-схемы tools (fix #19); маркированный список вместо JSON + AUTO вместо ANY при >40 tools (fix #20)

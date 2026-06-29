@@ -16,6 +16,7 @@ export const MUTATING_TOOLS = new Set([
   'trigger_github_workflow',
   'run_command',
   'run_script',
+  'format_project',
   'create_gitlab_mr',
   'remember',
   'forget',

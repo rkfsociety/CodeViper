@@ -7,6 +7,11 @@ import { runCommand } from './services'
 import { emitProgress, clearProgress } from './progress'
 import { formatCommandResult } from './agentHandlersUtils'
 import type { ProjectHandlerContext } from './agentHandlersProjectContext'
+import {
+  detectFormatProjectCommand,
+  formatFormatProjectResult,
+  type FormatFormatter
+} from './formatProject'
 
 function formatEslintOutput(filePath: string, stdout: string): string {
   const data = JSON.parse(stdout) as Array<{
@@ -280,6 +285,38 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
           options?.commandAllowlist
         )
         return formatLinterOutput(linter, args.path, result.stdout, result.stderr, result.exitCode)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    format_project: async (args: any) => {
+      const fmtCwd = args.path ? resolve(projectPath, args.path) : projectPath
+      if (args.path) assertInsideProject(args.path, 'папка')
+
+      const formatter = (args.formatter ?? 'auto') as FormatFormatter
+      const target = args.path ?? '.'
+      const plan = await detectFormatProjectCommand(fmtCwd, formatter, target)
+      if ('error' in plan) return plan.error
+
+      try {
+        emitProgress(`Форматирование (${plan.formatter})…`, null)
+        const result = await runCommand(
+          fmtCwd,
+          plan.command,
+          commandTimeoutMs,
+          options?.commandBlocklist,
+          undefined,
+          options?.commandAllowlist
+        )
+        return formatFormatProjectResult(
+          plan.formatter,
+          plan.command,
+          result.stdout,
+          result.stderr,
+          result.exitCode,
+          plan.note
+        )
       } finally {
         clearProgress()
       }

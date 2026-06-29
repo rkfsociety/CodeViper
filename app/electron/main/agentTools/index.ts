@@ -186,6 +186,7 @@ export interface ToolArgs {
   run_command: { command: string }
   run_script: { interpreter: 'python' | 'powershell' | 'bash'; script: string; cwd?: string }
   review_code: { path: string }
+  format_project: { path?: string; formatter?: 'auto' | 'prettier' | 'black' }
   git_status: { path?: string }
   git_diff: { path?: string; staged?: string; commit?: string }
   git_log: { limit?: string; path?: string; oneline?: string }
