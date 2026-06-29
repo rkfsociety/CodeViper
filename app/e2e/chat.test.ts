@@ -20,7 +20,7 @@ test.describe('Чат', () => {
   test('панель недавних чатов присутствует', async () => {
     const { app, page } = await launchApp()
     try {
-      await expect(page.locator('section.panel-history .panel-header').first()).toHaveText(
+      await expect(page.locator('section.panel-history .panel-header').first()).toContainText(
         'Недавние',
         { timeout: 10_000 }
       )

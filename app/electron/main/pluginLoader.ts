@@ -4,7 +4,7 @@ import { join, extname } from 'path'
 import { createRequire } from 'module'
 import { z } from 'zod'
 
-const require = createRequire(import.meta.url)
+const nodeRequire = createRequire(import.meta.url)
 
 export interface PluginToolSchema {
   type: 'function'
@@ -55,9 +55,9 @@ const PLUGINS_DIR = join(homedir(), '.codeviper', 'plugins')
  * Загрузить плагин из JavaScript файла
  */
 function requirePlugin(filePath: string): Plugin | { default: Plugin } {
-  const resolved = require.resolve(filePath)
-  delete require.cache[resolved]
-  return require(filePath) as Plugin | { default: Plugin }
+  const resolved = nodeRequire.resolve(filePath)
+  delete nodeRequire.cache[resolved]
+  return nodeRequire(filePath) as Plugin | { default: Plugin }
 }
 
 function parsePluginExport(raw: unknown, fileLabel: string): Plugin | null {
