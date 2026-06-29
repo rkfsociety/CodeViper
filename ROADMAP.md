@@ -18,15 +18,15 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…114**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…134**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…114**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **41–42**, worktree **46–48**, LSP **70–72**, i18n **125–128**.
+> Пункты **1…134**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
-> Ежедневный UX, превью файлов, onboarding, провайдеры, субагенты, E2E, ModelTab. Пункты **5–50** — выполнять сверху вниз; цепочки см. шапку раздела.
+> Ежедневный UX, превью, onboarding, провайдеры, субагенты (Architect/Documenter/Security), ROADMAP-автоматизация, E2E, ModelTab. Пункты **5–45** — выполнять сверху вниз; цепочки см. шапку раздела.
 
 
 
@@ -219,307 +219,446 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Действие:** `window.codeviper.writeFile(path, content)`; индикатор «несохранено»  
 - **Проверка:** правка + сохранение → содержимое на диске изменилось
 
+**26 · M · Subagent Architect — анализ структуры проекта** — уровень 2
+- **Цель:** read-only анализ архитектуры: циклы импортов, крупные модули
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`, `agentHandlersProjectSearch.ts`
+- **Действие:** tool `delegate_to_architect`
+- **Проверка:** unit-тест: архитектурный отчёт без write_file
+
+
+**27 · M · Subagent Documenter — генерация документации** — уровень 2
+- **Цель:** read-only генерация README/API-доков
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`
+- **Действие:** tool `delegate_to_documenter`
+- **Проверка:** unit-тест: генерируется MD-текст
+
+
+**28 · M · Subagent Security — поиск секретов и unsafe команд** — уровень 2
+- **Цель:** read-only security-review проекта
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`
+- **Действие:** tool `delegate_to_security`
+- **Проверка:** unit-тест: находит секреты в фикстуре
+
+
+**29 · S · Авто-архивация выполненных пунктов ROADMAP** — уровень 2
+- **Цель:** при `complete_self_improvement_item` переносить блок в ROADMAP_DONE.md
+- **Файлы:** `agentTools/mcp.ts`, `read_roadmap_item.ts`
+- **Действие:** append в DONE
+- **Проверка:** DONE содержит новый пункт
+
+
+**30 · M · Авто-генерация новых пунктов ROADMAP** — уровень 2
+- **Цель:** tool `suggest_new_roadmap_items` на основе trace ошибок
+- **Файлы:** `agentTools/mcp.ts`, `agentLogger.ts`
+- **Действие:** генерация S/M задач
+- **Проверка:** новые пункты появляются в конце уровня
+
+
+**31 · M · Self-Improvement Queue Panel** — уровень 2
+- **Цель:** UI-панель очереди самоулучшения
+- **Файлы:** `SelfImprovePanel.tsx`, `AgentStatusBar.tsx`
+- **Действие:** список пунктов 1…134 + статус
+- **Проверка:** очередь видна в UI
+
+
+**32 · S · Авто-приоритизация ROADMAP** — уровень 2
+- **Цель:** tool `prioritize_roadmap_items`
+- **Файлы:** `agentTools/mcp.ts`
+- **Действие:** сортировка по пользе/риску
+- **Проверка:** вывод приоритета в UI
+
+
+**33 · M · Авто-цепочки задач** — уровень 2
+- **Цель:** tool `plan_task_chain` → разбиение промпта на шаги
+- **Файлы:** `agent.ts`, `agentContext.ts`
+- **Действие:** цепочка шагов в trace
+- **Проверка:** trace содержит план
+
+
+**34 · S · Авто-делегирование шагов субагентам** — уровень 2
+- **Цель:** шаги типа «ревью» → Reviewer, «тесты» → Tester
+- **Файлы:** `agent.ts`, `subagentRunner.ts`
+- **Действие:** автоматический выбор субагента
+- **Проверка:** trace показывает делегирование
+
+
+**35 · M · Граф архитектуры проекта** — уровень 2
+- **Цель:** визуализация импортов и модулей
+- **Файлы:** `ArchitecturePanel.tsx`, `agentHandlersProjectSearch.ts`
+- **Действие:** построение графа
+- **Проверка:** UI показывает граф
+
+
+**36 · S · Авто-обнаружение циклов импортов** — уровень 2
+- **Цель:** предупреждение в чате
+- **Файлы:** `symbolIndex.ts`, `ArchitecturePanel.tsx`
+- **Действие:** поиск циклов
+- **Проверка:** цикл отображается
+
+
+**37 · M · Авто-генерация тестов для новых файлов** — уровень 2
+- **Цель:** tool `generate_tests_for_file`
+- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectFile.ts`
+- **Действие:** генерация тестов
+- **Проверка:** тесты создаются
+
+
+**38 · M · Авто-документирование новых функций** — уровень 2
+- **Цель:** tool `generate_docstring`
+- **Файлы:** `agentTools/core.ts`
+- **Действие:** вставка docstring
+- **Проверка:** docstring появляется
+
+
+**39 · M · Авто-оптимизация больших файлов** — уровень 2
+- **Цель:** tool `refactor_large_file`
+- **Файлы:** `agentTools/core.ts`
+- **Действие:** разбиение файла
+- **Проверка:** файл разделён
+
+
+**40 · S · Авто-обнаружение медленных участков** — уровень 2
+- **Цель:** tool `find_slow_code`
+- **Файлы:** `agentTools/core.ts`
+- **Действие:** анализ AST
+- **Проверка:** отчёт в чате
+
+
+**41 · M · Авто-обновление зависимостей** — уровень 2
+- **Цель:** безопасный `update_dependencies`
+- **Файлы:** `agentHandlersProjectTerminal.ts`, `commandRunner.ts`
+- **Действие:** обновление minor/patch
+- **Проверка:** зависимости обновлены
+
+
+**42 · S · Авто-проверка CVE** — уровень 2
+- **Цель:** tool `check_cve`
+- **Файлы:** `agentTools/integrations.ts`
+- **Действие:** запрос CVE API
+- **Проверка:** отчёт в чате
+
+
+**43 · M · Авто-генерация CHANGELOG** — уровень 2
+- **Цель:** tool `generate_changelog`
+- **Файлы:** `agentTools/integrations.ts`
+- **Действие:** MD-файл
+- **Проверка:** CHANGELOG.md создан
+
+
+**44 · S · Авто-форматирование проекта** — уровень 2
+- **Цель:** tool `format_project`
+- **Файлы:** `agentTools/core.ts`
+- **Действие:** prettier/black
+- **Проверка:** форматирование прошло
+
+
+**45 · M · Авто-проверка лицензий** — уровень 2
+- **Цель:** tool `check_licenses`
+- **Файлы:** `agentTools/integrations.ts`
+- **Действие:** анализ зависимостей
+- **Проверка:** отчёт в чате
+
 
 ### 🟡 Уровень 3 — средняя польза
 
-> Символы, worktree, рефакторинг IPC/services, интеграции, LSP, автоматизации, P2P. Пункты **52–96**.
+> Символы, worktree, рефакторинг IPC/services, интеграции, LSP, автоматизации, P2P. Пункты **46–90**.
 
-**26 · M · find_symbol для Go** — уровень 3
+**46 · M · find_symbol для Go** — уровень 3
 - **Цель:** `find_symbol` / `find_references` для `.go` через `go/ast` или tree-sitter  
 - **Файлы:** `app/electron/main/symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
 - **Действие:** парсер Go → символы с `path:line:col`  
 - **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.go` файлом
 
 
-**27 · M · find_symbol для Rust** — уровень 3
+**47 · M · find_symbol для Rust** — уровень 3
 - **Цель:** символы для `.rs` (tree-sitter-rust или синтаксический обход)  
 - **Файлы:** `symbolIndex.ts`  
 - **Действие:** расширить `walkProjectForSymbols` для `.rs`  
 - **Проверка:** unit-тест: `fn main` и `struct Foo` находятся по имени
 
 
-**28 · M · find_symbol для Java** — уровень 3
+**48 · M · find_symbol для Java** — уровень 3
 - **Цель:** символы для `.java` (class/method)  
 - **Файлы:** `symbolIndex.ts`  
 - **Действие:** regex или tree-sitter-java для объявлений top-level  
 - **Проверка:** unit-тест на простом `.java` с `public class Bar`
 
 
-**29 · M · gitWorktree.ts** — уровень 3
+**49 · M · gitWorktree.ts** — уровень 3
 - **Цель:** create / remove / list worktrees через `git worktree`  
 - **Файлы:** `app/electron/main/gitWorktree.ts` (новый), `gitTools.ts`  
 - **Действие:** `createWorktree(repoPath, branch)` → путь worktree; `removeWorktree`  
 - **Проверка:** unit-тест с temp git repo; `git worktree list` содержит запись
 
 
-**30 · M · worktreePath в чате + IPC** — уровень 3
+**50 · M · worktreePath в чате + IPC** — уровень 3
 - **Цель:** поле `worktreePath?` в persisted chat; IPC `create-chat-worktree`  
 - **Файлы:** `chats.ts`, `types.ts`, `registerChatsIpc.ts`, `ChatHistoryPanel.tsx`  
 - **Действие:** кнопка «Изолировать в worktree» в меню чата  
 - **Проверка:** новый чат получает отдельную папку worktree
 
 
-**31 · M · AgentRunner — корень worktree** — уровень 3
+**51 · M · AgentRunner — корень worktree** — уровень 3
 - **Цель:** если у чата есть `worktreePath`, агент работает в нём, а не в `projectPath`  
 - **Файлы:** `agent.ts`, `registerAgentIpc.ts`, `agentHandlersProjectContext.ts`  
 - **Действие:** `resolveProjectRoot(chat)` → `worktreePath ?? projectPath`  
 - **Проверка:** правка файла в изолированном чате не затрагивает основную копию
 
 
-**32 · M · ipcContracts: Zod-схемы данных** — уровень 3
+**52 · M · ipcContracts: Zod-схемы данных** — уровень 3
 - **Цель:** схемы `ChatMessage`, `AgentSettings`, `SavedChat` и др. — в `shared/ipc/schemas.ts`  
 - **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/schemas.ts`  
 - **Действие:** re-export из `ipcContracts.ts` для обратной совместимости импортов  
 - **Проверка:** `npm run typecheck`; импорты `ChatMessageSchema` не сломаны
 
 
-**33 · M · ipcContracts: IPC enum и Contracts** — уровень 3
+**53 · M · ipcContracts: IPC enum и Contracts** — уровень 3
 - **Цель:** объект `IPC` и `Contracts` — в `shared/ipc/channels.ts`  
 - **Файлы:** `shared/ipcContracts.ts` → `shared/ipc/channels.ts`  
 - **Действие:** `ipcContracts.ts` — barrel re-export; `parseIpcArgs` остаётся рядом с Contracts  
 - **Проверка:** `npm run typecheck`; preload и register*Ipc компилируются
 
 
-**34 · M · services.ts: файловые операции** — уровень 3
+**54 · M · services.ts: файловые операции** — уровень 3
 - **Цель:** `safeRead*`, `safeWrite*`, `buildFileTree`, кэши — в `fileServices.ts`  
 - **Файлы:** `services.ts` → `fileServices.ts`  
 - **Действие:** `services.ts` re-export для handler-импортов  
 - **Проверка:** `npm test -- services` зелёный
 
 
-**35 · M · services.ts: runCommand** — уровень 3
+**55 · M · services.ts: runCommand** — уровень 3
 - **Цель:** `validateCommand`, `normalizeCommand`, `runCommand`, лимит буфера — в `commandRunner.ts`  
 - **Файлы:** `services.ts` → `commandRunner.ts`  
 - **Действие:** handlers импортируют из `commandRunner.ts` или barrel `services.ts`  
 - **Проверка:** `npm test -- services.test` — validateCommand и buffer limit
 
 
-**36 · S · Поиск в MemoryPanel** — уровень 3
+**56 · S · Поиск в MemoryPanel** — уровень 3
 - **Файлы:** `MemoryPanel.tsx`  
 - **Действие:** filter по тексту и category  
 - **Проверка:** поиск сужает список
 
 
-**37 · M · Импорт skill из файла** — уровень 3
+**57 · M · Импорт skill из файла** — уровень 3
 - **Цель:** кнопка «Импорт .md» → copy в skills dir  
 - **Файлы:** `SkillsPanel.tsx`, IPC `import-skill-file`  
 - **Проверка:** skill появляется в списке
 
 
-**38 · S · Шаблоны MCP-серверов** — уровень 3
+**58 · S · Шаблоны MCP-серверов** — уровень 3
 - **Цель:** кнопки «+ filesystem», «+ fetch» с готовым JSON конфигом  
 - **Файлы:** `IntegrationsTab.tsx`, `docs/integrations.md`  
 - **Проверка:** шаблон добавляет запись в settings
 
 
-**39 · S · Slash /lint** — уровень 3
+**59 · S · Slash /lint** — уровень 3
 - **Файлы:** `shared/slashCommands.ts`  
 - **Действие:** expand → `npm run lint` + исправить  
 - **Проверка:** `/lint` в меню slash
 
 
-**40 · S · Slash /build** — уровень 3
+**60 · S · Slash /build** — уровень 3
 - **Файлы:** `shared/slashCommands.ts`  
 - **Действие:** expand → `npm run build` + исправить ошибки  
 - **Проверка:** `/build` в автодополнении
 
 
-**41 · S · Slash /security** — уровень 3
+**61 · S · Slash /security** — уровень 3
 - **Файлы:** `shared/slashCommands.ts`  
 - **Действие:** expand → review на секреты, injection, unsafe commands  
 - **Проверка:** `/security` в списке
 
 
-**42 · S · Ctrl+Shift+T — экспорт трейса** — уровень 3
+**62 · S · Ctrl+Shift+T — экспорт трейса** — уровень 3
 - **Файлы:** `App.tsx`, `TracePanel.tsx`  
 - **Действие:** если trace open → export; иначе открыть TracePanel  
 - **Проверка:** shortcut в модалке `?`
 
 
-**43 · S · Кнопка «Очистить» в терминале** — уровень 3
+**63 · S · Кнопка «Очистить» в терминале** — уровень 3
 - **Файлы:** `TerminalPanel.tsx`  
 - **Проверка:** output сбрасывается
 
 
-**44 · S · Очередь: удалить элемент** — уровень 3
+**64 · S · Очередь: удалить элемент** — уровень 3
 - **Цель:** кнопка ✕ у каждого сообщения в очереди (`AgentStatusBar` / queue UI)  
 - **Файлы:** `AgentStatusBar.tsx`, `QueueContext.tsx`  
 - **Действие:** `removeFromQueue(index)` IPC или context  
 - **Проверка:** элемент исчезает, остальные выполняются
 
 
-**45 · S · Skip link «К содержимому»** — уровень 3
+**65 · S · Skip link «К содержимому»** — уровень 3
 - **Цель:** скрытая ссылка в начале `App.tsx` → `#main-chat`  
 - **Файлы:** `App.tsx`, `styles.css`  
 - **Действие:** `:focus` показывает ссылку  
 - **Проверка:** Tab с первого элемента → skip → фокус в чате
 
 
-**46 · S · Экспорт метрик в CSV** — уровень 3
+**66 · S · Экспорт метрик в CSV** — уровень 3
 - **Цель:** кнопка в `MetricsPanel` → CSV byModel + topTools  
 - **Файлы:** `MetricsPanel.tsx`  
 - **Действие:** blob download  
 - **Проверка:** CSV открывается в Excel
 
 
-**47 · S · Документация plugin-authoring** — уровень 3
+**67 · S · Документация plugin-authoring** — уровень 3
 - **Цель:** гайд автора плагина: схема tool, пример `.js`, hot-reload  
 - **Файлы:** `docs/plugin-authoring.md`, ссылка в `README.md`  
 - **Действие:** минимальный working example + ограничения (только `.js`)  
 - **Проверка:** файл существует; README ссылается на него
 
 
-**48 · M · Провайдер Mistral** — уровень 3
+**68 · M · Провайдер Mistral** — уровень 3
 - **Цель:** `modelProvider: 'mistral'` через Mistral API  
 - **Файлы:** `mistralProvider.ts`, `modelRuntime.ts`, `constants.ts`  
 - **Действие:** `StreamingChatProvider` + список моделей  
 - **Проверка:** unit-тест stream parser
 
 
-**49 · M · Bitbucket: create_pull_request** — уровень 3
+**69 · M · Bitbucket: create_pull_request** — уровень 3
 - **Цель:** tool `create_bitbucket_pr` через REST API 2.0  
 - **Файлы:** `bitbucketTools.ts`, `agentTools/integrations.ts`, `IntegrationsTab.tsx`  
 - **Действие:** token + workspace/repo в settings  
 - **Проверка:** unit-тест с mock fetch
 
 
-**50 · M · Azure DevOps: create_work_item** — уровень 3
+**70 · M · Azure DevOps: create_work_item** — уровень 3
 - **Цель:** tool `create_ado_work_item` (PAT + org/project)  
 - **Файлы:** `adoTools.ts`, `integrations.ts`, settings  
 - **Действие:** WIQL/create work item REST  
 - **Проверка:** mock API test
 
 
-**51 · S · Discord webhook** — уровень 3
+**71 · S · Discord webhook** — уровень 3
 - **Цель:** `discordWebhookUrl` — уведомление «агент готов» в Discord  
 - **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`, `settings.ts`  
 - **Действие:** POST embed JSON  
 - **Проверка:** unit-тест payload
 
 
-**52 · S · Telegram Bot уведомления** — уровень 3
+**72 · S · Telegram Bot уведомления** — уровень 3
 - **Цель:** `telegramBotToken` + `telegramChatId` в настройках  
 - **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`  
 - **Действие:** `sendMessage` API  
 - **Проверка:** mock fetch test
 
 
-**53 · M · lspClient — spawn language server** — уровень 3
+**73 · M · lspClient — spawn language server** — уровень 3
 - **Цель:** main-процесс запускает `typescript-language-server` / `pyright-langserver` по расширению файла  
 - **Файлы:** `app/electron/main/lspClient.ts` (новый)  
 - **Действие:** JSON-RPC over stdio; `didOpen`/`didChange`/`shutdown`  
 - **Проверка:** unit-тест с mock child_process; лог «LSP ready» для `.ts`
 
 
-**54 · M · LSP hover и go-to-definition (TS/JS)** — уровень 3
+**74 · M · LSP hover и go-to-definition (TS/JS)** — уровень 3
 - **Цель:** hover tooltip и Ctrl+click → переход к определению в `CodeEditorPanel` (п. 50)  
 - **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
 - **Действие:** IPC `lsp-request` → `textDocument/hover`, `textDocument/definition`  
 - **Проверка:** Ctrl+click на символ → курсор на определении в том же файле
 
 
-**55 · M · LSP pyright для Python** — уровень 3
+**75 · M · LSP pyright для Python** — уровень 3
 - **Цель:** те же hover/definition для `.py` через pyright-langserver  
 - **Файлы:** `lspClient.ts`  
 - **Действие:** ветка выбора сервера по `languageFromPath`; инициализация pyright  
 - **Проверка:** Ctrl+click на `def foo` в `.py` → переход к определению
 
 
-**56 · M · Fetch remote skill manifest** — уровень 3
+**76 · M · Fetch remote skill manifest** — уровень 3
 - **Цель:** список навыков с GitHub raw URL или индекс-файла  
 - **Файлы:** `app/electron/main/skills.ts`, `registerMiscIpc.ts`  
 - **Действие:** `list-remote-skills(url)` → `{ name, description, url }[]`  
 - **Проверка:** unit-тест с mock fetch на тестовый manifest.json
 
 
-**57 · M · import-remote-skill UI** — уровень 3
+**77 · M · import-remote-skill UI** — уровень 3
 - **Цель:** кнопка «Импорт из каталога» в SkillsPanel  
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
 - **Действие:** выбор из списка → download SKILL.md → локальный skill  
 - **Проверка:** импорт skill из URL появляется в списке навыков
 
 
-**58 · M · AutomationRule в settings** — уровень 3
+**78 · M · AutomationRule в settings** — уровень 3
 - **Цель:** тип `{ id, cron, prompt, enabled }` + Zod-массив в настройках  
 - **Файлы:** `settings.ts`, `types.ts`  
 - **Действие:** `automations: AutomationRule[]` с default `[]`  
 - **Проверка:** `npm run typecheck`; сохранение массива в settings.json
 
 
-**59 · M · automationScheduler в main** — уровень 3
+**79 · M · automationScheduler в main** — уровень 3
 - **Цель:** таймер проверяет cron-выражения и ставит промпт в очередь чата  
 - **Файлы:** `app/electron/main/automationScheduler.ts`, `index.ts`  
 - **Действие:** `node-cron` или setInterval + parse; emit в default chat  
 - **Проверка:** unit-тест: rule `* * * * *` + mock time → enqueue вызван
 
 
-**60 · M · AutomationsTab в настройках** — уровень 3
+**80 · M · AutomationsTab в настройках** — уровень 3
 - **Цель:** CRUD автоматизаций: cron, промпт, вкл/выкл  
 - **Файлы:** `SettingsModal/AutomationsTab.tsx`, `SettingsModal/index.tsx`  
 - **Действие:** форма добавления; список с удалением  
 - **Проверка:** созданная автоматизация сохраняется и видна после reopen settings
 
 
-**61 · M · Дублировать промпт во второй чат** — уровень 3
+**81 · M · Дублировать промпт во второй чат** — уровень 3
 - **Цель:** кнопка «Сравнить с другой моделью» копирует промпт в новый чат  
 - **Файлы:** `ChatPanel/index.tsx`, `ChatHistoryPanel.tsx`  
 - **Действие:** `createChat` + тот же `input` + подсказка выбрать модель  
 - **Проверка:** два чата с одинаковым первым сообщением пользователя
 
 
-**62 · M · SplitChatView** — уровень 3
+**82 · M · SplitChatView** — уровень 3
 - **Цель:** два чата side-by-side для сравнения ответов  
 - **Файлы:** `app/src/App.tsx`, `SplitChatView.tsx`  
 - **Действие:** режим «Сравнение» — два `ChatPanel` с общим projectPath  
 - **Проверка:** оба чата видны одновременно; отправка в каждый независима
 
 
-**63 · M · docker-compose для server/p2p** — уровень 3
+**83 · M · docker-compose для server/p2p** — уровень 3
 - **Цель:** one-click деплой сигнального сервера + Redis  
 - **Файлы:** `server/p2p/docker-compose.yml`, `server/p2p/README.md`, `docs/integrations.md`  
 - **Действие:** сервисы `p2p` + `redis`; env-шаблон `.env.example`  
 - **Проверка:** `docker compose up` → `GET /health` → 200
 
 
-**64 · M · Dashboard статуса узлов** — уровень 3
+**84 · M · Dashboard статуса узлов** — уровень 3
 - **Цель:** `GET /admin/dashboard` — онлайн-узлы, задачи, кредиты (auth)  
 - **Файлы:** `server/p2p/src/routes/admin.ts`  
 - **Действие:** JSON `{ nodes, activeTasks, totalCredits }`  
 - **Проверка:** интеграционный тест с mock-узлами
 
 
-**65 · M · Рейтинг узлов по latency** — уровень 3
+**85 · M · Рейтинг узлов по latency** — уровень 3
 - **Цель:** `router.ts` предпочитает узлы с меньшим средним RTT  
 - **Файлы:** `server/p2p/src/router.ts`, `server/p2p/src/credits.ts`  
 - **Действие:** хранить `avgLatencyMs` per node; сортировка при route  
 - **Проверка:** unit-тест: два узла → выбирается с меньшей latency
 
 
-**66 · M · Reconnect с backoff** — уровень 3
+**86 · M · Reconnect с backoff** — уровень 3
 - **Файлы:** `p2pClient.ts`  
 - **Действие:** exponential delay 1s→30s при обрыве WSS  
 - **Проверка:** unit-тест reconnect attempts
 
 
-**67 · S · Чип P2P offline** — уровень 3
+**87 · S · Чип P2P offline** — уровень 3
 - **Файлы:** `AgentStatusBar.tsx`, `p2pClient.ts`  
 - **Действие:** «P2P offline» при disconnect  
 - **Проверка:** виден при остановленном сервере
 
 
-**68 · M · История P2P-задач** — уровень 3
+**88 · M · История P2P-задач** — уровень 3
 - **Файлы:** `P2pHistoryPanel.tsx`, local NDJSON или settings  
 - **Проверка:** последние 20 relay в UI
 
 
-**69 · S · Масштаб шрифта UI** — уровень 3
+**89 · S · Масштаб шрифта UI** — уровень 3
 - **Цель:** `uiFontScale: 0.9 | 1 | 1.1 | 1.25` в настройках → `document.documentElement.style.fontSize`  
 - **Файлы:** `PerformanceTab.tsx`, `settings.ts`, `App.tsx`  
 - **Действие:** select в PerformanceTab; применение при загрузке  
 - **Проверка:** 1.25 — текст чата крупнее
 
 
-**70 · S · Избранные чаты** — уровень 3
+**90 · S · Избранные чаты** — уровень 3
 - **Цель:** звезда ⭐ на чате → секция «Избранное» вверху истории  
 - **Файлы:** `SavedChat` + `chats.ts`, `ChatHistoryPanel.tsx`  
 - **Действие:** `starred?: boolean`; сортировка starred first  
@@ -528,281 +667,281 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 ### 🟢 Уровень 4 — низкий приоритет
 
-> Голос, рефакторинг монолитов, i18n, Docker, polish. Пункты **97–140** — когда уровни 1–3 закрыты.
+> Голос, рефакторинг монолитов, i18n, Docker, polish. Пункты **91–134** — когда уровни 1–3 закрыты.
 
-**71 · M · STT — кнопка микрофона** — уровень 4
+**91 · M · STT — кнопка микрофона** — уровень 4
 - **Цель:** диктовка в поле ввода через Web Speech API (`SpeechRecognition`)  
 - **Файлы:** `app/src/components/ChatPanel/ChatInput.tsx`  
 - **Действие:** кнопка 🎤 → `recognition.start()` → текст в `onInputChange`  
 - **Проверка:** диктовка вставляет распознанный текст в поле
 
 
-**72 · M · TTS — кнопка «Озвучить»** — уровень 4
+**92 · M · TTS — кнопка «Озвучить»** — уровень 4
 - **Цель:** озвучка последнего ответа ассистента через `speechSynthesis`  
 - **Файлы:** `app/src/components/MessageBody.tsx` (или `MessageRow.tsx`)  
 - **Действие:** кнопка «🔊» на сообщении assistant → `SpeechSynthesisUtterance`  
 - **Проверка:** нажатие воспроизводит текст ответа
 
 
-**73 · M · Разбивка App.tsx** — уровень 4
+**93 · M · Разбивка App.tsx** — уровень 4
 - **Цель:** вынести layout и модалки из ~1000-строчного `App.tsx`  
 - **Файлы:** `app/src/App.tsx` → `AppLayout.tsx`, `useAppModals.ts`  
 - **Действие:** перенести JSX layout + state модалок без изменения поведения  
 - **Проверка:** `npm run typecheck`; E2E или ручной smoke UI
 
 
-**74 · M · Разбивка agent.ts** — уровень 4
+**94 · M · Разбивка agent.ts** — уровень 4
 - **Цель:** отделить цикл ReAct от dispatch инструментов  
 - **Файлы:** `agent.ts` → `agentLoop.ts`, `agentStreamHandler.ts`  
 - **Действие:** `AgentRunner.run()` делегирует в `runAgentLoop()`  
 - **Проверка:** `npm run typecheck`; существующие agent-тесты зелёные
 
 
-**75 · M · Хук useChatPanelState** — уровень 4
+**95 · M · Хук useChatPanelState** — уровень 4
 - **Цель:** сократить `ChatPanel/index.tsx` — state и refs в отдельный хук  
 - **Файлы:** `app/src/components/ChatPanel/index.tsx`, `useChatPanelState.ts`  
 - **Действие:** перенести useState/useRef блоки в хук; index — только композиция  
 - **Проверка:** `npm run typecheck`; отправка сообщения в UI работает
 
 
-**76 · M · ChatPanel: вынести MessagesPane state** — уровень 4
+**96 · M · ChatPanel: вынести MessagesPane state** — уровень 4
 - **Цель:** `ChatPanelMessagesPane` + хук `useChatMessagesPane` из `index.tsx`  
 - **Файлы:** `ChatPanel/index.tsx` (~980 строк)  
 - **Проверка:** `index.tsx` < 600 строк
 
 
-**77 · M · ChatHistoryPanel: виртуализированный список** — уровень 4
+**97 · M · ChatHistoryPanel: виртуализированный список** — уровень 4
 - **Цель:** JSX рендера `FlatItem` и virtualizer — в `ChatHistoryList.tsx`  
 - **Файлы:** `ChatHistoryPanel.tsx` → `ChatHistoryList.tsx`  
 - **Действие:** props: `items`, `activeChatId`, `onSelect`; панель — композиция + toolbar  
 - **Проверка:** скролл длинной истории чатов без регрессий
 
 
-**78 · M · ChatHistoryPanel: DnD и диалоги** — уровень 4
+**98 · M · ChatHistoryPanel: DnD и диалоги** — уровень 4
 - **Цель:** drag-and-drop, Prompt/Confirm state — в `useChatHistoryDnD.ts`  
 - **Файлы:** `ChatHistoryPanel.tsx`, `useChatHistoryDnD.ts`  
 - **Действие:** хук возвращает handlers и dialog state; панель < 400 строк  
 - **Проверка:** перетаскивание чата в папку работает
 
 
-**79 · M · types.ts: доменные модули** — уровень 4
+**99 · M · types.ts: доменные модули** — уровень 4
 - **Цель:** разнести ~720 строк на `types/chat.ts`, `types/settings.ts`, `types/memory.ts`, `types/api.ts`  
 - **Файлы:** `app/src/types/` (новая папка), `types.ts` — re-export  
 - **Действие:** `CodeViperAPI` в `api.ts`; `AgentSettings` в `settings.ts`  
 - **Проверка:** `npm run typecheck`; нет циклических импортов
 
 
-**80 · M · agentContext: RAG-hints** — уровень 4
+**100 · M · agentContext: RAG-hints** — уровень 4
 - **Цель:** grep-nudge и `maybeAppendRagSearchHintAfterEmptyGrep` — в `agentContextRag.ts`  
 - **Файлы:** `agentContext.ts` → `agentContextRag.ts`  
 - **Действие:** re-export из `agentContext.ts`  
 - **Проверка:** `npm test` — существующие тесты RAG-hint зелёные
 
 
-**81 · M · agentContext: preview и prepare** — уровень 4
+**101 · M · agentContext: preview и prepare** — уровень 4
 - **Цель:** `buildAgentContextPreview`, `prepareAgentRunContext`, `summarizeChatHistory` — в `agentContextBuild.ts`  
 - **Файлы:** `agentContext.ts` → `agentContextBuild.ts`  
 - **Действие:** `agentContext.ts` < 150 строк, только re-export и `OllamaMessage`  
 - **Проверка:** `npm run typecheck`; превью контекста в UI открывается
 
 
-**82 · M · useAgentStream: обработчики событий** — уровень 4
+**102 · M · useAgentStream: обработчики событий** — уровень 4
 - **Цель:** switch по `AgentStreamEvent.type` — в `agentStreamHandlers.ts`  
 - **Файлы:** `useAgentStream.ts` → `agentStreamHandlers.ts`  
 - **Действие:** чистые функции `(event, ctx) => partialState`; хук — подписка и setState  
 - **Проверка:** `npm run typecheck`; стрим агента в UI без регрессий
 
 
-**83 · M · preload: группы API** — уровень 4
+**103 · M · preload: группы API** — уровень 4
 - **Цель:** `codeviper` object разбить на `preload/agentApi.ts`, `preload/chatApi.ts`, `preload/fileApi.ts`  
 - **Файлы:** `electron/preload/index.ts`, `electron/preload/*.ts`  
 - **Действие:** `Object.assign` или spread в `contextBridge.exposeInMainWorld`  
 - **Проверка:** `npm run typecheck`; `window.codeviper.*` доступен в renderer
 
 
-**84 · M · agentTools/core: files / git / package** — уровень 4
+**104 · M · agentTools/core: files / git / package** — уровень 4
 - **Цель:** `FILE_TOOLS`, `GIT_TOOLS`, `PACKAGE_TOOLS` — в отдельные файлы (~200 строк каждый)  
 - **Файлы:** `agentTools/core.ts` → `coreFiles.ts`, `coreGit.ts`, `corePackage.ts`; `core.ts` — сборка  
 - **Действие:** `getAgentTools()` без изменений снаружи  
 - **Проверка:** `npm run typecheck`; список инструментов агента тот же
 
 
-**85 · M · BehaviorTab: автоматизация и git** — уровень 4
+**105 · M · BehaviorTab: автоматизация и git** — уровень 4
 - **Цель:** вынести секции автокоммита и git-sync в `BehaviorAutomationSection.tsx`  
 - **Файлы:** `BehaviorTab.tsx` (~580 строк)  
 - **Проверка:** `BehaviorTab.tsx` < 350 строк
 
 
-**86 · M · BehaviorTab: инструменты и промпты** — уровень 4
+**106 · M · BehaviorTab: инструменты и промпты** — уровень 4
 - **Цель:** `disabledTools`, `promptTemplates`, permissions — в `BehaviorToolsSection.tsx`  
 - **Файлы:** `BehaviorTab.tsx`  
 - **Проверка:** typecheck; настройки сохраняются
 
 
-**87 · M · IntegrationsTab: MCP секция** — уровень 4
+**107 · M · IntegrationsTab: MCP секция** — уровень 4
 - **Файлы:** `IntegrationsTab.tsx` → `McpIntegrationsSection.tsx`  
 - **Проверка:** MCP CRUD в UI работает
 
 
-**88 · M · IntegrationsTab: P2P и webhooks** — уровень 4
+**108 · M · IntegrationsTab: P2P и webhooks** — уровень 4
 - **Файлы:** `IntegrationsTab.tsx` → `P2pIntegrationsSection.tsx`, `WebhookSection.tsx`  
 - **Проверка:** тумблер P2P и webhook URL сохраняются
 
 
-**89 · M · vectorStore: Qdrant / Milvus** — уровень 4
+**109 · M · vectorStore: Qdrant / Milvus** — уровень 4
 - **Файлы:** `vectorStore.ts` → `qdrantStore.ts`, `milvusStore.ts`  
 - **Проверка:** `search_knowledge_base` без регрессий
 
 
-**90 · M · memory.ts: локальная vs контекстная сборка** — уровень 4
+**110 · M · memory.ts: локальная vs контекстная сборка** — уровень 4
 - **Файлы:** `memory.ts` → `memoryStore.ts`, `memoryContext.ts`  
 - **Проверка:** `npm test -- memory`
 
 
-**91 · M · collectiveMemorySync: pull / push** — уровень 4
+**111 · M · collectiveMemorySync: pull / push** — уровень 4
 - **Файлы:** `collectiveMemorySync.ts` — два модуля  
 - **Проверка:** `npm test -- collectiveMemorySync`
 
 
-**92 · M · agentTools/integrations: GitHub + GitLab** — уровень 4
+**112 · M · agentTools/integrations: GitHub + GitLab** — уровень 4
 - **Файлы:** `integrationsGitHub.ts`, `integrationsGitLab.ts`  
 - **Проверка:** tool names в `AGENT_TOOL_NAMES` на месте
 
 
-**93 · M · agentTools/integrations: memory + skills + web** — уровень 4
+**113 · M · agentTools/integrations: memory + skills + web** — уровень 4
 - **Файлы:** `integrationsMemory.ts`, `integrationsWeb.ts`  
 - **Проверка:** typecheck
 
 
-**94 · M · defaultSkills: данные в JSON** — уровень 4
+**114 · M · defaultSkills: данные в JSON** — уровень 4
 - **Цель:** SKILL markdown из `resources/default-skills/*.md` вместо строк в TS  
 - **Файлы:** `defaultSkills.ts`, `resources/default-skills/`  
 - **Проверка:** `npm test -- defaultSkills`
 
 
-**95 · M · useMessageQueue: обработчики стрима** — уровень 4
+**115 · M · useMessageQueue: обработчики стрима** — уровень 4
 - **Файлы:** `useMessageQueue.ts` → `messageQueueHandlers.ts`  
 - **Проверка:** отправка и danger-block работают
 
 
-**96 · M · agentContextManager: выбор провайдера** — уровень 4
+**116 · M · agentContextManager: выбор провайдера** — уровень 4
 - **Файлы:** `agentContextManager.ts` (~350) → `providerResolver.ts`  
 - **Проверка:** cloud/ollama routing tests
 
 
-**97 · S · Режим высокой контрастности** — уровень 4
+**117 · S · Режим высокой контрастности** — уровень 4
 - **Цель:** класс `high-contrast` на `:root` для слабовидящих  
 - **Файлы:** `styles.css`, `PerformanceTab.tsx`, `settings.ts`  
 - **Действие:** тумблер + контрастные CSS-переменные  
 - **Проверка:** границы панелей и кнопок заметно контрастнее
 
 
-**98 · S · Цвет папки чатов** — уровень 4
+**118 · S · Цвет папки чатов** — уровень 4
 - **Цель:** `ChatFolder.color?: string` — цветная полоска у заголовка папки  
 - **Файлы:** `types.ts`, `chats.ts`, `ChatHistoryPanel.tsx`  
 - **Действие:** picker в контекстном меню папки  
 - **Проверка:** цвет виден и сохраняется
 
 
-**99 · M · Drag-drop папок в чат** — уровень 4
+**119 · M · Drag-drop папок в чат** — уровень 4
 - **Цель:** перетаскивание директории → `@path` или attachment как у файлов  
 - **Файлы:** `ChatPanel/ChatInput.tsx`, `registerFileIpc.ts`  
 - **Действие:** resolve directory path; лимит вложенных файлов  
 - **Проверка:** drop папки добавляет путь в чат
 
 
-**100 · M · Mermaid в ответах агента** — уровень 4
+**120 · M · Mermaid в ответах агента** — уровень 4
 - **Цель:** блоки ` ```mermaid ` рендерятся как SVG  
 - **Файлы:** `MessageBody.tsx`, dependency `mermaid`  
 - **Действие:** lazy import mermaid; sandboxed render  
 - **Проверка:** диаграмма из примера отображается
 
 
-**101 · M · E2E: дерево проекта** — уровень 4
+**121 · M · E2E: дерево проекта** — уровень 4
 - **Файлы:** `e2e/project-tree.test.ts`  
 - **Действие:** открыть tree → клик файл  
 - **Проверка:** e2e green
 
 
-**102 · M · E2E: DiffPreviewModal** — уровень 4
+**122 · M · E2E: DiffPreviewModal** — уровень 4
 - **Файлы:** `e2e/diff-preview.test.ts`  
 - **Действие:** mock preview_edit event  
 - **Проверка:** e2e green
 
 
-**103 · S · Фильтр по тегам в SkillsPanel** — уровень 4
+**123 · S · Фильтр по тегам в SkillsPanel** — уровень 4
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`  
 - **Действие:** теги из frontmatter SKILL.md  
 - **Проверка:** фильтр по тегу работает
 
 
-**104 · S · Сохранение последнего benchmark** — уровень 4
+**124 · S · Сохранение последнего benchmark** — уровень 4
 - **Файлы:** `settings.ts`, `ModelTab.tsx`  
 - **Действие:** `lastBenchmark: BenchmarkResult` после прогона  
 - **Проверка:** результат виден после reopen settings
 
 
-**105 · S · Dependabot для npm** — уровень 4
+**125 · S · Dependabot для npm** — уровень 4
 - **Файлы:** `.github/dependabot.yml`  
 - **Действие:** weekly `app/` и root  
 - **Проверка:** файл валиден по schema dependabot
 
 
-**106 · M · WSL: перевод путей проекта** — уровень 4
+**126 · M · WSL: перевод путей проекта** — уровень 4
 - **Цель:** `\\wsl$\...` ↔ `/mnt/...` при выборе папки на Windows  
 - **Файлы:** `fsUtil.ts`, `registerFileIpc.ts`  
 - **Проверка:** unit-тест path normalize
 
 
-**107 · S · Long paths на Windows** — уровень 4
+**127 · S · Long paths на Windows** — уровень 4
 - **Файлы:** `package.json` build manifest / `electron-builder`  
 - **Действие:** `requestedExecutionLevel` + known issue doc  
 - **Проверка:** проект с путём >260 символов открывается
 
 
-**108 · L · Открепить чат в отдельное окно** — уровень 4
+**128 · L · Открепить чат в отдельное окно** — уровень 4
 - **Цель:** второй `BrowserWindow` с тем же chatId через IPC sync  
 - **Файлы:** `index.ts`, `App.tsx`, `registerAppIpc.ts`  
 - **Действие:** «Открыть в новом окне» в меню чата  
 - **Проверка:** два окна — один чат синхронизирован
 
 
-**109 · M · Инфраструктура i18n** — уровень 4
+**129 · M · Инфраструктура i18n** — уровень 4
 - **Цель:** функция `t(key)` + `locales/ru.json` (текущие строки) + `en.json`  
 - **Файлы:** `app/src/i18n/index.ts`, `app/src/i18n/locales/`  
 - **Действие:** React context `I18nProvider`; fallback на ключ  
 - **Проверка:** `t('settings.title')` возвращает строку на обоих языках
 
 
-**110 · M · Переключатель языка в настройках** — уровень 4
+**130 · M · Переключатель языка в настройках** — уровень 4
 - **Цель:** `locale: 'ru' | 'en'` в settings + UI в BehaviorTab  
 - **Файлы:** `settings.ts`, `BehaviorTab.tsx`, `App.tsx`  
 - **Действие:** select «Язык»; `I18nProvider` читает settings.locale  
 - **Проверка:** смена на en → хотя бы один переведённый заголовок меняется
 
 
-**111 · M · i18n: строки App и шапки** — уровень 4
+**131 · M · i18n: строки App и шапки** — уровень 4
 - **Цель:** вынести строки `App.tsx` (кнопки, заголовки панелей) в locale-файлы  
 - **Файлы:** `App.tsx`, `locales/ru.json`, `locales/en.json`  
 - **Действие:** заменить литералы на `t('…')`  
 - **Проверка:** en locale — шапка и «Настройки» на английском
 
 
-**112 · M · i18n: SettingsModal** — уровень 4
+**132 · M · i18n: SettingsModal** — уровень 4
 - **Цель:** перевести вкладки и подписи настроек  
 - **Файлы:** `SettingsModal/*.tsx`, locale-файлы  
 - **Действие:** ключи `settings.model.*`, `settings.behavior.*` и т.д.  
 - **Проверка:** en locale — названия вкладок на английском
 
 
-**113 · M · i18n: ChatPanel и сообщения UI** — уровень 4
+**133 · M · i18n: ChatPanel и сообщения UI** — уровень 4
 - **Цель:** перевести placeholder, кнопки отправки, статус-бар  
 - **Файлы:** `ChatPanel/`, `AgentStatusBar.tsx`, locale-файлы  
 - **Действие:** ключи `chat.*`, `status.*`  
 - **Проверка:** en locale — placeholder поля ввода на английском
 
 
-**114 · M · Docker dev-окружение** — уровень 4
+**134 · M · Docker dev-окружение** — уровень 4
 - **Цель:** Dockerfile Node 20 + Ollama; compose с hot reload  
 - **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
 - **Действие:** образ + том исходников + `npm run dev`  
