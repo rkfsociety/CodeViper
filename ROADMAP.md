@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…474**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…514**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…474**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…514**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -3319,3 +3319,282 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `app/electron/main/index.ts`
 - **Действие:** tool `find_main_index_path_issues`
 - **Проверка:** отчёт
+
+**475 · M · find_symbol для Q#** — уровень 3
+- **Цель:** `find_symbol` / `find_references` для `.qs` (operation/function)  
+- **Файлы:** `symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** парсер Q# → символы с `path:line:col`  
+- **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.qs` файлом
+
+
+**476 · M · find_symbol для Hack** — уровень 3
+- **Цель:** символы для `.hack` (class/function)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход Hack/HHVM объявлений  
+- **Проверка:** unit-тест: `class Foo` находится по имени
+
+
+**477 · M · find_symbol для Mojo** — уровень 3
+- **Цель:** символы для `.mojo` / `.🔥` (fn/struct)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** синтаксический обход Mojo объявлений  
+- **Проверка:** unit-тест: `fn main` находится по имени
+
+
+**478 · M · find_symbol для Zig** — уровень 3
+- **Цель:** символы для `.zig` (fn/struct/const)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход Zig top-level объявлений  
+- **Проверка:** unit-тест: `pub fn main` и `const Foo` находятся по имени
+
+
+**479 · M · find_symbol для Red** — уровень 3
+- **Цель:** символы для `.red` / `.reds` (function/entity)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** regex для Red dialect объявлений  
+- **Проверка:** unit-тест: `func` находится по имени
+
+
+**480 · M · find_symbol для ReScript** — уровень 3
+- **Цель:** символы для `.res` / `.resi` (let/type/module)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** парсер ReScript → объявления с позицией  
+- **Проверка:** unit-тест: `let foo` и `type bar` находятся по имени
+
+
+**481 · M · find_symbol для Elm** — уровень 3
+- **Цель:** символы для `.elm` (type/func/module)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход Elm module declarations  
+- **Проверка:** unit-тест: `type Foo` находится по имени
+
+
+**482 · M · find_symbol для Futhark** — уровень 3
+- **Цель:** символы для `.fut` (entry/def)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход Futhark объявлений  
+- **Проверка:** unit-тест: `entry main` находится по имени
+
+
+**483 · M · find_symbol для Idris** — уровень 3
+- **Цель:** символы для `.idr` (data/type/func)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** синтаксический обход Idris  
+- **Проверка:** unit-тест: `foo :` и `data Bar` находятся по имени
+
+
+**484 · M · find_symbol для Mercury** — уровень 3
+- **Цель:** символы для `.m` (Mercury — predicate/type)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход `:- pred` / `:- type` объявлений  
+- **Проверка:** unit-тест: predicate находится по имени
+
+
+**485 · M · LSP для Q#** — уровень 3
+- **Цель:** hover/definition для `.qs` через Q# language server  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn qsharp-lang или аналог  
+- **Проверка:** при наличии LSP — переход к operation
+
+
+**486 · M · LSP для Hack** — уровень 3
+- **Цель:** hover/definition для `.hack` через HHVM IDE tools  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка Hack language server  
+- **Проверка:** Ctrl+click на method → переход к определению
+
+
+**487 · M · LSP для Mojo** — уровень 3
+- **Цель:** hover/definition для `.mojo` через mojo LSP (если доступен)  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** опциональный spawn; graceful fallback  
+- **Проверка:** при наличии LSP — переход к `fn`
+
+
+**488 · M · LSP для Zig** — уровень 3
+- **Цель:** hover/definition для `.zig` через ZLS  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn zig language server  
+- **Проверка:** Ctrl+click на `fn` → переход к определению
+
+
+**489 · M · LSP для Red** — уровень 3
+- **Цель:** hover/definition для `.red` — ограниченная поддержка  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** syntax service или fallback  
+- **Проверка:** отчёт о доступности LSP
+
+
+**490 · M · LSP для ReScript** — уровень 3
+- **Цель:** hover/definition для `.res` через rescript-language-server  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** spawn ReScript LSP  
+- **Проверка:** Ctrl+click на `let` → переход к определению
+
+
+**491 · M · LSP для Elm** — уровень 3
+- **Цель:** hover/definition для `.elm` через elm-language-server  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn elm make LSP backend  
+- **Проверка:** Ctrl+click на type → переход к определению
+
+
+**492 · M · LSP для Futhark** — уровень 3
+- **Цель:** hover/definition для `.fut` через futhark LSP (если установлен)  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** опциональный spawn  
+- **Проверка:** при наличии LSP — переход к `entry`
+
+
+**493 · M · LSP для Idris** — уровень 3
+- **Цель:** hover/definition для `.idr` через idris2-lsp  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** spawn Idris 2 language server  
+- **Проверка:** Ctrl+click на function → переход к определению
+
+
+**494 · M · LSP для Mercury** — уровень 3
+- **Цель:** hover/definition для Mercury `.m` — опциональная поддержка  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** graceful fallback если LSP недоступен  
+- **Проверка:** отчёт о статусе LSP
+
+
+**495 · M · Авто-генерация диаграмм потоков данных UI** — уровень 3
+- **Цель:** tool `generate_ui_dataflow_diagram` — props/state/events между компонентами  
+- **Файлы:** `app/src/components/`, `agentTools/core.ts`  
+- **Действие:** Mermaid flowchart по React-дереву  
+- **Проверка:** диаграмма для fixture UI module
+
+
+**496 · M · Авто-генерация диаграмм потоков данных backend** — уровень 3
+- **Цель:** tool `generate_backend_dataflow_diagram` — main process data paths  
+- **Файлы:** `app/electron/main/`, `ArchitecturePanel.tsx`  
+- **Действие:** handlers → services → FS/network  
+- **Проверка:** DFD в чате или панели
+
+
+**497 · M · Авто-генерация диаграмм потоков данных агента** — уровень 3
+- **Цель:** tool `generate_agent_dataflow_diagram` — prompt → model → tools → response  
+- **Файлы:** `agent.ts`, `agentContext.ts`  
+- **Действие:** ReAct loop dataflow Mermaid  
+- **Проверка:** trace + diagram согласованы для fixture run
+
+
+**498 · M · Авто-генерация диаграмм потоков данных плагинов** — уровень 3
+- **Цель:** tool `generate_plugin_dataflow_diagram` — plugin → agent tools  
+- **Файлы:** `plugins/`, `agentTools/core.ts`  
+- **Действие:** scan plugins → flowchart  
+- **Проверка:** fixture plugin на диаграмме
+
+
+**499 · M · Авто-генерация диаграмм потоков данных RAG** — уровень 3
+- **Цель:** tool `generate_rag_dataflow_diagram` — ingest → embed → index → search  
+- **Файлы:** `rag.ts`, `vectorStore.ts`  
+- **Действие:** pipeline Mermaid  
+- **Проверка:** diagram покрывает `search_knowledge_base` path
+
+
+**500 · M · Авто-генерация диаграмм потоков данных P2P** — уровень 3
+- **Цель:** tool `generate_p2p_dataflow_diagram` — client ↔ server ↔ nodes  
+- **Файлы:** `p2pClient.ts`, `server/p2p/`  
+- **Действие:** WSS relay flow Mermaid  
+- **Проверка:** diagram для fixture topology
+
+
+**501 · M · Авто-генерация диаграмм потоков данных CI/CD** — уровень 3
+- **Цель:** tool `generate_cicd_dataflow_diagram` — trigger → jobs → artifacts  
+- **Файлы:** `.github/workflows/*`, `agentTools/integrations.ts`  
+- **Действие:** YAML → dataflow flowchart  
+- **Проверка:** соответствует fixture workflow
+
+
+**502 · M · Авто-генерация диаграмм потоков данных worktree** — уровень 3
+- **Цель:** tool `generate_worktree_dataflow_diagram` — chat → worktree → agent root  
+- **Файлы:** `gitWorktree.ts`, `chats.ts`, `agent.ts`  
+- **Действие:** path resolution flow Mermaid  
+- **Проверка:** diagram описывает `resolveProjectRoot`
+
+
+**503 · M · Авто-генерация диаграмм потоков данных IPC** — уровень 3
+- **Цель:** tool `generate_ipc_dataflow_diagram` — renderer ↔ preload ↔ main  
+- **Файлы:** `shared/ipc/channels.ts`, `electron/preload/`  
+- **Действие:** sequence + data payload hints  
+- **Проверка:** fixture IPC channel на диаграмме
+
+
+**504 · M · Авто-генерация диаграмм потоков данных settings** — уровень 3
+- **Цель:** tool `generate_settings_dataflow_diagram` — UI → IPC → settings.json  
+- **Файлы:** `settings.ts`, `SettingsModal/*`  
+- **Действие:** load/save/normalize flow  
+- **Проверка:** diagram покрывает `loadSettings` path
+
+
+**505 · M · Авто-генерация отчёта по качеству архитектуры UI** — уровень 3
+- **Цель:** tool `generate_ui_architecture_quality_report` — слои, coupling, размер компонентов  
+- **Файлы:** `app/src/components/`, `agentTools/core.ts`  
+- **Действие:** read-only MD отчёт  
+- **Проверка:** отчёт без write_file
+
+
+**506 · M · Авто-генерация отчёта по качеству архитектуры backend** — уровень 3
+- **Цель:** tool `generate_backend_architecture_quality_report` — модули main, зависимости  
+- **Файлы:** `app/electron/main/`  
+- **Действие:** import graph + рекомендации  
+- **Проверка:** отчёт описывает handler layers
+
+
+**507 · M · Авто-генерация отчёта по качеству архитектуры агента** — уровень 3
+- **Цель:** tool `generate_agent_architecture_quality_report` — loop, tools, guards  
+- **Файлы:** `agent.ts`, `agentTools/`  
+- **Действие:** checklist + metrics  
+- **Проверка:** отчёт содержит tool groups
+
+
+**508 · M · Авто-генерация отчёта по качеству архитектуры плагинов** — уровень 3
+- **Цель:** tool `generate_plugin_architecture_quality_report` — API surface, isolation  
+- **Файлы:** `plugins/`, `docs/plugin-authoring.md`  
+- **Действие:** scan + MD summary  
+- **Проверка:** fixture plugin оценён в отчёте
+
+
+**509 · M · Авто-генерация отчёта по качеству архитектуры RAG** — уровень 3
+- **Цель:** tool `generate_rag_architecture_quality_report` — pipeline, stores, fallbacks  
+- **Файлы:** `rag.ts`, `vectorStore.ts`  
+- **Действие:** architecture checklist  
+- **Проверка:** отчёт без write_file
+
+
+**510 · M · Авто-генерация отчёта по качеству архитектуры P2P** — уровень 3
+- **Цель:** tool `generate_p2p_architecture_quality_report` — router, credits, failover  
+- **Файлы:** `server/p2p/`, `p2pClient.ts`  
+- **Действие:** MD quality report  
+- **Проверка:** отчёт перечисляет router/credits
+
+
+**511 · M · Авто-генерация отчёта по качеству архитектуры CI/CD** — уровень 3
+- **Цель:** tool `generate_cicd_architecture_quality_report` — jobs, parallelism, secrets  
+- **Файлы:** `.github/workflows/*`  
+- **Действие:** YAML analysis + best practices  
+- **Проверка:** отчёт для fixture ci.yml
+
+
+**512 · M · Авто-генерация отчёта по качеству архитектуры worktree** — уровень 3
+- **Цель:** tool `generate_worktree_architecture_quality_report` — isolation, cleanup, chat bind  
+- **Файлы:** `gitWorktree.ts`, `chats.ts`  
+- **Действие:** flow + risk assessment  
+- **Проверка:** отчёт описывает worktree lifecycle
+
+
+**513 · M · Авто-генерация отчёта по качеству архитектуры IPC** — уровень 3
+- **Цель:** tool `generate_ipc_architecture_quality_report` — channels, schemas, drift  
+- **Файлы:** `shared/ipcContracts.ts`, `register*Ipc.ts`  
+- **Действие:** Zod vs handlers cross-check  
+- **Проверка:** отчёт находит schema drift в fixture
+
+
+**514 · M · Авто-генерация отчёта по качеству архитектуры settings** — уровень 3
+- **Цель:** tool `generate_settings_architecture_quality_report` — schema, defaults, migration  
+- **Файлы:** `settings.ts`, `types.ts`  
+- **Действие:** Zod schema audit  
+- **Проверка:** отчёт перечисляет optional fields без default
