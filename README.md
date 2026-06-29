@@ -35,7 +35,7 @@ cd CodeViper/app && npm install
 
 ## Обновление без переустановки
 
-Runtime (UI, агент) — git-клон в `%APPDATA%/CodeViper/source`, перезапуск `.exe` после обновления. При самоулучшении ветка `agent/self-improve` автоматически rebase на `origin/master` (актуальный ROADMAP). Оболочку `.exe` меняют редко. Детали — [docs/development.md](docs/development.md) · [вики · Разработка](https://github.com/rkfsociety/CodeViper/wiki/Разработка).
+Runtime (UI, агент) — git-клон в `%APPDATA%/CodeViper/source`, перезапуск `.exe` после обновления. При самоулучшении ветка `agent/self-improve` автоматически rebase на `origin/master` (актуальный ROADMAP). Оболочку `.exe` меняют редко; CI-релиз — draft → артефакты всех ОС → публикация (см. [docs/development.md](docs/development.md)). Детали — [docs/development.md](docs/development.md) · [вики · Разработка](https://github.com/rkfsociety/CodeViper/wiki/Разработка).
 
 ## Документация
 

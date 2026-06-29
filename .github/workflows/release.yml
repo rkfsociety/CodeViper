@@ -15,6 +15,11 @@ on:
 permissions:
   contents: write
 
+# Не гонять два релиза параллельно (гонка electron-builder за один GitHub Release).
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   # Создаём черновик релиза до старта сборок — все платформы загружают в него
   prepare:
@@ -32,6 +37,11 @@ jobs:
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
           if gh release view "$TAG" >/dev/null 2>&1; then
+            ACTUAL=$(gh release view "$TAG" --json tagName -q .tagName)
+            if [ "$ACTUAL" != "$TAG" ]; then
+              echo "❌ Release $TAG привязан к неверному тегу: $ACTUAL"
+              exit 1
+            fi
             echo "Release $TAG уже существует — повторное создание пропущено"
             exit 0
           fi
@@ -42,6 +52,12 @@ jobs:
             --title "$TITLE" \
             --draft \
             --notes "$NOTES"
+          ACTUAL=$(gh release view "$TAG" --json tagName -q .tagName)
+          if [ "$ACTUAL" != "$TAG" ]; then
+            echo "❌ gh release create не привязал тег $TAG (получен: ${ACTUAL:-untagged})"
+            exit 1
+          fi
+          echo "✓ Draft release $TAG создан"
 
   release:
     needs: prepare
@@ -61,7 +77,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'master' || (inputs.tag || github.ref) }}
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
