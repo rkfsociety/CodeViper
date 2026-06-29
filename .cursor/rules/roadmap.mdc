@@ -29,7 +29,18 @@ N · [S/M/L/XL] · Название — приор. …
 
 ## Переиндексация
 
-**Не** использовать `sed -i` / PowerShell replace — только Node-скрипт (шаблон в `CLAUDE.md`, раздел «Редактирование ROADMAP»).
+**Не** использовать `sed -i`, PowerShell replace, `git show ... | Out-String`, `Select-String` как источник текста или любые shell-pipeline записи для `ROADMAP.md` / `ROADMAP_DONE.md`: на Windows это ломает UTF-8 и превращает русский текст в символы замены / серии вопросительных знаков.
+
+Правильно:
+
+1. Читать и писать ROADMAP только через скрипт с явной UTF-8 кодировкой: Node `fs.readFileSync(path, 'utf8')` / `fs.writeFileSync(path, text, 'utf8')` или Python `read_text(encoding='utf-8')` / `write_text(..., encoding='utf-8')`.
+2. Если нужно взять старую версию из git — читать байты напрямую из `git show` в скрипте и декодировать как UTF-8, не через PowerShell pipeline.
+3. После любой правки ROADMAP проверить:
+   - нет символа `U+FFFD`, серий вопросительных знаков и повторяющихся символов замены в `ROADMAP.md`, `ROADMAP_DONE.md`, `README.md`;
+   - пункты `**N · S/M/L/XL · ...**` идут подряд с 1;
+   - счётчик `1…N` в шапке ROADMAP и `N задач` в README совпадают;
+   - диапазоны S/M/L в ROADMAP соответствуют фактическим номерам;
+   - `git diff --check` чистый.
 
 После удаления пункта — обновить счётчик задач в `README.md`, если изменилось число пунктов.
 
