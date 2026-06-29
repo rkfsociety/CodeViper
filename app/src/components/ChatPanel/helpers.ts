@@ -81,6 +81,34 @@ function buildWorkTrace(
   }
 }
 
+function appendPendingReasoning(
+  pending: { thinking: string; assistant: ChatMessage } | null,
+  chunk: string,
+  anchor: ChatMessage
+): { thinking: string; assistant: ChatMessage } {
+  const text = chunk.trim()
+  if (!text) return pending ?? { thinking: '', assistant: anchor }
+  if (pending === null) return { thinking: text, assistant: anchor }
+  return { thinking: `${pending.thinking}\n${text}`, assistant: pending.assistant }
+}
+
+/** Ответ ассистента перед tool-сообщениями — промежуточный, не финальный. */
+export function isIntermediateAssistant(messages: ChatMessage[], index: number): boolean {
+  const msg = messages[index]
+  if (msg?.role !== 'assistant') return false
+  let sawTool = false
+  for (let j = index + 1; j < messages.length; j++) {
+    const next = messages[j]!
+    if (next.role === 'tool') {
+      sawTool = true
+      continue
+    }
+    if (next.role === 'assistant') return sawTool
+    return sawTool
+  }
+  return sawTool
+}
+
 export function groupToolMessages(messages: ChatMessage[]): DisplayItem[] {
   const result: DisplayItem[] = []
   let pendingTools: ChatMessage[] = []
@@ -108,19 +136,26 @@ export function groupToolMessages(messages: ChatMessage[]): DisplayItem[] {
     })
   }
 
-  for (const msg of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]!
     if (msg.role === 'tool') {
       pendingTools.push(msg)
     } else if (msg.role === 'assistant') {
       const hasThinking = Boolean(msg.thinking?.trim())
-      const hasContent = visibleAssistantContent(msg.content).length > 0
+      const visibleContent = visibleAssistantContent(msg.content)
+      const hasContent = visibleContent.length > 0
+      const intermediate = isIntermediateAssistant(messages, i)
+
+      if (intermediate) {
+        if (hasThinking)
+          pendingReasoning = appendPendingReasoning(pendingReasoning, msg.thinking!, msg)
+        if (hasContent)
+          pendingReasoning = appendPendingReasoning(pendingReasoning, visibleContent, msg)
+        continue
+      }
 
       if (hasThinking && !hasContent) {
-        if (pendingReasoning === null) {
-          pendingReasoning = { thinking: msg.thinking!, assistant: msg }
-        } else {
-          pendingReasoning.thinking += '\n' + msg.thinking
-        }
+        pendingReasoning = appendPendingReasoning(pendingReasoning, msg.thinking!, msg)
         continue
       }
 
@@ -149,4 +184,14 @@ export function messageCopyText(message: ChatMessage): string {
 export function workTraceIsEmpty(work?: AgentWorkTrace): boolean {
   if (!work) return true
   return work.tools.length === 0 && !work.thinking.trim()
+}
+
+/** Индекс последнего элемента с work/pending-work — только он показывает live-блок во время прогона. */
+export function findLastWorkDisplayIndex(items: DisplayItem[]): number {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const it = items[i]!
+    if (it.kind === 'pending-work') return i
+    if (it.kind === 'message' && !workTraceIsEmpty(it.work)) return i
+  }
+  return -1
 }

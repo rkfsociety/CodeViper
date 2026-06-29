@@ -228,8 +228,8 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
             <span className={styles.toggleContent}>
               <span className={styles.title}>Показывать reasoning в чате</span>
               <span className={styles.desc}>
-                Во время генерации выводить текст размышлений think-моделей. По умолчанию только
-                индикатор «Думаю…» (статус-бар и блок инструментов)
+                Устарело: во время прогона текст размышлений всегда в компактном блоке (~200px).
+                Настройка сохранена для совместимости.
               </span>
             </span>
           </label>

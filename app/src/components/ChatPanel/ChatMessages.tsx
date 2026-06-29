@@ -7,7 +7,7 @@ import { EditPreviewBlock } from '../EditPreviewBlock'
 import { MessageRoleBadge } from '../MessageRoleBadge'
 import { formatElapsed, formatTokenCount } from '../../../shared/generationMetrics'
 import type { AgentWorkTrace, DisplayItem } from './helpers'
-import { visibleAssistantContent, workTraceIsEmpty } from './helpers'
+import { visibleAssistantContent, workTraceIsEmpty, findLastWorkDisplayIndex } from './helpers'
 import { MessageRow } from './MessageRow'
 import type { AgentPhase } from '../AgentStatusBar'
 import styles from '../ChatPanel.module.css'
@@ -48,10 +48,11 @@ function renderWorkPanel(
     agentPhase: AgentPhase
     draftMessageId: string | null
     message?: ChatMessage
+    liveNarration?: string
     showLiveThinking?: boolean
   }
 ) {
-  if (!work || workTraceIsEmpty(work)) return null
+  if (!opts.busy || !work || workTraceIsEmpty(work)) return null
   return (
     <AgentWorkPanel
       work={work}
@@ -59,6 +60,7 @@ function renderWorkPanel(
       busy={opts.busy}
       agentPhase={opts.agentPhase}
       draftMessageId={opts.draftMessageId}
+      liveNarration={opts.liveNarration}
       showLiveThinking={opts.showLiveThinking}
     />
   )
@@ -92,6 +94,7 @@ export function ChatMessages({
 }: Props) {
   const draftMessageId = draftMessageIdRef.current
   const workOpts = { busy, agentPhase, draftMessageId, showLiveThinking }
+  const lastWorkIndex = busy ? findLastWorkDisplayIndex(displayItems) : -1
 
   return (
     <div className={styles.messages} ref={scrollRef}>
@@ -151,7 +154,7 @@ export function ChatMessages({
           let content: React.ReactNode
 
           if (item.kind === 'pending-work') {
-            content = renderWorkPanel(item.work, workOpts)
+            content = vItem.index === lastWorkIndex ? renderWorkPanel(item.work, workOpts) : null
           } else {
             const msg = item.message
             if (msg.previewId && msg.previewDiff !== undefined) {
@@ -170,6 +173,7 @@ export function ChatMessages({
                 <MessageRow
                   message={msg}
                   work={item.work}
+                  showWorkPanel={!busy || vItem.index === lastWorkIndex}
                   pinned={pinnedMessageIds.has(msg.id)}
                   busy={busy}
                   agentPhase={agentPhase}

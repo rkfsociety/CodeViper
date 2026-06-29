@@ -18,7 +18,7 @@
 
 ---
 
-Локальный AI-агент с GUI: читает и правит код, запускает команды и git, самоулучшение по ROADMAP. Перед прогоном — preflight имени модели (ListModels, HTTP 404). Для моделей ≤8B — компактный system prompt; extended-инструкции — от 14B. Провайдеры — Ollama, OpenAI, custom endpoint (LM Studio, vLLM), Anthropic, Gemini, DeepSeek, OpenRouter; запасные модели при 429/5xx. В чате по умолчанию скрыт поток reasoning think-моделей (только «Думаю…»); включить текст — Настройки → Поведение. Возможности и сценарии — в [вики](https://github.com/rkfsociety/CodeViper/wiki).
+Локальный AI-агент с GUI: читает и правит код, запускает команды и git, самоулучшение по ROADMAP. Перед прогоном — preflight имени модели (ListModels, HTTP 404). Для моделей ≤8B — компактный system prompt; extended-инструкции — от 14B. Провайдеры — Ollama, OpenAI, custom endpoint (LM Studio, vLLM), Anthropic, Gemini, DeepSeek, OpenRouter; запасные модели при 429/5xx. Во время прогона размышления и планирование — в компактном скроллируемом блоке (~200px); после финального ответа блок скрывается. Возможности и сценарии — в [вики](https://github.com/rkfsociety/CodeViper/wiki).
 
 ## Быстрый старт
 

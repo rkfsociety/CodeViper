@@ -11,6 +11,7 @@ const MessageBody = lazy(() => import('../MessageBody').then((m) => ({ default: 
 export const MessageRow = memo(function MessageRow({
   message,
   work,
+  showWorkPanel = true,
   pinned,
   busy,
   agentPhase,
@@ -26,6 +27,7 @@ export const MessageRow = memo(function MessageRow({
 }: {
   message: ChatMessage
   work?: AgentWorkTrace
+  showWorkPanel?: boolean
   pinned: boolean
   busy: boolean
   agentPhase: AgentPhase
@@ -42,7 +44,9 @@ export const MessageRow = memo(function MessageRow({
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const visibleContent = visibleAssistantContent(message.content, !!isStreaming)
-  const showAnswer = visibleContent.length > 0
+  const streamIntoThinking = Boolean(isStreaming && busy)
+  const showAnswer = visibleContent.length > 0 && !streamIntoThinking
+  const liveNarration = streamIntoThinking ? visibleContent : undefined
 
   useEffect(() => {
     if (!menuOpen) return
@@ -110,13 +114,14 @@ export const MessageRow = memo(function MessageRow({
           </div>
         )}
       </div>
-      {!workTraceIsEmpty(work) && (
+      {showWorkPanel && !workTraceIsEmpty(work) && (
         <AgentWorkPanel
           work={work!}
           message={message}
           busy={busy}
           agentPhase={agentPhase}
           draftMessageId={draftMessageId}
+          liveNarration={liveNarration}
           showLiveThinking={showLiveThinking}
         />
       )}
