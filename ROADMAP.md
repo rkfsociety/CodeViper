@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…134**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…154**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…134**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…154**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -946,3 +946,143 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `Dockerfile`, `docker-compose.yml`, `README.md`  
 - **Действие:** образ + том исходников + `npm run dev`  
 - **Проверка:** `docker compose up` поднимает приложение
+
+
+**135 · M · find_symbol для C#** — уровень 3
+- **Цель:** `find_symbol` / `find_references` для `.cs` (class/method/property)  
+- **Файлы:** `symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** парсер C# → символы с `path:line:col`  
+- **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.cs` файлом
+
+
+**136 · M · find_symbol для PHP** — уровень 3
+- **Цель:** символы для `.php` (class/function/namespace)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** расширить `walkProjectForSymbols` для `.php`  
+- **Проверка:** unit-тест: `class Foo` и `function bar` находятся по имени
+
+
+**137 · M · find_symbol для Kotlin** — уровень 3
+- **Цель:** символы для `.kt` / `.kts` (class/fun/object)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** tree-sitter-kotlin или синтаксический обход объявлений  
+- **Проверка:** unit-тест на `fun main` и `class Bar`
+
+
+**138 · M · find_symbol для Swift** — уровень 3
+- **Цель:** символы для `.swift` (struct/class/func)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** парсер Swift → top-level и nested объявления  
+- **Проверка:** unit-тест: `struct Foo` и `func bar` находятся по имени
+
+
+**139 · M · LSP для Go** — уровень 3
+- **Цель:** hover и go-to-definition для `.go` через `gopls`  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** ветка выбора сервера для Go; инициализация `gopls`  
+- **Проверка:** Ctrl+click на символ в `.go` → переход к определению
+
+
+**140 · M · LSP для Rust** — уровень 3
+- **Цель:** hover/definition для `.rs` через `rust-analyzer`  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn `rust-analyzer`; `textDocument/hover`, `textDocument/definition`  
+- **Проверка:** Ctrl+click на `fn` в `.rs` → переход к определению
+
+
+**141 · M · LSP для Java** — уровень 3
+- **Цель:** hover/definition для `.java` через jdtls или аналог  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка Java language server; didOpen/didChange  
+- **Проверка:** Ctrl+click на метод в `.java` → переход к определению
+
+
+**142 · M · LSP для C#** — уровень 3
+- **Цель:** hover/definition для `.cs` через OmniSharp / csharp-ls  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn C# language server по расширению `.cs`  
+- **Проверка:** Ctrl+click на класс в `.cs` → переход к определению
+
+
+**143 · M · LSP для PHP** — уровень 3
+- **Цель:** hover/definition для `.php` через intelephense / phpactor  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка PHP language server  
+- **Проверка:** Ctrl+click на `function` в `.php` → переход к определению
+
+
+**144 · M · LSP для Swift** — уровень 3
+- **Цель:** hover/definition для `.swift` через sourcekit-lsp  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn `sourcekit-lsp`; IPC `lsp-request`  
+- **Проверка:** Ctrl+click на `func` в `.swift` → переход к определению
+
+
+**145 · M · Авто-генерация UML диаграмм** — уровень 3
+- **Цель:** tool `generate_uml_diagram` → Mermaid class/component diagram в чате  
+- **Файлы:** `agentTools/core.ts`, `MessageBody.tsx`  
+- **Действие:** анализ символов проекта → Mermaid-блок  
+- **Проверка:** диаграмма рендерится в ответе агента
+
+
+**146 · S · Авто-генерация диаграмм зависимостей** — уровень 3
+- **Цель:** tool `generate_dependency_diagram` — граф импортов между модулями  
+- **Файлы:** `agentHandlersProjectSearch.ts`, `ArchitecturePanel.tsx`  
+- **Действие:** обход import/require → Mermaid graph  
+- **Проверка:** диаграмма зависимостей в чате или панели
+
+
+**147 · M · Авто-генерация ER-диаграмм** — уровень 3
+- **Цель:** tool `generate_er_diagram` из ORM-схем / SQL / Prisma  
+- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** парсинг моделей → Mermaid erDiagram  
+- **Проверка:** ER-диаграмма для fixture-схемы
+
+
+**148 · S · Авто-генерация диаграмм классов** — уровень 3
+- **Цель:** class diagram по символам TS/Java/C# проекта  
+- **Файлы:** `symbolIndex.ts`, `agentTools/core.ts`  
+- **Действие:** tool `generate_class_diagram` → Mermaid classDiagram  
+- **Проверка:** unit-тест: fixture-классы → валидный Mermaid
+
+
+**149 · M · Авто-генерация sequence-диаграмм** — уровень 3
+- **Цель:** tool `generate_sequence_diagram` по вызовам между модулями  
+- **Файлы:** `agentTools/core.ts`, `agentContext.ts`  
+- **Действие:** статический обход call graph → Mermaid sequenceDiagram  
+- **Проверка:** sequence-диаграмма в ответе агента
+
+
+**150 · M · Авто-генерация диаграмм состояний** — уровень 3
+- **Цель:** tool `generate_state_diagram` для state machines / reducers  
+- **Файлы:** `agentTools/core.ts`  
+- **Действие:** поиск enum/state → Mermaid stateDiagram-v2  
+- **Проверка:** диаграмма состояний для fixture reducer
+
+
+**151 · S · Авто-генерация диаграмм потоков данных** — уровень 3
+- **Цель:** tool `generate_dataflow_diagram` — DFD уровня модуля  
+- **Файлы:** `agentTools/core.ts`, `ArchitecturePanel.tsx`  
+- **Действие:** Mermaid flowchart по IPC/HTTP/FS потокам  
+- **Проверка:** DFD отображается в чате
+
+
+**152 · M · Авто-генерация архитектурных отчётов** — уровень 3
+- **Цель:** tool `generate_architecture_report` — MD-отчёт: модули, слои, риски  
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`  
+- **Действие:** read-only сбор метрик + шаблон отчёта  
+- **Проверка:** unit-тест: отчёт без write_file
+
+
+**153 · S · Авто-генерация метрик проекта** — уровень 3
+- **Цель:** tool `generate_project_metrics` — LOC, файлы, языки, сложность  
+- **Файлы:** `agentHandlersProjectSearch.ts`, `MetricsPanel.tsx`  
+- **Действие:** агрегация по дереву проекта → текст/Markdown  
+- **Проверка:** метрики в чате совпадают с fixture-проектом
+
+
+**154 · M · Авто-генерация отчёта по качеству кода** — уровень 3
+- **Цель:** tool `generate_code_quality_report` — дубли, большие файлы, TODO, lint  
+- **Файлы:** `agentTools/core.ts`, `agentTools/integrations.ts`  
+- **Действие:** read-only анализ + сводка в MD  
+- **Проверка:** отчёт содержит найденные проблемы из fixture
