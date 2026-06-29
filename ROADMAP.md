@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…414**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…432**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…414**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…432**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -2901,3 +2901,128 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
 - **Действие:** языки, cache age, failed parses  
 - **Проверка:** отчёт перечисляет unsupported extensions в fixture
+
+**415 · S · Авто-генерация аудио-версии архитектурных отчётов** — уровень 4
+- **Цель:** tool `generate_architecture_report_audio` — TTS для arch-отчётов (п. 305–314)  
+- **Файлы:** `agentTools/integrations.ts`, `subagentRunner.ts`  
+- **Действие:** MD-отчёт → аудио MP3/WAV по разделам  
+- **Проверка:** аудио создаётся из fixture architecture report
+
+
+**416 · S · Авто-генерация аудио-версии тестовых отчётов** — уровень 4
+- **Цель:** tool `generate_test_report_audio` — озвучка test/quality reports  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** summary тестов → TTS  
+- **Проверка:** аудио соответствует fixture test quality report
+
+
+**417 · S · Авто-генерация аудио-версии UX-отчётов** — уровень 4
+- **Цель:** tool `generate_ux_report_audio` — озвучка UX/a11y findings  
+- **Файлы:** `agentTools/integrations.ts`, `MessageBody.tsx`  
+- **Действие:** UX report MD → TTS  
+- **Проверка:** аудио для fixture UX report
+
+
+**418 · M · Авто-генерация видео-обзоров архитектуры** — уровень 4
+- **Цель:** tool `generate_architecture_video` — скринкаст + озвучка arch-диаграмм  
+- **Файлы:** `agentTools/integrations.ts`, `ArchitecturePanel.tsx`  
+- **Действие:** Mermaid/diagrams + TTS → MP4  
+- **Проверка:** видео из fixture arch materials (mock ffmpeg)
+
+
+**419 · M · Авто-генерация видео-обзоров CI/CD** — уровень 4
+- **Цель:** tool `generate_cicd_video` — обзор pipeline и workflow  
+- **Файлы:** `agentTools/integrations.ts`, `.github/workflows/*`  
+- **Действие:** diagram CI/CD + TTS + terminal capture  
+- **Проверка:** MP4 описывает fixture workflow
+
+
+**420 · S · Авто-генерация GIF-анимаций архитектуры** — уровень 4
+- **Цель:** tool `generate_architecture_gifs` — GIF для ArchitecturePanel / docs  
+- **Файлы:** `ArchitecturePanel.tsx`, `docs/`  
+- **Действие:** capture graph interaction → GIF  
+- **Проверка:** GIF в docs открывается
+
+
+**421 · M · Авто-генерация маркетинговых материалов для релизов** — уровень 4
+- **Цель:** tool `generate_release_marketing_pack` — тексты + visuals к `vX.Y.Z`  
+- **Файлы:** `agentTools/integrations.ts`, `gitTools.ts`, `docs/marketing/`  
+- **Действие:** CHANGELOG + features → social copy + images  
+- **Проверка:** пакет файлов для fixture-тега
+
+
+**422 · S · Авто-генерация баннеров для релизов** — уровень 4
+- **Цель:** tool `generate_release_banners_v3` — баннеры под GitHub Release assets  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** размеры release cover + social; из release-notes  
+- **Проверка:** PNG для fixture release
+
+
+**423 · S · Авто-генерация иконок для субагентов** — уровень 4
+- **Цель:** tool `generate_subagent_icons` — SVG/PNG per delegate_to_*  
+- **Файлы:** `subagentRunner.ts`, `AgentStatusBar.tsx`  
+- **Действие:** иконка 24px для Reviewer, Tester, Architect, …  
+- **Проверка:** чипы субагентов показывают иконки
+
+
+**424 · M · Авто-генерация тем оформления для субагентов** — уровень 4
+- **Цель:** tool `generate_subagent_themes` — accent color per subagent в UI  
+- **Файлы:** `styles.css`, `subagentRunner.ts`, `AgentStatusBar.tsx`  
+- **Действие:** CSS variables `--subagent-reviewer`, etc.  
+- **Проверка:** делегирование визуально различимо по цвету
+
+
+**425 · S · Авто-генерация цветовых схем для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_color_schemes` — палитра per plugin в UI  
+- **Файлы:** `plugins/`, `styles.css`  
+- **Действие:** optional badge color из plugin manifest  
+- **Проверка:** fixture plugin имеет цвет в списке
+
+
+**426 · S · Авто-генерация шрифтовых схем для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_font_schemes` — typography hints для plugin docs UI  
+- **Файлы:** `plugins/`, `styles.css`  
+- **Действие:** font stack в plugin settings schema  
+- **Проверка:** preview применяет схему
+
+
+**427 · M · Авто-генерация UX-гайдов для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_ux_guides` — UX patterns для plugin authors  
+- **Файлы:** `docs/plugin-authoring.md`, `agentTools/integrations.ts`  
+- **Действие:** MD: tool naming, errors, permissions  
+- **Проверка:** `docs/plugin-ux-guide.md` создан
+
+
+**428 · S · Авто-генерация onboarding-гайдов для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_onboarding` — первый plugin за 5 шагов  
+- **Файлы:** `docs/plugin-authoring.md`, `SkillsPanel.tsx`  
+- **Действие:** MD + optional GIF  
+- **Проверка:** гайд совпадает с hot-reload flow
+
+
+**429 · M · Авто-генерация developer-гайдов для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_dev_guides` — API, schema, debugging  
+- **Файлы:** `docs/plugin-authoring.md`, `plugins/`  
+- **Действие:** расширенный dev guide из fixture plugin  
+- **Проверка:** guide содержит schema example
+
+
+**430 · S · Авто-генерация user-гайдов для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_user_guides` — как установить/включить plugin  
+- **Файлы:** `IntegrationsTab.tsx`, `docs/`  
+- **Действие:** end-user MD без внутренних деталей  
+- **Проверка:** 3+ шага для fixture plugin
+
+
+**431 · M · Авто-генерация документации по API RAG** — уровень 4
+- **Цель:** tool `generate_rag_api_docs` — index, search, embed API  
+- **Файлы:** `rag.ts`, `vectorStore.ts`, `docs/`  
+- **Действие:** reference из кода + settings keys  
+- **Проверка:** docs описывают `search_knowledge_base`
+
+
+**432 · S · Авто-генерация документации по API worktree** — уровень 4
+- **Цель:** tool `generate_worktree_api_docs` — create/list/remove, chat binding  
+- **Файлы:** `gitWorktree.ts`, `chats.ts`, `docs/`  
+- **Действие:** MD: IPC, agent root resolution  
+- **Проверка:** docs описывают `worktreePath` и `resolveProjectRoot`
