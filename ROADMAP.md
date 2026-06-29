@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…314**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…332**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…314**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…332**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -2204,3 +2204,128 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `gitWorktree.ts`, `chats.ts`, `agent.ts`  
 - **Действие:** MD: create/remove/list, `worktreePath` в чате  
 - **Проверка:** отчёт описывает `resolveProjectRoot`
+
+**315 · S · Авто-генерация аудио-версии документации** — уровень 4
+- **Цель:** tool `generate_docs_audio` — TTS для `docs/*.md`  
+- **Файлы:** `agentTools/integrations.ts`, `docs/`  
+- **Действие:** обход docs → MP3/WAV по файлу или сводный трек  
+- **Проверка:** аудио создаётся для fixture `docs/*.md`
+
+
+**316 · S · Авто-генерация аудио-версии ROADMAP** — уровень 4
+- **Цель:** tool `generate_roadmap_audio` — озвучка пунктов ROADMAP.md  
+- **Файлы:** `roadmapParser.ts`, `agentTools/integrations.ts`  
+- **Действие:** парсинг пунктов → TTS по номерам  
+- **Проверка:** аудио содержит заголовки fixture-пунктов
+
+
+**317 · S · Авто-генерация аудио-версии CHANGELOG** — уровень 4
+- **Цель:** tool `generate_changelog_audio_v2` — озвучка по релизам (расширение п. 214)  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** секции по версиям; настройка голоса из settings  
+- **Проверка:** аудио соответствует CHANGELOG fixture
+
+
+**318 · M · Авто-генерация видео-гайдов** — уровень 4
+- **Цель:** tool `generate_video_guides` — серия коротких MP4 по разделам docs  
+- **Файлы:** `agentTools/integrations.ts`, `commandRunner.ts`, `docs/`  
+- **Действие:** скринкаст + TTS + титры; шаблон на раздел  
+- **Проверка:** минимум один guide-ролик из fixture-сценария (mock ffmpeg)
+
+
+**319 · M · Авто-генерация видео-демонстраций UI** — уровень 4
+- **Цель:** tool `generate_ui_demo_videos` — запись ключевых экранов CodeViper  
+- **Файлы:** `agentTools/integrations.ts`, `e2e/`  
+- **Действие:** Playwright record → MP4 в `docs/demos/`  
+- **Проверка:** видео открывается; показывает чат и настройки
+
+
+**320 · S · Авто-генерация GIF-анимаций для README** — уровень 4
+- **Цель:** tool `generate_readme_gifs` — GIF для быстрого старта в README  
+- **Файлы:** `agentTools/integrations.ts`, `README.md`  
+- **Действие:** capture сценариев → GIF; ссылки в README  
+- **Проверка:** GIF в README рендерится на GitHub
+
+
+**321 · M · Авто-генерация маркетинговых видео** — уровень 4
+- **Цель:** tool `generate_marketing_video` — промо-ролик из features + CHANGELOG  
+- **Файлы:** `agentTools/integrations.ts`, `docs/marketing/`  
+- **Действие:** montage скриншотов + TTS + музыка (опционально)  
+- **Проверка:** MP4 в `docs/marketing/` создаётся
+
+
+**322 · S · Авто-генерация баннеров релизов** — уровень 4
+- **Цель:** tool `generate_release_banners_v2` — набор баннеров к тегу (GitHub/social)  
+- **Файлы:** `agentTools/integrations.ts`, `gitTools.ts`  
+- **Действие:** размеры 1200×630, 1280×720; из release-notes  
+- **Проверка:** PNG/SVG для fixture-тега
+
+
+**323 · S · Авто-генерация иконок для плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_icons` — SVG/PNG per plugin  
+- **Файлы:** `agentTools/integrations.ts`, `plugins/`  
+- **Действие:** prompt или шаблон → иконка 32/64px  
+- **Проверка:** иконка отображается в списке плагинов
+
+
+**324 · M · Авто-генерация тем оформления** — уровень 4
+- **Цель:** tool `generate_ui_themes` — полные light/dark темы  
+- **Файлы:** `styles.css`, `settings.ts`, `PerformanceTab.tsx`  
+- **Действие:** набор CSS-переменных + переключатель в settings  
+- **Проверка:** тема применяется без поломки layout
+
+
+**325 · S · Авто-генерация цветовых схем** — уровень 4
+- **Цель:** tool `generate_color_schemes` — палитры accent/surface  
+- **Файлы:** `styles.css`, `agentTools/integrations.ts`  
+- **Действие:** 3–5 схем из seed-цвета или бренда  
+- **Проверка:** preview в PerformanceTab
+
+
+**326 · S · Авто-генерация шрифтовых схем** — уровень 4
+- **Цель:** tool `generate_font_schemes` — пары heading/body + scale  
+- **Файлы:** `styles.css`, `settings.ts`  
+- **Действие:** `font-family` stacks; связка с `uiFontScale`  
+- **Проверка:** схема применяется; читаемость в чате
+
+
+**327 · M · Авто-генерация UX-гайдов** — уровень 4
+- **Цель:** tool `generate_ux_guides` — MD: паттерны, do/don't для UI проекта  
+- **Файлы:** `agentTools/integrations.ts`, `docs/`  
+- **Действие:** анализ компонентов → гайд с примерами  
+- **Проверка:** `docs/ux-guide.md` создан
+
+
+**328 · S · Авто-генерация onboarding-гайдов** — уровень 4
+- **Цель:** tool `generate_onboarding_guides` — шаги визарда + скриншоты  
+- **Файлы:** `OnboardingWizard.tsx`, `docs/`  
+- **Действие:** MD + optional GIF per step  
+- **Проверка:** гайд совпадает с шагами визарда
+
+
+**329 · M · Авто-генерация developer-гайдов** — уровень 4
+- **Цель:** tool `generate_developer_guides` — расширенный dev guide по модулям  
+- **Файлы:** `CONTRIBUTING.md`, `agentTools/integrations.ts`  
+- **Действие:** разделы: setup, agent, IPC, tests  
+- **Проверка:** guide содержит команды из `app/package.json`
+
+
+**330 · S · Авто-генерация user-гайдов** — уровень 4
+- **Цель:** tool `generate_user_guides_v2` — сценарии для конечного пользователя  
+- **Файлы:** `docs/`, `agentTools/integrations.ts`  
+- **Действие:** установка, чат, интеграции, troubleshooting-ссылки  
+- **Проверка:** `docs/user-guide-v2.md` покрывает 5+ сценариев
+
+
+**331 · M · Авто-генерация документации по API плагинов** — уровень 4
+- **Цель:** tool `generate_plugin_api_docs` — reference из plugin schema  
+- **Файлы:** `docs/plugin-authoring.md`, `agentTools/core.ts`  
+- **Действие:** scan plugins → OpenAPI-like MD или TypeDoc  
+- **Проверка:** API fixture-плагина задокументирован
+
+
+**332 · S · Авто-генерация документации по API субагентов** — уровень 4
+- **Цель:** tool `generate_subagent_api_docs` — delegate_to_* контракты  
+- **Файлы:** `subagentRunner.ts`, `agentTools/mcp.ts`, `docs/`  
+- **Действие:** список субагентов, вход/выход, read-only ограничения  
+- **Проверка:** docs перечисляют Reviewer, Tester, Architect и др.
