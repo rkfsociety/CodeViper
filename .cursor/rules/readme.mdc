@@ -35,4 +35,4 @@ alwaysApply: true
 
 ## Порядок перед коммитом
 
-После правок в `app/` или фич, затрагивающих UX: `typecheck` → `build` → **README + ROADMAP** → `commit` → `push`.
+После правок в `app/` или фич, затрагивающих UX: `typecheck` → `build` → **README + ROADMAP** → **`commit` (обязательно)**. `push` — только по запросу пользователя.

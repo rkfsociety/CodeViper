@@ -19,7 +19,8 @@ alwaysApply: true
 1. Изменения в `app/` → из `app/`: `npm run typecheck` → `npm run build` (папка `out/` в коммите)
 2. Задача из ROADMAP → см. `roadmap.mdc`; пользовательская фича → см. `readme.mdc`
 3. Фикс issue → в коммите `closes #N` (см. `github-issues.mdc`)
-4. `git add` → `git commit` → `git push` — **сразу**, не откладывать
+4. **`git add` → `git commit` — всегда**, в конце каждой завершённой задачи в том же сеансе; не копить незакоммиченное, не откладывать коммит
+5. **`git push` — только по явной просьбе пользователя** («запушь», «push», «отправь на GitHub»). Без запроса — не пушить; после коммита без push кратко напомнить: для runtime нужны push + `git pull` в `%APPDATA%\CodeViper\source`
 
 Пользователь не собирает проект сам — не просить «запусти build». UI проверять через установленный `.exe` (см. `user-launch.mdc`).
 
@@ -31,4 +32,4 @@ alwaysApply: true
 
 `typecheck` · `build` · `test` · `lint` · `test:e2e`
 
-Перед коммитом с кодом: **typecheck → build → ROADMAP/README при необходимости → commit → push**.
+Перед коммитом с кодом: **typecheck → build → ROADMAP/README при необходимости → commit (обязательно)**. Push — только по запросу.
