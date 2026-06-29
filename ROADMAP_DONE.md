@@ -63,6 +63,7 @@
 - ChatHistoryPanel: поиск по заголовку и последнему сообщению; при фильтре скрываются пустые папки/проекты, группы разворачиваются
 - Resizable split layout: панель «Превью» справа от чата с перетаскиваемым разделителем; ширина и видимость в `ui-layout.json`
 - FilePreviewPanel: read-only просмотр файла с highlight.js (IPC `read-file`); ProjectTree → split-панель «Превью»
+- Ручная переиндексация: ПКМ в дереве файлов → «Переиндексировать» (`autoIndexProject` / `index_project` для `projectPath`)
 - MessageBody: кнопка «Копировать» на каждом fenced code block (`navigator.clipboard.writeText`)
 - MessageRow: «↺ Перегенерировать» для ответа assistant (truncate + resend)
 - DiffPreviewModal (side-by-side, cherry-pick hunks); ProjectTree; @-mentions; trace export/replay; MetricsPanel

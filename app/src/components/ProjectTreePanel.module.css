@@ -157,6 +157,17 @@
   cursor: pointer;
 }
 
-.ctxMenuItem:hover {
+.ctxMenuItem:hover:not(:disabled) {
   background: var(--bg-element);
+}
+
+.ctxMenuItem:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ctxMenuSeparator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
 }

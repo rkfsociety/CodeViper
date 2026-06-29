@@ -1178,6 +1178,9 @@ function AppContent() {
                 projectPath={activeProjectPath}
                 onAskAgent={(path) => chatPanelRef.current?.insertFileMention(path)}
                 onFileOpen={openFilePreview}
+                ollamaUrl={settings.ollamaUrl}
+                qdrantUrl={settings.qdrantUrl}
+                qdrantApiKey={settings.qdrantApiKey}
               />
             </section>
           )}

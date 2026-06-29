@@ -10,6 +10,10 @@ interface Props {
   onAskAgent: (relativePath: string) => void
   /** Если задан — файл открывается в FilePreviewPanel (split), без встроенного превью в дереве */
   onFileOpen?: (relativePath: string) => void
+  /** URL Ollama и Qdrant для ручной переиндексации (ПКМ → «Переиндексировать») */
+  ollamaUrl?: string
+  qdrantUrl?: string
+  qdrantApiKey?: string
 }
 
 interface CtxMenuState {
@@ -102,7 +106,10 @@ export function ProjectTreePanel({
   projectPath,
   maxDepth = LIST_DIRECTORY_DEPTH,
   onAskAgent,
-  onFileOpen
+  onFileOpen,
+  ollamaUrl,
+  qdrantUrl,
+  qdrantApiKey
 }: Props) {
   const [tree, setTree] = useState<FileNode[]>([])
   const [loading, setLoading] = useState(false)
@@ -196,6 +203,16 @@ export function ProjectTreePanel({
     setCtxMenu({ relativePath, x: e.clientX, y: e.clientY })
   }, [])
 
+  const canReindex = Boolean(projectPath.trim() && ollamaUrl?.trim() && qdrantUrl?.trim())
+
+  const handleReindex = useCallback(() => {
+    if (!canReindex || !ollamaUrl || !qdrantUrl) return
+    void window.codeviper
+      .autoIndexProject(projectPath, ollamaUrl, qdrantUrl, qdrantApiKey)
+      .catch(() => {})
+    setCtxMenu(null)
+  }, [canReindex, projectPath, ollamaUrl, qdrantUrl, qdrantApiKey])
+
   const projectLabel = useMemo(() => projectBasename(projectPath), [projectPath])
 
   if (!projectPath.trim()) {
@@ -281,6 +298,20 @@ export function ProjectTreePanel({
             }}
           >
             Спросить агента (@{ctxMenu.relativePath})
+          </button>
+          <div className={styles.ctxMenuSeparator} role="separator" />
+          <button
+            type="button"
+            className={styles.ctxMenuItem}
+            disabled={!canReindex}
+            title={
+              canReindex
+                ? 'Переиндексировать проект в Qdrant'
+                : 'Укажите Ollama URL и Qdrant URL в настройках'
+            }
+            onClick={handleReindex}
+          >
+            Переиндексировать
           </button>
         </div>
       )}
