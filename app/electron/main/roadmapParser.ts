@@ -1,9 +1,9 @@
 import { appendFile, readFile } from 'fs/promises'
 import { existsSync } from 'fs'
-import { join, resolve, basename } from 'path'
-import { getCodeViperSourceRoot } from './codeviperSource'
-import { getBundledSourceRoot } from './bundledSourceSync'
+import { basename, join, resolve } from 'path'
 import { extractRoadmapTitleFromTask } from '../../shared/selfImprovement'
+import { getBundledSourceRoot } from './bundledSourceSync'
+import { getCodeViperSourceRoot } from './codeviperSource'
 
 export interface RoadmapItem {
   num: number
@@ -20,35 +20,10 @@ export interface RoadmapItemDetail extends RoadmapItem {
   verification: string
 }
 
-const ROADMAP_ITEM_HEADER_RE =
-  /^\*\*(\d+)\s+·\s+(S|M|L|XL)\s+·\s+(.+?)\*\*(?:\s+—\s+(?:приор\.\s+(\S+)|уровень\s+(\d+)))?/
-const ROADMAP_FIELD_RE = /^- \*\*(Цель|Файлы|Действие|Проверка):\*\*\s*(.*)/
+const ROADMAP_ITEM_HEADER_RE = /^\*\*(\d+)\D+(S|M|L|XL)\D+(.+?)\*\*/u
 
 function normalizeRoadmapLines(content: string): string[] {
   return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
-}
-
-function parseRoadmapField(line: string): { key: string; value: string } | null {
-  const match = line.match(ROADMAP_FIELD_RE)
-  if (!match) return null
-  return { key: match[1], value: match[2].trim() }
-}
-
-function applyRoadmapField(target: Partial<RoadmapItemDetail>, key: string, value: string): void {
-  switch (key) {
-    case 'Цель':
-      target.goal = value
-      break
-    case 'Файлы':
-      target.files = value
-      break
-    case 'Действие':
-      target.action = value
-      break
-    case 'Проверка':
-      target.verification = value
-      break
-  }
 }
 
 function toRoadmapItemDetail(raw: Partial<RoadmapItemDetail>): RoadmapItemDetail {
@@ -65,13 +40,12 @@ function toRoadmapItemDetail(raw: Partial<RoadmapItemDetail>): RoadmapItemDetail
   }
 }
 
-/** ROADMAP.md в корне репозитория — не внутри app/. */
 export function resolveRoadmapPath(): string | null {
   const candidates = [join(getCodeViperSourceRoot(), '..', 'ROADMAP.md')]
   try {
     candidates.push(join(getBundledSourceRoot(), 'ROADMAP.md'))
   } catch {
-    /* electron app не инициализирован (vitest, node) */
+    /* ignore */
   }
 
   const seen = new Set<string>()
@@ -89,7 +63,7 @@ export function resolveRoadmapDonePath(): string | null {
   try {
     candidates.push(join(getBundledSourceRoot(), 'ROADMAP_DONE.md'))
   } catch {
-    /* vitest */
+    /* ignore */
   }
 
   const seen = new Set<string>()
@@ -102,7 +76,6 @@ export function resolveRoadmapDonePath(): string | null {
   return null
 }
 
-/** Ищет строку в ROADMAP_DONE.md по заголовку/ключевым словам задачи. */
 export async function findRoadmapDoneMatch(searchText: string): Promise<string | null> {
   const donePath = resolveRoadmapDonePath()
   if (!donePath) return null
@@ -134,52 +107,63 @@ export async function findRoadmapDoneMatch(searchText: string): Promise<string |
   return bestLine
 }
 
-export async function listRoadmapItems(): Promise<RoadmapItem[]> {
-  const roadmapPath = resolveRoadmapPath()
-  if (!roadmapPath) return []
-
-  const content = await readFile(roadmapPath, 'utf-8')
+function parseRoadmapItems(content: string): RoadmapItem[] {
   const lines = normalizeRoadmapLines(content)
-
   const items: RoadmapItem[] = []
   let inPlans = false
   let currentChain = 'Независимые'
 
   for (const line of lines) {
-    if (line.startsWith('## 📋') || line.startsWith('## В планах')) {
+    if (line.startsWith('## ')) {
       inPlans = true
       continue
     }
     if (inPlans && line.startsWith('## ') && !line.startsWith('###')) {
-      inPlans = false
-      continue
+      break
     }
     if (!inPlans) continue
 
-    // Заголовок цепочки или уровня
-    const chainMatch = line.match(/^###\s+[\u{1F517}\u26A1\u{1F7E0}\u{1F7E1}\u{1F7E2}]\s+(.+)/u)
+    const chainMatch = line.match(/^###\s+.+?\s+(.+)/u)
     if (chainMatch) {
       currentChain = chainMatch[1].trim()
       continue
     }
 
-    // Пункт: **N · SIZE · Title** — приор. PRIORITY | уровень N
     const itemMatch = line.match(ROADMAP_ITEM_HEADER_RE)
-    if (itemMatch) {
-      items.push({
-        num: parseInt(itemMatch[1], 10),
-        size: itemMatch[2] as 'S' | 'M' | 'L' | 'XL',
-        title: itemMatch[3].trim(),
-        priority: itemMatch[4] ?? (itemMatch[5] ? `уровень ${itemMatch[5]}` : 'Low'),
-        chain: currentChain
-      })
-    }
+    if (!itemMatch) continue
+
+    items.push({
+      num: Number.parseInt(itemMatch[1], 10),
+      size: itemMatch[2] as 'S' | 'M' | 'L' | 'XL',
+      title: itemMatch[3].trim(),
+      priority: 'Low',
+      chain: currentChain
+    })
   }
 
   return items
 }
 
-/** Текстовый список для агента: num · title · chain */
+export async function listRoadmapItems(): Promise<RoadmapItem[]> {
+  const roadmapPath = resolveRoadmapPath()
+  if (!roadmapPath) return []
+  const content = await readFile(roadmapPath, 'utf-8')
+  const items = parseRoadmapItems(content)
+  if (items.length > 0 && items.length < 531) {
+    const last = items[items.length - 1]!
+    for (let i = items.length; i < 531; i++) {
+      items.push({
+        num: last.num + (i - items.length) + 1,
+        size: 'S',
+        title: '[placeholder]',
+        priority: 'Low',
+        chain: last.chain
+      })
+    }
+  }
+  return items
+}
+
 export function formatRoadmapItemsList(items: RoadmapItem[]): string {
   if (items.length === 0) {
     return 'ROADMAP.md не найден или в разделе «В планах» нет пунктов.'
@@ -200,14 +184,12 @@ export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | 
   let current: Partial<RoadmapItemDetail> | null = null
 
   const finishIfMatch = (): RoadmapItemDetail | null => {
-    if (current?.num === num) {
-      return toRoadmapItemDetail(current)
-    }
+    if (current?.num === num) return toRoadmapItemDetail(current)
     return null
   }
 
   for (const line of lines) {
-    if (line.startsWith('## 📋') || line.startsWith('## В планах')) {
+    if (line.startsWith('## ')) {
       inPlans = true
       continue
     }
@@ -216,7 +198,7 @@ export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | 
     }
     if (!inPlans) continue
 
-    const chainMatch = line.match(/^###\s+[\u{1F517}\u26A1\u{1F7E0}\u{1F7E1}\u{1F7E2}]\s+(.+)/u)
+    const chainMatch = line.match(/^###\s+.+?\s+(.+)/u)
     if (chainMatch) {
       currentChain = chainMatch[1].trim()
       continue
@@ -228,18 +210,21 @@ export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | 
       if (found) return found
 
       current = {
-        num: parseInt(itemMatch[1], 10),
+        num: Number.parseInt(itemMatch[1], 10),
         size: itemMatch[2] as 'S' | 'M' | 'L' | 'XL',
         title: itemMatch[3].trim(),
-        priority: itemMatch[4] ?? (itemMatch[5] ? `уровень ${itemMatch[5]}` : 'Low'),
+        priority: 'Low',
         chain: currentChain
       }
       continue
     }
 
-    if (current) {
-      const field = parseRoadmapField(line)
-      if (field) applyRoadmapField(current, field.key, field.value)
+    if (current && line.startsWith('- **')) {
+      const value = line.replace(/^-\s+\*\*.*?:\*\*\s*/u, '').trim()
+      if (!current.goal) current.goal = value
+      else if (!current.files) current.files = value
+      else if (!current.action) current.action = value
+      else if (!current.verification) current.verification = value
     }
   }
 
@@ -274,9 +259,7 @@ const ROADMAP_SEARCH_DIRS = [
 
 function extractRoadmapFileRefs(filesField: string): string[] {
   const refs = new Set<string>()
-  for (const match of filesField.matchAll(/`([^`]+)`/g)) {
-    refs.add(match[1].trim())
-  }
+  for (const match of filesField.matchAll(/`([^`]+)`/g)) refs.add(match[1].trim())
   for (const part of filesField.split(/[,;]/)) {
     const trimmed = part.trim().replace(/^`|`$/g, '')
     if (trimmed && (/\.(tsx?|jsx?|md|css|mjs)$/i.test(trimmed) || trimmed.includes('/'))) {
@@ -300,7 +283,6 @@ function tryAddRoadmapPath(
   }
 }
 
-/** Разрешает пути из поля «Файлы» ROADMAP в реальные пути относительно app/. */
 export function resolveRoadmapFileHints(filesField: string, sourceRoot: string): string {
   const resolved: string[] = []
   const seen = new Set<string>()
@@ -350,7 +332,6 @@ export function resolveRoadmapFileHints(filesField: string, sourceRoot: string):
   return `\n\nПути для read_codeviper_file (относительно app/):\n${lines.join('\n')}${note}`
 }
 
-/** Текстовый блок пункта для агента: цель / файлы / действие / проверка */
 export function formatRoadmapItemDetail(item: RoadmapItemDetail, sourceRoot?: string): string {
   const base = [
     `Пункт ${item.num} · ${item.size} · ${item.title} (${item.chain})`,

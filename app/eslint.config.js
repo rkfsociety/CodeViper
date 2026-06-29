@@ -5,7 +5,19 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks'
 
 export default [
   {
-    ignores: ['dist', 'out', '.vite', 'node_modules', 'tests', '**/*.test.ts', '**/*.test.tsx']
+    ignores: [
+      'dist',
+      'out',
+      '.vite',
+      'node_modules',
+      'tests',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      'index.js',
+      'runtimeBootstrap-*.js',
+      'runtimeHandlers.js',
+      'docs-api/assets/*.js'
+    ]
   },
   {
     files: ['**/*.{ts,tsx,js,jsx}'],

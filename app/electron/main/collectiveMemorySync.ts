@@ -21,14 +21,14 @@ import { redactSecrets } from '../../shared/secretRedaction'
 import { maxSemanticSimilarity } from './embeddingQueue'
 import { loadSettings } from './settings'
 import { getRepoFileViaApi, resolveGitHubToken, upsertRepoFileViaApi } from './githubAuth'
-import { cliSpawnBase, resolveGitExecutable } from './windowsGitEnv'
+import { cliSpawnBase } from './windowsGitEnv'
 
 function runGitCmd(
   cwd: string,
   args: string[]
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const child = spawn(resolveGitExecutable(), args, cliSpawnBase(cwd))
+    const child = spawn('git', args, cliSpawnBase(cwd))
     let stdout = ''
     let stderr = ''
     child.stdout?.on('data', (chunk: Buffer) => {

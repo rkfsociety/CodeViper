@@ -20,7 +20,7 @@ import {
 import { runShutdownHooks } from './appShutdown'
 import { shutdownEmbeddingWorker } from './embeddingQueue'
 import { shutdownLargeFileWorker } from './largeFileQueue'
-import { cliSpawnBase, resolveGitExecutable } from './windowsGitEnv'
+import { cliSpawnBase } from './windowsGitEnv'
 
 let autoUpdaterPromise: Promise<AppUpdater> | null = null
 
@@ -37,7 +37,7 @@ function runGit(
   timeoutMs = 15_000
 ): Promise<{ code: number; stdout: string }> {
   return new Promise((resolve) => {
-    const child = spawn(resolveGitExecutable(), args, cliSpawnBase(cwd))
+    const child = spawn('git', args, cliSpawnBase(cwd))
     let stdout = ''
     let settled = false
     const finish = (code: number) => {
