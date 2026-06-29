@@ -1,6 +1,6 @@
-# Правила проекта CodeViper
+﻿# Правила проекта CodeViper
 
-**Для Cursor-агента:** канонические короткие правила — [`.cursor/rules/`](.cursor/rules/) (см. [`.cursor/README.md`](.cursor/README.md)); уроки из инцидентов — [`.cursor/memories.md`](.cursor/memories.md). Ниже — полная архитектура и детали.
+**Для Cursor-агента:** канонические короткие правила — [`.cursor/rules/`](.cursor/rules/) (см. [`.cursor/README.md`](.cursor/README.md)); уроки из инцидентов — [`.cursor/README.md`](.cursor/README.md). Ниже — полная архитектура и детали.
 
 ## Синхронизация с GitHub — первым делом
 

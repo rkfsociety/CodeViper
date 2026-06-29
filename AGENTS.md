@@ -1,6 +1,6 @@
-# Правила проекта CodeViper
+﻿# Правила проекта CodeViper
 
-**Память и правила для Cursor-агента:** [`.cursor/README.md`](.cursor/README.md) (правила в `.cursor/rules/`, уроки в `.cursor/memories.md`). Этот файл — ROADMAP и самоулучшение; архитектура — `CLAUDE.md`.
+**Память и правила для Cursor-агента:** [`.cursor/README.md`](.cursor/README.md) (правила в `.cursor/rules/`, уроки в `.cursor/README.md`). Этот файл — ROADMAP и самоулучшение; архитектура — `CLAUDE.md`.
 
 ## Сборка после изменений
 
