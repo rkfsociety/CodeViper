@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…374**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…414**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…374**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…414**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -2622,3 +2622,282 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `agentTools/*`, `modelRuntime.ts`
 - **Действие:** tool `find_tool_fallback_issues`
 - **Проверка:** отчёт
+
+**375 · M · find_symbol для Apex** — уровень 3
+- **Цель:** `find_symbol` / `find_references` для `.cls` / `.trigger` (class/method)  
+- **Файлы:** `symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** парсер Apex → символы с `path:line:col`  
+- **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.cls` файлом
+
+
+**376 · M · find_symbol для ABAP** — уровень 3
+- **Цель:** символы для `.abap` (program/class/method)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход объявлений ABAP  
+- **Проверка:** unit-тест: `CLASS` / `METHOD` находятся по имени
+
+
+**377 · M · find_symbol для Dart** — уровень 3
+- **Цель:** символы для `.dart` (class/function)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** tree-sitter-dart или синтаксический обход  
+- **Проверка:** unit-тест: `class Foo` и `void main` находятся по имени
+
+
+**378 · M · find_symbol для Nim** — уровень 3
+- **Цель:** символы для `.nim` (proc/func/type)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход `proc` / `func` / `type` объявлений  
+- **Проверка:** unit-тест: `proc foo` находится по имени
+
+
+**379 · M · find_symbol для Crystal** — уровень 3
+- **Цель:** символы для `.cr` (class/def/macro)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** парсер Crystal → top-level объявления  
+- **Проверка:** unit-тест: `class Foo` и `def bar` находятся по имени
+
+
+**380 · M · find_symbol для D** — уровень 3
+- **Цель:** символы для `.d` (module/class/function)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход D объявлений  
+- **Проверка:** unit-тест: `void main` и `class Bar` находятся по имени
+
+
+**381 · M · find_symbol для Tcl** — уровень 3
+- **Цель:** символы для `.tcl` (proc)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** regex для `proc name`  
+- **Проверка:** unit-тест: `proc foo` находится по имени
+
+
+**382 · M · find_symbol для PowerShell** — уровень 3
+- **Цель:** символы для `.ps1` / `.psm1` (function/cmdlet)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход `function` / `filter` объявлений  
+- **Проверка:** unit-тест: `function Get-Foo` находится по имени
+
+
+**383 · M · find_symbol для Batch** — уровень 3
+- **Цель:** символы для `.bat` / `.cmd` (labels/call targets)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** поиск `:label` и `call` целей  
+- **Проверка:** unit-тест: label находится по имени
+
+
+**384 · M · find_symbol для Puppet** — уровень 3
+- **Цель:** символы для `.pp` (class/define/resource)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход Puppet DSL объявлений  
+- **Проверка:** unit-тест: `class foo` и `define bar` находятся по имени
+
+
+**385 · M · LSP для Apex** — уровень 3
+- **Цель:** hover/definition для `.cls` через Apex language server (если установлен)  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** опциональный spawn; graceful fallback  
+- **Проверка:** при наличии LSP — переход к определению в `.cls`
+
+
+**386 · M · LSP для ABAP** — уровень 3
+- **Цель:** hover/definition для `.abap` через abap language server  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка ABAP language server  
+- **Проверка:** Ctrl+click на method → переход к определению
+
+
+**387 · M · LSP для Dart** — уровень 3
+- **Цель:** hover/definition для `.dart` через dart analysis server  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn `dart language-server`  
+- **Проверка:** Ctrl+click на class → переход к определению
+
+
+**388 · M · LSP для Nim** — уровень 3
+- **Цель:** hover/definition для `.nim` через nimlangserver  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** spawn nim language server  
+- **Проверка:** Ctrl+click на `proc` → переход к определению
+
+
+**389 · M · LSP для Crystal** — уровень 3
+- **Цель:** hover/definition для `.cr` через crystalline  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn crystalline LSP  
+- **Проверка:** Ctrl+click на `def` → переход к определению
+
+
+**390 · M · LSP для D** — уровень 3
+- **Цель:** hover/definition для `.d` через serve-d / dcd  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** spawn D language server  
+- **Проверка:** Ctrl+click на function → переход к определению
+
+
+**391 · M · LSP для Tcl** — уровень 3
+- **Цель:** hover/definition для `.tcl` через tcl language server  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** опциональный spawn Tcl LSP  
+- **Проверка:** при наличии LSP — переход к `proc`
+
+
+**392 · M · LSP для PowerShell** — уровень 3
+- **Цель:** hover/definition для `.ps1` через PowerShell Editor Services  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn PSES language server  
+- **Проверка:** Ctrl+click на function → переход к определению
+
+
+**393 · M · LSP для Batch** — уровень 3
+- **Цель:** hover/definition для `.bat` — ограниченная поддержка (syntax + labels)  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** базовый language service или fallback на grep  
+- **Проверка:** отчёт о доступности; label navigation если LSP есть
+
+
+**394 · M · LSP для Puppet** — уровень 3
+- **Цель:** hover/definition для `.pp` через puppet-editor-services  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** spawn Puppet language server  
+- **Проверка:** Ctrl+click на `class` → переход к определению
+
+
+**395 · M · Авто-генерация диаграмм Git-ветвления** — уровень 3
+- **Цель:** tool `generate_git_branch_diagram` — дерево веток из `git branch -a`  
+- **Файлы:** `gitTools.ts`, `agentTools/integrations.ts`  
+- **Действие:** Mermaid gitGraph или flowchart  
+- **Проверка:** unit-тест на fixture repo
+
+
+**396 · M · Авто-генерация диаграмм Git-мерджей** — уровень 3
+- **Цель:** tool `generate_git_merge_diagram` — merge commits и parents  
+- **Файлы:** `gitTools.ts`, `MessageBody.tsx`  
+- **Действие:** `git log --merges` → Mermaid  
+- **Проверка:** диаграмма для fixture merge history
+
+
+**397 · M · Авто-генерация диаграмм Git-конфликтов** — уровень 3
+- **Цель:** tool `generate_git_conflict_diagram` — файлы/коммиты с конфликтами  
+- **Файлы:** `gitTools.ts`, `agentHandlersProjectFile.ts`  
+- **Действие:** scan `<<<<<<<` + git status → diagram  
+- **Проверка:** отчёт показывает fixture conflict
+
+
+**398 · M · Авто-генерация диаграмм Git-ревью** — уровень 3
+- **Цель:** tool `generate_git_review_diagram` — PR/review timeline  
+- **Файлы:** `agentTools/integrations.ts`, `gitTools.ts`  
+- **Действие:** GitHub API mock → sequence diagram  
+- **Проверка:** diagram для fixture PR events
+
+
+**399 · M · Авто-генерация диаграмм Git-релизов** — уровень 3
+- **Цель:** tool `generate_git_release_diagram` — теги и релизы по времени  
+- **Файлы:** `gitTools.ts`, `agentTools/integrations.ts`  
+- **Действие:** `git tag -l` + dates → timeline Mermaid  
+- **Проверка:** диаграмма для fixture tags
+
+
+**400 · M · Авто-генерация диаграмм Git-тегов** — уровень 3
+- **Цель:** tool `generate_git_tag_diagram` — annotated vs lightweight tags  
+- **Файлы:** `gitTools.ts`  
+- **Действие:** parse tag refs → graph  
+- **Проверка:** unit-тест на fixture tags
+
+
+**401 · M · Авто-генерация диаграмм Git-коммитов** — уровень 3
+- **Цель:** tool `generate_git_commit_diagram` — частота/объём коммитов  
+- **Файлы:** `gitTools.ts`, `MetricsPanel.tsx`  
+- **Действие:** `git shortlog` / log histogram → chart Mermaid  
+- **Проверка:** диаграмма для fixture log
+
+
+**402 · M · Авто-генерация диаграмм Git-авторов** — уровень 3
+- **Цель:** tool `generate_git_author_diagram` — вклад по авторам  
+- **Файлы:** `gitTools.ts`  
+- **Действие:** `git shortlog -sn` → pie/bar Mermaid  
+- **Проверка:** топ авторов из fixture repo
+
+
+**403 · M · Авто-генерация диаграмм Git-активности** — уровень 3
+- **Цель:** tool `generate_git_activity_diagram` — heatmap коммитов по дням  
+- **Файлы:** `gitTools.ts`, `agentTools/integrations.ts`  
+- **Действие:** log dates → calendar heatmap Mermaid  
+- **Проверка:** активность за период в fixture
+
+
+**404 · M · Авто-генерация диаграмм Git-статистики** — уровень 3
+- **Цель:** tool `generate_git_stats_diagram` — LOC churn, files changed  
+- **Файлы:** `gitTools.ts`  
+- **Действие:** `git log --stat` aggregate → summary diagram  
+- **Проверка:** stats совпадают с fixture `git log --shortstat`
+
+
+**405 · M · Авто-генерация отчёта по качеству тестов** — уровень 3
+- **Цель:** tool `generate_test_quality_report` — покрытие, flaky, missing tests  
+- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectFile.ts`  
+- **Действие:** read-only анализ `tests/` vs `src/`  
+- **Проверка:** отчёт без write_file; список непокрытых модулей
+
+
+**406 · M · Авто-генерация отчёта по качеству документации** — уровень 3
+- **Цель:** tool `generate_docs_quality_report` — битые ссылки, устаревшие разделы  
+- **Файлы:** `agentTools/integrations.ts`, `docs/`  
+- **Действие:** scan MD links + vs код  
+- **Проверка:** отчёт находит broken link в fixture
+
+
+**407 · M · Авто-генерация отчёта по качеству UI** — уровень 3
+- **Цель:** tool `generate_ui_quality_report` — консистентность компонентов  
+- **Файлы:** `app/src/components/`, `agentTools/core.ts`  
+- **Действие:** эвристики: дубли стилей, огромные компоненты  
+- **Проверка:** отчёт без write_file
+
+
+**408 · M · Авто-генерация отчёта по качеству UX** — уровень 3
+- **Цель:** tool `generate_ux_quality_report` — friction points, a11y gaps  
+- **Файлы:** `agentTools/core.ts`, `App.tsx`  
+- **Действие:** чеклист UX + ссылки на компоненты  
+- **Проверка:** отчёт содержит findings из fixture UI
+
+
+**409 · M · Авто-генерация отчёта по качеству интеграций** — уровень 3
+- **Цель:** tool `generate_integrations_quality_report` — tokens, endpoints, errors  
+- **Файлы:** `agentTools/integrations.ts`, `IntegrationsTab.tsx`  
+- **Действие:** валидация settings + tool health  
+- **Проверка:** отчёт перечисляет проблемы fixture settings
+
+
+**410 · M · Авто-генерация отчёта по качеству плагинов** — уровень 3
+- **Цель:** tool `generate_plugins_quality_report` — schema, errors, reload  
+- **Файлы:** `plugins/`, `docs/plugin-authoring.md`  
+- **Действие:** scan plugins → MD summary  
+- **Проверка:** fixture plugin issues в отчёте
+
+
+**411 · M · Авто-генерация отчёта по качеству CI/CD** — уровень 3
+- **Цель:** tool `generate_cicd_quality_report` — jobs, caches, secrets hygiene  
+- **Файлы:** `.github/workflows/*`, `agentTools/integrations.ts`  
+- **Действие:** YAML lint + best practices  
+- **Проверка:** отчёт для fixture workflow
+
+
+**412 · M · Авто-генерация отчёта по качеству P2P** — уровень 3
+- **Цель:** tool `generate_p2p_quality_report` — latency, credits, disconnects  
+- **Файлы:** `server/p2p/`, `p2pClient.ts`  
+- **Действие:** метрики + рекомендации  
+- **Проверка:** отчёт без write_file
+
+
+**413 · M · Авто-генерация отчёта по качеству RAG** — уровень 3
+- **Цель:** tool `generate_rag_quality_report` — chunk quality, retrieval hits  
+- **Файлы:** `rag.ts`, `vectorStore.ts`  
+- **Действие:** sample queries + index stats  
+- **Проверка:** отчёт описывает fixture index
+
+
+**414 · M · Авто-генерация отчёта по качеству символьного индекса** — уровень 3
+- **Цель:** tool `generate_symbol_index_quality_report` — coverage, stale, misses  
+- **Файлы:** `symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** языки, cache age, failed parses  
+- **Проверка:** отчёт перечисляет unsupported extensions в fixture
