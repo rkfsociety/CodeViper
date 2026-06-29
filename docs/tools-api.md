@@ -69,7 +69,7 @@
 
 ### `agentTools/mcp.ts` — CodeViper, ROADMAP, Ollama, индекс
 
-`list_codeviper_directory`, `grep_codeviper_files`, `find_codeviper_files`, `read_codeviper_file`, `write_codeviper_file`, `create_codeviper_file`, `edit_codeviper_file`, `append_codeviper_file`, `delete_codeviper_file`, `move_codeviper_file`, `run_codeviper_command`, `create_codeviper_branch`, `push_codeviper_branch`, `create_codeviper_pr`, `list_roadmap`, `read_roadmap_item`, `set_self_improvement_plan`, `complete_self_improvement_item`, `get_self_improvement_plan`, `preview_ollama_modelfile`, `create_ollama_model`, `index_project`, `delegate_to_editor`
+`list_codeviper_directory`, `grep_codeviper_files`, `find_codeviper_files`, `read_codeviper_file`, `write_codeviper_file`, `create_codeviper_file`, `edit_codeviper_file`, `append_codeviper_file`, `delete_codeviper_file`, `move_codeviper_file`, `run_codeviper_command`, `create_codeviper_branch`, `push_codeviper_branch`, `create_codeviper_pr`, `list_roadmap`, `read_roadmap_item`, `prioritize_roadmap_items`, `set_self_improvement_plan`, `complete_self_improvement_item`, `get_self_improvement_plan`, `preview_ollama_modelfile`, `create_ollama_model`, `index_project`, `delegate_to_editor`
 
 ---
 
@@ -584,6 +584,8 @@
 `list_roadmap` — список пунктов «В планах» из `ROADMAP.md` (номер · название · цепочка). Без параметров.
 
 `read_roadmap_item` — полный блок пункта N: цель, файлы, действие, проверка. Параметр `number` (обяз.).
+
+`prioritize_roadmap_items` — приоритизирует пункты «В планах» по пользе и риску; возвращает отсортированный список для UI и self-improvement. Параметр `limit` (опц., по умолчанию 10) — сколько верхних пунктов показать.
 
 ### План выполнения
 

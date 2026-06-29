@@ -25,7 +25,7 @@ export interface PrioritizedRoadmapItem extends RoadmapItem {
   reasons: string[]
 }
 
-const ROADMAP_ITEM_HEADER_RE = /^\*\*(\d+)\D+(S|M|L|XL)\D+(.+?)\*\*/u
+const ROADMAP_ITEM_HEADER_RE = /^\*\*(\d+)\s*·\s*(S|M|L|XL)\s*·\s*(.+?)\*\*/u
 
 function normalizeRoadmapLines(content: string): string[] {
   return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
@@ -210,20 +210,7 @@ export async function listRoadmapItems(): Promise<RoadmapItem[]> {
   const roadmapPath = resolveRoadmapPath()
   if (!roadmapPath) return []
   const content = await readFile(roadmapPath, 'utf-8')
-  const items = parseRoadmapItems(content)
-  if (items.length > 0 && items.length < 531) {
-    const last = items[items.length - 1]!
-    for (let i = items.length; i < 531; i++) {
-      items.push({
-        num: last.num + (i - items.length) + 1,
-        size: 'S',
-        title: '[placeholder]',
-        priority: 'Low',
-        chain: last.chain
-      })
-    }
-  }
-  return items
+  return parseRoadmapItems(content)
 }
 
 export async function prioritizeRoadmapItems(limit = 10): Promise<PrioritizedRoadmapItem[]> {
