@@ -10,8 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/rkfsociety/CodeViper/releases"><img src="https://img.shields.io/github/v/release/rkfsociety/CodeViper?style=flat-square&color=7EE787&label=релиз" alt="Release" /></a>
+  <a href="https://github.com/rkfsociety/CodeViper/releases"><img src="https://img.shields.io/github/v/release/rkfsociety/CodeViper?style=flat-square&color=7EE787&label=Релиз" alt="Release" /></a>
   <img src="https://img.shields.io/badge/платформа-Windows-0078D4?style=flat-square" alt="Windows" />
+  <img src="https://img.shields.io/badge/платформа-Linux-FCC624?style=flat-square" alt="Linux" />
+  <img src="https://img.shields.io/badge/платформа-macOS-000000?style=flat-square" alt="macOS" />
   <img src="https://img.shields.io/badge/Electron-42-47848F?style=flat-square" alt="Electron" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/лицензия-MIT-A371F7?style=flat-square" alt="MIT" /></a>
 </p>
@@ -20,18 +22,21 @@
 
 Локальный AI-агент с GUI: читает и правит код, запускает команды и git, самоулучшение по ROADMAP. Перед прогоном — preflight имени модели (ListModels, HTTP 404). Для моделей ≤8B — компактный system prompt; extended-инструкции — от 14B. Провайдеры — Ollama, OpenAI, custom endpoint (LM Studio, vLLM), Anthropic, Gemini, DeepSeek, OpenRouter; запасные модели при 429/5xx. Во время прогона размышления и планирование — в компактном скроллируемом блоке (~200px); после финального ответа блок скрывается. Возможности и сценарии — в [вики](https://github.com/rkfsociety/CodeViper/wiki).
 
-## Быстрый старт
+**Требования:** Windows 10/11, Linux или macOS, [Node.js 18+](https://nodejs.org) (из исходников), 8 ГБ RAM.
 
-**Требования:** Windows 10/11, [Node.js 18+](https://nodejs.org) (из исходников), 8 ГБ RAM.
-
-**Установщик:** [`CodeViper-Setup-*.exe`](https://github.com/rkfsociety/CodeViper/releases) — нужен [Git for Windows](https://git-scm.com) в PATH.
+**Сборка из исходников:** доступна на всех платформах; нужен [Git](https://git-scm.com) в PATH.
 
 ```powershell
 git clone https://github.com/rkfsociety/CodeViper.git
 cd CodeViper/app && npm install
 ```
 
-Двойной клик на **`CodeViper.cmd`**. Ошибка — **`CodeViper.cmd console`**. Подробнее — [вики · Быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт) и [устранение неполадок](docs/troubleshooting.md).
+**Релизы по платформам:**
+
+- Windows: [`CodeViper-Setup-*.exe`](https://github.com/rkfsociety/CodeViper/releases)
+- Linux: [`CodeViper-*.AppImage`](https://github.com/rkfsociety/CodeViper/releases)
+- macOS: [`CodeViper-*.dmg`](https://github.com/rkfsociety/CodeViper/releases)
+- POSIX-лаунчер: [`CodeViper.sh`](https://github.com/rkfsociety/CodeViper/releases)
 
 ## Обновление без переустановки
 

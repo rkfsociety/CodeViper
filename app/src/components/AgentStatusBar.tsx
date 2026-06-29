@@ -167,6 +167,7 @@ export function AgentStatusBar({
                     generationMetrics,
                     runStats
                   )
+  const liveText = formatAgentLivePhrase(agentPhase)
 
   return (
     <div
@@ -174,8 +175,8 @@ export function AgentStatusBar({
         progress || resolvedIndexPercent != null ? ' has-progress' : ''
       }${circuitBreakerState === 'open' ? ' circuit-breaker-open' : ''}${circuitBreakerState === 'half-open' ? ' circuit-breaker-half-open' : ''}`}
     >
-      <span aria-live="polite" aria-atomic="true" style={srOnlyStyle}>
-        {formatAgentLivePhrase(agentPhase)}
+      <span role="status" aria-live="polite" aria-atomic="true" style={srOnlyStyle}>
+        {liveText}
       </span>
       <div className="agent-status-bar-head">
         <span className="agent-status-pulse" aria-hidden="true" />

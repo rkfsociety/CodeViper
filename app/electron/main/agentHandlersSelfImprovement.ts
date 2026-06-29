@@ -14,7 +14,8 @@ import {
   formatRoadmapItemDetail,
   listRoadmapItems,
   readRoadmapItem,
-  findRoadmapDoneMatch
+  findRoadmapDoneMatch,
+  appendRoadmapDoneItem
 } from './roadmapParser'
 import { getCodeViperSourceRoot } from './codeviperSource'
 
@@ -80,6 +81,13 @@ export function createSelfImprovementToolHandlers(
       if (!itemId) return 'Укажите id пункта из set_self_improvement_plan (строка или число).'
       const items = plan.complete(itemId)
       emitPlan(items)
+      const completedNum = Number.parseInt(itemId, 10)
+      if (Number.isFinite(completedNum)) {
+        const doneItem = await readRoadmapItem(completedNum)
+        if (doneItem) {
+          await appendRoadmapDoneItem(doneItem)
+        }
+      }
       const pending = items.filter((item) => !item.done)
       if (!pending.length) {
         return `Пункт ${itemId} выполнен. Все пункты плана завершены.`

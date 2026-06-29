@@ -55,6 +55,7 @@
 - Fallback-модели: `fallbackModels[]` в BehaviorTab; при HTTP 429/5xx AgentRunner пробует следующую модель
 - Чип индексации: `index_progress` в agent-stream → «Индекс N%» в AgentStatusBar при `index_project`
 - `aria-live` для статуса агента в `AgentStatusBar`: screen reader объявляет «Агент работает» и «Готово»
+- Быстрый старт в README расширен для Windows, Linux и macOS: AppImage, DMG и `CodeViper.sh`
 - Подтверждение внешних `http(s)`-ссылок из `MessageBody`: перед `openExternal` показывается `ConfirmDialog`
 - Разделены описания PR-инструментов: `create_pr` явно для проекта пользователя, `create_codeviper_pr` явно для исходников CodeViper
 - Добавлен `docs/troubleshooting.md`: GPUCache, чёрный экран, плагины и portable Node; README ссылается на troubleshooting
@@ -88,3 +89,4 @@
 - Per-step timeout; Ollama fallback при circuit open; лимит буфера `runCommand` (10 МБ)
 - `encryptApiKey` fallback; `normalizeCommand`; collective memory mutex + semantic dedup
 - Песочница `run_script` (Docker); счётчик стоимости облачных запросов в статус-баре
+- Авто-архивация выполненных пунктов ROADMAP: `complete_self_improvement_item` теперь переносит блок в ROADMAP_DONE.md

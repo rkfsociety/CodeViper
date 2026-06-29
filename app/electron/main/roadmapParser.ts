@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises'
+import { appendFile, readFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, resolve, basename } from 'path'
 import { getCodeViperSourceRoot } from './codeviperSource'
@@ -244,6 +244,17 @@ export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | 
   }
 
   return finishIfMatch()
+}
+
+export async function appendRoadmapDoneItem(item: RoadmapItemDetail): Promise<void> {
+  const donePath = resolveRoadmapDonePath()
+  if (!donePath) {
+    throw new Error('ROADMAP_DONE.md не найден')
+  }
+  const entry = `${formatRoadmapItemDetail(item)}\n`
+  const prefix = (await readFile(donePath, 'utf-8')).trimEnd()
+  const separator = prefix.length > 0 ? '\n\n' : ''
+  await appendFile(donePath, `${separator}${entry}`, 'utf-8')
 }
 
 const ROADMAP_PATH_ALIASES: Record<string, string[]> = {
