@@ -33,6 +33,7 @@
 - Документация live runtime: README, `docs/development.md`
 
 ### Архитектура и рефакторинг
+- Авто-обнаружение циклов импортов: `findImportCycles` в `symbolIndex.ts`, предупреждение в чате через `ArchitecturePanel`
 - IPC → 9 модулей `register*Ipc`; `agentTools` → core/integrations/mcp; `agentHandlersProject` → file/search/terminal
 - `SettingsModal` → 6 вкладок; `ChatPanel/` подкомпоненты; `commandRunner` выделен из `services.ts`
 - Провайдеры Claude/Gemini → `StreamingChatProvider`; агент на 6 модулей; параллельные tool calls; LRU-кэши

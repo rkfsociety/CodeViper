@@ -3,6 +3,7 @@ import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { registerNode, fetchP2pCreditsBalance } from '../p2pClient'
 import { runProjectAutoIndex } from '../contextRAG'
 import { agentLogger } from '../agentLogger'
+import { findImportCycles } from '../symbolIndex'
 
 export function registerMiscIpc(): void {
   ipcMain.handle(IPC.REGISTER_P2P_NODE, async (_e, ...a) => {
@@ -21,6 +22,11 @@ export function registerMiscIpc(): void {
       a
     )
     void runProjectAutoIndex(projectPath, ollamaUrl, qdrantUrl, qdrantApiKey)
+  })
+
+  ipcMain.handle(IPC.FIND_IMPORT_CYCLES, async (_e, ...a) => {
+    const [projectPath, subpath] = parseIpcArgs(Contracts[IPC.FIND_IMPORT_CYCLES].args, a)
+    return findImportCycles(projectPath, subpath ? { subpath } : undefined)
   })
 
   ipcMain.handle(IPC.GET_AGENT_METRICS, async (_e, ...a) => {

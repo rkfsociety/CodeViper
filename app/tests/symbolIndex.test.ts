@@ -5,7 +5,9 @@ import { tmpdir } from 'os'
 import {
   findSymbolDeclarations,
   findSymbolReferences,
-  formatSymbolResults
+  findImportCycles,
+  formatSymbolResults,
+  formatImportCycles
 } from '../electron/main/symbolIndex'
 
 describe('symbolIndex', () => {
@@ -68,5 +70,36 @@ describe('symbolIndex', () => {
     const result = await findSymbolReferences(root, 'knownHelper')
     expect(result.symbols.length).toBeGreaterThan(1)
     expect(result.symbols.some((s) => s.line > 1)).toBe(true)
+  })
+
+  it('findImportCycles находит цикл a.ts → b.ts → a.ts', async () => {
+    writeFileSync(
+      join(root, 'src', 'a.ts'),
+      ["import { b } from './b'", '', 'export const a = () => b()'].join('\n')
+    )
+    writeFileSync(
+      join(root, 'src', 'b.ts'),
+      ["import { a } from './a'", '', 'export const b = () => a()'].join('\n')
+    )
+
+    const result = await findImportCycles(root)
+    expect(result.cycles.length).toBeGreaterThan(0)
+    const formatted = formatImportCycles(root, result)
+    expect(formatted).toContain('a.ts')
+    expect(formatted).toContain('b.ts')
+    expect(formatted).toContain('→')
+  })
+
+  it('findImportCycles не находит цикл в ациклическом графе', async () => {
+    writeFileSync(
+      join(root, 'src', 'leaf.ts'),
+      ["import { knownHelper } from './sample'", '', 'export const leaf = knownHelper'].join('\n')
+    )
+
+    const result = await findImportCycles(root)
+    const cyclic = result.cycles.some((cycle) =>
+      cycle.chain.some((file) => file.endsWith('leaf.ts') || file.endsWith('sample.ts'))
+    )
+    expect(cyclic).toBe(false)
   })
 })

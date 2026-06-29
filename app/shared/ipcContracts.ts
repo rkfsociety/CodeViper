@@ -473,6 +473,7 @@ export const IPC = {
   CHECK_MCP_HEALTH: 'check-mcp-health',
   BENCHMARK_MODEL: 'benchmark-model',
   AUTO_INDEX_PROJECT: 'auto-index-project',
+  FIND_IMPORT_CYCLES: 'find-import-cycles',
   LIST_ROADMAP_ITEMS: 'list-roadmap-items',
   CHECK_GITHUB_AUTH: 'check-github-auth',
   SELECT_GGUF_FILE: 'select-gguf-file',
@@ -796,6 +797,14 @@ export const Contracts = {
   [IPC.AUTO_INDEX_PROJECT]: {
     args: z.tuple([z.string(), z.string(), z.string(), z.string().optional()]),
     result: z.void()
+  },
+  [IPC.FIND_IMPORT_CYCLES]: {
+    args: z.tuple([z.string(), z.string().optional()]),
+    result: z.object({
+      cycles: z.array(z.object({ chain: z.array(z.string()) })),
+      truncated: z.boolean(),
+      filesScanned: z.number().int()
+    })
   },
   [IPC.LIST_ROADMAP_ITEMS]: {
     args: z.tuple([]),

@@ -1,5 +1,5 @@
 import { readFile, readdir, stat } from 'fs/promises'
-import { extname, join, relative, resolve } from 'path'
+import { dirname, extname, join, relative, resolve } from 'path'
 import { createRequire } from 'module'
 import type * as Ts from 'typescript'
 import { MAX_WALK_FILES } from './fileSearch'
@@ -32,6 +32,10 @@ const TS_JS_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', 
 const PY_EXTENSIONS = new Set(['.py', '.pyw'])
 
 export const MAX_SYMBOL_RESULTS = 40
+export const MAX_IMPORT_CYCLES = 20
+
+const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts']
+const INDEX_FILENAMES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx', 'index.mjs']
 
 export type SymbolKind =
   | 'function'
@@ -407,4 +411,207 @@ export async function findSymbolReferences(
   options?: { subpath?: string; maxResults?: number; onProgress?: (scanned: number) => void }
 ): Promise<SymbolSearchResult> {
   return searchSymbols(projectPath, symbolName, 'reference', options)
+}
+
+export interface ImportCycle {
+  chain: string[]
+}
+
+export interface ImportCycleResult {
+  cycles: ImportCycle[]
+  truncated: boolean
+  filesScanned: number
+}
+
+function collectTsImportSpecifiers(sourceFile: Ts.SourceFile): string[] {
+  const ts = getTs()
+  const specifiers: string[] = []
+
+  function visit(node: Ts.Node): void {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      specifiers.push(node.moduleSpecifier.text)
+    } else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.Identifier &&
+      (node.expression as Ts.Identifier).text === 'require' &&
+      node.arguments[0] &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      specifiers.push(node.arguments[0].text)
+    }
+    ts.forEachChild(node, visit)
+  }
+
+  visit(sourceFile)
+  return specifiers
+}
+
+async function resolveImportPath(
+  fromFile: string,
+  specifier: string,
+  projectRoot: string
+): Promise<string | null> {
+  if (!specifier.startsWith('.')) return null
+
+  const root = resolve(projectRoot)
+  const base = resolve(dirname(fromFile), specifier)
+  const candidates: string[] = [base]
+
+  for (const ext of RESOLVE_EXTENSIONS) {
+    candidates.push(`${base}${ext}`)
+  }
+  for (const indexName of INDEX_FILENAMES) {
+    candidates.push(join(base, indexName))
+  }
+
+  for (const candidate of candidates) {
+    const normalized = resolve(candidate)
+    if (!normalized.startsWith(root)) continue
+    try {
+      const info = await stat(normalized)
+      if (info.isFile()) return normalized
+    } catch {
+      // try next candidate
+    }
+  }
+
+  return null
+}
+
+async function collectFileImports(filePath: string, projectRoot: string): Promise<string[]> {
+  let content: string
+  try {
+    content = await readFile(filePath, 'utf-8')
+  } catch {
+    return []
+  }
+  if (content.includes('\0')) return []
+
+  const ext = extname(filePath).toLowerCase()
+  if (!TS_JS_EXTENSIONS.has(ext)) return []
+
+  const ts = getTs()
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKindForExt(ext)
+  )
+  const specifiers = collectTsImportSpecifiers(sourceFile)
+  const resolved: string[] = []
+
+  for (const specifier of specifiers) {
+    const target = await resolveImportPath(filePath, specifier, projectRoot)
+    if (target) resolved.push(target)
+  }
+
+  return resolved
+}
+
+function normalizeCycleKey(chain: string[]): string {
+  if (!chain.length) return ''
+  let start = 0
+  for (let i = 1; i < chain.length; i++) {
+    if (chain[i] < chain[start]) start = i
+  }
+  const rotated = [...chain.slice(start), ...chain.slice(0, start)]
+  return rotated.join('\0')
+}
+
+function findCyclesInGraph(
+  graph: Map<string, string[]>,
+  maxCycles: number
+): { cycles: string[][]; truncated: boolean } {
+  const cycles: string[][] = []
+  const seen = new Set<string>()
+  let truncated = false
+
+  function dfs(node: string, stack: string[], stackSet: Set<string>): void {
+    if (truncated) return
+    if (stackSet.has(node)) {
+      const idx = stack.indexOf(node)
+      if (idx >= 0) {
+        const chain = stack.slice(idx)
+        if (chain.length > 1) {
+          const key = normalizeCycleKey(chain)
+          if (!seen.has(key)) {
+            seen.add(key)
+            cycles.push(chain)
+            if (cycles.length >= maxCycles) truncated = true
+          }
+        }
+      }
+      return
+    }
+
+    stackSet.add(node)
+    stack.push(node)
+    for (const next of graph.get(node) ?? []) {
+      dfs(next, stack, stackSet)
+      if (truncated) break
+    }
+    stack.pop()
+    stackSet.delete(node)
+  }
+
+  for (const node of [...graph.keys()].sort()) {
+    dfs(node, [], new Set())
+    if (truncated) break
+  }
+
+  return { cycles, truncated }
+}
+
+export function formatImportCycles(projectPath: string, result: ImportCycleResult): string {
+  if (!result.cycles.length) {
+    return `Циклических импортов не найдено (просмотрено файлов: ${result.filesScanned})`
+  }
+
+  const lines = result.cycles.map((cycle, index) => {
+    const chain = cycle.chain
+      .map((item) => relative(projectPath, item).replace(/\\/g, '/'))
+      .join(' → ')
+    return `[${index + 1}] ${chain}`
+  })
+
+  const footer = result.truncated
+    ? `\n\n(результаты обрезаны; просмотрено файлов: ${result.filesScanned})`
+    : `\n\n(просмотрено файлов: ${result.filesScanned})`
+
+  return `Найдено циклов импорта: ${result.cycles.length}${result.truncated ? '+' : ''}\n${lines.join('\n')}${footer}`
+}
+
+export async function findImportCycles(
+  projectPath: string,
+  options?: { subpath?: string; maxCycles?: number; onProgress?: (scanned: number) => void }
+): Promise<ImportCycleResult> {
+  const startDir = options?.subpath?.trim()
+    ? resolve(projectPath, options.subpath.trim())
+    : resolve(projectPath)
+  const maxCycles = options?.maxCycles ?? MAX_IMPORT_CYCLES
+  const graph = new Map<string, string[]>()
+  let filesScanned = 0
+
+  await walkProjectFiles(
+    startDir,
+    async (filePath) => {
+      filesScanned += 1
+      const imports = await collectFileImports(filePath, projectPath)
+      graph.set(filePath, imports)
+      return false
+    },
+    options?.onProgress
+  )
+
+  const { cycles, truncated } = findCyclesInGraph(graph, maxCycles)
+  return {
+    cycles: cycles.map((chain) => ({ chain })),
+    truncated,
+    filesScanned
+  }
 }

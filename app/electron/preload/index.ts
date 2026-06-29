@@ -580,6 +580,13 @@ const codeviper = {
       'autoIndexProject'
     ),
 
+  findImportCycles: (projectPath: string, subpath?: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.FIND_IMPORT_CYCLES, projectPath, subpath),
+      60_000,
+      'findImportCycles'
+    ),
+
   registerP2pNode: (settings: import('../../src/types').AgentSettings) =>
     withTimeout(ipcRenderer.invoke(IPC.REGISTER_P2P_NODE, settings), 15_000, 'registerP2pNode'),
   getP2pCredits: (settings: import('../../src/types').AgentSettings) =>

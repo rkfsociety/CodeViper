@@ -19,6 +19,7 @@ import type { SlashCommand } from '../../../shared/slashCommands'
 import styles from '../ChatPanel.module.css'
 import { AgentContextModal } from '../AgentContextModal'
 import { AgentPrerequisitesBanner } from '../AgentPrerequisitesBanner'
+import { ArchitecturePanel } from '../ArchitecturePanel'
 import { InterruptedDraftBanner } from '../InterruptedDraftBanner'
 import type { ChatInputHandle } from '../ChatInput'
 import { ConfirmDialog } from '../ConfirmDialog'
@@ -974,6 +975,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
           onDismiss={() => setPrerequisiteBlock(null)}
         />
       )}
+
+      <ArchitecturePanel projectPath={projectPath} />
 
       <AgentContextModal
         open={contextModalOpen}

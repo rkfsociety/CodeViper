@@ -646,6 +646,16 @@ export interface RoadmapItem {
   chain: string
 }
 
+export interface ImportCycle {
+  chain: string[]
+}
+
+export interface ImportCycleResult {
+  cycles: ImportCycle[]
+  truncated: boolean
+  filesScanned: number
+}
+
 export interface BenchmarkResult {
   model: string
   runs: BenchmarkRun[]
@@ -871,6 +881,7 @@ export interface CodeViperAPI {
     qdrantUrl: string,
     qdrantApiKey?: string
   ) => Promise<void>
+  findImportCycles: (projectPath: string, subpath?: string) => Promise<ImportCycleResult>
   registerP2pNode: (settings: AgentSettings) => Promise<{
     ok: boolean
     id?: string
