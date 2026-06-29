@@ -160,6 +160,7 @@ export interface ToolArgs {
   find_files: { pattern: string; path?: string }
   find_symbol: { name: string; path?: string }
   find_references: { name: string; path?: string }
+  find_slow_code: { path?: string }
   search_in_project: { query: string; type: 'content' | 'name'; path?: string }
   read_file: { path: string; offset?: string; limit?: string }
   read_multiple_files: { paths: string[] }

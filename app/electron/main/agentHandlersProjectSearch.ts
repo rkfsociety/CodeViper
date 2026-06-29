@@ -3,6 +3,7 @@ import { resolve } from 'path'
 import type { ToolHandlers } from './agentTools'
 import { formatGrepResults, formatFindResults, MAX_WALK_FILES } from './fileSearch'
 import { findSymbolDeclarations, findSymbolReferences, formatSymbolResults } from './symbolIndex'
+import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { emitProgress, clearProgress } from './progress'
 import type { ProjectHandlerContext } from './agentHandlersProjectContext'
@@ -73,6 +74,20 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress(`Поиск ссылок: ${args.name}`, scanPercent(scanned))
         })
         return formatSymbolResults(projectPath, args.name, result, 'reference')
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_slow_code: async (args) => {
+      assertInsideProject(args.path, 'папка или файл для анализа', { allowEmpty: true })
+      try {
+        emitProgress('AST-анализ медленного кода', 0)
+        const result = await findSlowCode(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) => emitProgress('AST-анализ медленного кода', scanPercent(scanned))
+        })
+        return formatSlowCodeReport(projectPath, result)
       } finally {
         clearProgress()
       }

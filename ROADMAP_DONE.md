@@ -51,6 +51,7 @@
 - Субагенты Explorer/Editor; оркестратор node-llama-cpp; checkpoint и откат прогона; `run_tests` с авто-починкой
 - Авто-делегирование шагов субагентам: `resolveAutoDelegationRole` в `subagentRunner.ts` (review → Reviewer, tests → Tester); в `agent.ts` — trace `delegate_to_reviewer` / `delegate_to_tester` до основного цикла LLM
 - RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
+- `find_slow_code` — AST-анализ ts/js/py на медленные участки (вложенные циклы, await/sync I/O/JSON.parse в цикле); отчёт в чате
 
 ### UX и UI
 - Custom OpenAI endpoint: провайдер `custom` (baseUrl + apiKey + model id) для LM Studio / vLLM через `OpenAIProvider`

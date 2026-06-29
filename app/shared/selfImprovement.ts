@@ -305,7 +305,8 @@ const PATH_SCOPED_READ_TOOLS = new Set([
   'search_in_file',
   'read_multiple_files',
   'find_symbol',
-  'find_references'
+  'find_references',
+  'find_slow_code'
 ])
 
 /** edit/create/write — scope проверяем всегда (trace: edit README вместо файлов из «Файлы:»). */

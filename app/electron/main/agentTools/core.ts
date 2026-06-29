@@ -105,6 +105,20 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_slow_code',
+      description:
+        'AST-анализ ts/js/py на потенциально медленный код: вложенные циклы, await в цикле, sync I/O, JSON.parse/loads, линейный поиск по массиву в цикле. Возвращает отчёт с severity (high/medium/low) и path:line:col.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить подпапкой или файлом (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_in_project',
       description:
         'Универсальный поиск: type="content" — ищет текст/regex внутри файлов (как grep); type="name" — ищет файлы по имени/glob (как find). Используй этот инструмент, когда не уверен, что именно нужно.',
