@@ -205,7 +205,7 @@ export const CODEVIPER_TOOLS = [
     function: {
       name: 'create_codeviper_pr',
       description:
-        'Создать PR из текущей ветки agent/* через gh CLI (PR не мержится автоматически)',
+        'Создать PR для исходников CodeViper из текущей ветки agent/* через gh CLI (PR не мержится автоматически)',
       parameters: {
         type: 'object',
         properties: {

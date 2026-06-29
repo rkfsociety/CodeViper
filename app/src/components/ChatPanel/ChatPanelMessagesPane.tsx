@@ -26,6 +26,7 @@ interface Props {
   regenerateAssistantMessage: (message: ChatMessage) => void
   onFileTimeline: (path: string) => void
   onSaveAsSkill: (content: string) => void
+  onExternalLink: (url: string) => void
   respondPreview: (messageId: string, previewId: string, apply: boolean) => void
   onInsertPrompt: (text: string) => void
   recentProjects?: string[]
@@ -56,6 +57,7 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
   regenerateAssistantMessage,
   onFileTimeline,
   onSaveAsSkill,
+  onExternalLink,
   respondPreview,
   onInsertPrompt,
   recentProjects,
@@ -203,6 +205,7 @@ export const ChatPanelMessagesPane = memo(function ChatPanelMessagesPane({
       regenerateAssistantMessage={regenerateAssistantMessage}
       onFileTimeline={onFileTimeline}
       onSaveAsSkill={onSaveAsSkill}
+      onExternalLink={onExternalLink}
       respondPreview={respondPreview}
       onInsertPrompt={onInsertPrompt}
       recentProjects={recentProjects}

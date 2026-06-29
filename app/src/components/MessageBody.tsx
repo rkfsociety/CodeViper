@@ -74,12 +74,14 @@ interface Props {
   role: AgentRole
   content: string
   onFileTimeline?: (path: string) => void
+  onExternalLink?: (url: string) => void
 }
 
 export const MessageBody = React.memo(function MessageBody({
   role,
   content,
-  onFileTimeline
+  onFileTimeline,
+  onExternalLink
 }: Props) {
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null)
 
@@ -146,6 +148,23 @@ export const MessageBody = React.memo(function MessageBody({
       p: ({ children }: { children?: ReactNode }) => <p>{processChildren(children)}</p>,
       li: ({ children }: { children?: ReactNode }) => <li>{processChildren(children)}</li>,
       td: ({ children }: { children?: ReactNode }) => <td>{processChildren(children)}</td>,
+      a: ({ href, children }: { href?: string; children?: ReactNode }) => {
+        const isExternal = typeof href === 'string' && /^https?:\/\//i.test(href)
+        return (
+          <a
+            href={href}
+            target={isExternal ? '_blank' : undefined}
+            rel={isExternal ? 'noreferrer' : undefined}
+            onClick={(e) => {
+              if (!isExternal || !href) return
+              e.preventDefault()
+              onExternalLink?.(href)
+            }}
+          >
+            {children}
+          </a>
+        )
+      },
 
       code: ({ children, className }: { children?: ReactNode; className?: string }) => {
         const text = typeof children === 'string' ? children : String(children ?? '')

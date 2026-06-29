@@ -33,6 +33,7 @@ interface Props {
   regenerateAssistantMessage: (message: ChatMessage) => void
   onFileTimeline: (path: string) => void
   onSaveAsSkill: (content: string) => void
+  onExternalLink: (url: string) => void
   respondPreview: (messageId: string, previewId: string, apply: boolean) => void
   onInsertPrompt: (text: string) => void
   recentProjects?: string[]
@@ -85,6 +86,7 @@ export function ChatMessages({
   regenerateAssistantMessage,
   onFileTimeline,
   onSaveAsSkill,
+  onExternalLink,
   respondPreview,
   onInsertPrompt,
   recentProjects = [],
@@ -140,6 +142,7 @@ export function ChatMessages({
                         : item.message.content
                     }
                     onFileTimeline={onFileTimeline}
+                    onExternalLink={onExternalLink}
                   />
                 </Suspense>
               </div>
@@ -185,6 +188,7 @@ export function ChatMessages({
                   onRegenerate={regenerateAssistantMessage}
                   onFileTimeline={onFileTimeline}
                   onSaveAsSkill={onSaveAsSkill}
+                  onExternalLink={onExternalLink}
                   showLiveThinking={showLiveThinking}
                 />
               )

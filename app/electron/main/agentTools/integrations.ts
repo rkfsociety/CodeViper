@@ -47,7 +47,7 @@ export const GITHUB_TOOLS = [
     type: 'function',
     function: {
       name: 'create_pr',
-      description: 'Создать GitHub Pull Request через gh CLI',
+      description: 'Создать GitHub Pull Request для текущего проекта пользователя через gh CLI',
       parameters: {
         type: 'object',
         properties: {

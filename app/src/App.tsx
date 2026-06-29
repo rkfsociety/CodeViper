@@ -298,6 +298,7 @@ function AppContent() {
   incognitoChatIdsRef.current = incognitoChatIds
   const [showSecurityNotice, setShowSecurityNotice] = useState(false)
   const [crashRecovery, setCrashRecovery] = useState<AppState | null>(null)
+  const [externalLinkConfirmUrl, setExternalLinkConfirmUrl] = useState<string | null>(null)
   const [agentMode, setAgentMode] = useState<AgentMode>('code')
   const lastActiveChatPerMode = useRef<Record<AgentMode, string | null>>({ chat: null, code: null })
   const agentModeRef = useRef<AgentMode>('code')
@@ -1215,6 +1216,7 @@ function AppContent() {
                       setMemoryRefreshKey((key) => key + 1)
                       setSkillsRefreshKey((key) => key + 1)
                     }}
+                    onExternalLink={setExternalLinkConfirmUrl}
                     onOllamaFallbackOffer={(url) => setOllamaFallbackUrl(url)}
                     onDangerPendingChange={setDangerApprovalPending}
                     incognito={incognitoChatIds.has(chatId)}
@@ -1441,6 +1443,24 @@ function AppContent() {
             setOllamaFallbackUrl(null)
           }}
           onCancel={() => setOllamaFallbackUrl(null)}
+        />
+
+        <ConfirmDialog
+          open={!!externalLinkConfirmUrl}
+          title="Открыть внешнюю ссылку?"
+          message={
+            externalLinkConfirmUrl
+              ? `CodeViper собирается открыть ссылку во внешнем браузере:\n\n${externalLinkConfirmUrl}`
+              : ''
+          }
+          confirmLabel="Открыть"
+          onConfirm={() => {
+            if (externalLinkConfirmUrl) {
+              void window.codeviper.openExternal(externalLinkConfirmUrl)
+            }
+            setExternalLinkConfirmUrl(null)
+          }}
+          onCancel={() => setExternalLinkConfirmUrl(null)}
         />
 
         <CrashRecoveryDialog

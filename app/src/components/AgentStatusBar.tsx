@@ -12,6 +12,18 @@ import type { RunStats } from '../../shared/generationMetrics'
 
 export type AgentPhase = 'thinking' | 'writing' | 'tool' | 'idle'
 
+const srOnlyStyle = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0
+} as const
+
 function formatModelLabel(model: string): string {
   const name = model.trim()
   if (!name) return 'модель'
@@ -31,6 +43,11 @@ function formatLiveStats(
     return ` · ${parts.join(' · ')}`
   }
   return ''
+}
+
+function formatAgentLivePhrase(phase: AgentPhase): string {
+  if (phase === 'idle') return 'Готово'
+  return 'Агент работает'
 }
 
 export function agentStatusLabel(
@@ -156,9 +173,10 @@ export function AgentStatusBar({
       className={`agent-status-bar phase-${agentPhase}${summarizing ? ' summarizing' : ''}${
         progress || resolvedIndexPercent != null ? ' has-progress' : ''
       }${circuitBreakerState === 'open' ? ' circuit-breaker-open' : ''}${circuitBreakerState === 'half-open' ? ' circuit-breaker-half-open' : ''}`}
-      role="status"
-      aria-live="polite"
     >
+      <span aria-live="polite" aria-atomic="true" style={srOnlyStyle}>
+        {formatAgentLivePhrase(agentPhase)}
+      </span>
       <div className="agent-status-bar-head">
         <span className="agent-status-pulse" aria-hidden="true" />
         <span className="agent-status-label">{label}</span>

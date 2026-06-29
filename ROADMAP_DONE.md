@@ -54,6 +54,10 @@
 - Custom OpenAI endpoint: провайдер `custom` (baseUrl + apiKey + model id) для LM Studio / vLLM через `OpenAIProvider`
 - Fallback-модели: `fallbackModels[]` в BehaviorTab; при HTTP 429/5xx AgentRunner пробует следующую модель
 - Чип индексации: `index_progress` в agent-stream → «Индекс N%» в AgentStatusBar при `index_project`
+- `aria-live` для статуса агента в `AgentStatusBar`: screen reader объявляет «Агент работает» и «Готово»
+- Подтверждение внешних `http(s)`-ссылок из `MessageBody`: перед `openExternal` показывается `ConfirmDialog`
+- Разделены описания PR-инструментов: `create_pr` явно для проекта пользователя, `create_codeviper_pr` явно для исходников CodeViper
+- Добавлен `docs/troubleshooting.md`: GPUCache, чёрный экран, плагины и portable Node; README ссылается на troubleshooting
 - OnboardingWizard: 3-шаговая модалка (провайдер → модель → открыть проект) при `!firstRunCompleted`; «Пропустить» завершает onboarding; шаг 3 — кнопка «Примеры запросов» → `docs/example-prompts.md` на GitHub
 - Недавние проекты: `recentProjects` в settings (до 10), WelcomePanel и меню «Открыть»
 - Ctrl+` — показать/скрыть встроенный терминал

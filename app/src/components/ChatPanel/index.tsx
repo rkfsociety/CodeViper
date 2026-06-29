@@ -72,6 +72,7 @@ interface Props {
   incognito?: boolean
   isVisible?: boolean
   onDangerPendingChange?: (pending: boolean) => void
+  onExternalLink?: (url: string) => void
 }
 
 export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
@@ -90,7 +91,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     onRefreshOllama,
     incognito = false,
     isVisible = true,
-    onDangerPendingChange
+    onDangerPendingChange,
+    onExternalLink
   },
   ref
 ) {
@@ -996,6 +998,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         regenerateAssistantMessage={regenerateAssistantMessage}
         onFileTimeline={setFileTimelinePath}
         onSaveAsSkill={handleSaveAsSkill}
+        onExternalLink={(url) => onExternalLink?.(url)}
         respondPreview={respondPreview}
         onInsertPrompt={insertPrompt}
         recentProjects={settings.recentProjects}

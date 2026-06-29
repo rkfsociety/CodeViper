@@ -23,6 +23,7 @@ export const MessageRow = memo(function MessageRow({
   onRegenerate,
   onFileTimeline,
   onSaveAsSkill,
+  onExternalLink,
   showLiveThinking = false
 }: {
   message: ChatMessage
@@ -39,6 +40,7 @@ export const MessageRow = memo(function MessageRow({
   onRegenerate?: (message: ChatMessage) => void
   onFileTimeline?: (path: string) => void
   onSaveAsSkill?: (content: string) => void
+  onExternalLink?: (url: string) => void
   showLiveThinking?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -144,6 +146,7 @@ export const MessageRow = memo(function MessageRow({
             role={message.role}
             content={message.role === 'assistant' ? visibleContent : message.content}
             onFileTimeline={onFileTimeline}
+            onExternalLink={onExternalLink}
           />
         </Suspense>
       )}
