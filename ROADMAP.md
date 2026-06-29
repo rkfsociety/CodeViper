@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…192**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…212**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…192**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…212**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -1352,3 +1352,143 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `styles.css`  
 - **Действие:** анализ CSS  
 - **Проверка:** отчёт
+
+
+**193 · M · find_symbol для Scala** — уровень 3
+- **Цель:** `find_symbol` / `find_references` для `.scala` (class/object/trait/def)  
+- **Файлы:** `symbolIndex.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** парсер Scala → символы с `path:line:col`  
+- **Проверка:** `npm test -- symbolIndex` — кейс с тестовым `.scala` файлом
+
+
+**194 · M · find_symbol для Elixir** — уровень 3
+- **Цель:** символы для `.ex` / `.exs` (defmodule/def)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** расширить `walkProjectForSymbols` для Elixir  
+- **Проверка:** unit-тест: `defmodule Foo` и `def bar` находятся по имени
+
+
+**195 · M · find_symbol для Haskell** — уровень 3
+- **Цель:** символы для `.hs` (module/data/type/function)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** синтаксический обход объявлений top-level  
+- **Проверка:** unit-тест: `main` и `data Foo` находятся по имени
+
+
+**196 · M · find_symbol для OCaml** — уровень 3
+- **Цель:** символы для `.ml` / `.mli` (module/type/let)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** парсер OCaml → объявления с позицией  
+- **Проверка:** unit-тест на `let foo` и `module Bar`
+
+
+**197 · M · find_symbol для Lua** — уровень 3
+- **Цель:** символы для `.lua` (function/local)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** regex или tree-sitter-lua для объявлений  
+- **Проверка:** unit-тест: `function foo` находится по имени
+
+
+**198 · M · find_symbol для Perl** — уровень 3
+- **Цель:** символы для `.pl` / `.pm` (package/sub)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход `package` / `sub` объявлений  
+- **Проверка:** unit-тест: `sub foo` в `.pm` находится по имени
+
+
+**199 · M · find_symbol для R** — уровень 3
+- **Цель:** символы для `.r` / `.R` (function/assignment)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** парсер R → top-level bindings  
+- **Проверка:** unit-тест: `foo <- function` находится по имени
+
+
+**200 · M · find_symbol для MATLAB** — уровень 3
+- **Цель:** символы для `.m` (function/class)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** regex для `function` / `classdef`  
+- **Проверка:** unit-тест: `function foo` находится по имени
+
+
+**201 · M · find_symbol для Julia** — уровень 3
+- **Цель:** символы для `.jl` (function/struct/module)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** обход объявлений Julia  
+- **Проверка:** unit-тест: `function foo` и `struct Bar` находятся по имени
+
+
+**202 · M · find_symbol для Shell-скриптов** — уровень 3
+- **Цель:** символы для `.sh` / `.bash` (function)  
+- **Файлы:** `symbolIndex.ts`  
+- **Действие:** поиск `function name` / `name()`  
+- **Проверка:** unit-тест: shell-функция находится по имени
+
+
+**203 · M · LSP для Scala** — уровень 3
+- **Цель:** hover и go-to-definition для `.scala` через Metals  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn Metals; `textDocument/hover`, `textDocument/definition`  
+- **Проверка:** Ctrl+click на символ в `.scala` → переход к определению
+
+
+**204 · M · LSP для Elixir** — уровень 3
+- **Цель:** hover/definition для `.ex` через elixir-ls  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка Elixir language server  
+- **Проверка:** Ctrl+click на `def` в `.ex` → переход к определению
+
+
+**205 · M · LSP для Haskell** — уровень 3
+- **Цель:** hover/definition для `.hs` через haskell-language-server  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn HLS по расширению `.hs`  
+- **Проверка:** Ctrl+click на функцию в `.hs` → переход к определению
+
+
+**206 · M · LSP для OCaml** — уровень 3
+- **Цель:** hover/definition для `.ml` через ocaml-lsp  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** инициализация ocaml-lsp; didOpen/didChange  
+- **Проверка:** Ctrl+click на `let` в `.ml` → переход к определению
+
+
+**207 · M · LSP для Lua** — уровень 3
+- **Цель:** hover/definition для `.lua` через lua-language-server  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn lua-language-server  
+- **Проверка:** Ctrl+click на `function` в `.lua` → переход к определению
+
+
+**208 · M · LSP для Perl** — уровень 3
+- **Цель:** hover/definition для `.pl` / `.pm` через Perl::LanguageServer или аналог  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** ветка Perl language server  
+- **Проверка:** Ctrl+click на `sub` в `.pm` → переход к определению
+
+
+**209 · M · LSP для R** — уровень 3
+- **Цель:** hover/definition для `.r` через languageserver (R)  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** spawn R languageserver  
+- **Проверка:** Ctrl+click на функцию в `.R` → переход к определению
+
+
+**210 · M · LSP для MATLAB** — уровень 3
+- **Цель:** hover/definition для `.m` через MATLAB Language Server (если установлен)  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** опциональный spawn; graceful fallback если сервер недоступен  
+- **Проверка:** при наличии LSP — Ctrl+click на `function` в `.m` работает
+
+
+**211 · M · LSP для Julia** — уровень 3
+- **Цель:** hover/definition для `.jl` через LanguageServer.jl  
+- **Файлы:** `lspClient.ts`  
+- **Действие:** spawn julia + LanguageServer  
+- **Проверка:** Ctrl+click на `function` в `.jl` → переход к определению
+
+
+**212 · M · LSP для Shell-скриптов** — уровень 3
+- **Цель:** hover/definition для `.sh` через bash-language-server  
+- **Файлы:** `lspClient.ts`, `CodeEditorPanel.tsx`  
+- **Действие:** spawn bash-language-server; shellcheck diagnostics (опционально)  
+- **Проверка:** Ctrl+click на shell-функцию → переход к определению
