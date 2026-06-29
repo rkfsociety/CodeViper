@@ -104,6 +104,7 @@ export const AGENT_TOOL_NAMES = [
   // Веб
   'web_fetch',
   'web_search',
+  'check_cve',
   // Субагент-редактор
   'delegate_to_editor',
   // Тесты

@@ -10,6 +10,7 @@ import {
   MEMORY_TOOLS,
   SKILLS_TOOLS,
   TODO_TOOLS,
+  SECURITY_TOOLS,
   WEB_TOOLS
 } from './integrations'
 import { CODEVIPER_TOOLS, INDEXING_TOOLS, OLLAMA_TOOLS, SUBAGENT_TOOLS } from './mcp'
@@ -26,6 +27,7 @@ export {
   MEMORY_TOOLS,
   SKILLS_TOOLS,
   TODO_TOOLS,
+  SECURITY_TOOLS,
   WEB_TOOLS,
   CODEVIPER_TOOLS,
   INDEXING_TOOLS,
@@ -52,6 +54,7 @@ export const AGENT_TOOLS = [
   ...PACKAGE_TOOLS,
   ...SKILLS_TOOLS,
   ...TODO_TOOLS,
+  ...SECURITY_TOOLS,
   ...CODEVIPER_TOOLS,
   ...OLLAMA_TOOLS,
   ...INDEXING_TOOLS,
@@ -302,6 +305,14 @@ export interface ToolArgs {
   }
   web_search: {
     query: string
+    max_results?: number
+  }
+  check_cve: {
+    cve_id?: string
+    keyword?: string
+    package?: string
+    version?: string
+    ecosystem?: string
     max_results?: number
   }
   delegate_to_editor: {

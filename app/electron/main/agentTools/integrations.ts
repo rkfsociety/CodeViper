@@ -422,6 +422,46 @@ export const TODO_TOOLS = [
   }
 ] as const
 
+export const SECURITY_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'check_cve',
+      description:
+        'Проверить уязвимости через CVE API: по идентификатору CVE (NVD), по ключевому слову/продукту (NVD) или по пакету и версии (OSV). Вызывай при вопросах о безопасности зависимостей, после npm audit или при подозрении на уязвимую версию библиотеки.',
+      parameters: {
+        type: 'object',
+        properties: {
+          cve_id: {
+            type: 'string',
+            description: 'Идентификатор CVE, например CVE-2024-1234 (NVD)'
+          },
+          keyword: {
+            type: 'string',
+            description: 'Ключевое слово или продукт для поиска в NVD (не вместе с cve_id/package)'
+          },
+          package: {
+            type: 'string',
+            description: 'Имя пакета для проверки через OSV (вместе с version)'
+          },
+          version: {
+            type: 'string',
+            description: 'Версия пакета для OSV (вместе с package)'
+          },
+          ecosystem: {
+            type: 'string',
+            description: 'Экосистема OSV: npm, PyPI, Go, crates.io и т.д. (по умолчанию npm)'
+          },
+          max_results: {
+            type: 'number',
+            description: 'Макс. результатов keyword-поиска в NVD (1–10, по умолчанию 5)'
+          }
+        }
+      }
+    }
+  }
+] as const
+
 export const WEB_TOOLS = [
   {
     type: 'function',

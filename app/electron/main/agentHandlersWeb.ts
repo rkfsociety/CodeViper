@@ -1,4 +1,5 @@
 import type { ToolHandlers } from './agentTools'
+import { runCheckCve, type CheckCveArgs } from './cveCheck'
 
 const DEFAULT_TIMEOUT_MS = 15_000
 const DDG_LITE_URL = 'https://lite.duckduckgo.com/lite/'
@@ -160,6 +161,10 @@ export function createWebToolHandlers(): Partial<ToolHandlers> {
       if (!query.trim()) return 'Не указан поисковый запрос'
 
       return searchDDG(query, maxResults)
+    },
+
+    async check_cve(args: CheckCveArgs) {
+      return runCheckCve(args)
     }
   }
   return handlers

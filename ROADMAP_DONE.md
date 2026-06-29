@@ -92,5 +92,6 @@
 - Per-step timeout; Ollama fallback при circuit open; лимит буфера `runCommand` (10 МБ)
 - `encryptApiKey` fallback; `normalizeCommand`; collective memory mutex + semantic dedup
 - Песочница `run_script` (Docker); счётчик стоимости облачных запросов в статус-баре
+- `check_cve`: проверка уязвимостей через NVD и OSV API (отчёт в чате)
 - Авто-архивация выполненных пунктов ROADMAP: `complete_self_improvement_item` теперь переносит блок в ROADMAP_DONE.md
 - `prioritize_roadmap_items` — приоритизация задач ROADMAP по пользе и риску для self-improvement и UI
