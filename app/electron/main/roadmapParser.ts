@@ -20,6 +20,11 @@ export interface RoadmapItemDetail extends RoadmapItem {
   verification: string
 }
 
+export interface PrioritizedRoadmapItem extends RoadmapItem {
+  score: number
+  reasons: string[]
+}
+
 const ROADMAP_ITEM_HEADER_RE = /^\*\*(\d+)\D+(S|M|L|XL)\D+(.+?)\*\*/u
 
 function normalizeRoadmapLines(content: string): string[] {
@@ -144,6 +149,63 @@ function parseRoadmapItems(content: string): RoadmapItem[] {
   return items
 }
 
+function scoreRoadmapItem(item: RoadmapItem): PrioritizedRoadmapItem {
+  let score = 0
+  const reasons: string[] = []
+  const lowerChain = item.chain.toLowerCase()
+  const lowerTitle = item.title.toLowerCase()
+
+  if (lowerChain.includes('критично')) {
+    score += 50
+    reasons.push('критичный раздел')
+  } else if (lowerChain.includes('важно')) {
+    score += 35
+    reasons.push('важный раздел')
+  } else if (lowerChain.includes('полезно')) {
+    score += 20
+    reasons.push('полезный раздел')
+  } else if (lowerChain.includes('можно')) {
+    score += 10
+    reasons.push('неблокирующий раздел')
+  }
+
+  if (item.size === 'S') {
+    score += 12
+    reasons.push('быстрая задача S')
+  } else if (item.size === 'M') {
+    score += 8
+    reasons.push('умеренная задача M')
+  } else if (item.size === 'L') {
+    score += 4
+    reasons.push('крупная задача L')
+  }
+
+  const levelMatch = lowerTitle.match(/уровень\s*(\d+)/u)
+  if (levelMatch) {
+    const level = Number.parseInt(levelMatch[1] ?? '', 10)
+    if (Number.isFinite(level)) {
+      score += Math.max(0, 5 - level) * 3
+      reasons.push(`уровень ${level}`)
+    }
+  }
+
+  if (
+    /ci|build|release|security|cve|crash|stability|стабил|безопас|релиз|сборк|roadmap/i.test(
+      lowerTitle
+    )
+  ) {
+    score += 18
+    reasons.push('влияет на базовую надёжность')
+  }
+
+  if (/accessibility|aria|screen reader|a11y|ux|readme/i.test(lowerTitle)) {
+    score += 6
+    reasons.push('быстрый заметный эффект')
+  }
+
+  return { ...item, score, reasons }
+}
+
 export async function listRoadmapItems(): Promise<RoadmapItem[]> {
   const roadmapPath = resolveRoadmapPath()
   if (!roadmapPath) return []
@@ -164,12 +226,33 @@ export async function listRoadmapItems(): Promise<RoadmapItem[]> {
   return items
 }
 
+export async function prioritizeRoadmapItems(limit = 10): Promise<PrioritizedRoadmapItem[]> {
+  const items = await listRoadmapItems()
+  return items
+    .map(scoreRoadmapItem)
+    .sort((a, b) => b.score - a.score || a.num - b.num)
+    .slice(0, Math.max(1, limit))
+}
+
 export function formatRoadmapItemsList(items: RoadmapItem[]): string {
   if (items.length === 0) {
     return 'ROADMAP.md не найден или в разделе «В планах» нет пунктов.'
   }
   const lines = items.map((it) => `${it.num} · ${it.title} · ${it.chain}`)
   return `Пункты ROADMAP «В планах» (${items.length}):\n\n${lines.join('\n')}`
+}
+
+export function formatPrioritizedRoadmapItemsList(items: PrioritizedRoadmapItem[]): string {
+  if (items.length === 0) {
+    return 'ROADMAP.md не найден или в разделе «В планах» нет пунктов.'
+  }
+
+  const lines = items.map(
+    (it, index) =>
+      `${index + 1}. #${it.num} · ${it.title} · score ${it.score} · ${it.chain}${it.reasons.length ? ` · ${it.reasons.join(', ')}` : ''}`
+  )
+
+  return `Приоритет ROADMAP (${items.length}):\n\n${lines.join('\n')}`
 }
 
 export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | null> {

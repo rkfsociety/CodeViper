@@ -254,6 +254,7 @@ export interface ToolArgs {
   write_skill_data: { skill_id: string; content: string }
   list_roadmap: Record<string, never>
   read_roadmap_item: { number: string }
+  prioritize_roadmap_items: { limit?: string }
   set_self_improvement_plan: {
     items?: string | unknown[]
     plan?: string[] | unknown[]

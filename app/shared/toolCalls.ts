@@ -94,6 +94,7 @@ export const AGENT_TOOL_NAMES = [
   // Саморазвитие
   'list_roadmap',
   'read_roadmap_item',
+  'prioritize_roadmap_items',
   'set_self_improvement_plan',
   'complete_self_improvement_item',
   'get_self_improvement_plan',

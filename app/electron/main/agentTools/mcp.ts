@@ -292,6 +292,23 @@ export const OLLAMA_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'prioritize_roadmap_items',
+      description:
+        'Приоритизирует пункты «В планах» из ROADMAP.md по пользе и риску: сначала критичные и быстрые задачи, затем остальное. Возвращает отсортированный список для UI и self-improvement.',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'string',
+            description: 'Сколько верхних пунктов показать (по умолчанию 10)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'set_self_improvement_plan',
       description:
         'Задать план самоулучшения (3–8 пунктов) после изучения кода. items — JSON [{id,title}] или маркированный список «- шаг».',

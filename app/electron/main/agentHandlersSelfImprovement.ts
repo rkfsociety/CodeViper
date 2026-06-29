@@ -11,8 +11,10 @@ import {
 import type { SelfImprovementPlanStore } from './selfImprovementStore'
 import {
   formatRoadmapItemsList,
+  formatPrioritizedRoadmapItemsList,
   formatRoadmapItemDetail,
   listRoadmapItems,
+  prioritizeRoadmapItems,
   readRoadmapItem,
   findRoadmapDoneMatch,
   appendRoadmapDoneItem
@@ -44,6 +46,13 @@ export function createSelfImprovementToolHandlers(
     list_roadmap: async () => {
       const items = await listRoadmapItems()
       return formatRoadmapItemsList(items)
+    },
+
+    prioritize_roadmap_items: async (args: any) => {
+      const rawLimit = Number.parseInt(String(args?.limit ?? '10').trim(), 10)
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 10
+      const items = await prioritizeRoadmapItems(limit)
+      return formatPrioritizedRoadmapItemsList(items)
     },
 
     read_roadmap_item: async (args) => {

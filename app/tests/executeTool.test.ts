@@ -12,8 +12,6 @@ import { createProjectToolHandlers } from '../electron/main/agentHandlersProject
 import { createSelfImprovementToolHandlers } from '../electron/main/agentHandlersSelfImprovement'
 import { SelfImprovementPlanStore } from '../electron/main/selfImprovementStore'
 
-// ─── Тесты executeTool через createProjectToolHandlers ─────────────────────
-
 let projectDir: string
 
 beforeEach(() => {
@@ -24,8 +22,8 @@ afterEach(() => {
   rmSync(projectDir, { recursive: true, force: true })
 })
 
-describe('executeTool — read_file', () => {
-  it('читает существующий файл', async () => {
+describe('executeTool - read_file', () => {
+  it('reads an existing file', async () => {
     const file = join(projectDir, 'hello.txt')
     writeFileSync(file, 'мир')
     const { handlers } = createProjectToolHandlers(projectDir)
@@ -33,14 +31,14 @@ describe('executeTool — read_file', () => {
     expect(result).toContain('мир')
   })
 
-  it('бросает ошибку для несуществующего файла', async () => {
+  it('throws for a missing file', async () => {
     const { handlers } = createProjectToolHandlers(projectDir)
     await expect(handlers.read_file!({ path: join(projectDir, 'nope.txt') })).rejects.toThrow(
       /ENOENT|not found/i
     )
   })
 
-  it('блокирует чтение вне проекта', async () => {
+  it('blocks reads outside the project', async () => {
     const { handlers } = createProjectToolHandlers(projectDir)
     await expect(
       handlers.read_file!({ path: join(projectDir, '..', 'secret.txt') })
@@ -48,15 +46,15 @@ describe('executeTool — read_file', () => {
   })
 })
 
-describe('executeTool — write_file + readonlyMode', () => {
-  it('пишет файл', async () => {
+describe('executeTool - write_file + readonlyMode', () => {
+  it('writes a file', async () => {
     const { handlers } = createProjectToolHandlers(projectDir)
     const file = join(projectDir, 'out.txt')
     const result = await handlers.write_file!({ path: file, content: 'данные' })
     expect(result).toMatch(/записан|обновлён/i)
   })
 
-  it('readonlyMode блокирует запись', async () => {
+  it('readonlyMode blocks writes', async () => {
     const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
     await expect(
       handlers.write_file!({ path: join(projectDir, 'out.txt'), content: 'x' })
@@ -64,22 +62,20 @@ describe('executeTool — write_file + readonlyMode', () => {
   })
 })
 
-describe('executeTool — неизвестный инструмент', () => {
-  it('возвращает "Неизвестный инструмент"', async () => {
-    // Эмулируем поведение AgentRunner.executeTool: ищем handler, при отсутствии — строка
+describe('executeTool - unknown tool', () => {
+  it('returns the fallback unknown-tool text', async () => {
     const { handlers } = createProjectToolHandlers(projectDir) as unknown as {
       handlers: Record<string, ((args: Record<string, string>) => Promise<string>) | undefined>
     }
     const handler = handlers['no_such_tool']
     expect(handler).toBeUndefined()
-    // AgentRunner возвращает фиксированную строку при отсутствии хендлера
-    const fallback = handler ? await handler({}) : `Неизвестный инструмент: no_such_tool`
+    const fallback = handler ? await handler({}) : 'Неизвестный инструмент: no_such_tool'
     expect(fallback).toContain('Неизвестный инструмент')
   })
 })
 
-describe('executeTool — git_commit', () => {
-  it('коммитит staged-изменения через handler', async () => {
+describe('executeTool - git_commit', () => {
+  it('commits staged changes through the handler', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'cv-git-handler-'))
     try {
       execSync('git init', { cwd: dir, stdio: 'ignore' })
@@ -99,26 +95,24 @@ describe('executeTool — git_commit', () => {
     }
   })
 
-  it('readonlyMode блокирует git_commit', async () => {
+  it('readonlyMode blocks git_commit', async () => {
     const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
     await expect(handlers.git_commit!({ message: 'blocked' })).rejects.toThrow(/только чтение/i)
   })
 
-  it('readonlyMode блокирует git_push', async () => {
+  it('readonlyMode blocks git_push', async () => {
     const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
     await expect(handlers.git_push!({ remote: 'origin' })).rejects.toThrow(/только чтение/i)
   })
 
-  it('readonlyMode блокирует git_checkout', async () => {
+  it('readonlyMode blocks git_checkout', async () => {
     const { handlers } = createProjectToolHandlers(projectDir, undefined, { readonlyMode: true })
     await expect(handlers.git_checkout!({ branch: 'feature' })).rejects.toThrow(/только чтение/i)
   })
 })
 
-// ─── Тесты self-improvement handlers ──────────────────────────────────────
-
 describe('createSelfImprovementToolHandlers', () => {
-  it('set_self_improvement_plan устанавливает план и возвращает summary', async () => {
+  it('sets a self-improvement plan and returns a summary', async () => {
     const store = new SelfImprovementPlanStore()
     const emitPlan = vi.fn()
     const handlers = createSelfImprovementToolHandlers(store, emitPlan)
@@ -132,7 +126,7 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(emitPlan).toHaveBeenCalledOnce()
   })
 
-  it('set_self_improvement_plan принимает plan как массив строк (Gemini)', async () => {
+  it('accepts plan as an array of strings', async () => {
     const store = new SelfImprovementPlanStore()
     const emitPlan = vi.fn()
     const handlers = createSelfImprovementToolHandlers(store, emitPlan)
@@ -146,7 +140,7 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(emitPlan).toHaveBeenCalledOnce()
   })
 
-  it('complete_self_improvement_item отмечает пункт выполненным', async () => {
+  it('marks a self-improvement item complete', async () => {
     const store = new SelfImprovementPlanStore()
     store.set([
       { id: '1', title: 'A', done: false },
@@ -163,7 +157,7 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(emitPlan).toHaveBeenCalledOnce()
   })
 
-  it('complete_self_improvement_item принимает числовой id (Gemini, fix #23)', async () => {
+  it('accepts a numeric id for complete_self_improvement_item', async () => {
     const store = new SelfImprovementPlanStore()
     store.set([{ id: '1', title: 'A', done: false }])
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())
@@ -174,7 +168,7 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(store.get()?.[0].done).toBe(true)
   })
 
-  it('complete последнего пункта сообщает о завершении плана', async () => {
+  it('reports when the final plan item is complete', async () => {
     const store = new SelfImprovementPlanStore()
     store.set([{ id: '1', title: 'A', done: false }])
     const emitPlan = vi.fn()
@@ -186,7 +180,7 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(store.isComplete()).toBe(true)
   })
 
-  it('list_roadmap возвращает ≥1 пункт из ROADMAP.md', async () => {
+  it('lists roadmap items', async () => {
     const store = new SelfImprovementPlanStore()
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())
 
@@ -196,7 +190,7 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(result).toMatch(/\d+ · .+ · /)
   })
 
-  it('read_roadmap_item возвращает поля шаблона пункта ROADMAP', async () => {
+  it('reads roadmap item fields', async () => {
     const store = new SelfImprovementPlanStore()
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())
 
@@ -208,7 +202,17 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(result).toContain('Проверка:')
   })
 
-  it('get_self_improvement_plan возвращает сообщение при отсутствии плана', async () => {
+  it('returns prioritized roadmap items', async () => {
+    const store = new SelfImprovementPlanStore()
+    const handlers = createSelfImprovementToolHandlers(store, vi.fn())
+
+    const result = await handlers.prioritize_roadmap_items!({ limit: '3' })
+
+    expect(result).toContain('Приоритет ROADMAP')
+    expect(result).toMatch(/1\. #\d+/)
+  })
+
+  it('returns a message when no plan exists', async () => {
     const store = new SelfImprovementPlanStore()
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())
 
@@ -216,9 +220,8 @@ describe('createSelfImprovementToolHandlers', () => {
     expect(result).toContain('не задан')
   })
 
-  it('get_self_improvement_plan возвращает summary активного плана', async () => {
+  it('returns the summary of the active plan', async () => {
     const store = new SelfImprovementPlanStore()
-    // set() сбрасывает done в false — используем complete() для отметки
     store.set([
       { id: '1', title: 'Тест', done: false },
       { id: '2', title: 'Ещё', done: false }
@@ -227,11 +230,10 @@ describe('createSelfImprovementToolHandlers', () => {
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())
 
     const result = await handlers.get_self_improvement_plan!({})
-    // formatPlanSummary: «Plan самоулучшения (done/total): ...»
     expect(result).toMatch(/1\/2|\(1 из 2\)|1 из 2/i)
   })
 
-  it('complete несуществующего id бросает ошибку', async () => {
+  it('throws for an unknown complete_self_improvement_item id', async () => {
     const store = new SelfImprovementPlanStore()
     store.set([{ id: '1', title: 'A', done: false }])
     const handlers = createSelfImprovementToolHandlers(store, vi.fn())
