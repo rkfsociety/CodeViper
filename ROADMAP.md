@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…154**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…173**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…154**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…173**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -1086,3 +1086,136 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `agentTools/core.ts`, `agentTools/integrations.ts`  
 - **Действие:** read-only анализ + сводка в MD  
 - **Проверка:** отчёт содержит найденные проблемы из fixture
+
+
+**155 · M · STT улучшенный режим (VAD + шумоподавление)** — уровень 4
+- **Цель:** диктовка с voice activity detection и подавлением фонового шума  
+- **Файлы:** `ChatPanel/ChatInput.tsx`, `settings.ts`  
+- **Действие:** опциональный режим «Улучшенный STT»; Web Audio API или WASM-фильтр перед `SpeechRecognition`  
+- **Проверка:** в шумной среде меньше ложных срабатываний; unit-тест VAD-порога
+
+
+**156 · M · TTS с выбором голоса** — уровень 4
+- **Цель:** выбор голоса `speechSynthesis` в настройках  
+- **Файлы:** `MessageBody.tsx`, `PerformanceTab.tsx`, `settings.ts`  
+- **Действие:** `ttsVoiceUri?: string`; select из `getVoices()`  
+- **Проверка:** озвучка использует выбранный голос после reopen settings
+
+
+**157 · S · Авто-озвучка ошибок агента** — уровень 4
+- **Цель:** при ошибке прогона — краткое TTS-уведомление  
+- **Файлы:** `useAgentStream.ts`, `settings.ts`  
+- **Действие:** тумблер `autoSpeakErrors`; `speechSynthesis` на `agent-stream` error  
+- **Проверка:** при mock-ошибке слышен короткий сигнал/фраза
+
+
+**158 · S · Авто-озвучка успешного завершения** — уровень 4
+- **Цель:** TTS «Готово» при `stop_reason` без ошибки  
+- **Файлы:** `useAgentStream.ts`, `AgentStatusBar.tsx`, `settings.ts`  
+- **Действие:** тумблер `autoSpeakDone`; озвучка только если вкладка не в фокусе (опционально)  
+- **Проверка:** успешный прогон → озвучка при включённой настройке
+
+
+**159 · M · Docker-режим для агента** — уровень 4
+- **Цель:** изолированный прогон shell-команд в контейнере проекта  
+- **Файлы:** `commandRunner.ts`, `agentHandlersProjectTerminal.ts`, `settings.ts`  
+- **Действие:** `dockerAgentMode?: boolean`; `run_command` → `docker run` с mount projectPath  
+- **Проверка:** команда выполняется в контейнере; хост не затронут
+
+
+**160 · M · Авто-сборка Docker-образов проекта** — уровень 4
+- **Цель:** tool `build_docker_image` — `docker build` с валидацией Dockerfile  
+- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectTerminal.ts`, `commandRunner.ts`  
+- **Действие:** параметры `tag?`, `context?`; блок опасных флагов  
+- **Проверка:** unit-тест: mock docker → успешный build
+
+
+**161 · S · Авто-публикация Docker-образов** — уровень 4
+- **Цель:** tool `publish_docker_image` — push в registry  
+- **Файлы:** `agentTools/integrations.ts`, `commandRunner.ts`  
+- **Действие:** `docker push` после login; требует подтверждения в ask-mode  
+- **Проверка:** mock: push вызывается с правильным tag
+
+
+**162 · M · Авто-деплой на сервер** — уровень 4
+- **Цель:** tool `deploy_to_server` — SSH/rsync или scp артефактов  
+- **Файлы:** `agentTools/integrations.ts`, `settings.ts`  
+- **Действие:** параметры host, path, key; лимит команд  
+- **Проверка:** unit-тест с mock SSH; без реального деплоя в CI
+
+
+**163 · S · Авто-деплой на Vercel/Netlify** — уровень 4
+- **Цель:** tool `deploy_vercel` / `deploy_netlify` через CLI или API  
+- **Файлы:** `agentTools/integrations.ts`, `IntegrationsTab.tsx`  
+- **Действие:** token в settings; preview vs production  
+- **Проверка:** mock API → URL деплоя в ответе агента
+
+
+**164 · M · Авто-деплой на Kubernetes** — уровень 4
+- **Цель:** tool `deploy_kubernetes` — `kubectl apply` манифестов проекта  
+- **Файлы:** `agentTools/integrations.ts`, `commandRunner.ts`  
+- **Действие:** dry-run по умолчанию; `--context` из settings  
+- **Проверка:** unit-тест: `kubectl apply --dry-run=client` парсится
+
+
+**165 · S · Авто-генерация Helm-чартов** — уровень 4
+- **Цель:** tool `generate_helm_chart` — Chart.yaml + templates из Dockerfile/compose  
+- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectFile.ts`  
+- **Действие:** шаблон chart в `charts/<name>/`  
+- **Проверка:** `helm template` на сгенерированном chart без ошибок
+
+
+**166 · M · Авто-генерация Terraform-конфигов** — уровень 4
+- **Цель:** tool `generate_terraform` — main.tf + variables для типового стека  
+- **Файлы:** `agentTools/core.ts`  
+- **Действие:** провайдер AWS/GCP/Azure по выбору; без секретов в файлах  
+- **Проверка:** `terraform validate` на fixture-конфиге
+
+
+**167 · S · Авто-генерация Ansible-ролей** — уровень 4
+- **Цель:** tool `generate_ansible_role` — tasks/handlers/templates  
+- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectFile.ts`  
+- **Действие:** роль в `ansible/roles/<name>/`  
+- **Проверка:** `ansible-playbook --syntax-check` на playbook
+
+
+**168 · M · Авто-генерация CI/CD pipelines** — уровень 4
+- **Цель:** tool `generate_cicd_pipeline` — универсальный шаблон под стек проекта  
+- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectSearch.ts`  
+- **Действие:** detect npm/go/rust → соответствующий pipeline YAML  
+- **Проверка:** сгенерированный YAML валиден по schema CI платформы
+
+
+**169 · S · Авто-генерация GitHub Actions** — уровень 4
+- **Цель:** tool `generate_github_actions` → `.github/workflows/ci.yml`  
+- **Файлы:** `agentTools/integrations.ts`, `agentHandlersProjectFile.ts`  
+- **Действие:** typecheck + test + build по обнаруженным скриптам package.json  
+- **Проверка:** workflow YAML парсится; шаги совпадают с `npm run test`
+
+
+**170 · S · Авто-генерация GitLab CI** — уровень 4
+- **Цель:** tool `generate_gitlab_ci` → `.gitlab-ci.yml`  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** stages build/test/deploy из шаблона  
+- **Проверка:** fixture `.gitlab-ci.yml` проходит lint CI
+
+
+**171 · S · Авто-генерация Azure Pipelines** — уровень 4
+- **Цель:** tool `generate_azure_pipelines` → `azure-pipelines.yml`  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** pool vmImage + steps npm/ci  
+- **Проверка:** YAML валиден по Azure schema
+
+
+**172 · S · Авто-генерация Bitbucket Pipelines** — уровень 4
+- **Цель:** tool `generate_bitbucket_pipelines` → `bitbucket-pipelines.yml`  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** image node + script steps  
+- **Проверка:** сгенерированный файл валиден
+
+
+**173 · M · Авто-генерация release-notes** — уровень 4
+- **Цель:** tool `generate_release_notes` — MD из git log между тегами  
+- **Файлы:** `agentTools/integrations.ts`, `gitTools.ts`  
+- **Действие:** `git log vA..vB --pretty`; группировка feat/fix/breaking  
+- **Проверка:** unit-тест на fixture git history → RELEASE_NOTES.md
