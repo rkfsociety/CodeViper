@@ -18,11 +18,11 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 **Промпт:** `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper.`
 
-**Правила:** пункты **1…514**; внутри цепочки — строго по порядку.
+**Правила:** пункты **1…532**; внутри цепочки — строго по порядку.
 
 ## 📋 В планах
 
-> Пункты **1…514**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
+> Пункты **1…532**. Цепочки 🔗 — строгий порядок внутри группы: split/preview (готово), plan **10–11**, onboarding **12–14**, редактор **24–25**, worktree **49–51**, LSP **73–75**, i18n **129–133**.
 
 ### 🟠 Уровень 2 — высокая польза
 
@@ -3598,3 +3598,128 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `settings.ts`, `types.ts`  
 - **Действие:** Zod schema audit  
 - **Проверка:** отчёт перечисляет optional fields без default
+
+**515 · S · Авто-генерация аудио-версии архитектурных диаграмм** — уровень 4
+- **Цель:** tool `generate_architecture_diagram_audio` — TTS описания Mermaid/arch diagrams  
+- **Файлы:** `agentTools/integrations.ts`, `ArchitecturePanel.tsx`  
+- **Действие:** diagram text → аудио MP3/WAV по узлам  
+- **Проверка:** аудио создаётся из fixture architecture diagram
+
+
+**516 · S · Авто-генерация аудио-версии потоковых диаграмм** — уровень 4
+- **Цель:** tool `generate_dataflow_diagram_audio` — озвучка dataflow DFD (п. 495–504)  
+- **Файлы:** `agentTools/integrations.ts`, `MessageBody.tsx`  
+- **Действие:** flowchart MD → TTS по шагам  
+- **Проверка:** аудио соответствует fixture dataflow diagram
+
+
+**517 · S · Авто-генерация аудио-версии отчётов по качеству** — уровень 4
+- **Цель:** tool `generate_quality_report_audio` — озвучка quality/arch quality reports  
+- **Файлы:** `agentTools/integrations.ts`  
+- **Действие:** summary findings → TTS  
+- **Проверка:** аудио для fixture quality report
+
+
+**518 · M · Авто-генерация видео-обзоров архитектуры UI** — уровень 4
+- **Цель:** tool `generate_ui_architecture_video` — скринкаст UI + диаграммы + озвучка  
+- **Файлы:** `ArchitecturePanel.tsx`, `app/src/components/`, `agentTools/integrations.ts`  
+- **Действие:** capture panels → MP4 + TTS  
+- **Проверка:** видео из fixture UI arch materials (mock ffmpeg)
+
+
+**519 · M · Авто-генерация видео-обзоров архитектуры backend** — уровень 4
+- **Цель:** tool `generate_backend_architecture_video` — обзор main modules + diagrams  
+- **Файлы:** `agentTools/integrations.ts`, `app/electron/main/`  
+- **Действие:** terminal/log capture + architecture diagram + TTS  
+- **Проверка:** MP4 описывает fixture backend layers
+
+
+**520 · S · Авто-генерация GIF-анимаций потоков данных** — уровень 4
+- **Цель:** tool `generate_dataflow_gifs` — GIF анимация dataflow в ArchitecturePanel  
+- **Файлы:** `ArchitecturePanel.tsx`, `docs/`  
+- **Действие:** step-through flow → GIF  
+- **Проверка:** GIF в docs открывается
+
+
+**521 · M · Авто-генерация маркетинговых видео для релизов** — уровень 4
+- **Цель:** tool `generate_release_marketing_video` — promo video к `vX.Y.Z`  
+- **Файлы:** `agentTools/integrations.ts`, `gitTools.ts`, `docs/marketing/`  
+- **Действие:** CHANGELOG highlights + screencast → MP4  
+- **Проверка:** видео для fixture-тега создаётся
+
+
+**522 · S · Авто-генерация баннеров для архитектурных отчётов** — уровень 4
+- **Цель:** tool `generate_architecture_report_banners` — cover images для arch reports  
+- **Файлы:** `agentTools/integrations.ts`, `docs/`  
+- **Действие:** PNG/SVG из diagram thumbnail + title  
+- **Проверка:** баннер для fixture arch report
+
+
+**523 · S · Авто-генерация иконок для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_panel_icons` — SVG для ArchitecturePanel tabs  
+- **Файлы:** `ArchitecturePanel.tsx`, `app/resources/`  
+- **Действие:** иконки graph/module/layer 24px  
+- **Проверка:** иконки видны в панели
+
+
+**524 · M · Авто-генерация тем оформления для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_panel_themes` — CSS для graph nodes/edges  
+- **Файлы:** `ArchitecturePanel.tsx`, `styles.css`  
+- **Действие:** light/dark graph theme variables  
+- **Проверка:** граф читаем в обеих темах
+
+
+**525 · S · Авто-генерация цветовых схем для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_color_schemes` — palette для node types  
+- **Файлы:** `ArchitecturePanel.tsx`, `styles.css`  
+- **Действие:** module/layer/ipc — разные accent colors  
+- **Проверка:** legend соответствует цветам на графе
+
+
+**526 · S · Авто-генерация шрифтовых схем для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_font_schemes` — typography для labels/tooltips  
+- **Файлы:** `ArchitecturePanel.tsx`, `styles.css`  
+- **Действие:** font-size scale для graph UI  
+- **Проверка:** labels читаемы при zoom
+
+
+**527 · M · Авто-генерация UX-гайдов для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_panel_ux_guide` — как читать граф, zoom, filter  
+- **Файлы:** `ArchitecturePanel.tsx`, `docs/`  
+- **Действие:** MD + screenshots  
+- **Проверка:** `docs/architecture-panel-ux.md` создан
+
+
+**528 · S · Авто-генерация onboarding-гайдов для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_panel_onboarding` — первые 3 шага с графом  
+- **Файлы:** `OnboardingWizard.tsx`, `ArchitecturePanel.tsx`  
+- **Действие:** MD + optional GIF open panel  
+- **Проверка:** гайд совпадает с UI flow
+
+
+**529 · M · Авто-генерация developer-гайдов для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_panel_dev_guide` — API панели, data sources, extend  
+- **Файлы:** `ArchitecturePanel.tsx`, `agentHandlersProjectSearch.ts`  
+- **Действие:** dev MD из кода  
+- **Проверка:** guide описывает graph build pipeline
+
+
+**530 · S · Авто-генерация user-гайдов для архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_panel_user_guide` — end-user без dev деталей  
+- **Файлы:** `docs/`, `ArchitecturePanel.tsx`  
+- **Действие:** сценарии: открыть, фильтр, экспорт  
+- **Проверка:** 3+ шага для пользователя
+
+
+**531 · M · Авто-генерация документации по API архитектурных панелей** — уровень 4
+- **Цель:** tool `generate_architecture_panel_api_docs` — IPC, props, graph format  
+- **Файлы:** `ArchitecturePanel.tsx`, `docs/`  
+- **Действие:** reference MD  
+- **Проверка:** docs описывают graph IPC/events
+
+
+**532 · S · Авто-генерация документации по API потоковых диаграмм** — уровень 4
+- **Цель:** tool `generate_dataflow_diagram_api_docs` — tools `generate_*_dataflow_diagram`  
+- **Файлы:** `agentTools/core.ts`, `docs/`  
+- **Действие:** список tools, параметры, output format  
+- **Проверка:** docs перечисляют dataflow tools из п. 495–504
