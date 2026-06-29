@@ -65,7 +65,7 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 ### Авто-релиз оболочки (CI)
 
-После зелёного CI на `master` workflow **auto-shell-release** сравнивает коммиты с последним тегом `v*`. Если затронута только логика агента (handlers, tests, docs) — тег не создаётся. Если изменились renderer, preload, IPC bootstrap, Electron/NSIS — автоматически `vX.Y.Z` и сборка установщика. Пропуск: `[skip-release]` в сообщении коммита. Классификатор: `scripts/shell-release-paths.mjs`. После публикации на GitHub Releases остаётся **только один** стабильный `v*` — текущий; старые `v*` и любые `nightly-*` удаляются (`scripts/prune-github-releases.mjs`).
+После зелёного CI на `master` workflow **auto-shell-release** сравнивает коммиты с последним тегом `v*`. Если затронута только логика агента (handlers, tests, docs) — тег не создаётся. Если изменились renderer, preload, IPC bootstrap, Electron/NSIS — bump `version` в `app/package.json`, **push на master**, тег `vX.Y.Z` и `release.yml`. Если push версии на защищённый `master` не прошёл — job падает, тег **не** создаётся (иначе релиз собирается с orphan-коммита). **Release workflow:** один прогон за раз (`concurrency`), job `prepare` создаёт draft на GitHub, `electron-builder` заливает артефакты в draft (`releaseType: draft`), job `publish` снимает draft после проверки `latest.yml` и `.exe`. Пропуск: `[skip-release]` в сообщении коммита. Классификатор: `scripts/shell-release-paths.mjs`. После публикации на GitHub Releases остаётся **только один** стабильный `v*` — текущий; старые `v*` и любые `nightly-*` удаляются (`scripts/prune-github-releases.mjs`).
 
 ### Ручное обновление клона
 

@@ -146,10 +146,10 @@ function main() {
     try {
       run('git push origin HEAD')
     } catch (err) {
-      console.warn(
-        '→ Не удалось push версии на master (защищённая ветка?). Тег будет на текущем HEAD; release.yml выставит version из тега.'
+      console.error(
+        '→ Не удалось push версии на master (защищённая ветка?). Релиз отменён — тег не создаём.'
       )
-      if (dryRun) throw err
+      process.exit(1)
     }
   }
 
