@@ -23,7 +23,7 @@ describe('roadmapParser', () => {
 
   it('парсит пункты «В планах»', async () => {
     const items = await listRoadmapItems()
-    expect(items.length).toBe(232)
+    expect(items.length).toBe(274)
     expect(items[0]?.num).toBe(1)
     expect(items[0]?.title).toMatch(/переиндексац/i)
   })
