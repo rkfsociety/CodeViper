@@ -55,6 +55,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'find_references',
   'find_slow_code',
   'find_dead_code',
+  'find_type_mismatches',
   'generate_project_metrics',
   'list_directory',
   'read_codeviper_file',

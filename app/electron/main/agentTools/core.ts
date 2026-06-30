@@ -133,6 +133,20 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_type_mismatches',
+      description:
+        'TS type-check анализ проекта на несовпадения типов: присваивания, return-ы, аргументы вызовов и явные аннотации, где фактический тип не совместим с ожидаемым. Возвращает отчёт с severity (high/medium/low) и path:line:col.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить под-папкой или файлом (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'generate_dependency_diagram',
       description:
         'Построить граф импортов между модулями проекта (import/require → Mermaid graph LR). Когда: нужна карта зависимостей, архитектурный обзор, поиск связей между файлами. Не для npm-зависимостей (dependency_summary) или циклов (findImportCycles в UI).',

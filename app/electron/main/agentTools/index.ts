@@ -165,6 +165,7 @@ export interface ToolArgs {
   find_references: { name: string; path?: string }
   find_slow_code: { path?: string }
   find_dead_code: { path?: string }
+  find_type_mismatches: { path?: string }
   generate_dependency_diagram: { path?: string; focus?: string }
   generate_class_diagram: { path?: string }
   generate_dataflow_diagram: { path?: string; focus?: string }

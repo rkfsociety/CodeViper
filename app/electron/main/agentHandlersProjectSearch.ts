@@ -15,6 +15,7 @@ import {
 } from './symbolIndex'
 import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
+import { findTypeMismatches, formatTypeMismatchReport } from './typeMismatchIndex'
 import { buildProjectMetrics, formatProjectMetrics } from './projectMetricsIndex'
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { emitProgress, clearProgress } from './progress'
@@ -114,6 +115,21 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress('AST-анализ мёртвого кода', scanPercent(scanned))
         })
         return formatDeadCodeReport(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_type_mismatches: async (args) => {
+      assertInsideProject(args.path, 'РїР°РїРєР° РёР»Рё С„Р°Р№Р» РґР»СЏ Р°РЅР°Р»РёР·Р°', {
+        allowEmpty: true
+      })
+      try {
+        emitProgress('TS-typecheck Р°РЅР°Р»РёР· РЅРµСЃРѕРѕС‚РІРµС‚СЃС‚РІРёР№', 0)
+        const result = await findTypeMismatches(projectPath, {
+          subpath: args.path?.trim()
+        })
+        return formatTypeMismatchReport(projectPath, result)
       } finally {
         clearProgress()
       }
