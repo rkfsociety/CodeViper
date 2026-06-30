@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
@@ -22,6 +22,22 @@ function hasFileExtension(path: string): boolean {
 
 function showPath(path: string) {
   window.codeviper.showItemInFolder(path)
+}
+
+function filePathA11yProps(path: string) {
+  const label = `Открыть в папке: ${path}`
+  return {
+    role: 'button' as const,
+    tabIndex: 0,
+    title: label,
+    'aria-label': label,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        showPath(path)
+      }
+    }
+  }
 }
 
 /** Текст из <pre><code> для копирования (unit-тест). */
@@ -85,12 +101,21 @@ export const MessageBody = React.memo(function MessageBody({
   onExternalLink
 }: Props) {
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null)
+  const ctxMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!ctxMenu) return
     const close = () => setCtxMenu(null)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
     window.addEventListener('mousedown', close)
-    return () => window.removeEventListener('mousedown', close)
+    window.addEventListener('keydown', onKeyDown)
+    ctxMenuRef.current?.querySelector('button')?.focus()
+    return () => {
+      window.removeEventListener('mousedown', close)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [ctxMenu])
 
   const handleFileCtxMenu = useCallback(
@@ -118,7 +143,7 @@ export const MessageBody = React.memo(function MessageBody({
           <span
             key={start}
             className={styles.filePath}
-            title={`Открыть в папке: ${path}`}
+            {...filePathA11yProps(path)}
             onClick={() => showPath(path)}
             onContextMenu={(e) => handleFileCtxMenu(path, e)}
           >
@@ -173,7 +198,7 @@ export const MessageBody = React.memo(function MessageBody({
           return (
             <code
               className={styles.filePathCode}
-              title={`Открыть в папке: ${text}`}
+              {...filePathA11yProps(text)}
               onClick={() => showPath(text)}
               onContextMenu={(e) => handleFileCtxMenu(text, e)}
             >
@@ -226,12 +251,18 @@ export const MessageBody = React.memo(function MessageBody({
 
       {ctxMenu && (
         <div
+          ref={ctxMenuRef}
           className={styles.ctxMenu}
           style={{ top: ctxMenu.y, left: ctxMenu.x }}
+          role="menu"
+          aria-label="Действия с файлом"
           onMouseDown={(e) => e.stopPropagation()}
         >
           <button
+            type="button"
             className={styles.ctxMenuItem}
+            role="menuitem"
+            aria-label="История изменений"
             onClick={() => {
               onFileTimeline?.(ctxMenu.path)
               setCtxMenu(null)

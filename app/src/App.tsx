@@ -1024,6 +1024,7 @@ function AppContent() {
           <div
             className={`status-dot ${ollamaOnline ? 'online' : 'offline'}`}
             title={ollamaOnline ? 'Ollama online' : 'Ollama offline'}
+            aria-hidden="true"
           />
           <div className="topbar-status">
             <span className={`topbar-pill ${ollamaOnline ? 'online' : 'offline'}`}>
@@ -1059,6 +1060,7 @@ function AppContent() {
             <button
               className="btn"
               title={lightMode ? 'Тёмная тема' : 'Светлая тема'}
+              aria-label={lightMode ? 'Переключить на тёмную тему' : 'Переключить на светлую тему'}
               onClick={() => setSettings((prev) => ({ ...prev, uiLightMode: !prev.uiLightMode }))}
             >
               {lightMode ? '🌙' : '☀️'}
@@ -1070,6 +1072,10 @@ function AppContent() {
                   ? 'Инкогнито включён — чаты не сохраняются'
                   : 'Включить режим инкогнито'
               }
+              aria-label={
+                incognitoMode ? 'Инкогнито включён — выключить' : 'Включить режим инкогнито'
+              }
+              aria-pressed={incognitoMode}
               onClick={() => setIncognitoMode((v) => !v)}
             >
               {incognitoMode ? '🕶️' : '👁️'}
