@@ -5,27 +5,14 @@ import {
   type Page
 } from '@playwright/test'
 import { createRequire } from 'module'
-import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const require = createRequire(import.meta.url)
-const ELECTRON_PACKAGE_ROOT = path.dirname(require.resolve('electron/package.json'))
 
+/** Как electron/index.js: path.txt относителен к dist/, при отсутствии — install.js. */
 function resolveElectronExecutable(): string {
-  const pathTxtFile = path.join(ELECTRON_PACKAGE_ROOT, 'path.txt')
-  if (existsSync(pathTxtFile)) {
-    const relative = readFileSync(pathTxtFile, 'utf8').trim()
-    return path.join(ELECTRON_PACKAGE_ROOT, relative)
-  }
-
-  if (process.platform === 'darwin') {
-    return path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron')
-  }
-  if (process.platform === 'win32') {
-    return path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'electron.exe')
-  }
-  return path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'electron')
+  return require('electron') as string
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
