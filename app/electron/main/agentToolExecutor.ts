@@ -69,6 +69,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'package_info',
   'read_package_lock',
   'dependency_summary',
+  'find_heavy_dependencies',
   'test_summary',
   'search_memory',
   'list_skills',

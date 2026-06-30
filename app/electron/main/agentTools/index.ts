@@ -236,6 +236,7 @@ export interface ToolArgs {
   read_package_lock: { path?: string }
   dependency_summary: { path?: string }
   test_summary: { path?: string }
+  find_heavy_dependencies: { path?: string }
   search_memory: { query: string }
   forget: { id: string }
   file_search_summary: { query: string; path?: string }

@@ -644,6 +644,24 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_heavy_dependencies',
+      description:
+        'Найти в node_modules пакеты тяжелее 1 MB и вернуть отсортированный список с путями и размером. Используй для быстрого поиска самых "тяжёлых" зависимостей в проекте.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Подпапка проекта, где искать node_modules (относительно корня проекта)'
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'run_tests',
       description:
         'Запустить тесты проекта и вернуть структурированный результат: сколько прошло/упало, имена упавших тестов, стек ошибок. Авто-определяет runner (vitest/jest/pytest/cargo/go) по файлам проекта. Используй после правок, чтобы убедиться, что тесты проходят. При падениях — исправь код и вызови снова.',

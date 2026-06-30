@@ -1,4 +1,4 @@
-import { readFile, access, unlink, writeFile } from 'fs/promises'
+import { readFile, access, unlink, writeFile, readdir, stat } from 'fs/promises'
 import { extname, join, resolve } from 'path'
 import { tmpdir } from 'os'
 import { runScriptInSandbox, isDockerAvailable } from './scriptSandbox'
@@ -58,6 +58,83 @@ function formatRuffOutput(filePath: string, stdout: string): string {
       )
       .join('\n\n')
   )
+}
+
+function formatHeavyDependenciesOutput(
+  entries: Array<{ name: string; path: string; sizeBytes: number }>
+): string {
+  if (!entries.length) return 'Тяжёлых зависимостей > 1 MB не найдено.'
+  return [
+    `Найдено ${entries.length} пакетов > 1 MB:`,
+    ...entries.map((entry, index) => {
+      const sizeMb = (entry.sizeBytes / 1024 / 1024).toFixed(2)
+      return `[${index + 1}] ${entry.name} — ${sizeMb} MB\n    ${entry.path}`
+    })
+  ].join('\n')
+}
+
+async function getDirectorySize(rootPath: string): Promise<number> {
+  let total = 0
+  const stack = [rootPath]
+  while (stack.length > 0) {
+    const current = stack.pop()!
+    const entries = await readdir(current, { withFileTypes: true })
+    for (const entry of entries) {
+      const entryPath = join(current, entry.name)
+      if (entry.isDirectory()) {
+        stack.push(entryPath)
+      } else if (entry.isFile()) {
+        total += (await stat(entryPath)).size
+      }
+    }
+  }
+  return total
+}
+
+async function findHeavyNodeModulesPackages(
+  projectPath: string
+): Promise<Array<{ name: string; path: string; sizeBytes: number }>> {
+  const nodeModulesPath = join(projectPath, 'node_modules')
+  const packages: Array<{ name: string; path: string; sizeBytes: number }> = []
+
+  let nodeModulesEntries: Array<import('fs').Dirent>
+  try {
+    nodeModulesEntries = await readdir(nodeModulesPath, { withFileTypes: true })
+  } catch {
+    return packages
+  }
+
+  for (const entry of nodeModulesEntries) {
+    if (!entry.isDirectory()) continue
+    if (entry.name.startsWith('.')) continue
+
+    const scopedPath = join(nodeModulesPath, entry.name)
+    const scopedEntries = await readdir(scopedPath, { withFileTypes: true })
+    const isScope = entry.name.startsWith('@')
+
+    if (isScope) {
+      for (const scopedEntry of scopedEntries) {
+        if (!scopedEntry.isDirectory() || scopedEntry.name.startsWith('.')) continue
+        const packagePath = join(scopedPath, scopedEntry.name)
+        const sizeBytes = await getDirectorySize(packagePath)
+        if (sizeBytes > 1024 * 1024) {
+          packages.push({
+            name: `${entry.name}/${scopedEntry.name}`,
+            path: packagePath,
+            sizeBytes
+          })
+        }
+      }
+      continue
+    }
+
+    const sizeBytes = await getDirectorySize(scopedPath)
+    if (sizeBytes > 1024 * 1024) {
+      packages.push({ name: entry.name, path: scopedPath, sizeBytes })
+    }
+  }
+
+  return packages.sort((a, b) => b.sizeBytes - a.sizeBytes || a.name.localeCompare(b.name))
 }
 
 function formatLinterOutput(
@@ -317,6 +394,19 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
           result.exitCode,
           plan.note
         )
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_heavy_dependencies: async (args: any) => {
+      const depsCwd = args.path ? resolve(projectPath, args.path) : projectPath
+      if (args.path) assertInsideProject(args.path, 'папка')
+
+      try {
+        emitProgress('Анализ node_modules…', null)
+        const packages = await findHeavyNodeModulesPackages(depsCwd)
+        return formatHeavyDependenciesOutput(packages)
       } finally {
         clearProgress()
       }
