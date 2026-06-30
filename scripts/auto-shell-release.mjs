@@ -39,6 +39,16 @@ function setOutput(name, value) {
   if (file) appendFileSync(file, `${name}=${value}\n`)
 }
 
+/** Явный PAT в remote — иначе git push тега может 403 на защищённом репо. */
+function configureOriginToken() {
+  const token = process.env.RELEASE_PUSH_TOKEN || process.env.GITHUB_TOKEN
+  const repo = process.env.GITHUB_REPOSITORY
+  if (!token || !repo) return
+  runQuiet(
+    `git remote set-url origin https://x-access-token:${token}@github.com/${repo}.git`
+  )
+}
+
 function parseSemver(v) {
   const m = v.replace(/^v/, '').match(/^(\d+)\.(\d+)\.(\d+)/)
   if (!m) return null
@@ -140,6 +150,8 @@ function main() {
     return
   }
 
+  configureOriginToken()
+
   if (versionChanged) {
     run('git add app/package.json')
     run(`git commit -m "chore(release): bump to ${version} [skip-release]"`)
@@ -156,7 +168,12 @@ function main() {
   if (!runQuiet(`git tag --list ${newTag}`)) {
     run(`git tag ${newTag}`)
   }
-  run(`git push origin ${newTag}`)
+  try {
+    run(`git push origin ${newTag}`)
+  } catch {
+    console.error('→ Не удалось push тега (проверьте RELEASE_PUSH_TOKEN: Contents write на репо).')
+    process.exit(1)
+  }
 
   setOutput('tag', newTag)
   console.log(`✓ Тег ${newTag} запушен; Release workflow запустит CI (workflow_dispatch)`)

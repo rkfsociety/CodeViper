@@ -126,6 +126,7 @@ jobs:
         id: auto_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
         run: node scripts/auto-shell-release.mjs
 
       - name: Trigger Release workflow
