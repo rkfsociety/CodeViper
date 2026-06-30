@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react'
-import type { DataflowDiagramResult, DependencyDiagramResult, ImportCycleResult } from '../types'
+import type {
+  CodeViperAPI,
+  DataflowDiagramResult,
+  DependencyDiagramResult,
+  ImportCycleResult
+} from '../types'
 import { MermaidDiagram } from './MermaidDiagram'
 import styles from './ArchitecturePanel.module.css'
 
 interface Props {
   projectPath: string | null
+}
+
+const SHELL_UPGRADE_HINT =
+  'Функция недоступна в текущей оболочке. Перезапустите CodeViper.exe после git pull в source или установите последний релиз.'
+
+function hasCodeviperApi(name: keyof CodeViperAPI): boolean {
+  return typeof window.codeviper?.[name] === 'function'
 }
 
 function formatCycleChain(projectPath: string, chain: string[]): string {
@@ -78,6 +90,10 @@ function DependencyDiagramSection({ projectPath }: { projectPath: string }) {
   }, [projectPath])
 
   const loadDiagram = () => {
+    if (!hasCodeviperApi('buildDependencyDiagram')) {
+      setError(SHELL_UPGRADE_HINT)
+      return
+    }
     setLoading(true)
     setError(null)
     void window.codeviper
@@ -162,6 +178,10 @@ function DataflowDiagramSection({ projectPath }: { projectPath: string }) {
   }, [projectPath])
 
   const loadDiagram = () => {
+    if (!hasCodeviperApi('buildDataflowDiagram')) {
+      setError(SHELL_UPGRADE_HINT)
+      return
+    }
     setLoading(true)
     setError(null)
     void window.codeviper
@@ -242,6 +262,12 @@ export function ArchitecturePanel({ projectPath }: Props) {
     setCyclesDismissed(false)
     if (!projectPath) {
       setCycleResult(null)
+      return
+    }
+
+    if (!hasCodeviperApi('findImportCycles')) {
+      setCycleResult(null)
+      setCyclesLoading(false)
       return
     }
 
