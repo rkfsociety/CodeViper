@@ -16,6 +16,7 @@ import {
 import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
 import { findTypeMismatches, formatTypeMismatchReport } from './typeMismatchIndex'
+import { findHotkeyConflicts, formatHotkeyConflictReport } from './hotkeyConflictIndex'
 import { buildProjectMetrics, formatProjectMetrics } from './projectMetricsIndex'
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { emitProgress, clearProgress } from './progress'
@@ -130,6 +131,19 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           subpath: args.path?.trim()
         })
         return formatTypeMismatchReport(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_hotkey_conflicts: async (args) => {
+      assertInsideProject(args.path, 'папка или файл для анализа', { allowEmpty: true })
+      try {
+        emitProgress('Поиск конфликтов hotkey', 0)
+        const result = await findHotkeyConflicts(projectPath, {
+          path: args.path?.trim()
+        })
+        return formatHotkeyConflictReport(result)
       } finally {
         clearProgress()
       }

@@ -147,6 +147,20 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_hotkey_conflicts',
+      description:
+        'Анализ hotkey-комбинаций в App.tsx: ищет дубли, пересечения с частыми системными сочетаниями и контекстные overlap в модалках. Возвращает отчёт.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Путь к App.tsx или другому файлу с hotkeys' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'generate_dependency_diagram',
       description:
         'Построить граф импортов между модулями проекта (import/require → Mermaid graph LR). Когда: нужна карта зависимостей, архитектурный обзор, поиск связей между файлами. Не для npm-зависимостей (dependency_summary) или циклов (findImportCycles в UI).',
