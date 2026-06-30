@@ -56,6 +56,7 @@
 - Авто-делегирование шагов субагентам: `resolveAutoDelegationRole` в `subagentRunner.ts` (review → Reviewer, tests → Tester); в `agent.ts` — trace `delegate_to_reviewer` / `delegate_to_tester` до основного цикла LLM
 - RAG (Qdrant/Milvus), символьный индекс ts/js/py, инкрементальная индексация, secret redaction, бенчмарк моделей
 - `find_slow_code` — AST-анализ ts/js/py на медленные участки (вложенные циклы, await/sync I/O/JSON.parse в цикле); отчёт в чате
+- `find_dead_code` — AST-анализ ts/js на недостижимые операторы и константные ветки (`if true/false`, тернарные условия); отчёт в чате
 
 ### UX и UI
 - Экспорт метрик в CSV: кнопка «CSV» в `MetricsPanel` (byModel + topTools, blob download)

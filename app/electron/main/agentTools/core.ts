@@ -119,6 +119,20 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_dead_code',
+      description:
+        'AST-анализ ts/js на мёртвый код: недостижимые операторы после return/throw/break/continue, if с константным true/false и тернарные операторы с константным условием. Возвращает отчёт с severity (high/medium/low) и path:line:col.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить по подпапке или файлом (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'generate_dependency_diagram',
       description:
         'Построить граф импортов между модулями проекта (import/require → Mermaid graph LR). Когда: нужна карта зависимостей, архитектурный обзор, поиск связей между файлами. Не для npm-зависимостей (dependency_summary) или циклов (findImportCycles в UI).',

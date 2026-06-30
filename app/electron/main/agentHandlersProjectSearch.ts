@@ -13,6 +13,7 @@ import {
   buildDataflowDiagram,
   formatDataflowDiagram
 } from './symbolIndex'
+import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
 import { buildProjectMetrics, formatProjectMetrics } from './projectMetricsIndex'
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
@@ -99,6 +100,20 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress('AST-анализ медленного кода', scanPercent(scanned))
         })
         return formatSlowCodeReport(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_dead_code: async (args) => {
+      assertInsideProject(args.path, 'папка или файл для анализа', { allowEmpty: true })
+      try {
+        emitProgress('AST-анализ мёртвого кода', 0)
+        const result = await findDeadCode(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) => emitProgress('AST-анализ мёртвого кода', scanPercent(scanned))
+        })
+        return formatDeadCodeReport(projectPath, result)
       } finally {
         clearProgress()
       }
