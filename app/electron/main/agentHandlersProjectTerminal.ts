@@ -17,6 +17,16 @@ import {
   DEFAULT_ARIA_SCAN_FILES,
   formatAriaIssuesOutput
 } from './ariaJsxAnalysis'
+import {
+  collectIntegrationUrlIssues,
+  formatIntegrationUrlIssuesOutput
+} from './integrationUrlValidation'
+import {
+  collectInvalidAutomationRules,
+  formatCronIssuesOutput,
+  type AutomationRule
+} from './automationScheduler'
+import { loadSettings } from './settings'
 
 function formatEslintOutput(filePath: string, stdout: string): string {
   const data = JSON.parse(stdout) as Array<{
@@ -437,6 +447,31 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
           issues.push(...collectAriaIssuesForSource(abs, text))
         }
         return formatAriaIssuesOutput(issues)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_integration_url_issues: async () => {
+      try {
+        emitProgress('Проверка URL интеграций…', null)
+        const settings = await loadSettings()
+        const issues = collectIntegrationUrlIssues(settings)
+        return formatIntegrationUrlIssuesOutput(issues)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_cron_issues: async () => {
+      try {
+        emitProgress('Проверка cron автоматизаций…', null)
+        const settings = await loadSettings()
+        const rules = (settings.automations ?? []) as AutomationRule[]
+        if (!rules.length) {
+          return 'Правил автоматизации нет (automations пуст). Невалидных cron не найдено.'
+        }
+        return formatCronIssuesOutput(collectInvalidAutomationRules(rules))
       } finally {
         clearProgress()
       }

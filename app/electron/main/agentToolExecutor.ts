@@ -71,6 +71,8 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'dependency_summary',
   'find_heavy_dependencies',
   'find_aria_issues',
+  'find_integration_url_issues',
+  'find_cron_issues',
   'test_summary',
   'search_memory',
   'list_skills',

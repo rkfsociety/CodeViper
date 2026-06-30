@@ -685,6 +685,24 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_integration_url_issues',
+      description:
+        'Проверить URL интеграций в settings: GitLab/Jira base URL, webhook/discord webhook, P2P ws(s), token без URL. Возвращает отчёт в чат.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_cron_issues',
+      description:
+        'Проверить cron-выражения в settings.automations: невалидный cron, пустой prompt/id, дубликаты id. Возвращает отчёт в чат.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'run_tests',
       description:
         'Запустить тесты проекта и вернуть структурированный результат: сколько прошло/упало, имена упавших тестов, стек ошибок. Авто-определяет runner (vitest/jest/pytest/cargo/go) по файлам проекта. Используй после правок, чтобы убедиться, что тесты проходят. При падениях — исправь код и вызови снова.',

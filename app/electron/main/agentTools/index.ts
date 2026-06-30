@@ -238,6 +238,8 @@ export interface ToolArgs {
   test_summary: { path?: string }
   find_heavy_dependencies: { path?: string }
   find_aria_issues: { path?: string; files?: string[] }
+  find_integration_url_issues: Record<string, never>
+  find_cron_issues: Record<string, never>
   search_memory: { query: string }
   forget: { id: string }
   file_search_summary: { query: string; path?: string }

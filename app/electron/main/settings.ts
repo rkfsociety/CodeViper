@@ -123,6 +123,16 @@ export const PersistedSettingsSchema = z.object({
       })
     )
     .optional(),
+  automations: z
+    .array(
+      z.object({
+        id: z.string(),
+        cron: z.string(),
+        prompt: z.string(),
+        enabled: z.boolean().default(true)
+      })
+    )
+    .optional(),
   enabledPlugins: z.array(z.string()).optional(),
   orchestratorModelPath: z.string().optional(),
   orchestratorBackend: z.enum(['gguf', 'ollama']).optional(),

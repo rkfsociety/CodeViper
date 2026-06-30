@@ -93,6 +93,13 @@ export interface PromptTemplate {
   text: string
 }
 
+export interface AutomationRule {
+  id: string
+  cron: string
+  prompt: string
+  enabled: boolean
+}
+
 export interface FileNode {
   name: string
   path: string
@@ -323,6 +330,8 @@ export interface AgentSettings {
   scriptSandboxEnabled?: boolean
   /** Пользовательские шаблоны промптов (доступны через /trigger в чате) */
   promptTemplates?: PromptTemplate[]
+  /** Автоматизации по cron (промпт в очередь чата) */
+  automations?: AutomationRule[]
   /** Делиться вычислительными ресурсами через P2P-сеть */
   shareCompute?: boolean
   /** Пользователь подтвердил согласие на P2P (показывается один раз) */

@@ -43,7 +43,9 @@
 
 ### Агент и инструменты
 - Авто-обнаружение тяжёлых зависимостей в `node_modules`: список пакетов больше 1 MB в терминальном обработчике
-- Авто-обнаружение неправильных aria-атрибутов: tool `find_aria_issues` — AST-анализ JSX (уровень 3), по умолчанию `MessageBody.tsx` и `App.tsx`, отчёт в чате
+- Авто-обнаружение неправильных aria-атрибутов: tool `find_aria_issues` — AST-анализ JSX, по умолчанию `MessageBody.tsx` и `App.tsx`
+- Tool `find_integration_url_issues`: GitLab/Jira/webhook/P2P URL в settings → отчёт (`integrationUrlValidation.ts`)
+- Tool `find_cron_issues`: валидация `settings.automations` cron (`automationScheduler.ts`); поле `automations` в settings schema
 - `planBeforeExecute` в settings: тумблер «Сначала показать план» в BehaviorTab; пауза после плана с кнопкой «Выполнить» в чате
 - `firstRunCompleted` в settings: флаг завершения onboarding (default `false`, визард выставит `true`)
 - Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды (`/lint`, `/build`), `disabledTools`
