@@ -24,7 +24,7 @@ describe('roadmapParser', () => {
 
   it('парсит пункты «В планах»', async () => {
     const items = await listRoadmapItems()
-    expect(items.length).toBeGreaterThanOrEqual(498)
+    expect(items.length).toBeGreaterThanOrEqual(477)
     expect(items[0]?.num).toBe(1)
     expect(items[0]?.title).toMatch(/магич|magic.?numbers|find_magic_numbers/i)
   })

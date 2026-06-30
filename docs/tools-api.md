@@ -41,7 +41,7 @@
 
 ### `agentTools/core.ts` — FILE_TOOLS
 
-`search_knowledge_base`, `list_directory`, `grep_files`, `find_files`, `find_symbol`, `find_references`, `find_slow_code`, `generate_dependency_diagram`, `generate_class_diagram`, `generate_dataflow_diagram`, `generate_project_metrics`, `search_in_project`, `read_file`, `read_multiple_files`, `file_info`, `project_stats`, `search_in_file`, `file_search_summary`, `show_file_history`, `copy_file`, `rename_folder`, `copy_folder`, `preview_edit`, `preview_patch`, `write_file`, `create_file`, `edit_file`, `undo_edit`, `append_file`, `delete_file`, `move_file`
+`search_knowledge_base`, `list_directory`, `grep_files`, `find_files`, `find_symbol`, `find_references`, `find_slow_code`, `find_aria_issues`, `find_integration_url_issues`, `find_cron_issues`, `generate_dependency_diagram`, `generate_class_diagram`, `generate_dataflow_diagram`, `generate_project_metrics`, `search_in_project`, `read_file`, `read_multiple_files`, `file_info`, `project_stats`, `search_in_file`, `file_search_summary`, `show_file_history`, `copy_file`, `rename_folder`, `copy_folder`, `preview_edit`, `preview_patch`, `write_file`, `create_file`, `edit_file`, `undo_edit`, `append_file`, `delete_file`, `move_file`
 
 ### `agentTools/core.ts` — GIT_TOOLS
 
@@ -86,6 +86,18 @@
 ### `find_slow_code`
 
 AST-анализ ts/js/py на потенциально медленный код: вложенные циклы, `await` в цикле, синхронный I/O, `JSON.parse`/`json.loads`, линейный поиск по массиву в цикле. Возвращает отчёт с severity (`high`/`medium`/`low`) и `path:line:col`. Параметр: `path` (необяз., подпапка или файл).
+
+### `find_aria_issues`
+
+AST-анализ JSX/TSX на проблемы доступности: неизвестные aria-атрибуты, `img` без `alt`, интерактивные элементы без имени, кликабельные `span`/`code` без `role` и клавиатуры, кнопки с emoji без `aria-label`. По умолчанию — `MessageBody.tsx` и `App.tsx`. Параметры: `path` (подпапка), `files` (массив путей).
+
+### `find_integration_url_issues`
+
+Проверка URL интеграций в `settings.json`: GitLab/Jira base URL, webhook/Discord webhook, P2P `ws(s)`, token без URL. Без параметров; отчёт в чат.
+
+### `find_cron_issues`
+
+Валидация `settings.automations`: невалидный cron, пустой `prompt`/`id`, дубликаты `id`. Без параметров; отчёт в чат.
 
 ### `generate_dependency_diagram`
 

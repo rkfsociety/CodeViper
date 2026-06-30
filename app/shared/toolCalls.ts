@@ -107,7 +107,6 @@ export const AGENT_TOOL_NAMES = [
   // Субагент-редактор
   'delegate_to_editor',
   // Тесты
-  'find_aria_issues',
   'find_integration_url_issues',
   'find_cron_issues',
   'run_tests'
