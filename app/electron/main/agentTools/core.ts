@@ -664,7 +664,7 @@ export const FILE_TOOLS = [
     function: {
       name: 'find_aria_issues',
       description:
-        'Проверить JSX на проблемы доступности: неизвестные aria-атрибуты, элементы без доступного имени, изображения без alt и подозрительные aria-label/aria-labelledby. Полезно для App.tsx и MessageBody.tsx.',
+        'Проверить JSX/TSX на проблемы доступности (уровень 3): неизвестные aria-атрибуты, img без alt, интерактивные элементы без имени, кликабельные span/code без role и клавиатуры, кнопки с emoji без aria-label. По умолчанию анализирует MessageBody.tsx и App.tsx; возвращает отчёт в чат.',
       parameters: {
         type: 'object',
         properties: {

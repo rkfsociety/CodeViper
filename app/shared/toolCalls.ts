@@ -7,6 +7,7 @@ export const AGENT_TOOL_NAMES = [
   'find_symbol',
   'find_references',
   'find_slow_code',
+  'find_aria_issues',
   'generate_dependency_diagram',
   'generate_class_diagram',
   'generate_dataflow_diagram',
@@ -106,6 +107,7 @@ export const AGENT_TOOL_NAMES = [
   // Субагент-редактор
   'delegate_to_editor',
   // Тесты
+  'find_aria_issues',
   'run_tests'
 ] as const
 
