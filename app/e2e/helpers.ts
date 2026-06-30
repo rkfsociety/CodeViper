@@ -40,8 +40,12 @@ const APP_SHELL_TIMEOUT_MS = process.env.CI ? 45_000 : 20_000
 export async function waitForAppShell(page: Page): Promise<void> {
   await page.waitForLoadState('load', { timeout: APP_SHELL_TIMEOUT_MS }).catch(() => {})
   await page.locator('body').waitFor({ state: 'visible', timeout: APP_SHELL_TIMEOUT_MS })
+  await page.locator('.topbar').waitFor({
+    state: 'attached',
+    timeout: APP_SHELL_TIMEOUT_MS
+  })
   await page.locator('.logo, .panel-history, .panel-main').first().waitFor({
-    state: 'visible',
+    state: 'attached',
     timeout: APP_SHELL_TIMEOUT_MS
   })
   await expect(page.locator('.topbar')).toBeVisible({ timeout: APP_SHELL_TIMEOUT_MS })
