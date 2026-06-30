@@ -41,7 +41,7 @@
 
 ### `agentTools/core.ts` — FILE_TOOLS
 
-`search_knowledge_base`, `list_directory`, `grep_files`, `find_files`, `find_symbol`, `find_references`, `find_slow_code`, `search_in_project`, `read_file`, `read_multiple_files`, `file_info`, `project_stats`, `search_in_file`, `file_search_summary`, `show_file_history`, `copy_file`, `rename_folder`, `copy_folder`, `preview_edit`, `preview_patch`, `write_file`, `create_file`, `edit_file`, `undo_edit`, `append_file`, `delete_file`, `move_file`
+`search_knowledge_base`, `list_directory`, `grep_files`, `find_files`, `find_symbol`, `find_references`, `find_slow_code`, `generate_dependency_diagram`, `generate_class_diagram`, `generate_dataflow_diagram`, `generate_project_metrics`, `search_in_project`, `read_file`, `read_multiple_files`, `file_info`, `project_stats`, `search_in_file`, `file_search_summary`, `show_file_history`, `copy_file`, `rename_folder`, `copy_folder`, `preview_edit`, `preview_patch`, `write_file`, `create_file`, `edit_file`, `undo_edit`, `append_file`, `delete_file`, `move_file`
 
 ### `agentTools/core.ts` — GIT_TOOLS
 
@@ -86,6 +86,22 @@
 ### `find_slow_code`
 
 AST-анализ ts/js/py на потенциально медленный код: вложенные циклы, `await` в цикле, синхронный I/O, `JSON.parse`/`json.loads`, линейный поиск по массиву в цикле. Возвращает отчёт с severity (`high`/`medium`/`low`) и `path:line:col`. Параметр: `path` (необяз., подпапка или файл).
+
+### `generate_dependency_diagram`
+
+Граф импортов между модулями (import/require → Mermaid `graph LR`). Параметры: `path` (подпапка), `focus` (файл-центр: только его импорты и обратные ссылки).
+
+### `generate_class_diagram`
+
+Диаграмма классов по AST (TS/Java/C#): классы, интерфейсы, наследование, методы → Mermaid `classDiagram`. Параметр: `path` (подпапка).
+
+### `generate_dataflow_diagram`
+
+DFD уровня модуля: IPC (`invoke`/`handle`), HTTP (`fetch`/`axios`), FS (`readFile`/`writeFile`) → Mermaid flowchart. Параметры: `path`, `focus` (один файл-модуль).
+
+### `generate_project_metrics`
+
+Метрики проекта: LOC, число файлов, разбивка по языкам, оценка цикломатической сложности → Markdown-отчёт. Параметр: `path` (подпапка).
 
 ### `search_in_project`
 
