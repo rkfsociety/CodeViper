@@ -1,315 +1,219 @@
 # S: Автодетект настроек и качество кода
 
-Пункты 33–77: авто-обнаружение проблем в настройках, тестах и инфраструктуре.
+Пункты **33–62** — задачи для **агента CodeViper** и runtime main process.
+
+**Три типа задач в этом файле:**
+
+| Тип | Уровень | Результат |
+|-----|---------|-----------|
+| **Диагностика** | 3 | tool `find_*` → текстовый отчёт в чат (без правок проекта пользователя) |
+| **UI-фича** | 4 | поле в settings + renderer; проверка в установленном `.exe` |
+| **Генерация/деплой** | 4 | tool `generate_*` / `deploy_*` / `publish_*` → файлы или URL в ответе агента |
+
+**Шаблон для `find_*` (пункты 33–48):**
+
+1. `app/electron/main/<topic>Analysis.ts`
+2. schema в `agentTools/core.ts`
+3. handler в `agentHandlersProjectSearch.ts` или `agentHandlersProjectTerminal.ts`
+4. `AGENT_TOOL_NAMES` + `agentToolExecutor.ts`
+5. `app/tests/<topic>Analysis.test.ts`
+6. **Проверка:** `npm test -- …` + вызов tool → отчёт
+
+Всего пунктов: 30.
+
+---
+
+## Диагностика настроек и agent tools (33–47)
+
+**33 · S · Tool `find_collective_memory_issues`** — уровень 3
+- **Цель:** отчёт о битых collective-memory правилах: нет `.codeviper/rules.md`, пустой sync URL, конфликт версий
+- **Файлы:** `collectiveMemoryAnalysis.ts`, `collectiveMemorySync.ts`, `AgentLearningPanel.tsx`, `agentTools/core.ts`
+- **Действие:** read settings + rules file; validate markdown frontmatter; list missing/invalid entries
+- **Проверка:** `npm test -- collectiveMemoryAnalysis.test.ts`; `find_collective_memory_issues()` → отчёт
+
+**34 · S · Tool `find_chat_template_issues`** — уровень 3
+- **Цель:** отчёт о шаблонах чатов с пустым title/prompt, дубликатами id, битым `projectPath`
+- **Файлы:** `chatTemplateAnalysis.ts`, `chats.ts`, `ChatHistoryPanel.tsx`, `agentTools/core.ts`
+- **Действие:** parse chat store/templates; `access()` на пути проекта
+- **Проверка:** `npm test -- chatTemplateAnalysis.test.ts`; `find_chat_template_issues()` → отчёт
+
+**35 · S · Tool `find_split_layout_issues`** — уровень 3
+- **Цель:** отчёт о некорректном `ui-layout.json`: отрицательные ширины, сумма > viewport, unknown panel keys
+- **Файлы:** `splitLayoutAnalysis.ts`, `App.tsx`, `settings.ts`, `agentTools/core.ts`
+- **Действие:** Zod-схема layout; compare с известными ключами панелей из `persistLayout`
+- **Проверка:** `npm test -- splitLayoutAnalysis.test.ts`; `find_split_layout_issues()` → отчёт
+
+**36 · S · Tool `find_quick_open_issues`** — уровень 3
+- **Цель:** отчёт о регрессиях fuzzy quick-open: пустой индекс, файлы вне проекта в результатах, дубликаты
+- **Файлы:** `quickOpenAnalysis.ts`, `QuickOpenPalette.tsx`, `agentTools/core.ts`
+- **Действие:** smoke-тест scorer на fixture-дереве; проверка нормализации пути
+- **Проверка:** `npm test -- quickOpenAnalysis.test.ts`; `find_quick_open_issues({ path: "app/src" })` → отчёт
+
+**37 · S · Tool `find_code_editor_issues`** — уровень 3
+- **Цель:** отчёт о настройках CodeMirror: theme без CSS, tabSize вне 2–8, wrap без грамматики
+- **Файлы:** `codeEditorAnalysis.ts`, `CodeEditorPanel.tsx`, `settings.ts`, `agentTools/core.ts`
+- **Действие:** read editor settings; static check props passed to CodeMirror
+- **Проверка:** `npm test -- codeEditorAnalysis.test.ts`; `find_code_editor_issues()` → отчёт
+
+**38 · S · Tool `find_mcp_server_issues`** — уровень 3
+- **Цель:** отчёт о MCP-серверах: пустой command, невалидный transport, дубликаты name, битый `cwd`
+- **Файлы:** `mcpServerAnalysis.ts`, `IntegrationsTab.tsx`, `settings.ts`, `agentTools/core.ts`
+- **Действие:** validate `McpServerConfig[]` из settings; optional spawn dry-run
+- **Проверка:** `npm test -- mcpServerAnalysis.test.ts`; `find_mcp_server_issues()` → отчёт
+
+**39 · S · Tool `find_enabled_tools_issues`** — уровень 3
+- **Цель:** отчёт о `enabledTools` / `disabledTools`: unknown name, все tools выключены, core tools заблокированы
+- **Файлы:** `enabledToolsAnalysis.ts`, `agentTools/index.ts`, `AGENT_TOOL_NAMES`, `settings.ts`
+- **Действие:** diff settings vs `getAllToolNames()`; warn если нет `read_file`/`grep_files`
+- **Проверка:** `npm test -- enabledToolsAnalysis.test.ts`; `find_enabled_tools_issues()` → отчёт
+
+**40 · S · Tool `find_tool_description_issues`** — уровень 3
+- **Цель:** отчёт о tool schema: пустой `description`, < 20 символов, дубликаты между tools
+- **Файлы:** `toolSchemaAnalysis.ts`, `agentTools/*.ts`, `agentTools/core.ts`
+- **Действие:** обход `AGENT_TOOLS`; lint descriptions
+- **Проверка:** `npm test -- toolSchemaAnalysis.test.ts`; `find_tool_description_issues()` → отчёт
+
+**41 · S · Tool `find_tool_param_issues`** — уровень 3
+- **Цель:** отчёт о JSON-schema параметров: `required` без properties, тип `object` без properties, нет `description` у required
+- **Файлы:** `toolSchemaAnalysis.ts`, `agentTools/*.ts`
+- **Действие:** validate each tool parameters against JSON Schema subset
+- **Проверка:** `npm test -- toolSchemaAnalysis.test.ts`; `find_tool_param_issues()` → отчёт
+
+**42 · S · Tool `find_tool_error_issues`** — уровень 3
+- **Цель:** отчёт о handlers, возвращающих голый `throw`/`Error` без текста для агента или глотающих ошибки
+- **Файлы:** `toolHandlerAnalysis.ts`, `agentHandlers*.ts`, `agentToolExecutor.ts`
+- **Действие:** AST/grep: `catch {}` без return; `throw new Error()` без message
+- **Проверка:** `npm test -- toolHandlerAnalysis.test.ts`; `find_tool_error_issues()` → отчёт
+
+**43 · S · Tool `find_tool_fallback_issues`** — уровень 3
+- **Цель:** отчёт о `fallbackModels`: модель не в listModels, дубликаты, primary === fallback
+- **Файлы:** `toolFallbackAnalysis.ts`, `modelRuntime.ts`, `settings.ts`
+- **Действие:** read settings; cross-check provider list (mock in test)
+- **Проверка:** `npm test -- toolFallbackAnalysis.test.ts`; `find_tool_fallback_issues()` → отчёт
+
+**44 · S · Tool `find_switch_issues`** — уровень 3
+- **Цель:** отчёт о неполных `switch` в main: нет `default`, fall-through без comment, enum switch без всех case
+- **Файлы:** `switchAnalysis.ts`, `agentTools/core.ts`, `agentHandlersProjectSearch.ts`
+- **Действие:** TypeScript AST `SwitchStatement`; rule `switch-incomplete`
+- **Проверка:** `npm test -- switchAnalysis.test.ts`; `find_switch_issues({ path: "app/electron/main" })` → отчёт
+
+**45 · S · Tool `find_throw_issues`** — уровень 3
+- **Цель:** отчёт о `throw` с нетипизированной строкой, `throw err` без re-wrap, throw в renderer paths
+- **Файлы:** `throwAnalysis.ts`, `agentHandlers*.ts`
+- **Действие:** AST ThrowStatement; flag empty literal
+- **Проверка:** `npm test -- throwAnalysis.test.ts`; `find_throw_issues()` → отчёт
 
-Всего пунктов: 45.
+**46 · S · Tool `find_default_export_issues`** — уровень 3
+- **Цель:** отчёт о `export default` в main/shared (нарушение конвенции CodeViper — только named export)
+- **Файлы:** `exportStyleAnalysis.ts`, `symbolIndex.ts`, `agentTools/core.ts`
+- **Действие:** AST `ExportAssignment` / `export default` в `app/electron/main` и `app/shared`
+- **Проверка:** `npm test -- exportStyleAnalysis.test.ts`; `find_default_export_issues()` → отчёт
 
-**33 · S · Авто-обнаружение неправильных настроек collective memory** — уровень 3
-- **Цель:** проверка `.codeviper/rules.md`
-- **Файлы:** `AgentLearningPanel.tsx`, `collectiveMemorySync.ts`
-- **Действие:** tool `find_collective_memory_issues`
-- **Проверка:** отчёт
+**47 · S · Tool `find_import_alias_issues`** — уровень 3
+- **Цель:** отчёт о import alias `@/` в main process или конфликт alias с `tsconfig paths`
+- **Файлы:** `importAliasAnalysis.ts`, `symbolIndex.ts`, `tsconfig.json`
+- **Действие:** AST ImportDeclaration; match vs allowed alias list
+- **Проверка:** `npm test -- importAliasAnalysis.test.ts`; `find_import_alias_issues()` → отчёт
 
+---
 
-**34 · S · Авто-обнаружение неправильных шаблонов чатов** — уровень 3
-- **Цель:** проверка шаблонов
-- **Файлы:** `ChatHistoryPanel.tsx`, `chats.ts`
-- **Действие:** tool `find_chat_template_issues`
-- **Проверка:** отчёт
+## Диагностика hardcoded-путей в UI/main (48)
 
+**48 · S · Tool `find_hardcoded_path_issues`** — уровень 3
+- **Цель:** один tool вместо 16 однотипных: отчёт о подозрительных путях в исходниках (абсолютные Windows/C: paths, `F:\\`, `/Users/`, `../` вне проекта, устаревшие `QuickOpen.tsx`)
+- **Файлы:** `hardcodedPathAnalysis.ts`, `agentTools/core.ts`, `agentHandlersProjectSearch.ts`
+- **Действие:** regex + AST string literal scan; параметр `files[]`; **дефолтный список:**
+  `FilePreviewPanel.tsx`, `ChatHistoryPanel.tsx`, `TracePanel.tsx`, `TerminalPanel.tsx`, `OnboardingWizard.tsx`, `AutomationsTab.tsx`, `BehaviorTab.tsx`, `SkillsPanel.tsx`, `SelfImprovePanel.tsx`, `QueueContext.tsx`, `agentContext.ts`, `agentHandlersProject*.ts`, `modelRuntime.ts`, `commandRunner.ts`, `ipcContracts.ts`, `electron/main/index.ts`
+- **Проверка:** `npm test -- hardcodedPathAnalysis.test.ts`; `find_hardcoded_path_issues()` → отчёт с `path:line`
 
-**35 · S · Авто-обнаружение неправильных split-layout настроек** — уровень 3
-- **Цель:** проверка `ui-layout.json`
-- **Файлы:** `App.tsx`, `settings.ts`
-- **Действие:** tool `find_split_layout_issues`
-- **Проверка:** отчёт
+---
 
+## UI-фичи (49–56) — не tools, правки renderer/settings
 
-**36 · S · Авто-обнаружение неправильных quick-open результатов** — уровень 3
-- **Цель:** проверка fuzzy-поиска
-- **Файлы:** `QuickOpen.tsx`
-- **Действие:** tool `find_quick_open_issues`
-- **Проверка:** отчёт
-
-
-**37 · S · Авто-обнаружение неправильных code-editor настроек** — уровень 3
-- **Цель:** проверка CodeMirror
-- **Файлы:** `CodeEditorPanel.tsx`
-- **Действие:** tool `find_code_editor_issues`
-- **Проверка:** отчёт
-
-
-**38 · S · Авто-обнаружение неправильных MCP-серверов** — уровень 3
-- **Цель:** проверка MCP
-- **Файлы:** `IntegrationsTab.tsx`, `settings.ts`
-- **Действие:** tool `find_mcp_server_issues`
-- **Проверка:** отчёт
-
-
-**39 · S · Авто-обнаружение неправильных enabledTools** — уровень 3
-- **Цель:** проверка списка tools
-- **Файлы:** `agentTools/core.ts`, `settings.ts`
-- **Действие:** tool `find_enabled_tools_issues`
-- **Проверка:** отчёт
-
-
-**40 · S · Авто-обнаружение неправильных tool-описаний** — уровень 3
-- **Цель:** проверка descriptions
-- **Файлы:** `agentTools/*`
-- **Действие:** tool `find_tool_description_issues`
-- **Проверка:** отчёт
-
-
-**41 · S · Авто-обнаружение неправильных tool-параметров** — уровень 3
-- **Цель:** проверка параметров
-- **Файлы:** `agentTools/*`
-- **Действие:** tool `find_tool_param_issues`
-- **Проверка:** отчёт
-
-
-**42 · S · Авто-обнаружение неправильных tool-ошибок** — уровень 3
-- **Цель:** проверка ошибок
-- **Файлы:** `agentTools/*`
-- **Действие:** tool `find_tool_error_issues`
-- **Проверка:** отчёт
-
-
-**43 · S · Авто-обнаружение неправильных tool-fallbacks** — уровень 3
-- **Цель:** проверка fallback
-- **Файлы:** `agentTools/*`, `modelRuntime.ts`
-- **Действие:** tool `find_tool_fallback_issues`
-- **Проверка:** отчёт
-
-
-**44 · S · Авто-обнаружение неправильных switch-конструкций** — уровень 3
-- **Цель:** находить неполные switch
-- **Файлы:** `agentTools/core.ts`
-- **Действие:** tool `find_switch_issues`; анализ AST
-- **Проверка:** отчёт
-
-
-**45 · S · Авто-обнаружение неправильных throw-выражений** — уровень 3
-- **Цель:** проверка ошибок
-- **Файлы:** `agentTools/core.ts`
-- **Действие:** tool `find_throw_issues`
-- **Проверка:** отчёт
-
-
-**46 · S · Авто-обнаружение неправильных default-экспортов** — уровень 3
-- **Цель:** проверка default export
-- **Файлы:** `symbolIndex.ts`
-- **Действие:** tool `find_default_export_issues`
-- **Проверка:** отчёт
-
-
-**47 · S · Авто-обнаружение неправильных import-alias** — уровень 3
-- **Цель:** проверка alias
-- **Файлы:** `symbolIndex.ts`
-- **Действие:** tool `find_import_alias_issues`
-- **Проверка:** отчёт
-
-
-**48 · S · Авто-обнаружение неправильных путей в FilePreviewPanel** — уровень 3
-- **Цель:** проверка preview
-- **Файлы:** `FilePreviewPanel.tsx`
-- **Действие:** tool `find_file_preview_path_issues`
-- **Проверка:** отчёт
-
-
-**49 · S · Авто-обнаружение неправильных путей в ChatHistoryPanel** — уровень 3
-- **Цель:** проверка путей чатов
-- **Файлы:** `ChatHistoryPanel.tsx`
-- **Действие:** tool `find_chat_history_path_issues`
-- **Проверка:** отчёт
-
-
-**50 · S · Авто-обнаружение неправильных путей в TracePanel** — уровень 3
-- **Цель:** проверка trace
-- **Файлы:** `TracePanel.tsx`
-- **Действие:** tool `find_trace_panel_path_issues`
-- **Проверка:** отчёт
-
-
-**51 · S · Авто-обнаружение неправильных путей в TerminalPanel** — уровень 3
-- **Цель:** проверка терминала
-- **Файлы:** `TerminalPanel.tsx`
-- **Действие:** tool `find_terminal_panel_path_issues`
-- **Проверка:** отчёт
-
-
-**52 · S · Авто-обнаружение неправильных путей в OnboardingWizard** — уровень 3
-- **Цель:** проверка визарда
-- **Файлы:** `OnboardingWizard.tsx`
-- **Действие:** tool `find_onboarding_path_issues`
-- **Проверка:** отчёт
-
-
-**53 · S · Авто-обнаружение неправильных путей в AutomationsTab** — уровень 3
-- **Цель:** проверка автоматизаций
-- **Файлы:** `AutomationsTab.tsx`
-- **Действие:** tool `find_automations_tab_path_issues`
-- **Проверка:** отчёт
-
-
-**54 · S · Авто-обнаружение неправильных путей в BehaviorTab** — уровень 3
-- **Цель:** проверка поведения агента
-- **Файлы:** `BehaviorTab.tsx`
-- **Действие:** tool `find_behavior_tab_path_issues`
-- **Проверка:** отчёт
-
-
-**55 · S · Авто-обнаружение неправильных путей в SkillsPanel** — уровень 3
-- **Цель:** проверка skills
-- **Файлы:** `SkillsPanel.tsx`
-- **Действие:** tool `find_skills_panel_path_issues`
-- **Проверка:** отчёт
-
-
-**56 · S · Авто-обнаружение неправильных путей в SelfImprovePanel** — уровень 3
-- **Цель:** проверка самообучения
-- **Файлы:** `SelfImprovePanel.tsx`
-- **Действие:** tool `find_self_improve_panel_path_issues`
-- **Проверка:** отчёт
-
-
-**57 · S · Авто-обнаружение неправильных путей в QueueContext** — уровень 3
-- **Цель:** проверка очереди
-- **Файлы:** `QueueContext.tsx`
-- **Действие:** tool `find_queue_context_path_issues`
-- **Проверка:** отчёт
-
-
-**58 · S · Авто-обнаружение неправильных путей в agentContext** — уровень 3
-- **Цель:** проверка контекста
-- **Файлы:** `agentContext.ts`
-- **Действие:** tool `find_agent_context_path_issues`
-- **Проверка:** отчёт
-
-
-**59 · S · Авто-обнаружение неправильных путей в agentHandlersProject** — уровень 3
-- **Цель:** проверка handlers
-- **Файлы:** `agentHandlersProject/*`
-- **Действие:** tool `find_project_handlers_path_issues`
-- **Проверка:** отчёт
-
-
-**60 · S · Авто-обнаружение неправильных путей в modelRuntime** — уровень 3
-- **Цель:** проверка runtime
-- **Файлы:** `modelRuntime.ts`
-- **Действие:** tool `find_model_runtime_path_issues`
-- **Проверка:** отчёт
-
-
-**61 · S · Авто-обнаружение неправильных путей в commandRunner** — уровень 3
-- **Цель:** проверка команд
-- **Файлы:** `commandRunner.ts`
-- **Действие:** tool `find_command_runner_path_issues`
-- **Проверка:** отчёт
-
-
-**62 · S · Авто-обнаружение неправильных путей в ipcContracts** — уровень 3
-- **Цель:** проверка IPC схем
-- **Файлы:** `ipcContracts.ts`
-- **Действие:** tool `find_ipc_contracts_path_issues`
-- **Проверка:** отчёт
-
-
-**63 · S · Авто-обнаружение неправильных путей в main/index.ts** — уровень 3
-- **Цель:** проверка main
-- **Файлы:** `app/electron/main/index.ts`
-- **Действие:** tool `find_main_index_path_issues`
-- **Проверка:** отчёт
-
-
-**64 · S · Режим высокой контрастности** — уровень 4
+**49 · S · Режим высокой контрастности** — уровень 4
 - **Цель:** класс `high-contrast` на `:root` для слабовидящих
-- **Файлы:** `styles.css`, `PerformanceTab.tsx`, `settings.ts`
-- **Действие:** тумблер + контрастные CSS-переменные
-- **Проверка:** границы панелей и кнопок заметно контрастнее
+- **Файлы:** `styles.css`, `PerformanceTab.tsx`, `settings.ts`, `PersistedSettingsSchema`
+- **Действие:** тумблер `highContrastMode`; контрастные CSS-переменные для border/focus
+- **Проверка:** включить в Settings → границы панелей и кнопок заметно контрастнее в `.exe`
 
-
-**65 · S · Цвет папки чатов** — уровень 4
+**50 · S · Цвет папки чатов** — уровень 4
 - **Цель:** `ChatFolder.color?: string` — цветная полоска у заголовка папки
 - **Файлы:** `types.ts`, `chats.ts`, `ChatHistoryPanel.tsx`
-- **Действие:** picker в контекстном меню папки
-- **Проверка:** цвет виден и сохраняется
+- **Действие:** color picker в контекстном меню папки; persist в chat store
+- **Проверка:** цвет виден после reload
 
-
-**66 · S · Фильтр по тегам в SkillsPanel** — уровень 4
+**51 · S · Фильтр по тегам в SkillsPanel** — уровень 4
+- **Цель:** фильтрация skills по тегам из frontmatter SKILL.md
 - **Файлы:** `SkillsPanel.tsx`, `skills.ts`
-- **Действие:** теги из frontmatter SKILL.md
-- **Проверка:** фильтр по тегу работает
+- **Действие:** parse tags; UI chip filter
+- **Проверка:** фильтр по тегу сужает список
 
-
-**67 · S · Сохранение последнего benchmark** — уровень 4
+**52 · S · Сохранение последнего benchmark** — уровень 4
+- **Цель:** `lastBenchmark: BenchmarkResult` в settings после прогона
 - **Файлы:** `settings.ts`, `ModelTab.tsx`
-- **Действие:** `lastBenchmark: BenchmarkResult` после прогона
-- **Проверка:** результат виден после reopen settings
+- **Действие:** save on benchmark complete; show summary on reopen
+- **Проверка:** результат виден после reopen Settings
 
-
-**68 · S · Dependabot для npm** — уровень 4
+**53 · S · Dependabot для npm** — уровень 4
+- **Цель:** weekly Dependabot PR для `app/` и root
 - **Файлы:** `.github/dependabot.yml`
-- **Действие:** weekly `app/` и root
-- **Проверка:** файл валиден по schema dependabot
+- **Действие:** два package-ecosystem блока; labels `dependencies`
+- **Проверка:** YAML валиден (`gh api` / schema dependabot v2)
 
+**54 · S · Long paths на Windows** — уровень 4
+- **Цель:** документ + manifest для путей > 260 символов
+- **Файлы:** `app/package.json` (electron-builder), `docs/troubleshooting.md`
+- **Действие:** `longPathAware`/known issue; инструкция включить Win32 long paths
+- **Проверка:** fixture deep path открывается без ENOENT
 
-**69 · S · Long paths на Windows** — уровень 4
-- **Файлы:** `package.json` build manifest / `electron-builder`
-- **Действие:** `requestedExecutionLevel` + known issue doc
-- **Проверка:** проект с путём >260 символов открывается
-
-
-**70 · S · Авто-озвучка ошибок агента** — уровень 4
-- **Цель:** при ошибке прогона — краткое TTS-уведомление
-- **Файлы:** `useAgentStream.ts`, `settings.ts`
+**55 · S · Авто-озвучка ошибок агента** — уровень 4
+- **Цель:** TTS при ошибке прогона (опционально)
+- **Файлы:** `useAgentStream.ts`, `settings.ts`, `BehaviorTab.tsx`
 - **Действие:** тумблер `autoSpeakErrors`; `speechSynthesis` на `agent-stream` error
-- **Проверка:** при mock-ошибке слышен короткий сигнал/фраза
+- **Проверка:** mock-ошибка → короткая фраза при включённой настройке
 
-
-**71 · S · Авто-озвучка успешного завершения** — уровень 4
-- **Цель:** TTS «Готово» при `stop_reason` без ошибки
+**56 · S · Авто-озвучка успешного завершения** — уровень 4
+- **Цель:** TTS «Готово» при успешном `stop_reason`
 - **Файлы:** `useAgentStream.ts`, `AgentStatusBar.tsx`, `settings.ts`
-- **Действие:** тумблер `autoSpeakDone`; озвучка только если вкладка не в фокусе (опционально)
+- **Действие:** тумблер `autoSpeakDone`; не озвучивать если вкладка в фокусе (optional)
 - **Проверка:** успешный прогон → озвучка при включённой настройке
 
+---
 
-**72 · S · Авто-публикация Docker-образов** — уровень 4
-- **Цель:** tool `publish_docker_image` — push в registry
-- **Файлы:** `agentTools/integrations.ts`, `commandRunner.ts`
-- **Действие:** `docker push` после login; требует подтверждения в ask-mode
-- **Проверка:** mock: push вызывается с правильным tag
+## Tools генерации и деплоя (57–62)
 
+**57 · S · Tool `publish_docker_image`** — уровень 4
+- **Цель:** push образа в registry после `docker build`
+- **Файлы:** `dockerPublish.ts`, `agentTools/integrations.ts`, `commandRunner.ts`
+- **Действие:** `docker login` + `docker push`; **ask-mode** подтверждение; args: `tag`, `registry?`
+- **Проверка:** `npm test -- dockerPublish.test.ts` (mock exec); tool → URL/tag в чате
 
-**73 · S · Авто-деплой на Vercel/Netlify** — уровень 4
-- **Цель:** tool `deploy_vercel` / `deploy_netlify` через CLI или API
-- **Файлы:** `agentTools/integrations.ts`, `IntegrationsTab.tsx`
-- **Действие:** token в settings; preview vs production
-- **Проверка:** mock API → URL деплоя в ответе агента
+**58 · S · Tool `deploy_vercel` / `deploy_netlify`** — уровень 4
+- **Цель:** деплой через CLI/API; token из settings
+- **Файлы:** `deployHosting.ts`, `agentTools/integrations.ts`, `IntegrationsTab.tsx`
+- **Действие:** два tool или `provider` enum; preview vs production flag
+- **Проверка:** mock API → deployment URL в ответе агента
 
+**59 · S · Tool `generate_helm_chart`** — уровень 4
+- **Цель:** `charts/<name>/` — Chart.yaml + templates из Dockerfile/compose
+- **Файлы:** `helmChartGenerator.ts`, `agentTools/core.ts`, `agentHandlersProjectFile.ts`
+- **Действие:** шаблон deployment+service; write files; не push cluster
+- **Проверка:** `helm template charts/<name>` без ошибок на fixture
 
-**74 · S · Авто-генерация Helm-чартов** — уровень 4
-- **Цель:** tool `generate_helm_chart` — Chart.yaml + templates из Dockerfile/compose
-- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectFile.ts`
-- **Действие:** шаблон chart в `charts/<name>/`
-- **Проверка:** `helm template` на сгенерированном chart без ошибок
+**60 · S · Tool `generate_ansible_role`** — уровень 4
+- **Цель:** роль в `ansible/roles/<name>/` (tasks, handlers, templates)
+- **Файлы:** `ansibleRoleGenerator.ts`, `agentTools/core.ts`, `agentHandlersProjectFile.ts`
+- **Действие:** scaffold + tasks из package.json scripts
+- **Проверка:** `ansible-playbook --syntax-check` на сгенерированном playbook
 
+**61 · S · Tool `generate_github_actions`** — уровень 4
+- **Цель:** `.github/workflows/ci.yml` — typecheck + test + build из `package.json` scripts
+- **Файлы:** `githubActionsGenerator.ts`, `agentTools/integrations.ts`, `agentHandlersProjectFile.ts`
+- **Действие:** detect scripts; write workflow; idempotent skip if exists unless `force`
+- **Проверка:** YAML parse; steps match `npm run test` / `npm run build`
 
-**75 · S · Авто-генерация Ansible-ролей** — уровень 4
-- **Цель:** tool `generate_ansible_role` — tasks/handlers/templates
-- **Файлы:** `agentTools/core.ts`, `agentHandlersProjectFile.ts`
-- **Действие:** роль в `ansible/roles/<name>/`
-- **Проверка:** `ansible-playbook --syntax-check` на playbook
-
-
-**76 · S · Авто-генерация GitHub Actions** — уровень 4
-- **Цель:** tool `generate_github_actions` → `.github/workflows/ci.yml`
-- **Файлы:** `agentTools/integrations.ts`, `agentHandlersProjectFile.ts`
-- **Действие:** typecheck + test + build по обнаруженным скриптам package.json
-- **Проверка:** workflow YAML парсится; шаги совпадают с `npm run test`
-
-
-**77 · S · Авто-генерация GitLab CI** — уровень 4
-- **Цель:** tool `generate_gitlab_ci` → `.gitlab-ci.yml`
-- **Файлы:** `agentTools/integrations.ts`
-- **Действие:** stages build/test/deploy из шаблона
-- **Проверка:** fixture `.gitlab-ci.yml` проходит lint CI
+**62 · S · Tool `generate_gitlab_ci`** — уровень 4
+- **Цель:** `.gitlab-ci.yml` — stages build/test/deploy
+- **Файлы:** `gitlabCiGenerator.ts`, `agentTools/integrations.ts`
+- **Действие:** template по стеку (node/go/rust); write file
+- **Проверка:** GitLab CI lint API или local schema validate на fixture
