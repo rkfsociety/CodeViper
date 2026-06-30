@@ -1,6 +1,7 @@
 import { readFile, access, unlink, writeFile, readdir, stat } from 'fs/promises'
 import { extname, join, resolve } from 'path'
 import { tmpdir } from 'os'
+import ts from 'typescript'
 import { runScriptInSandbox, isDockerAvailable } from './scriptSandbox'
 import type { ToolHandlers } from './agentTools'
 import { runCommand } from './services'
@@ -71,6 +72,220 @@ function formatHeavyDependenciesOutput(
       return `[${index + 1}] ${entry.name} — ${sizeMb} MB\n    ${entry.path}`
     })
   ].join('\n')
+}
+
+type AriaIssue = {
+  file: string
+  line: number
+  column: number
+  rule: string
+  message: string
+}
+
+const VALID_ARIA_ATTRS = new Set([
+  'aria-activedescendant',
+  'aria-atomic',
+  'aria-autocomplete',
+  'aria-braillelabel',
+  'aria-brailleroledescription',
+  'aria-busy',
+  'aria-checked',
+  'aria-colcount',
+  'aria-colindex',
+  'aria-colindextext',
+  'aria-colspan',
+  'aria-controls',
+  'aria-current',
+  'aria-describedby',
+  'aria-description',
+  'aria-details',
+  'aria-disabled',
+  'aria-dropeffect',
+  'aria-errormessage',
+  'aria-expanded',
+  'aria-flowto',
+  'aria-grabbed',
+  'aria-haspopup',
+  'aria-hidden',
+  'aria-invalid',
+  'aria-keyshortcuts',
+  'aria-label',
+  'aria-labelledby',
+  'aria-level',
+  'aria-live',
+  'aria-modal',
+  'aria-multiline',
+  'aria-multiselectable',
+  'aria-orientation',
+  'aria-owns',
+  'aria-placeholder',
+  'aria-posinset',
+  'aria-pressed',
+  'aria-readonly',
+  'aria-relevant',
+  'aria-required',
+  'aria-roledescription',
+  'aria-rowcount',
+  'aria-rowindex',
+  'aria-rowindextext',
+  'aria-rowspan',
+  'aria-selected',
+  'aria-setsize',
+  'aria-sort',
+  'aria-valuemax',
+  'aria-valuemin',
+  'aria-valuenow',
+  'aria-valuetext'
+])
+
+const INTERACTIVE_TAGS = new Set(['button', 'a', 'input', 'textarea', 'select'])
+
+function getJsxName(node: ts.JsxOpeningLikeElement): string | null {
+  const tag = node.tagName
+  return ts.isIdentifier(tag) ? tag.text : null
+}
+
+function getAttribute(node: ts.JsxOpeningLikeElement, name: string): ts.JsxAttribute | undefined {
+  return node.attributes.properties.find(
+    (prop): prop is ts.JsxAttribute =>
+      ts.isJsxAttribute(prop) && ts.isIdentifier(prop.name) && prop.name.text === name
+  )
+}
+
+function getAttrText(attr?: ts.JsxAttribute): string | null {
+  if (!attr || !attr.initializer) return null
+  if (ts.isStringLiteral(attr.initializer)) return attr.initializer.text
+  if (
+    ts.isJsxExpression(attr.initializer) &&
+    attr.initializer.expression &&
+    ts.isStringLiteral(attr.initializer.expression)
+  ) {
+    return attr.initializer.expression.text
+  }
+  return null
+}
+
+function hasTextContent(node: ts.JsxElement | ts.JsxSelfClosingElement): boolean {
+  if (ts.isJsxSelfClosingElement(node)) return false
+  return node.children.some((child) => {
+    if (ts.isJsxText(child)) return child.getText().trim().length > 0
+    if (ts.isJsxExpression(child) && child.expression) {
+      return child.expression.getText().trim().length > 0
+    }
+    return false
+  })
+}
+
+function collectAriaIssuesForSource(filePath: string, sourceText: string): AriaIssue[] {
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  )
+  const issues: AriaIssue[] = []
+
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxSelfClosingElement(node) || ts.isJsxElement(node)) {
+      const opening = ts.isJsxElement(node) ? node.openingElement : node
+      const tag = getJsxName(opening)
+      if (tag) {
+        for (const prop of opening.attributes.properties) {
+          if (!ts.isJsxAttribute(prop)) continue
+          if (!ts.isIdentifier(prop.name)) continue
+          const name = prop.name.text
+          if (name.startsWith('aria-') && !VALID_ARIA_ATTRS.has(name)) {
+            const pos = sourceFile.getLineAndCharacterOfPosition(prop.name.getStart(sourceFile))
+            issues.push({
+              file: filePath,
+              line: pos.line + 1,
+              column: pos.character + 1,
+              rule: 'aria-invalid-attribute',
+              message: `Неизвестный aria-атрибут "${name}".`
+            })
+          }
+        }
+
+        const role = getAttrText(getAttribute(opening, 'role'))?.toLowerCase() ?? ''
+        const ariaLabel = getAttrText(getAttribute(opening, 'aria-label'))?.trim() ?? ''
+        const ariaLabelledBy = getAttrText(getAttribute(opening, 'aria-labelledby'))?.trim() ?? ''
+        const hasAccName = Boolean(ariaLabel || ariaLabelledBy || hasTextContent(node as any))
+
+        if (tag === 'img') {
+          const alt = getAttrText(getAttribute(opening, 'alt'))
+          if (alt == null) {
+            const pos = sourceFile.getLineAndCharacterOfPosition(
+              opening.tagName.getStart(sourceFile)
+            )
+            issues.push({
+              file: filePath,
+              line: pos.line + 1,
+              column: pos.character + 1,
+              rule: 'img-missing-alt',
+              message: 'У <img> отсутствует alt.'
+            })
+          }
+        }
+
+        if (INTERACTIVE_TAGS.has(tag) || role === 'button' || role === 'link') {
+          if (!hasAccName) {
+            const pos = sourceFile.getLineAndCharacterOfPosition(
+              opening.tagName.getStart(sourceFile)
+            )
+            issues.push({
+              file: filePath,
+              line: pos.line + 1,
+              column: pos.character + 1,
+              rule: 'interactive-missing-name',
+              message: `Интерактивный элемент <${tag}> без доступного имени.`
+            })
+          }
+        }
+
+        if (
+          (ariaLabel || ariaLabelledBy) &&
+          tag === 'div' &&
+          !(role === 'button' || role === 'link')
+        ) {
+          const pos = sourceFile.getLineAndCharacterOfPosition(opening.tagName.getStart(sourceFile))
+          issues.push({
+            file: filePath,
+            line: pos.line + 1,
+            column: pos.character + 1,
+            rule: 'aria-label-without-role',
+            message: 'aria-label/aria-labelledby использован на неинтерактивном элементе без role.'
+          })
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit)
+  }
+
+  visit(sourceFile)
+  return issues
+}
+
+function formatAriaIssuesOutput(issues: AriaIssue[]): string {
+  if (!issues.length) return 'Нарушений доступности не найдено.'
+  const byFile = new Map<string, AriaIssue[]>()
+  for (const issue of issues) {
+    const list = byFile.get(issue.file) ?? []
+    list.push(issue)
+    byFile.set(issue.file, list)
+  }
+  const parts: string[] = [`Найдено ${issues.length} проблем доступности:`]
+  let index = 1
+  for (const [file, fileIssues] of byFile) {
+    parts.push(`\n${file}`)
+    for (const issue of fileIssues) {
+      parts.push(
+        `[${index++}] L${issue.line}:C${issue.column}  ${issue.rule}\n    ${issue.message}`
+      )
+    }
+  }
+  return parts.join('\n')
 }
 
 async function getDirectorySize(rootPath: string): Promise<number> {
@@ -407,6 +622,29 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
         emitProgress('Анализ node_modules…', null)
         const packages = await findHeavyNodeModulesPackages(depsCwd)
         return formatHeavyDependenciesOutput(packages)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_aria_issues: async (args: any) => {
+      const scanPath = args.path ? resolve(projectPath, args.path) : projectPath
+      if (args.path) assertInsideProject(args.path, 'папка')
+
+      const targets =
+        Array.isArray(args.files) && args.files.length > 0
+          ? args.files
+          : ['app/src/components/MessageBody.tsx', 'app/src/App.tsx']
+
+      try {
+        emitProgress('Анализ JSX на aria-ошибки…', null)
+        const issues: AriaIssue[] = []
+        for (const rel of targets) {
+          const abs = resolve(scanPath, rel)
+          const text = await readFile(abs, 'utf8')
+          issues.push(...collectAriaIssuesForSource(abs, text))
+        }
+        return formatAriaIssuesOutput(issues)
       } finally {
         clearProgress()
       }

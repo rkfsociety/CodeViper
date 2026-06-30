@@ -42,6 +42,7 @@
 
 ### Агент и инструменты
 - Авто-обнаружение тяжёлых зависимостей в `node_modules`: список пакетов больше 1 MB в терминальном обработчике
+- Авто-обнаружение неправильных aria-атрибутов: JSX-анализ `MessageBody.tsx` и `App.tsx`
 - `planBeforeExecute` в settings: тумблер «Сначала показать план» в BehaviorTab; пауза после плана с кнопкой «Выполнить» в чате
 - `firstRunCompleted` в settings: флаг завершения onboarding (default `false`, визард выставит `true`)
 - Git: checkout, stash, commit, push; GitLab, Jira, Linear; ROADMAP-панель, slash-команды (`/lint`, `/build`), `disabledTools`

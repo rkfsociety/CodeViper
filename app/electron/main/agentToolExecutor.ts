@@ -70,6 +70,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'read_package_lock',
   'dependency_summary',
   'find_heavy_dependencies',
+  'find_aria_issues',
   'test_summary',
   'search_memory',
   'list_skills',

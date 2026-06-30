@@ -237,6 +237,7 @@ export interface ToolArgs {
   dependency_summary: { path?: string }
   test_summary: { path?: string }
   find_heavy_dependencies: { path?: string }
+  find_aria_issues: { path?: string; files?: string[] }
   search_memory: { query: string }
   forget: { id: string }
   file_search_summary: { query: string; path?: string }

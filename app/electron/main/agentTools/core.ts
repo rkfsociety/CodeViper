@@ -662,6 +662,29 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_aria_issues',
+      description:
+        'Проверить JSX на проблемы доступности: неизвестные aria-атрибуты, элементы без доступного имени, изображения без alt и подозрительные aria-label/aria-labelledby. Полезно для App.tsx и MessageBody.tsx.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Подпапка проекта для анализа (относительно корня проекта)'
+          },
+          files: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Список файлов для анализа (относительные пути)'
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'run_tests',
       description:
         'Запустить тесты проекта и вернуть структурированный результат: сколько прошло/упало, имена упавших тестов, стек ошибок. Авто-определяет runner (vitest/jest/pytest/cargo/go) по файлам проекта. Используй после правок, чтобы убедиться, что тесты проходят. При падениях — исправь код и вызови снова.',
