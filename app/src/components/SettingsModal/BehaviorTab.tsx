@@ -356,9 +356,9 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
               <span className={styles.thumb} />
             </span>
             <span className={styles.toggleContent}>
-              <span className={styles.title}>Автокоммит самоправок</span>
+              <span className={styles.title}>Автокоммит правок CodeViper</span>
               <span className={styles.desc}>
-                После самоулучшения — commit + push в ветку{' '}
+                После правок исходников CodeViper — commit + push в ветку{' '}
                 <code>{settings.selfImproveBranch?.trim() || 'agent/self-improve'}</code>, не в
                 master
               </span>
@@ -405,7 +405,7 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
           </label>
 
           <div style={{ marginTop: '0.75rem' }}>
-            <div className={styles.sectionLabel}>Ветка самоулучшения</div>
+            <div className={styles.sectionLabel}>Ветка правок CodeViper</div>
             <input
               type="text"
               className={styles.searchInput}
@@ -415,7 +415,7 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
               spellCheck={false}
             />
             <div className={styles.hint}>
-              Только <code>agent/*</code> — агент переключится в начале самоулучшения
+              Только <code>agent/*</code> — используется для автокоммита правок CodeViper
             </div>
           </div>
 
@@ -574,7 +574,7 @@ export function BehaviorTab({ isActive, isSearching, settings, onSettingsChange 
       <SettingItem
         tab="behavior"
         label="Разработка"
-        desc="путь исходники codeviper source root override самоулучшение"
+        desc="путь исходники codeviper source root override"
       >
         <div className={styles.section}>
           <div className={styles.sectionLabel}>Разработка</div>

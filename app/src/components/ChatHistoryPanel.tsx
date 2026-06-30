@@ -139,7 +139,7 @@ function getChatIcon(chat: SavedChat): string {
   if (title.includes('камер') || title.includes('sony') || title.includes('фото')) return '📷'
   if (title.includes('ремонт') || title.includes('болт') || title.includes('люстр')) return '🔧'
   if (title.includes('пример') || title.includes('агент') || title.includes('промпт')) return '🧠'
-  if (title.includes('roadmap') || title.includes('самоулучш')) return '🗺️'
+  if (title.includes('roadmap')) return '🗺️'
   if (title.includes('тест') || title.includes('bug') || title.includes('ошиб')) return '🐛'
   if (title.includes('документ') || title.includes('readme')) return '📄'
   return (chat.mode ?? 'code') === 'chat' ? '💬' : '💻'

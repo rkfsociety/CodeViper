@@ -152,7 +152,7 @@ export interface AgentSettings {
   autoVerifyAfterEdit?: boolean
   /** Подробные console-логи и полный tool I/O в agent-*.ndjson */
   debugAgent?: boolean
-  /** Ветка git для самоулучшения (по умолчанию agent/self-improve) */
+  /** Ветка git для автокоммита правок CodeViper (по умолчанию agent/self-improve) */
   selfImproveBranch?: string
   /** Синхронизировать глобальные знания в docs/collective/ViperMemory.md на GitHub */
   syncCollectiveMemory?: boolean

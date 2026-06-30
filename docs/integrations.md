@@ -18,7 +18,7 @@
 
 ## Самоулучшение
 
-Автоправки коммитятся в ветку `agent/self-improve` (настраивается в «Поведение → Автоматизация»), не в `master`. Задачи — [ROADMAP.md](../ROADMAP.md): пункт «N · …» + цель/файлы/действие/проверка; промпт `Выполни пункт N из ROADMAP.md — самоулучшение CodeViper`. Примеры — [example-prompts.md](example-prompts.md).
+Автоправки CodeViper коммитятся в ветку `agent/self-improve` (настраивается в «Поведение → Автоматизация»), не в `master`. Примеры сценариев — [example-prompts.md](example-prompts.md).
 
 ## Коллективная память
 

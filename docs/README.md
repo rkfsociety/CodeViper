@@ -6,7 +6,7 @@
 | Файл | Зачем в репо, а не в вики |
 |------|---------------------------|
 | [demos.md](demos.md) | GIF в `docs/media/` |
-| [example-prompts.md](example-prompts.md) | Промпты для копирования и самоулучшения |
+| [example-prompts.md](example-prompts.md) | Промпты для копирования |
 | [integrations.md](integrations.md) | MCP, P2P — дополнение к вики |
 | [tools-api.md](tools-api.md) | Справочник `AGENT_TOOL_NAMES` и схем из `app/electron/main/agentTools/` |
 | [codeviperignore.md](codeviperignore.md) | Паттерны игнора для `list_directory` |
@@ -15,6 +15,6 @@
 
 **В вики** (не дублировать в README): [Быстрый старт](https://github.com/rkfsociety/CodeViper/wiki/Быстрый-старт), [Провайдеры](https://github.com/rkfsociety/CodeViper/wiki/Провайдеры-моделей), [Инструменты](https://github.com/rkfsociety/CodeViper/wiki/Инструменты-агента), [Память](https://github.com/rkfsociety/CodeViper/wiki/Память-и-самообучение), [Архитектура](https://github.com/rkfsociety/CodeViper/wiki/Архитектура), [Разработка](https://github.com/rkfsociety/CodeViper/wiki/Разработка).
 
-Локальные копии (для офлайн / агента): `usage.md`, `models.md`, `architecture.md`, `self-improvement.md`, `development.md` — см. ссылки на вики в начале каждого файла.
+Локальные копии (для офлайн / агента): `usage.md`, `models.md`, `architecture.md`, `development.md` — см. ссылки на вики в начале каждого файла.
 
 Назад в [README](../README.md).

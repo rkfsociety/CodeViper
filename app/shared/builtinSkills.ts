@@ -5,7 +5,6 @@ export const BUILTIN_SKILL_IDS = [
   'viper-codebase',
   'viper-terminal',
   'viper-self-edit',
-  'viper-self-improvement',
   'viper-memory',
   'viper-model-training'
 ] as const

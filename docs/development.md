@@ -43,7 +43,7 @@ TEST_GGUF_PATH=/path/to/model.gguf npm test -- nodeLlama
 
 ### Что происходит при запуске `.exe`
 
-1. При старте (если включено **«Обновлять runtime с GitHub»** в Настройки → Поведение → Автоматизация): `git fetch origin master` и принудительный checkout `master` в `%APPDATA%/CodeViper/source` (локальные правки и ветка `agent/*` от самоулучшения сбрасываются — клон только для runtime).
+1. При старте (если включено **«Обновлять runtime с GitHub»** в Настройки → Поведение → Автоматизация): `git fetch origin master` и принудительный checkout `master` в `%APPDATA%/CodeViper/source` (локальные правки и ветка `agent/*` для автокоммита правок сбрасываются — клон только для runtime).
 2. При изменениях в `app/` — `npm install` (при необходимости) и `npm run build` в `source/app` (portable Node из оболочки).
 3. Баннер **«Перезапустить для применения»** — после перезапуска handlers и **renderer/preload** загружаются из `source/app/out/`, а не из asar.
 4. При ошибке pull/build — лог в `%APPDATA%/CodeViper/logs/`, работа продолжается из встроенного asar (fallback).

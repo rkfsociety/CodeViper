@@ -7,7 +7,6 @@ export const VIPER_FILES_SKILL_ID = 'viper-files'
 export const VIPER_CODEBASE_SKILL_ID = 'viper-codebase'
 export const VIPER_TERMINAL_SKILL_ID = 'viper-terminal'
 export const VIPER_SELF_EDIT_SKILL_ID = 'viper-self-edit'
-export const VIPER_SELF_IMPROVEMENT_SKILL_ID = 'viper-self-improvement'
 export const VIPER_MEMORY_SKILL_ID = 'viper-memory'
 export const VIPER_MODEL_TRAINING_SKILL_ID = 'viper-model-training'
 
@@ -43,7 +42,6 @@ ${BUILTIN_VERSION_TAG}
 | Память | \`remember\`, \`search_memory\`, \`forget\` |
 | Навыки | \`list_skills\`, \`read_skill\`, \`create_skill\`, \`update_skill\`, \`read_skill_data\`, \`write_skill_data\` |
 | CodeViper (свой код) | \`list_codeviper_directory\`, \`grep_codeviper_files\`, \`find_codeviper_files\`, \`read_codeviper_file\`, \`create_codeviper_file\`, \`edit_codeviper_file\`, \`write_codeviper_file\`, \`run_codeviper_command\` |
-| Самоулучшение | \`set_self_improvement_plan\`, \`complete_self_improvement_item\`, \`get_self_improvement_plan\` |
 | Модели Ollama | \`preview_ollama_modelfile\`, \`create_ollama_model\` |
 
 Подробности — навыки \`viper-files\`, \`viper-codebase\`, \`viper-terminal\`, \`viper-self-edit\`. Вызови \`read_skill(id)\` при необходимости.`
@@ -274,53 +272,6 @@ ${BUILTIN_VERSION_TAG}
 4. electron/main/* → нужен **перезапуск** приложения`
 }
 
-const VIPER_SELF_IMPROVEMENT_SKILL = {
-  id: VIPER_SELF_IMPROVEMENT_SKILL_ID,
-  name: 'Viper Self-Improvement',
-  description: 'Автономное самоулучшение до выполнения всех пунктов плана',
-  triggers: [
-    'самоулучш',
-    'изучи код и начни',
-    'улучшай себя',
-    'self-improve',
-    'self_improvement_plan',
-    'roadmap',
-    'дорожн'
-  ],
-  scope: 'global' as const,
-  instructions: `# Viper Self-Improvement
-
-${BUILTIN_VERSION_TAG}
-
-## ROADMAP.md
-Пункт «В планах»:
-\`\`\`
-N · [S/M/L/XL] · Название — приор. …
-- Цель: …
-- Файлы: app/…
-- Действие: …
-- Проверка: npm run typecheck; npm test -- … | UI-сценарий
-\`\`\`
-Промпт: «Выполни пункт N из ROADMAP.md — самоулучшение CodeViper».
-
-## Тесты app/tests/
-Импорты: \`../electron/main/...\`, \`../shared/...\`, \`../src/types\`. Не \`./modelRuntime\`.
-
-## Инструменты плана
-| Инструмент | Назначение |
-|---|---|
-| \`set_self_improvement_plan\` | Шаги из «Действие» + «Проверка» (3–8 item) |
-| \`complete_self_improvement_item\` | После реальной правки и проверки |
-| \`get_self_improvement_plan\` | Статус done/pending |
-
-## Workflow
-1. \`read_codeviper_file\` ROADMAP.md → пункт N; прочитать «Файлы»
-2. \`set_self_improvement_plan\` по полям пункта
-3. Правки → \`run_codeviper_command\`: \`npm run typecheck\` затем тесты из «Проверка» → \`complete_self_improvement_item\`
-4. Пункт удалить из ROADMAP.md; запись в ROADMAP_DONE.md («Сделано»); перенумеровать «В планах» с 1 (тот же коммит)
-5. В цепочке 🔗 не брать следующий номер, пока текущий не закрыт`
-}
-
 const VIPER_MEMORY_SKILL = {
   id: VIPER_MEMORY_SKILL_ID,
   name: 'Viper Memory',
@@ -402,7 +353,6 @@ const DEFAULT_SKILLS = [
   VIPER_CODEBASE_SKILL,
   VIPER_TERMINAL_SKILL,
   VIPER_SELF_EDIT_SKILL,
-  VIPER_SELF_IMPROVEMENT_SKILL,
   VIPER_MEMORY_SKILL,
   VIPER_MODEL_TRAINING_SKILL
 ]

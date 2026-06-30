@@ -17,7 +17,7 @@ CodeViper/
     │       ├── agentHandlersCodeViper.ts       # саморедактирование
     │       ├── agentHandlersMemory.ts          # remember / search_memory / forget
     │       ├── agentHandlersSkills.ts          # CRUD навыков
-    │       ├── agentHandlersSelfImprovement.ts # план самоулучшения
+    │       ├── agentHandlersSelfImprovement.ts # roadmap/self-edit handlers
     │       ├── agentHandlersModels.ts          # обучение моделей Ollama
     │       └── agentLogger.ts                  # NDJSON-лог шагов
     └── src/

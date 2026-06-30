@@ -334,15 +334,6 @@ export function useAgentStream({
         onLearningSavedRef.current?.()
       }
 
-      if (event.type === 'self_improve_plan') {
-        appendMessageRef.current({
-          id: makeId(),
-          role: 'system',
-          content: event.content ?? '',
-          timestamp: Date.now()
-        })
-      }
-
       if (event.type === 'todo_update') {
         setTodoItemsRef?.current?.(event.todoItems ?? null, event.content)
       }
