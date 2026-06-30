@@ -1,4 +1,5 @@
 import { RECOMMENDED_MODELS, isToolCallingModel, type RamTier } from './recommendedModels'
+import { isSelfImprovementTask } from './selfImprovement'
 import { taskLikelyNeedsMutation, taskLikelyNeedsTools } from './actionVerification'
 
 export interface InstalledModelInfo {
@@ -57,7 +58,10 @@ export function analyzeTask(userMessage: string): TaskAnalysis {
     return { difficulty: 20, needsCoder: false, needsReasoning: false, label: 'пустой запрос' }
   }
 
-  if (taskLikelyNeedsMutation(text)) {
+  if (isSelfImprovementTask(text)) {
+    difficulty = 92
+    label = 'автономное самоулучшение'
+  } else if (taskLikelyNeedsMutation(text)) {
     difficulty += 38
     label = 'изменение кода или файлов'
   } else if (taskLikelyNeedsTools(text)) {
@@ -88,7 +92,9 @@ export function analyzeTask(userMessage: string): TaskAnalysis {
     ) || difficulty >= 45
 
   const needsReasoning =
-    /(?:план|стратег|почему|root cause|reason|рассужд|think)/iu.test(text) || difficulty >= 75
+    isSelfImprovementTask(text) ||
+    /(?:план|стратег|почему|root cause|reason|рассужд|think)/iu.test(text) ||
+    difficulty >= 75
 
   return {
     difficulty: clamp(difficulty, 5, 100),
