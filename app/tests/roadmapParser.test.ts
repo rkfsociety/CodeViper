@@ -26,7 +26,7 @@ describe('roadmapParser', () => {
     const items = await listRoadmapItems()
     expect(items.length).toBeGreaterThan(500)
     expect(items[0]?.num).toBe(1)
-    expect(items[0]?.title).toMatch(/skip link|содержимому/i)
+    expect(items[0]?.title).toMatch(/экспорт метрик|csv/i)
   })
 
   it('formatRoadmapItemsList выводит num · title · chain', async () => {
@@ -52,8 +52,7 @@ describe('roadmapParser', () => {
     expect(text).toContain('Файлы:')
     expect(text).toContain('Действие:')
     expect(text).toContain('Проверка:')
-    expect(text).toContain('App.tsx')
-    expect(text).toContain('styles.css')
+    expect(text).toContain('MetricsPanel.tsx')
   })
 
   it('resolveRoadmapFileHints разрешает короткие имена из ROADMAP', () => {

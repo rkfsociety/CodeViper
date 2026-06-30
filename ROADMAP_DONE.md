@@ -69,6 +69,7 @@
 - Подтверждение внешних `http(s)`-ссылок из `MessageBody`: перед `openExternal` показывается `ConfirmDialog`
 - Разделены описания PR-инструментов: `create_pr` явно для проекта пользователя, `create_codeviper_pr` явно для исходников CodeViper
 - Добавлен `docs/troubleshooting.md`: GPUCache, чёрный экран, плагины и portable Node; README ссылается на troubleshooting
+- `docs/plugin-authoring.md`: гайд автора плагина (схема tool, пример `.js`, hot-reload, ограничения); ссылка в README
 - OnboardingWizard: 3-шаговая модалка (провайдер → модель → открыть проект) при `!firstRunCompleted`; «Пропустить» завершает onboarding; шаг 3 — кнопка «Примеры запросов» → `docs/example-prompts.md` на GitHub
 - Недавние проекты: `recentProjects` в settings (до 10), WelcomePanel и меню «Открыть»
 - Ctrl+` — показать/скрыть встроенный терминал
@@ -86,6 +87,7 @@
 - Vision-ввод; ErrorBoundary; prompt templates; tray; UpdateBanner; уведомления и звук по завершении агента; toast при ожидании подтверждения (preview/danger/диалог), если окно не в фокусе
 - Коллективная память: рейтинг, AgentLearningPanel, шаблоны чатов, SelfImprovePlanPanel, `.codeviper/rules.md`
 - Очередь сообщений в AgentStatusBar: кнопка ✕ удаляет pending run без остановки остальных
+- Skip link «К содержимому»: скрытая ссылка в начале App → `#main-chat`, видна при `:focus`, фокус в поле ввода чата
 
 ### P2P и интеграции
 - `server/p2p`: Fastify, auth, router, TLS, кредиты, согласие в UI, тумблер «Поделиться мощностью»
