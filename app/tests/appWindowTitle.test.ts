@@ -13,15 +13,11 @@ vi.mock('electron', () => ({
   }
 }))
 
-vi.mock('../electron/main/runtimeBootstrap', () => ({
-  isBundledRuntimeFromClone: vi.fn(() => false)
-}))
-
 vi.mock('../electron/main/codeviperSource', () => ({
   getCodeViperSourceRoot: () => noGitAppRoot
 }))
 
-import { isBundledRuntimeFromClone } from '../electron/main/runtimeBootstrap'
+import { setBundledRuntimeFromClone } from '../electron/main/runtimeSourceState'
 import { getAppCommitShort, getAppWindowTitle } from '../electron/main/appWindowTitle'
 import { writeRuntimeBuildHead } from '../electron/main/bundledSourceBuild'
 
@@ -32,12 +28,13 @@ function writeGitHead(repoRoot: string, hash: string): void {
 
 describe('appWindowTitle', () => {
   beforeEach(() => {
-    vi.mocked(isBundledRuntimeFromClone).mockReturnValue(false)
+    setBundledRuntimeFromClone(false)
     rmSync(join(userDataDir, 'source'), { recursive: true, force: true })
     mkdirSync(noGitAppRoot, { recursive: true })
   })
 
   afterEach(() => {
+    setBundledRuntimeFromClone(false)
     rmSync(join(userDataDir, 'source'), { recursive: true, force: true })
     rmSync(noGitAppRoot, { recursive: true, force: true })
   })
@@ -48,7 +45,7 @@ describe('appWindowTitle', () => {
   })
 
   it('getAppCommitShort читает HEAD из клона при live runtime', async () => {
-    vi.mocked(isBundledRuntimeFromClone).mockReturnValue(true)
+    setBundledRuntimeFromClone(true)
     const cloneRoot = join(userDataDir, 'source')
     writeGitHead(cloneRoot, 'abcdef1234567890')
 
@@ -57,7 +54,7 @@ describe('appWindowTitle', () => {
   })
 
   it('getAppCommitShort для live runtime предпочитает маркер сборки', async () => {
-    vi.mocked(isBundledRuntimeFromClone).mockReturnValue(true)
+    setBundledRuntimeFromClone(true)
     const appRoot = join(userDataDir, 'source', 'app')
     const cloneRoot = join(userDataDir, 'source')
     mkdirSync(join(appRoot, 'out'), { recursive: true })

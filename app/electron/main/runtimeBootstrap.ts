@@ -11,6 +11,7 @@ import { getCodeViperSourceRoot, setSourceRootOverride } from './codeviperSource
 import { getBundledSourceAppRoot } from './bundledSourcePaths'
 import type { AgentSettings } from '../../src/types'
 import type { ToolHandlers } from './agentTools'
+import * as asarHandlerFactories from './runtimeHandlers'
 import {
   isBundledRuntimeFromClone as readBundledRuntimeFromClone,
   setBundledRuntimeFromClone
@@ -360,7 +361,6 @@ export async function initBundledRuntimeFromSettings(settings: AgentSettings): P
 }
 function loadAsarHandlerFactories(): AgentHandlerFactories {
   if (cachedAsarFactories) return cachedAsarFactories
-  const requireFn = Function('return require')() as (id: string) => unknown
-  cachedAsarFactories = requireFn('./runtimeHandlers') as AgentHandlerFactories
+  cachedAsarFactories = asarHandlerFactories
   return cachedAsarFactories
 }

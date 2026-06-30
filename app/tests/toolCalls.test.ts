@@ -56,10 +56,12 @@ describe('extractEmbeddedToolCalls', () => {
 
   it('парсит JSON tool call после prose (qwen text-based)', () => {
     const raw =
-      'Для начала выполню `read_roadmap_item` number=1 для получения деталей задания.\n\n{"name": "read_roadmap_item", "arguments": {"number": 1}}'
+      'Сначала прочитаю agent.ts.\n\n{"name": "read_codeviper_file", "arguments": {"path": "app/electron/main/agent.ts"}}'
     expect(extractEmbeddedToolCalls(raw)).toEqual({
-      content: 'Для начала выполню `read_roadmap_item` number=1 для получения деталей задания.',
-      toolCalls: [{ name: 'read_roadmap_item', arguments: { number: 1 } }]
+      content: 'Сначала прочитаю agent.ts.',
+      toolCalls: [
+        { name: 'read_codeviper_file', arguments: { path: 'app/electron/main/agent.ts' } }
+      ]
     })
   })
 

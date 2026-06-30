@@ -143,18 +143,23 @@ export async function findRoadmapDoneMatch(searchText: string): Promise<string |
   return bestLine
 }
 
-function parseRoadmapItems(content: string): RoadmapItem[] {
+function isSplitRoadmapLayout(): boolean {
+  return resolveRoadmapDirectory() !== null
+}
+
+function parseRoadmapItems(content: string, options?: { splitFormat?: boolean }): RoadmapItem[] {
+  const splitFormat = options?.splitFormat ?? false
   const lines = normalizeRoadmapLines(content)
   const items: RoadmapItem[] = []
-  let inPlans = false
+  let inPlans = splitFormat
   let currentChain = 'Независимые'
 
   for (const line of lines) {
-    if (line.startsWith('## ')) {
+    if (!splitFormat && line.startsWith('## ')) {
       inPlans = true
       continue
     }
-    if (inPlans && line.startsWith('## ') && !line.startsWith('###')) {
+    if (!splitFormat && inPlans && line.startsWith('## ') && !line.startsWith('###')) {
       break
     }
     if (!inPlans) continue
@@ -240,8 +245,9 @@ function scoreRoadmapItem(item: RoadmapItem): PrioritizedRoadmapItem {
 export async function listRoadmapItems(): Promise<RoadmapItem[]> {
   const files = await resolveRoadmapFiles()
   if (files.length === 0) return []
+  const splitFormat = isSplitRoadmapLayout()
   const contents = await Promise.all(files.map((path) => readFile(path, 'utf-8')))
-  return contents.flatMap((content) => parseRoadmapItems(content))
+  return contents.flatMap((content) => parseRoadmapItems(content, { splitFormat }))
 }
 
 export async function prioritizeRoadmapItems(limit = 10): Promise<PrioritizedRoadmapItem[]> {
@@ -275,12 +281,13 @@ export function formatPrioritizedRoadmapItemsList(items: PrioritizedRoadmapItem[
 
 export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | null> {
   const files = await resolveRoadmapFiles()
+  const splitFormat = isSplitRoadmapLayout()
   for (const roadmapPath of files) {
     const content = await readFile(roadmapPath, 'utf-8')
     const lines = normalizeRoadmapLines(content)
 
-    let inPlans = false
-    let currentChain = '???????????'
+    let inPlans = splitFormat
+    let currentChain = 'Независимые'
     let current: Partial<RoadmapItemDetail> | null = null
 
     const finishIfMatch = (): RoadmapItemDetail | null => {
@@ -289,11 +296,11 @@ export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | 
     }
 
     for (const line of lines) {
-      if (line.startsWith('## ')) {
+      if (!splitFormat && line.startsWith('## ')) {
         inPlans = true
         continue
       }
-      if (inPlans && line.startsWith('## ') && !line.startsWith('###')) {
+      if (!splitFormat && inPlans && line.startsWith('## ') && !line.startsWith('###')) {
         break
       }
       if (!inPlans) continue

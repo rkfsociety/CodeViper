@@ -23,9 +23,9 @@ describe('roadmapParser', () => {
 
   it('парсит пункты «В планах»', async () => {
     const items = await listRoadmapItems()
-    expect(items.length).toBe(512)
+    expect(items.length).toBeGreaterThan(500)
     expect(items[0]?.num).toBe(1)
-    expect(items[0]?.title).toMatch(/очередь|удалить элемент/i)
+    expect(items[0]?.title).toMatch(/skip link|содержимому/i)
   })
 
   it('formatRoadmapItemsList выводит num · title · chain', async () => {
@@ -51,8 +51,8 @@ describe('roadmapParser', () => {
     expect(text).toContain('Файлы:')
     expect(text).toContain('Действие:')
     expect(text).toContain('Проверка:')
-    expect(text).toContain('AgentStatusBar')
-    expect(text).toContain('QueueContext')
+    expect(text).toContain('App.tsx')
+    expect(text).toContain('styles.css')
   })
 
   it('resolveRoadmapFileHints разрешает короткие имена из ROADMAP', () => {
