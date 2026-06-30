@@ -37,6 +37,7 @@
 - IPC → 9 модулей `register*Ipc`; `agentTools` → core/integrations/mcp; `agentHandlersProject` → file/search/terminal
 - `SettingsModal` → 6 вкладок; `ChatPanel/` подкомпоненты; `commandRunner` выделен из `services.ts`
 - Провайдеры Claude/Gemini → `StreamingChatProvider`; агент на 6 модулей; параллельные tool calls; LRU-кэши
+- Разбиение ROADMAP на смысловые подфайлы с лимитом до 50 пунктов в каждом (`ROADMAP/11-*.md` … `ROADMAP/31-*.md`) и короткие индексные файлы по разделам
 
 ### Агент и инструменты
 - `planBeforeExecute` в settings: тумблер «Сначала показать план» в BehaviorTab; пауза после плана с кнопкой «Выполнить» в чате
@@ -84,6 +85,7 @@
 - Горячие клавиши: Esc — стоп агента; Ctrl+Shift+N — новый чат; Ctrl+B — дерево файлов (модалка `?`)
 - Vision-ввод; ErrorBoundary; prompt templates; tray; UpdateBanner; уведомления и звук по завершении агента; toast при ожидании подтверждения (preview/danger/диалог), если окно не в фокусе
 - Коллективная память: рейтинг, AgentLearningPanel, шаблоны чатов, SelfImprovePlanPanel, `.codeviper/rules.md`
+- Очередь сообщений в AgentStatusBar: кнопка ✕ удаляет pending run без остановки остальных
 
 ### P2P и интеграции
 - `server/p2p`: Fastify, auth, router, TLS, кредиты, согласие в UI, тумблер «Поделиться мощностью»
@@ -95,6 +97,7 @@
 - NSIS + POSIX `CodeViper.sh`; CONTRIBUTING, issue/PR templates; `.codeviperignore`
 - `debugAgent`; удалён deprecated `cloudApiKey`; `list_directory` резолвит path от корня проекта
 - CI unit tests: ESM `runtimeHandlers` вместо `Function('return require')`, парсер split `ROADMAP/*.md`, `runtimeSourceState` в тестах `appWindowTitle`
+- E2E CI: `require('electron')` для пути к бинарнику, `electron/install.js` после `npm ci`
 
 ### Надёжность и безопасность
 - Per-step timeout; Ollama fallback при circuit open; лимит буфера `runCommand` (10 МБ)
@@ -103,7 +106,3 @@
 - `check_cve`: проверка уязвимостей через NVD и OSV API (отчёт в чате)
 - Авто-архивация выполненных пунктов ROADMAP: `complete_self_improvement_item` теперь переносит блок в ROADMAP_DONE.md
 - `prioritize_roadmap_items` — приоритизация задач ROADMAP по пользе и риску для self-improvement и UI
-
-- Очередь сообщений в AgentStatusBar: кнопка ✕ удаляет pending run без остановки остальных
-
-- Разбиение ROADMAP на смысловые подфайлы с лимитом до 50 пунктов в каждом (`ROADMAP/11-*.md` ... `ROADMAP/31-*.md`) и короткие индексные файлы по разделам

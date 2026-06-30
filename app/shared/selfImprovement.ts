@@ -970,7 +970,7 @@ export function looksLikeSelfImproveTextPlan(assistantText: string): boolean {
 
 export { pickToolVerificationNudge }
 
-export const ROADMAP_DOCS_NOT_UPDATED_NUDGE = `Код и тесты готовы, но ROADMAP.md / ROADMAP_DONE.md / README.md не обновлены. edit_codeviper_file: удалить выполненный пункт из ROADMAP.md, перенумеровать с 1, запись в ROADMAP_DONE.md («Сделано»), счётчик в README — затем commit_and_push_self_edits.`
+export const ROADMAP_DOCS_NOT_UPDATED_NUDGE = `Код и тесты готовы, но ROADMAP.md / ROADMAP_DONE.md / README.md не обновлены. edit_codeviper_file: удалить выполненный пункт из ROADMAP.md, перенумеровать с 1; в ROADMAP_DONE.md — одна строка «- Название: краткое описание» в «Сделано» (не полный шаблон Цель/Файлы); README — счётчик задач — затем commit_and_push_self_edits.`
 
 export function buildSelfImprovementContinueNudge(
   plan: SelfImprovementItem[],

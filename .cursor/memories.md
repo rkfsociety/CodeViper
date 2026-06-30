@@ -17,3 +17,7 @@
 - Главный файл: `app/tests/roadmapParser.test.ts` — число пунктов (`512`), заголовок пункта 1, строки в `formatRoadmapItemDetail` (`AgentStatusBar`, не `subagentRunner`).  
 - Сверять с шапкой ROADMAP (`пункты 1…N`) и счётчиком в `README.md` (`N задач`).  
 - Перед коммитом ROADMAP: `npm run test -- tests/roadmapParser.test.ts` (из `app/`).
+
+**2026-06-30 · ROADMAP_DONE — формат записи (appendRoadmapDoneItem)**  
+- `complete_self_improvement_item` пишет в `ROADMAP_DONE.md` через `formatRoadmapDoneEntry`: **одна строка** `- Название: цель`, не `formatRoadmapItemDetail` (полный шаблон Цель/Файлы/Действие).  
+- Дубликаты по заголовку не дописываются повторно.

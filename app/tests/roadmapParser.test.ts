@@ -7,11 +7,12 @@ vi.mock('electron', () => ({
 }))
 
 import {
-  listRoadmapItems,
-  resolveRoadmapPath,
   formatRoadmapItemsList,
-  readRoadmapItem,
   formatRoadmapItemDetail,
+  formatRoadmapDoneEntry,
+  listRoadmapItems,
+  readRoadmapItem,
+  resolveRoadmapPath,
   resolveRoadmapFileHints
 } from '../electron/main/roadmapParser'
 import { getCodeViperSourceRoot } from '../electron/main/codeviperSource'
@@ -77,5 +78,14 @@ describe('roadmapParser', () => {
 
   it('readRoadmapItem возвращает null для несуществующего номера', async () => {
     expect(await readRoadmapItem(999_999)).toBeNull()
+  })
+
+  it('formatRoadmapDoneEntry — одна строка «Сделано», не полный шаблон ROADMAP', async () => {
+    const item = await readRoadmapItem(1)
+    expect(item).not.toBeNull()
+    const entry = formatRoadmapDoneEntry(item!)
+    expect(entry).toMatch(/^- .+: .+/)
+    expect(entry).not.toContain('Цель:')
+    expect(entry).not.toContain('Пункт 1 ·')
   })
 })

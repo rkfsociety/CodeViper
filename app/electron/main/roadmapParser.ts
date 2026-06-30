@@ -342,15 +342,31 @@ export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | 
   return null
 }
 
+export function formatRoadmapDoneEntry(item: RoadmapItemDetail): string {
+  const summary = (item.goal || item.action || item.verification).trim()
+  return summary ? `- ${item.title}: ${summary}` : `- ${item.title}`
+}
+
 export async function appendRoadmapDoneItem(item: RoadmapItemDetail): Promise<void> {
   const donePath = resolveRoadmapDonePath()
   if (!donePath) {
     throw new Error('ROADMAP_DONE.md не найден')
   }
-  const entry = `${formatRoadmapItemDetail(item)}\n`
-  const prefix = (await readFile(donePath, 'utf-8')).trimEnd()
-  const separator = prefix.length > 0 ? '\n\n' : ''
-  await appendFile(donePath, `${separator}${entry}`, 'utf-8')
+  const entry = formatRoadmapDoneEntry(item)
+  const existing = await readFile(donePath, 'utf-8')
+  if (
+    existing.includes(entry) ||
+    new RegExp(`^- ${escapeRegExp(item.title)}:`, 'm').test(existing)
+  ) {
+    return
+  }
+  const prefix = existing.trimEnd()
+  const separator = prefix.length > 0 ? '\n' : ''
+  await appendFile(donePath, `${separator}${entry}\n`, 'utf-8')
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 const ROADMAP_PATH_ALIASES: Record<string, string[]> = {
