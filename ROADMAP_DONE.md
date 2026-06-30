@@ -94,6 +94,7 @@
 - E2E windows/ubuntu/macos; coverage thresholds; `npm audit` в CI; TypeDoc + GitHub Pages
 - NSIS + POSIX `CodeViper.sh`; CONTRIBUTING, issue/PR templates; `.codeviperignore`
 - `debugAgent`; удалён deprecated `cloudApiKey`; `list_directory` резолвит path от корня проекта
+- CI unit tests: ESM `runtimeHandlers` вместо `Function('return require')`, парсер split `ROADMAP/*.md`, `runtimeSourceState` в тестах `appWindowTitle`
 
 ### Надёжность и безопасность
 - Per-step timeout; Ollama fallback при circuit open; лимит буфера `runCommand` (10 МБ)
