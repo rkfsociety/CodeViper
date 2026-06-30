@@ -39,12 +39,6 @@ const APP_SHELL_TIMEOUT_MS = process.env.CI ? 45_000 : 20_000
 /** Ждём preload-мост и React-оболочку. */
 export async function waitForAppShell(page: Page): Promise<void> {
   await page.waitForLoadState('load', { timeout: APP_SHELL_TIMEOUT_MS }).catch(() => {})
-  await page.waitForFunction(
-    () => typeof window.codeviper === 'object' && window.codeviper != null,
-    {
-      timeout: APP_SHELL_TIMEOUT_MS
-    }
-  )
   await page.locator('body').waitFor({ state: 'visible', timeout: APP_SHELL_TIMEOUT_MS })
   await page.locator('.logo, .panel-history, .panel-main').first().waitFor({
     state: 'visible',
