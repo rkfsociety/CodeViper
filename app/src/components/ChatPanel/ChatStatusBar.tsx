@@ -9,7 +9,6 @@ import { AgentStatusBar } from '../AgentStatusBar'
 import { TodoPanel } from '../TodoPanel'
 import { AgentLearningPanel } from '../AgentLearningPanel'
 import { ProjectRulesPanel } from '../ProjectRulesPanel'
-import { RoadmapPickerPanel } from '../RoadmapPickerPanel'
 import { QuickPromptBar } from '../QuickPromptBar'
 import { RunRollbackButton } from '../RunRollbackButton'
 import type { ClipboardImage, DroppedFile } from './ChatInput'
@@ -37,7 +36,6 @@ interface Props {
   todoTitle: string | undefined
   showLearningPanel: boolean
   showRulesPanel: boolean
-  showRoadmapPanel: boolean
   showQuickBar: boolean
   modelPickerOpen: boolean
   modelPickerRef: React.RefObject<HTMLDivElement | null>
@@ -74,7 +72,6 @@ interface Props {
   onSetTodoItems: (items: TodoItem[] | null) => void
   onSetShowLearning: (v: boolean) => void
   onSetShowRules: (v: boolean) => void
-  onSetShowRoadmap: (v: boolean) => void
   onSetShowQuickBar: (v: boolean) => void
   onSetModelPickerOpen: (v: boolean) => void
   onSetContextPopoverOpen: (v: boolean) => void
@@ -106,7 +103,6 @@ export function ChatStatusBar({
   todoTitle,
   showLearningPanel,
   showRulesPanel,
-  showRoadmapPanel,
   showQuickBar,
   modelPickerOpen,
   modelPickerRef,
@@ -141,7 +137,6 @@ export function ChatStatusBar({
   onSetTodoItems,
   onSetShowLearning,
   onSetShowRules,
-  onSetShowRoadmap,
   onSetShowQuickBar,
   onSetModelPickerOpen,
   onSetContextPopoverOpen,
@@ -180,16 +175,6 @@ export function ChatStatusBar({
 
       {showRulesPanel && projectPath && (
         <ProjectRulesPanel projectPath={projectPath} onClose={() => onSetShowRules(false)} />
-      )}
-
-      {showRoadmapPanel && chatId && projectPath && (
-        <RoadmapPickerPanel
-          onSelect={(prompt) => {
-            onInsertPrompt(prompt)
-            onSetShowRoadmap(false)
-          }}
-          onClose={() => onSetShowRoadmap(false)}
-        />
       )}
 
       {showQuickBar && chatId && projectPath && (
@@ -279,7 +264,6 @@ export function ChatStatusBar({
           displayModels={displayModels}
           showLearningPanel={showLearningPanel}
           showRulesPanel={showRulesPanel}
-          showRoadmapPanel={showRoadmapPanel}
           showQuickBar={showQuickBar}
           modelPickerOpen={modelPickerOpen}
           modelPickerRef={modelPickerRef}
@@ -291,7 +275,6 @@ export function ChatStatusBar({
           projectLocked={projectLocked}
           onSetShowLearning={onSetShowLearning}
           onSetShowRules={onSetShowRules}
-          onSetShowRoadmap={onSetShowRoadmap}
           onSetShowQuickBar={onSetShowQuickBar}
           onSetModelPickerOpen={onSetModelPickerOpen}
           onSetContextPopoverOpen={onSetContextPopoverOpen}

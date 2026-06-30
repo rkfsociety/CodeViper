@@ -69,18 +69,6 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     trigger: 'refactor',
     description: 'Отрефакторить — улучшить читаемость',
     expand: () => 'Отрефактори код: улучши читаемость и структуру без изменения поведения.'
-  },
-  {
-    trigger: 'roadmap',
-    description: 'Выполнить пункт ROADMAP',
-    hasArg: true,
-    argHint: 'N',
-    expand: (arg?: string) => {
-      const n = arg?.trim()
-      return n
-        ? `Выполни пункт ${n} из ROADMAP.md — самоулучшение CodeViper.`
-        : `Выполни следующий пункт из ROADMAP.md — самоулучшение CodeViper.`
-    }
   }
 ]
 

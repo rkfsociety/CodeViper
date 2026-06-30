@@ -151,7 +151,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [indexingProgress, setIndexingProgress] = useState<ProgressInfo | null>(null)
   const [p2pCredits, setP2pCredits] = useState<number | null>(null)
   const [slashMenuIndex, setSlashMenuIndex] = useState(0)
-  const [showRoadmapPanel, setShowRoadmapPanel] = useState(false)
   const setTodoItemsRef = useRef<((items: TodoItem[] | null, title?: string) => void) | undefined>(
     undefined
   )
@@ -1062,7 +1061,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         todoTitle={todoTitle}
         showLearningPanel={showLearningPanel}
         showRulesPanel={showRulesPanel}
-        showRoadmapPanel={showRoadmapPanel}
         showQuickBar={showQuickBar}
         modelPickerOpen={modelPickerOpen}
         modelPickerRef={modelPickerRef}
@@ -1097,7 +1095,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onSetTodoItems={setTodoItems}
         onSetShowLearning={setShowLearningPanel}
         onSetShowRules={setShowRulesPanel}
-        onSetShowRoadmap={setShowRoadmapPanel}
         onSetShowQuickBar={setShowQuickBar}
         onSetModelPickerOpen={setModelPickerOpen}
         onSetContextPopoverOpen={setContextPopoverOpen}

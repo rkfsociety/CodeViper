@@ -15,7 +15,6 @@ interface Props {
   displayModels: OllamaModel[]
   showLearningPanel: boolean
   showRulesPanel: boolean
-  showRoadmapPanel: boolean
   showQuickBar: boolean
   modelPickerOpen: boolean
   modelPickerRef: React.RefObject<HTMLDivElement | null>
@@ -27,7 +26,6 @@ interface Props {
   projectLocked: boolean
   onSetShowLearning: (v: boolean) => void
   onSetShowRules: (v: boolean) => void
-  onSetShowRoadmap: (v: boolean) => void
   onSetShowQuickBar: (v: boolean) => void
   onSetModelPickerOpen: (v: boolean) => void
   onSetContextPopoverOpen: (v: boolean) => void
@@ -54,7 +52,6 @@ export function ChatInputMeta({
   displayModels,
   showLearningPanel,
   showRulesPanel,
-  showRoadmapPanel,
   showQuickBar,
   modelPickerOpen,
   modelPickerRef,
@@ -66,7 +63,6 @@ export function ChatInputMeta({
   projectLocked,
   onSetShowLearning,
   onSetShowRules,
-  onSetShowRoadmap,
   onSetShowQuickBar,
   onSetModelPickerOpen,
   onSetContextPopoverOpen,
@@ -179,16 +175,6 @@ export function ChatInputMeta({
           onClick={() => onSetShowLearning(!showLearningPanel)}
         >
           ☁️
-        </button>
-
-        <button
-          type="button"
-          className={`${styles.metaBtn}${showRoadmapPanel ? ' ' + styles.metaBtnActive : ''}`}
-          title="ROADMAP — выбрать задачу самоулучшения"
-          onClick={() => onSetShowRoadmap(!showRoadmapPanel)}
-          disabled={!projectPath}
-        >
-          🗺
         </button>
 
         <button
