@@ -4,7 +4,6 @@ import { listPullRequests } from '../githubPr'
 import { getGitHubAuthStatus, formatGitHubAuthStatus } from '../githubAuth'
 import { createIssue, createPr, listIssues, openIssue, triggerGithubWorkflow } from '../githubTools'
 import { createCodeViperPr } from '../selfCommit'
-import { listRoadmapItems } from '../roadmapParser'
 import { reportAgentTraceToGithub } from '../traceGithubReport'
 
 export function registerGithubIpc(): void {
@@ -31,8 +30,6 @@ export function registerGithubIpc(): void {
     async (_e, workflowId: string, ref?: string, fields?: string) =>
       triggerGithubWorkflow(workflowId, ref, fields)
   )
-
-  ipcMain.handle(IPC.LIST_ROADMAP_ITEMS, async () => listRoadmapItems())
 
   ipcMain.handle(IPC.CHECK_GITHUB_AUTH, async () => {
     const status = await getGitHubAuthStatus()

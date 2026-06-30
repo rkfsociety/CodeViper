@@ -871,7 +871,6 @@ export interface CodeViperAPI {
   logFrontendError: (message: string, stack?: string) => void
   saveAppState: (state: AppState | null) => void
   getCrashRecovery: () => Promise<AppState | null>
-  listRoadmapItems: () => Promise<RoadmapItem[]>
   checkGitHubAuth: () => Promise<{
     ghInstalled: boolean
     ghLoggedIn: boolean

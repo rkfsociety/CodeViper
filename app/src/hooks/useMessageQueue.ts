@@ -11,7 +11,6 @@ import {
   MAX_QUEUE_SIZE,
   SELF_IMPROVE_RUN_TIMEOUT_MS
 } from '../../shared/constants'
-import { isSelfImprovementTask } from '../../shared/selfImprovement'
 
 export interface PrerequisiteBlock {
   issues: AgentPrerequisiteIssue[]
@@ -194,9 +193,8 @@ export function useMessageQueue({
         err.message.includes('ECONNREFUSED') ||
         err.message.includes('network'))
 
-    const runTimeoutMs = isSelfImprovementTask(text)
-      ? SELF_IMPROVE_RUN_TIMEOUT_MS
-      : AGENT_RUN_TIMEOUT_MS
+    void text
+    const runTimeoutMs = Math.max(AGENT_RUN_TIMEOUT_MS, SELF_IMPROVE_RUN_TIMEOUT_MS)
 
     for (let attempt = 0; attempt <= 1; attempt++) {
       let timeoutHandle: ReturnType<typeof setTimeout> | undefined

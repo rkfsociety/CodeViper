@@ -40,6 +40,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
+        external: ['electron'],
         input: resolve(__dirname, 'electron/preload/index.ts'),
         output: {
           format: 'cjs',

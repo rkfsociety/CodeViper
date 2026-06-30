@@ -66,7 +66,6 @@ export const IPC = {
   BENCHMARK_MODEL: 'benchmark-model',
   AUTO_INDEX_PROJECT: 'auto-index-project',
   FIND_IMPORT_CYCLES: 'find-import-cycles',
-  LIST_ROADMAP_ITEMS: 'list-roadmap-items',
   CHECK_GITHUB_AUTH: 'check-github-auth',
   SELECT_GGUF_FILE: 'select-gguf-file',
   DOWNLOAD_GGUF: 'download-gguf',

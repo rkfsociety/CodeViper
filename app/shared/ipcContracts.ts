@@ -409,14 +409,6 @@ export const BenchmarkResultSchema = z.object({
   error: z.string().optional()
 })
 
-const RoadmapItemSchema = z.object({
-  num: z.number().int(),
-  size: z.enum(['S', 'M', 'L', 'XL']),
-  title: z.string(),
-  priority: z.string(),
-  chain: z.string()
-})
-
 // ─── Имена IPC-каналов ────────────────────────────────────────────────────
 
 // ─── Контракты каналов (args + result) ───────────────────────────────────
@@ -701,10 +693,6 @@ export const Contracts = {
       truncated: z.boolean(),
       filesScanned: z.number().int()
     })
-  },
-  [IPC.LIST_ROADMAP_ITEMS]: {
-    args: z.tuple([]),
-    result: z.array(RoadmapItemSchema)
   },
   [IPC.CHECK_GITHUB_AUTH]: {
     args: z.tuple([]),
