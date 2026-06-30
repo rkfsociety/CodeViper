@@ -93,13 +93,6 @@ export const AGENT_TOOL_NAMES = [
   // Модели
   'preview_ollama_modelfile',
   'create_ollama_model',
-  // Саморазвитие
-  'list_roadmap',
-  'read_roadmap_item',
-  'prioritize_roadmap_items',
-  'set_self_improvement_plan',
-  'complete_self_improvement_item',
-  'get_self_improvement_plan',
   // Индексация
   'index_project',
   // Веб

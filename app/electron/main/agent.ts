@@ -21,24 +21,10 @@ import {
   type OllamaMessage
 } from './agentContext'
 import { buildVectorStoreConfig } from './vectorStore'
-import { SelfImprovementPlanStore } from './selfImprovementStore'
 import { agentLogger } from './agentLogger'
 import { TaskPlanner } from './taskPlanner'
 import { CircuitBreakerOpenError } from './modelRuntime'
 import { ProviderBillingError, isProviderFallbackRetryableError } from '../../shared/providerErrors'
-import { ensureSelfImproveBranch } from './selfCommit'
-import {
-  resolveSelfImproveBranch,
-  parseRoadmapTaskItemNumber,
-  isRoadmapSelfImprovementTask,
-  isRoadmapItemBodyTask,
-  parseRoadmapFieldsFromAssistantText,
-  buildRoadmapSelfImproveHint,
-  buildRoadmapAlreadyDoneHint,
-  buildOpenAiCustomEndpointHint
-} from '../../shared/selfImprovement'
-import { findRoadmapDoneMatch, readRoadmapItem } from './roadmapParser'
-import { getActiveAgentSourceRootPath } from './runtimeBootstrap'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
@@ -63,13 +49,7 @@ import {
 import { getAgentTools } from './agentTools'
 import { LoopGuard } from './agentLoopGuard'
 import { ContextManager } from './agentContextManager'
-import {
-  ToolExecutor,
-  PARALLEL_SAFE_TOOLS,
-  parseToolArgs,
-  toolTouchesRoadmapDocs
-} from './agentToolExecutor'
-import { SelfImprovementOrchestrator } from './agentSelfImprovementOrchestrator'
+import { ToolExecutor, PARALLEL_SAFE_TOOLS, parseToolArgs } from './agentToolExecutor'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
 import {
@@ -153,7 +133,6 @@ export async function runIncomingP2pTask(
 }
 
 export class AgentRunner {
-  private readonly selfImprovementPlan = new SelfImprovementPlanStore()
   private settings: AgentSettings
   private readonly projectPath: string
   private readonly chatId: string | undefined
@@ -163,7 +142,6 @@ export class AgentRunner {
   private readonly emitter: ResponseEmitter
   private readonly ctx: ContextManager
   private readonly toolExecutor: ToolExecutor
-  private readonly selfImproveOrchestrator: SelfImprovementOrchestrator
 
   constructor({
     settings,
@@ -193,8 +171,8 @@ export class AgentRunner {
       confirm,
       previewFn,
       hunkSelectionFn,
-      this.selfImprovementPlan,
-      (items) => this.selfImproveOrchestrator.emitPlan(items),
+      undefined,
+      undefined,
       chatId
     )
 
@@ -203,15 +181,6 @@ export class AgentRunner {
       preview_edit: (args: Record<string, string>) => this.toolExecutor.handlePreviewEdit(args),
       preview_patch: (args: Record<string, string>) => this.toolExecutor.handlePreviewPatch(args)
     })
-
-    this.selfImproveOrchestrator = new SelfImprovementOrchestrator(
-      this.selfImprovementPlan,
-      emit,
-      this.ctx.modelRuntime,
-      settings,
-      projectPath,
-      signal
-    )
   }
 
   private pushNudge(
@@ -272,7 +241,7 @@ export class AgentRunner {
         permissionMode: this.settings.permissionMode ?? 'bypass',
         chatMode: this.settings.chatMode === true,
         cloudEnabled: this.settings.cloudEnabled === true,
-        selfImproveAutoPush: this.settings.autoPushSelfEdits !== false
+        selfImproveAutoPush: false
       }
     })
     this.emitter.trace('run_start', runStartTrace.label, runStartTrace.data)
@@ -292,31 +261,7 @@ export class AgentRunner {
       return
     }
 
-    this.toolExecutor.beginRun(taskMode === 'self-improve')
-    const roadmapItemNum = isRoadmapSelfImprovementTask(userMessage)
-      ? parseRoadmapTaskItemNumber(userMessage)
-      : null
-    this.selfImproveOrchestrator.setRoadmapContext(roadmapItemNum, userMessage)
-
-    if (taskMode === 'self-improve') {
-      this.selfImprovementPlan.reset()
-      if (this.settings.autoPushSelfEdits !== false) {
-        const branchResult = await ensureSelfImproveBranch(this.settings.selfImproveBranch)
-        const branchName =
-          branchResult.branch ?? resolveSelfImproveBranch(this.settings.selfImproveBranch)
-        if (branchResult.ok) {
-          this.emitter.emit({
-            type: 'context',
-            content: `🌿 Ветка самоулучшения: ${branchName}`
-          })
-        } else {
-          this.emitter.emit({
-            type: 'context',
-            content: `⚠️ Ветка самоулучшения: ${branchResult.message}`
-          })
-        }
-      }
-    }
+    this.toolExecutor.beginRun(false)
 
     let orchestratorPlanHint = ''
     let orchestratorIsComplex = false
@@ -350,7 +295,7 @@ export class AgentRunner {
           if (!approved) {
             this.emitter.emit({
               type: 'context',
-              content: '⏹ Выполнение отменено — план не подтверждён.'
+              content: '???? ?? ???????????, ?????????? ???????????.'
             })
             this.emitter.emit({ type: 'done' })
             return
@@ -362,14 +307,9 @@ export class AgentRunner {
       }
     }
 
-    // ── Explorer субагент: разведка проекта перед сложными задачами ──────────
+    // -- Explorer субагент: разведка проекта перед сложными задачами ----------
     let explorerSummary = ''
-    if (
-      this.settings.explorerEnabled &&
-      this.projectPath &&
-      taskMode !== 'self-improve' &&
-      this.settings.chatMode !== true
-    ) {
+    if (this.settings.explorerEnabled && this.projectPath && this.settings.chatMode !== true) {
       // Сложность: либо оркестратор сказал isComplex, либо эвристика
       const complexByHeuristic =
         !this.settings.orchestratorEnabled &&
@@ -395,7 +335,7 @@ export class AgentRunner {
               type: 'exploring',
               exploring: false,
               explorerSummary,
-              content: `🔍 Разведка завершена (${explorerResult.steps} шагов, инструменты: ${explorerResult.toolsUsed.join(', ') || 'нет'})`
+              content: `?? Разведка завершена (${explorerResult.steps} шагов, инструменты: ${explorerResult.toolsUsed.join(', ') || 'нет'})`
             })
           } else {
             this.emitter.emit({ type: 'exploring', exploring: false })
@@ -408,14 +348,12 @@ export class AgentRunner {
     }
 
     const autoDelegateRole =
-      taskMode !== 'self-improve' && this.settings.chatMode !== true
-        ? resolveAutoDelegationRole(userMessage)
-        : null
+      this.settings.chatMode !== true ? resolveAutoDelegationRole(userMessage) : null
     if (autoDelegateRole && this.projectPath) {
       const traceLabel =
         autoDelegateRole === 'reviewer'
-          ? '🤝 Автоделегирование: Reviewer'
-          : '🤝 Автоделегирование: Tester'
+          ? '?? Автоделегирование: Reviewer'
+          : '?? Автоделегирование: Tester'
       this.emitter.trace('tool_call', traceLabel, {
         step: 0,
         tool: `delegate_to_${autoDelegateRole}`,
@@ -427,8 +365,8 @@ export class AgentRunner {
         type: 'context',
         content:
           autoDelegateRole === 'reviewer'
-            ? '🤝 Задача похожа на ревью — делегирую её Reviewer-субагенту.'
-            : '🤝 Задача похожа на запуск/анализ тестов — делегирую её Tester-субагенту.'
+            ? '?? Задача похожа на ревью — делегирую её Reviewer-субагенту.'
+            : '?? Задача похожа на запуск/анализ тестов — делегирую её Tester-субагенту.'
       })
       const startedAt = Date.now()
       const result = await runSubagent(this.settings, {
@@ -462,36 +400,6 @@ export class AgentRunner {
     if (orchestratorPlanHint) hintParts.push(`## План оркестратора\n${orchestratorPlanHint}`)
     if (explorerSummary)
       hintParts.push(`## Разведка проекта (субагент-explorer)\n${explorerSummary}`)
-    if (taskMode === 'self-improve' && isRoadmapSelfImprovementTask(userMessage)) {
-      hintParts.push(
-        buildRoadmapSelfImproveHint(
-          roadmapItemNum,
-          getActiveAgentSourceRootPath(),
-          this.settings.model
-        )
-      )
-      const doneLine = await findRoadmapDoneMatch(userMessage)
-      if (doneLine) {
-        hintParts.push(buildRoadmapAlreadyDoneHint(doneLine))
-      } else if (roadmapItemNum != null) {
-        const planned = await readRoadmapItem(roadmapItemNum)
-        if (planned) {
-          this.selfImproveOrchestrator.setRoadmapItemDetail(planned)
-          const openAiHint = buildOpenAiCustomEndpointHint(planned)
-          if (openAiHint) hintParts.push(openAiHint)
-        } else {
-          const byNum = await findRoadmapDoneMatch(`пункт ${roadmapItemNum}`)
-          if (byNum) hintParts.push(buildRoadmapAlreadyDoneHint(byNum))
-        }
-      } else if (isRoadmapItemBodyTask(userMessage)) {
-        const fields = parseRoadmapFieldsFromAssistantText(userMessage)
-        if (fields) {
-          this.selfImproveOrchestrator.setRoadmapItemDetail(fields)
-          const openAiHint = buildOpenAiCustomEndpointHint(fields)
-          if (openAiHint) hintParts.push(openAiHint)
-        }
-      }
-    }
     const customSystemPrompt = hintParts.length
       ? `${baseSystemPrompt}\n\n${hintParts.join('\n\n')}`.trim()
       : baseSystemPrompt
@@ -501,7 +409,7 @@ export class AgentRunner {
       history,
       userMessage,
       this.settings.model,
-      taskMode === 'self-improve',
+      false,
       {
         ollamaUrl: this.settings.ollamaUrl,
         providerConfig: this.ctx.summarizeProviderConfig,
@@ -527,14 +435,7 @@ export class AgentRunner {
     if (prepared.preview.historySummarized) {
       this.emitter.emit({
         type: 'context',
-        content: `📋 Контекст ~${prepared.preview.contextUsagePercent}% — предыдущая история суммаризирована`
-      })
-    }
-    if (taskMode === 'self-improve') {
-      this.emitter.emit({
-        type: 'self_improve_plan',
-        content:
-          '🔄 Режим автономного самоулучшения: изучу код и буду работать, пока все пункты плана не выполнены.'
+        content: `?? Контекст ~${prepared.preview.contextUsagePercent}% — предыдущая история суммаризирована`
       })
     }
 
@@ -546,12 +447,7 @@ export class AgentRunner {
 
     const loopGuard = new LoopGuard(this.settings, this.ctx.modelRuntime)
     let ragGrepNudged = false
-    const taskPlanner = new TaskPlanner(
-      taskMode,
-      userMessage,
-      this.selfImproveOrchestrator,
-      loopGuard
-    )
+    const taskPlanner = new TaskPlanner(taskMode, userMessage, {} as any, loopGuard)
 
     try {
       let step = 0
@@ -609,7 +505,7 @@ export class AgentRunner {
               fallbackFromModel: modelChain[mi - 1],
               fallbackToModel: tryModel
             })
-            this.emitter.trace('nudge', `↪ Fallback: ${tryModel}`, {
+            this.emitter.trace('nudge', `? Fallback: ${tryModel}`, {
               step,
               from: modelChain[mi - 1],
               to: tryModel,
@@ -659,8 +555,8 @@ export class AgentRunner {
             }
             if (error instanceof CircuitBreakerOpenError) {
               const secsLeft = Math.ceil((error.openUntilMs - Date.now()) / 1000)
-              const cbMessage = `⚡ Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`
-              this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+              const cbMessage = `? Слишком много ошибок подряд — запросы к провайдеру заблокированы. Подождите ~${secsLeft} с и попробуйте снова.`
+              this.emitter.trace('llm_response', `? Ошибка запроса (шаг ${step})`, {
                 step,
                 durationMs: Date.now() - stepStartMs,
                 error: cbMessage,
@@ -693,7 +589,7 @@ export class AgentRunner {
               return
             }
             if (error instanceof ProviderBillingError) {
-              this.emitter.trace('llm_response', `✖ Ошибка запроса (шаг ${step})`, {
+              this.emitter.trace('llm_response', `? Ошибка запроса (шаг ${step})`, {
                 step,
                 durationMs: Date.now() - stepStartMs,
                 error: error.message
@@ -724,7 +620,7 @@ export class AgentRunner {
         if (isCostLimitExceeded(this.ctx.sessionCostUsd, costLimit)) {
           this.emitter.emit({
             type: 'error',
-            content: `💰 Лимит стоимости прогона превышен: ~${formatCostUsd(this.ctx.sessionCostUsd)} из ${formatCostUsd(costLimit!)}. Прогон остановлен.`
+            content: `?? Лимит стоимости прогона превышен: ~${formatCostUsd(this.ctx.sessionCostUsd)} из ${formatCostUsd(costLimit!)}. Прогон остановлен.`
           })
           this.emitter.emit({ type: 'done' })
           return
@@ -859,7 +755,7 @@ export class AgentRunner {
               this.emitter.emit({
                 type: 'context',
                 content:
-                  '⚠️ Модель описала инструменты текстом без tool_calls — повтор с жёстким tool calling…'
+                  '?? Модель описала инструменты текстом без tool_calls — повтор с жёстким tool calling…'
               })
             }
             if (planAction.emitAssistant)
@@ -877,7 +773,7 @@ export class AgentRunner {
             this.emitter.emit({ type: 'clear_draft' })
             this.emitter.emit({
               type: 'context',
-              content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${planAction.toModel}**…`
+              content: `?? Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${planAction.toModel}**…`
             })
             this.settings = { ...this.settings, model: planAction.toModel }
             requireToolNext = true
@@ -891,8 +787,8 @@ export class AgentRunner {
             this.emitter.emit({
               type: 'error',
               content: afterExploration
-                ? '⚠️ Пустой ответ после разведки — повторяю с требованием правок…'
-                : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
+                ? '?? Пустой ответ после разведки — повторяю с требованием правок…'
+                : '?? Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
             })
             this.pushNudge(
               messages,
@@ -1000,20 +896,6 @@ export class AgentRunner {
             name: r.name,
             args: parseToolArgs(toolCalls[i]?.function.arguments ?? {})
           }))
-          if (taskMode === 'self-improve') {
-            const autoNudge = this.selfImproveOrchestrator.recordToolInvocations(
-              results.map((r, i) => ({
-                name: r.name,
-                output: r.output,
-                args: parseToolArgs(toolCalls[i]?.function.arguments ?? {})
-              }))
-            )
-            if (autoNudge) {
-              this.pushNudge(messages, step, 'self_improve', autoNudge)
-              requireToolNext = true
-              continue
-            }
-          }
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
@@ -1035,31 +917,12 @@ export class AgentRunner {
           for (const name of batch.mutatingToolNames) {
             if (MUTATING_TOOLS.has(name)) mutatingToolsUsed.add(name)
           }
-          for (const inv of batch.invocations) {
-            if (toolTouchesRoadmapDocs(inv.name, inv.args)) {
-              this.selfImproveOrchestrator.markRoadmapDocsUpdated()
-            }
-          }
           if (batch.selfEdited) selfEdited = true
           for (const msg of batch.toolMessages) messages.push(msg)
           stepInvocations = batch.invocations.map((inv) => ({
             name: inv.name,
             args: inv.args
           }))
-          if (taskMode === 'self-improve') {
-            const autoNudge = this.selfImproveOrchestrator.recordToolInvocations(
-              batch.invocations.map((inv) => ({
-                name: inv.name,
-                output: inv.output,
-                args: inv.args
-              }))
-            )
-            if (autoNudge) {
-              this.pushNudge(messages, step, 'self_improve', autoNudge)
-              requireToolNext = true
-              continue
-            }
-          }
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
@@ -1078,13 +941,6 @@ export class AgentRunner {
             }
             continue
           }
-        }
-
-        if (
-          toolCalls.some((call) => call.function.name === 'set_self_improvement_plan') &&
-          this.selfImprovementPlan.has()
-        ) {
-          requireToolNext = true
         }
 
         const scopeNudge = loopGuard.checkTaskScope(userMessage, mutatingToolsUsed, stepInvocations)
@@ -1126,7 +982,7 @@ export class AgentRunner {
         try {
           await this.ctx.modelRuntime.unloadModel(this.settings.model)
         } catch {
-          /* необязательно */
+          /* ????????????? */
         }
       }
       void agentLogger.write({
@@ -1139,21 +995,11 @@ export class AgentRunner {
       })
       traceRunEnd(runSuccess ? 'ok' : 'error')
       if (selfEdited) {
-        if (taskPlanner.isSelfImprove && this.settings.autoPushSelfEdits !== false) {
-          await this.selfImproveOrchestrator.autoCommitSelfEdits(
-            userMessage,
-            this.emitter.emit.bind(this.emitter)
-          )
-        } else if (!taskPlanner.isSelfImprove) {
-          await this.selfImproveOrchestrator.stageSelfEditsForRestart(
-            userMessage,
-            this.emitter.emit.bind(this.emitter)
-          )
-        }
+        this.emitter.emit({ type: 'context', content: '????????? ?????????.' })
       }
 
       if (this.settings.syncCollectiveMemory !== false && getPendingCollectiveMemoryCount() > 0) {
-        const branch = resolveSelfImproveBranch(this.settings.selfImproveBranch)
+        const branch = this.settings.selfImproveBranch?.trim() || 'agent/self-improve'
         this.emitter.emit({
           type: 'collective_sync',
           collectiveSyncStatus: 'syncing',

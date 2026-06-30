@@ -1,4 +1,3 @@
-import type { ToolHandlers } from './agentTools'
 import {
   parsePlanItemsJson,
   parsePlanFromAssistantText,
@@ -41,8 +40,8 @@ function parseSelfImprovementPlanItems(raw: unknown): SelfImprovementItem[] {
 export function createSelfImprovementToolHandlers(
   plan: SelfImprovementPlanStore,
   emitPlan: (items: SelfImprovementItem[]) => void
-): Partial<ToolHandlers> {
-  const handlers: Partial<ToolHandlers> = {
+): Record<string, (...args: any[]) => any> {
+  const handlers: Record<string, (...args: any[]) => any> = {
     list_roadmap: async () => {
       const items = await listRoadmapItems()
       return formatRoadmapItemsList(items)
@@ -55,7 +54,7 @@ export function createSelfImprovementToolHandlers(
       return formatPrioritizedRoadmapItemsList(items)
     },
 
-    read_roadmap_item: async (args) => {
+    read_roadmap_item: async (args: any) => {
       const num = parseInt(String(args.number).trim(), 10)
       if (!Number.isFinite(num) || num < 1) {
         return 'Укажите number — номер пункта из list_roadmap (целое ≥ 1).'

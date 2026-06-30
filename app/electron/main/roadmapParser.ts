@@ -1,4 +1,4 @@
-import { appendFile, readFile } from 'fs/promises'
+import { appendFile, readFile, readdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import { basename, join, resolve } from 'path'
 import { extractRoadmapTitleFromTask } from '../../shared/selfImprovement'
@@ -63,6 +63,24 @@ export function resolveRoadmapPath(): string | null {
   return null
 }
 
+export function resolveRoadmapDirectory(): string | null {
+  const candidates = [join(getCodeViperSourceRoot(), '..', 'ROADMAP')]
+  try {
+    candidates.push(join(getBundledSourceRoot(), 'ROADMAP'))
+  } catch {
+    /* ignore */
+  }
+
+  const seen = new Set<string>()
+  for (const candidate of candidates) {
+    const path = resolve(candidate)
+    if (seen.has(path)) continue
+    seen.add(path)
+    if (existsSync(path)) return path
+  }
+  return null
+}
+
 export function resolveRoadmapDonePath(): string | null {
   const candidates = [join(getCodeViperSourceRoot(), '..', 'ROADMAP_DONE.md')]
   try {
@@ -79,6 +97,19 @@ export function resolveRoadmapDonePath(): string | null {
     if (existsSync(path)) return path
   }
   return null
+}
+
+async function resolveRoadmapFiles(): Promise<string[]> {
+  const dir = resolveRoadmapDirectory()
+  if (!dir) {
+    const single = resolveRoadmapPath()
+    return single ? [single] : []
+  }
+  const entries = await readdir(dir, { withFileTypes: true })
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.md'))
+    .map((entry) => join(dir, entry.name))
+    .sort((a, b) => a.localeCompare(b))
 }
 
 export async function findRoadmapDoneMatch(searchText: string): Promise<string | null> {
@@ -207,10 +238,10 @@ function scoreRoadmapItem(item: RoadmapItem): PrioritizedRoadmapItem {
 }
 
 export async function listRoadmapItems(): Promise<RoadmapItem[]> {
-  const roadmapPath = resolveRoadmapPath()
-  if (!roadmapPath) return []
-  const content = await readFile(roadmapPath, 'utf-8')
-  return parseRoadmapItems(content)
+  const files = await resolveRoadmapFiles()
+  if (files.length === 0) return []
+  const contents = await Promise.all(files.map((path) => readFile(path, 'utf-8')))
+  return contents.flatMap((content) => parseRoadmapItems(content))
 }
 
 export async function prioritizeRoadmapItems(limit = 10): Promise<PrioritizedRoadmapItem[]> {
@@ -243,62 +274,65 @@ export function formatPrioritizedRoadmapItemsList(items: PrioritizedRoadmapItem[
 }
 
 export async function readRoadmapItem(num: number): Promise<RoadmapItemDetail | null> {
-  const roadmapPath = resolveRoadmapPath()
-  if (!roadmapPath) return null
+  const files = await resolveRoadmapFiles()
+  for (const roadmapPath of files) {
+    const content = await readFile(roadmapPath, 'utf-8')
+    const lines = normalizeRoadmapLines(content)
 
-  const content = await readFile(roadmapPath, 'utf-8')
-  const lines = normalizeRoadmapLines(content)
+    let inPlans = false
+    let currentChain = '???????????'
+    let current: Partial<RoadmapItemDetail> | null = null
 
-  let inPlans = false
-  let currentChain = 'Независимые'
-  let current: Partial<RoadmapItemDetail> | null = null
-
-  const finishIfMatch = (): RoadmapItemDetail | null => {
-    if (current?.num === num) return toRoadmapItemDetail(current)
-    return null
-  }
-
-  for (const line of lines) {
-    if (line.startsWith('## ')) {
-      inPlans = true
-      continue
-    }
-    if (inPlans && line.startsWith('## ') && !line.startsWith('###')) {
-      break
-    }
-    if (!inPlans) continue
-
-    const chainMatch = line.match(/^###\s+.+?\s+(.+)/u)
-    if (chainMatch) {
-      currentChain = chainMatch[1].trim()
-      continue
+    const finishIfMatch = (): RoadmapItemDetail | null => {
+      if (current?.num === num) return toRoadmapItemDetail(current)
+      return null
     }
 
-    const itemMatch = line.match(ROADMAP_ITEM_HEADER_RE)
-    if (itemMatch) {
-      const found = finishIfMatch()
-      if (found) return found
-
-      current = {
-        num: Number.parseInt(itemMatch[1], 10),
-        size: itemMatch[2] as 'S' | 'M' | 'L' | 'XL',
-        title: itemMatch[3].trim(),
-        priority: 'Low',
-        chain: currentChain
+    for (const line of lines) {
+      if (line.startsWith('## ')) {
+        inPlans = true
+        continue
       }
-      continue
+      if (inPlans && line.startsWith('## ') && !line.startsWith('###')) {
+        break
+      }
+      if (!inPlans) continue
+
+      const chainMatch = line.match(/^###\s+.+?\s+(.+)/u)
+      if (chainMatch) {
+        currentChain = chainMatch[1].trim()
+        continue
+      }
+
+      const itemMatch = line.match(ROADMAP_ITEM_HEADER_RE)
+      if (itemMatch) {
+        const found = finishIfMatch()
+        if (found) return found
+
+        current = {
+          num: Number.parseInt(itemMatch[1], 10),
+          size: itemMatch[2] as 'S' | 'M' | 'L' | 'XL',
+          title: itemMatch[3].trim(),
+          priority: 'Low',
+          chain: currentChain
+        }
+        continue
+      }
+
+      if (current && line.startsWith('- **')) {
+        const value = line.replace(/^-\s+\*\*.*?:\*\*\s*/u, '').trim()
+        if (!current.goal) current.goal = value
+        else if (!current.files) current.files = value
+        else if (!current.action) current.action = value
+        else if (!current.verification) current.verification = value
+      }
     }
 
-    if (current && line.startsWith('- **')) {
-      const value = line.replace(/^-\s+\*\*.*?:\*\*\s*/u, '').trim()
-      if (!current.goal) current.goal = value
-      else if (!current.files) current.files = value
-      else if (!current.action) current.action = value
-      else if (!current.verification) current.verification = value
-    }
+    const found = finishIfMatch()
+    if (found) return found
   }
 
-  return finishIfMatch()
+  return null
 }
 
 export async function appendRoadmapDoneItem(item: RoadmapItemDetail): Promise<void> {

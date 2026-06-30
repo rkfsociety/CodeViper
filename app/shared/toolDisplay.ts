@@ -53,9 +53,6 @@ export const TOOL_LABELS: Record<string, string> = {
   run_codeviper_command: 'Команда в CodeViper',
   preview_ollama_modelfile: 'Собираю Modelfile',
   create_ollama_model: 'Создаю модель Ollama',
-  set_self_improvement_plan: 'План самоулучшения',
-  complete_self_improvement_item: 'Пункт выполнен',
-  get_self_improvement_plan: 'Статус плана',
   index_project: 'Индексирую проект'
 }
 
@@ -253,9 +250,6 @@ export function compactToolChatLine(
     case 'update_skill':
     case 'delete_skill':
     case 'create_ollama_model':
-    case 'set_self_improvement_plan':
-    case 'complete_self_improvement_item':
-    case 'get_self_improvement_plan':
       return `✓ ${firstLine(body) || label}`
     default:
       return body.trim() ? `✓ ${label} — ${firstLine(body)}` : `✓ ${label}`
