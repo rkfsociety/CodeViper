@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { ChatMessage } from '../types'
-import type { AgentPhase } from './AgentStatusBar'
+import type { AgentPhase } from '../contexts/agentPhase'
 import type { AgentWorkTrace } from './ChatPanel/helpers'
 import { AllToolsGroup } from './AllToolsGroup'
 import styles from './AgentWorkPanel.module.css'

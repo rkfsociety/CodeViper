@@ -1,10 +1,13 @@
+import { existsSync } from 'fs'
+import { join } from 'path'
 import { pathToFileURL } from 'url'
 import type { SelfCommitResult } from './selfCommit'
 import {
   commitAndPushSelfEdits as asarCommitAndPushSelfEdits,
   stageSelfEditsForRestart as asarStageSelfEditsForRestart
 } from './selfCommit'
-import { getRuntimeHandlersPath, isBundledRuntimeFromClone } from './runtimeBootstrap'
+import { getBundledSourceAppRoot } from './bundledSourcePaths'
+import { isBundledRuntimeFromClone } from './runtimeSourceState'
 
 type SelfCommitFns = {
   commitAndPushSelfEdits: typeof asarCommitAndPushSelfEdits
@@ -22,8 +25,8 @@ async function loadCloneSelfCommit(): Promise<SelfCommitFns | null> {
   if (!isBundledRuntimeFromClone()) return null
   if (cachedCloneSelfCommit) return cachedCloneSelfCommit
 
-  const handlersPath = getRuntimeHandlersPath()
-  if (!handlersPath) return null
+  const handlersPath = join(getBundledSourceAppRoot(), 'out', 'main', 'runtimeHandlers.js')
+  if (!existsSync(handlersPath)) return null
 
   try {
     const mod = (await import(pathToFileURL(handlersPath).href)) as Partial<SelfCommitFns>

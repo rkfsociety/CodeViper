@@ -45,9 +45,9 @@ import { runBundledSourceStartupSync } from './bundledSourceSync'
 import {
   initBundledRuntimeFromSettings,
   initBundledShellPaths,
-  getBundledShellPaths,
-  isBundledRuntimeFromClone
+  getBundledShellPaths
 } from './runtimeBootstrap'
+import { isBundledRuntimeFromClone } from './runtimeSourceState'
 import {
   getAppWindowTitle,
   refreshAppWindowTitle,

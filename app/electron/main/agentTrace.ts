@@ -1,4 +1,4 @@
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import { computeContextUsage, estimateMessageChars } from '../../shared/contextLimits'
 import { normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
 import type { AgentStreamPayload, AgentTraceEvent } from '../../src/types'
@@ -266,12 +266,7 @@ export function buildToolResultTraceData(
 }
 
 export type NudgeTraceSource =
-  | 'loop_guard'
-  | 'self_improve'
-  | 'task_planner'
-  | 'scope'
-  | 'exploration_stall'
-  | 'require_tool'
+  'loop_guard' | 'self_improve' | 'task_planner' | 'scope' | 'exploration_stall' | 'require_tool'
 
 export function buildNudgeTraceData(
   step: number,

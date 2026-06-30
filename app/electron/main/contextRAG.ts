@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import { readFile, readdir } from 'fs/promises'
 import { extname, join, relative, sep } from 'path'
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import { computeEmbedding } from './embeddings'
 import { createVectorStore, LocalVectorStore, ProjectQdrantIndex } from './vectorStore'
 import type { VectorStoreConfig } from './vectorStore'

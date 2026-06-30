@@ -8,9 +8,8 @@ import {
 } from '../../shared/generationMetrics'
 import type { ProgressInfo } from '../types'
 import { useAgentState } from '../contexts/AgentContext'
+import type { AgentPhase } from '../contexts/agentPhase'
 import type { RunStats } from '../../shared/generationMetrics'
-
-export type AgentPhase = 'thinking' | 'writing' | 'tool' | 'idle'
 
 const srOnlyStyle = {
   position: 'absolute',

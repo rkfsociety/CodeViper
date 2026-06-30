@@ -447,7 +447,7 @@ export class AgentRunner {
 
     const loopGuard = new LoopGuard(this.settings, this.ctx.modelRuntime)
     let ragGrepNudged = false
-    const taskPlanner = new TaskPlanner(taskMode, userMessage, {} as any, loopGuard)
+    const taskPlanner = new TaskPlanner(taskMode, userMessage, undefined, loopGuard)
 
     try {
       let step = 0

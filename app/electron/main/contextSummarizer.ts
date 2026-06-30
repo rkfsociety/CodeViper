@@ -5,7 +5,7 @@ import {
 } from '../../shared/contextLimits'
 import { CONTEXT_SUMMARIZE_TIMEOUT_MS } from '../../shared/constants'
 import { redactMessagesForModel } from '../../shared/secretRedaction'
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import { ModelRuntime } from './modelRuntime'
 import type { ProviderConfig } from '../../shared/modelProvider'
 

@@ -1,7 +1,7 @@
 import { Worker } from 'worker_threads'
 import { join } from 'path'
 import { PROJECT_INDEX_DEBOUNCE_MS } from '../../shared/constants'
-import { EMBED_MODEL } from './embeddings'
+import { EMBED_MODEL, cosineSimilarity } from './embeddingShared'
 
 // LRU-кэш эмбеддингов: text → vector
 const EMBED_CACHE_MAX = 500
@@ -177,20 +177,6 @@ export function computeEmbeddingQueued(text: string, ollamaUrl: string): Promise
     waitQueue.push({ text, ollamaUrl, resolve, reject })
     scheduleFlush()
   })
-}
-
-/** Cosine similarity двух векторов (0…1). */
-export function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0
-  let normA = 0
-  let normB = 0
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i]
-    normA += a[i] * a[i]
-    normB += b[i] * b[i]
-  }
-  if (!normA || !normB) return 0
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB))
 }
 
 /**

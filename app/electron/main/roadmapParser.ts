@@ -2,7 +2,7 @@ import { appendFile, readFile, readdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import { basename, join, resolve } from 'path'
 import { extractRoadmapTitleFromTask } from '../../shared/selfImprovement'
-import { getBundledSourceRoot } from './bundledSourceSync'
+import { getBundledSourceRoot } from './bundledSourcePaths'
 import { getCodeViperSourceRoot } from './codeviperSource'
 
 export interface RoadmapItem {

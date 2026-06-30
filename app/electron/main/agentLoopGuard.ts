@@ -19,15 +19,14 @@ import {
 } from '../../shared/constants'
 import { checkTaskScopeViolation } from '../../shared/selfImprovement'
 import type { AgentSettings } from '../../src/types'
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import type { ModelRuntime } from './modelRuntime'
 import { fetchOllamaModels } from './agentOllamaApi'
 
 const MAX_VERIFICATION_RETRIES = 1
 
 export type ExplorationStallResult =
-  | { action: 'nudge'; message: string }
-  | { action: 'abort'; message: string }
+  { action: 'nudge'; message: string } | { action: 'abort'; message: string }
 
 export type VerificationAction =
   | { action: 'retry'; nudgeMessage: string }

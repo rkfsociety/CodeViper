@@ -6,7 +6,7 @@ import {
   BUNDLED_RUNTIME_MAIN_MIN_BYTES,
   BUNDLED_SHELL_RENDERER_MIN_BYTES
 } from '../../shared/constants'
-import { getBundledSourceAppRoot } from './bundledSourceBuild'
+import { getBundledSourceAppRoot } from './bundledSourcePaths'
 
 export interface LiveShellPaths {
   rendererIndex: string

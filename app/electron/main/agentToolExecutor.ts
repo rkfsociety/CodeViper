@@ -18,7 +18,7 @@ import { applySelectedHunks } from '../../shared/diffPreview'
 import { runCodeViperCommand } from './codeviperSource'
 import { resolveAgentHandlerFactories, getActiveAgentSourceRootPath } from './runtimeBootstrap'
 import { resolveToolPathArg } from './agentHandlersUtils'
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import type { LoopGuard } from './agentLoopGuard'
 import { normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
 import { parseReadMultiplePaths } from '../../shared/readMultiplePaths'
@@ -408,7 +408,7 @@ export class ToolExecutor {
     const callTrace = buildToolCallTraceData(step, name, args)
     emitAgentTrace(this.emit, 'tool_call', callTrace.label, callTrace.data)
     if (debug) {
-      console.log(`[CodeViper:agent] ▶ ${name}`, args)
+      console.warn(`[CodeViper:agent] ▶ ${name}`, args)
     }
 
     const preflight = this.preflightSelfImproveTool(toolName, toolArgs)
@@ -434,7 +434,7 @@ export class ToolExecutor {
     const resultTrace = buildToolResultTraceData(step, name, output, threw, durationMs)
     emitAgentTrace(this.emit, 'tool_result', resultTrace.label, resultTrace.data)
     if (debug) {
-      console.log(`[CodeViper:agent] ◀ ${name} (${durationMs}ms)`, output)
+      console.warn(`[CodeViper:agent] ◀ ${name} (${durationMs}ms)`, output)
     }
 
     try {

@@ -14,8 +14,11 @@ import {
 } from '../../shared/constants'
 import { loadSettings, saveSettings } from './settings'
 import { cliSpawnBase } from './windowsGitEnv'
-import { getRuntimeHandlersPath } from './runtimeBootstrap'
 import type { BundledSourceBuildResult } from './bundledSourceBuild'
+import type { GitRunResult } from './bundledGit'
+import { getBundledSourceRoot, getBundledSourceAppRoot } from './bundledSourcePaths'
+export { getBundledSourceRoot } from './bundledSourcePaths'
+export type { GitRunResult } from './bundledGit'
 
 export interface BundledSourceSyncResult {
   updated: boolean
@@ -35,12 +38,6 @@ export interface ForceBundledSourceSyncResult {
   restartNeeded: boolean
   error?: string
   message?: string
-}
-
-export interface GitRunResult {
-  code: number
-  stdout: string
-  stderr: string
 }
 
 type GitRunner = (cwd: string, args: string[]) => Promise<GitRunResult>
@@ -130,16 +127,6 @@ function defaultRunGit(
 function runGit(cwd: string, args: string[], timeoutMs = GIT_TIMEOUT_MS): Promise<GitRunResult> {
   if (gitRunnerOverride) return gitRunnerOverride(cwd, args)
   return defaultRunGit(cwd, args, timeoutMs)
-}
-
-/** Git в клоне bundled source (тесты — setGitRunnerForTests). */
-export function runBundledGit(cwd: string, args: string[]): Promise<GitRunResult> {
-  return runGit(cwd, args)
-}
-
-/** Абсолютный путь к клону: %APPDATA%/CodeViper/source */
-export function getBundledSourceRoot(): string {
-  return join(app.getPath('userData'), BUNDLED_SOURCE_DIR_NAME)
 }
 
 async function persistGitRepoRootIfUnset(root: string): Promise<void> {
@@ -376,7 +363,7 @@ type MaybeBuildAfterSyncFn = (
 
 /** asar fallback; при готовом клоне — maybeBuild из свежего runtimeHandlers.js. */
 export async function resolveMaybeBuildAfterSync(): Promise<MaybeBuildAfterSyncFn> {
-  const handlersPath = getRuntimeHandlersPath()
+  const handlersPath = join(getBundledSourceAppRoot(), 'out', 'main', 'runtimeHandlers.js')
   if (handlersPath) {
     try {
       const mod = (await import(pathToFileURL(handlersPath).href)) as {

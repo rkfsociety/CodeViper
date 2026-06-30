@@ -36,6 +36,8 @@ import { redactMessagesForModel, redactSecrets } from '../../shared/secretRedact
 import { QdrantClient } from '@qdrant/js-client-rest'
 import { pickHardToolCallingSystemHint } from '../../shared/actionVerification'
 import { pickBaseSystemPrompt } from '../../shared/agentPromptLayers'
+import type { OllamaMessage } from './ollamaMessage'
+export type { OllamaMessage } from './ollamaMessage'
 
 /** Префикс ответа grep_files / search_in_project при отсутствии совпадений. */
 export const GREP_EMPTY_RESULT_PREFIX = 'Совпадений не найдено'
@@ -121,21 +123,6 @@ export async function maybeAppendRagSearchHintAfterEmptyGrep(
   if (!indexed) return false
 
   return appendSystemHint(messages, buildRagSearchNudgeHint(emptyGrep.args?.query))
-}
-
-export interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool'
-  content: string
-  /** Нативные tool calls ассистента (хранятся для cloud-провайдеров). */
-  tool_calls?: Array<{
-    id: string
-    type: 'function'
-    function: { name: string; arguments: string }
-  }>
-  /** ID вызова инструмента для tool-результатов (cloud-провайдеры). */
-  tool_call_id?: string
-  /** Изображения для vision-моделей (data URL). */
-  images?: { name: string; dataUrl: string }[]
 }
 
 const CLARIFY_PROMPT = `## Уточнение

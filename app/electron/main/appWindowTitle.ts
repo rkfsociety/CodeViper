@@ -2,9 +2,13 @@ import { app, type BrowserWindow } from 'electron'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { getCodeViperSourceRoot } from './codeviperSource'
-import { getRuntimeBuildHead } from './bundledSourceBuild'
-import { getBundledSourceRoot } from './bundledSourceSync'
-import { isBundledRuntimeFromClone } from './runtimeBootstrap'
+import { getBundledSourceRoot } from './bundledSourcePaths'
+import { isBundledRuntimeFromClone } from './runtimeSourceState'
+import {
+  RUNTIME_BUILD_HEAD_LEGACY_REL,
+  RUNTIME_BUILD_HEAD_REL,
+  BUNDLED_SOURCE_APP_DIR_NAME
+} from '../../shared/constants'
 
 declare const __BUILD_COMMIT__: string | undefined
 
@@ -53,10 +57,25 @@ function readGitHeadShortFromCandidates(roots: string[]): string | null {
   return null
 }
 
+function getRuntimeBuildHeadFromClone(): string | null {
+  const appRoot = join(getBundledSourceRoot(), BUNDLED_SOURCE_APP_DIR_NAME)
+  for (const rel of [RUNTIME_BUILD_HEAD_REL, RUNTIME_BUILD_HEAD_LEGACY_REL]) {
+    const headPath = join(appRoot, rel)
+    if (!existsSync(headPath)) continue
+    try {
+      const head = readFileSync(headPath, 'utf8').trim()
+      if (head) return head
+    } catch {
+      /* ignore */
+    }
+  }
+  return null
+}
+
 /** Короткий hash коммита runtime (клон, dev-репозиторий или маркер сборки оболочки). */
 export function getAppCommitShort(): string | null {
   if (isBundledRuntimeFromClone()) {
-    const buildHead = getRuntimeBuildHead()
+    const buildHead = getRuntimeBuildHeadFromClone()
     if (buildHead) return shortCommitHash(buildHead)
 
     const fromClone = readGitHeadShort(getBundledSourceRoot())

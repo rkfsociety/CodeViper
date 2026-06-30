@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../../types'
-import type { AgentPhase } from '../AgentStatusBar'
+import type { AgentPhase } from '../../contexts/agentPhase'
 import { AgentWorkPanel } from '../AgentWorkPanel'
 import { MessageCopyButton } from '../MessageCopyButton'
 import type { AgentWorkTrace } from './helpers'

@@ -9,7 +9,7 @@ import { formatElapsed, formatTokenCount } from '../../../shared/generationMetri
 import type { AgentWorkTrace, DisplayItem } from './helpers'
 import { visibleAssistantContent, workTraceIsEmpty, findLastWorkDisplayIndex } from './helpers'
 import { MessageRow } from './MessageRow'
-import type { AgentPhase } from '../AgentStatusBar'
+import type { AgentPhase } from '../../contexts/agentPhase'
 import styles from '../ChatPanel.module.css'
 
 const MessageBody = lazy(() => import('../MessageBody').then((m) => ({ default: m.MessageBody })))

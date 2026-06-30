@@ -3,8 +3,7 @@ import { existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { computeEmbeddingQueued } from './embeddingQueue'
-
-export const EMBED_MODEL = 'nomic-embed-text'
+import { EMBED_MODEL, cosineSimilarity } from './embeddingShared'
 const INDEX_FILENAME = 'embeddings.json'
 
 interface EmbeddingIndex {
@@ -44,19 +43,6 @@ async function saveIndex(path: string, index: EmbeddingIndex): Promise<void> {
 
 export async function computeEmbedding(text: string, ollamaUrl: string): Promise<number[] | null> {
   return computeEmbeddingQueued(text, ollamaUrl)
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0,
-    normA = 0,
-    normB = 0
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i]
-    normA += a[i] * a[i]
-    normB += b[i] * b[i]
-  }
-  if (!normA || !normB) return 0
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB))
 }
 
 export async function upsertEmbedding(

@@ -8,10 +8,13 @@ import {
   BUNDLED_SHELL_RENDERER_MIN_BYTES
 } from '../../shared/constants'
 import { getCodeViperSourceRoot, setSourceRootOverride } from './codeviperSource'
-import { getBundledSourceAppRoot } from './bundledSourceBuild'
+import { getBundledSourceAppRoot } from './bundledSourcePaths'
 import type { AgentSettings } from '../../src/types'
-import * as asarHandlerFactories from './runtimeHandlers'
-import { resetSelfCommitRuntimeCacheForTests } from './selfCommitRuntime'
+import type { ToolHandlers } from './agentTools'
+import {
+  isBundledRuntimeFromClone as readBundledRuntimeFromClone,
+  setBundledRuntimeFromClone
+} from './runtimeSourceState'
 
 const RUNTIME_MAIN_FILE = join('out', 'main', 'index.js')
 const RUNTIME_HANDLERS_FILE = join('out', 'main', 'runtimeHandlers.js')
@@ -24,20 +27,28 @@ export interface BundledShellPaths {
   fromClone: boolean
 }
 
+interface ProjectToolHandlerFactories {
+  handlers: Partial<ToolHandlers>
+  clearEditSnapshots?: () => void
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UnsafeHandlerFactory<T> = (...args: any[]) => T
+
 export interface AgentHandlerFactories {
-  createProjectToolHandlers: typeof asarHandlerFactories.createProjectToolHandlers
-  createGitHubToolHandlers: typeof asarHandlerFactories.createGitHubToolHandlers
-  createGitLabToolHandlers: typeof asarHandlerFactories.createGitLabToolHandlers
-  createJiraToolHandlers: typeof asarHandlerFactories.createJiraToolHandlers
-  createLinearToolHandlers: typeof asarHandlerFactories.createLinearToolHandlers
-  createCodeViperToolHandlers: typeof asarHandlerFactories.createCodeViperToolHandlers
-  createMemoryToolHandlers: typeof asarHandlerFactories.createMemoryToolHandlers
-  createSkillsToolHandlers: typeof asarHandlerFactories.createSkillsToolHandlers
-  createSelfImprovementToolHandlers: typeof asarHandlerFactories.createSelfImprovementToolHandlers
-  createModelToolHandlers: typeof asarHandlerFactories.createModelToolHandlers
-  createTodoToolHandlers: typeof asarHandlerFactories.createTodoToolHandlers
-  createWebToolHandlers: typeof asarHandlerFactories.createWebToolHandlers
-  createMcpToolHandlers: typeof asarHandlerFactories.createMcpToolHandlers
+  createProjectToolHandlers: UnsafeHandlerFactory<ProjectToolHandlerFactories>
+  createGitHubToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createGitLabToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createJiraToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createLinearToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createCodeViperToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createMemoryToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createSkillsToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createSelfImprovementToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createModelToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createTodoToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createWebToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
+  createMcpToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
 }
 
 type HandlerModuleLoader = (
@@ -49,7 +60,7 @@ type LiveRuntimeHandlerExtras = {
 }
 
 let cachedCloneFactories: (AgentHandlerFactories & LiveRuntimeHandlerExtras) | null = null
-let runtimeFromClone = false
+let cachedAsarFactories: AgentHandlerFactories | null = null
 let handlerModuleLoaderOverride: HandlerModuleLoader | null = null
 let pathExistsOverride: ((path: string) => boolean) | null = null
 let statSizeOverride: ((path: string) => number) | null = null
@@ -222,6 +233,10 @@ export function isBundledShellFromClone(): boolean {
   return cachedShellPaths?.fromClone === true
 }
 
+export function isBundledRuntimeFromClone(): boolean {
+  return readBundledRuntimeFromClone()
+}
+
 /** Только для unit-тестов. */
 export function resetBundledShellPathsForTests(): void {
   cachedShellPaths = null
@@ -264,13 +279,9 @@ export function getRuntimeHandlersPath(options?: { isPackaged?: boolean }): stri
   return pathExists(handlersPath) ? handlersPath : null
 }
 
-export function isBundledRuntimeFromClone(): boolean {
-  return runtimeFromClone
-}
-
 /** Корень app/ для подсказок агента и self-edit (клон или asar/dev). */
 export function getActiveAgentSourceRootPath(): string {
-  if (runtimeFromClone) return getBundledSourceAppRoot()
+  if (readBundledRuntimeFromClone()) return getBundledSourceAppRoot()
   return getCodeViperSourceRoot()
 }
 
@@ -288,13 +299,12 @@ async function importHandlerModule(
 
 function resetRuntimeState(): void {
   cachedCloneFactories = null
-  runtimeFromClone = false
-  resetSelfCommitRuntimeCacheForTests()
+  setBundledRuntimeFromClone(false)
 }
 
 /** Фабрики handlers: клон (dynamic import) или asar (static). */
 export function resolveAgentHandlerFactories(): AgentHandlerFactories {
-  return cachedCloneFactories ?? asarHandlerFactories
+  return cachedCloneFactories ?? loadAsarHandlerFactories()
 }
 
 /**
@@ -330,7 +340,7 @@ export async function initBundledRuntimeHandlers(
     if (typeof cachedCloneFactories.ensureLiveRuntimeExtras === 'function') {
       cachedCloneFactories.ensureLiveRuntimeExtras()
     }
-    runtimeFromClone = true
+    setBundledRuntimeFromClone(true)
     setSourceRootOverride(getBundledSourceAppRoot())
     await logRuntimeBootstrap('loaded runtime from clone', {
       cloneHandlers,
@@ -347,4 +357,10 @@ export async function initBundledRuntimeHandlers(
 
 export async function initBundledRuntimeFromSettings(settings: AgentSettings): Promise<boolean> {
   return initBundledRuntimeHandlers(settings.liveRuntimeFromGit !== false)
+}
+function loadAsarHandlerFactories(): AgentHandlerFactories {
+  if (cachedAsarFactories) return cachedAsarFactories
+  const requireFn = Function('return require')() as (id: string) => unknown
+  cachedAsarFactories = requireFn('./runtimeHandlers') as AgentHandlerFactories
+  return cachedAsarFactories
 }

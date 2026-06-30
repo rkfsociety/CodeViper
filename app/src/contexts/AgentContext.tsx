@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, type Dispatch } from 'react'
 import type { ReactNode } from 'react'
-import type { AgentPhase } from '../components/AgentStatusBar'
+import type { AgentPhase } from './agentPhase'
 import type { GenerationMetrics, RunStats } from '../../shared/generationMetrics'
 import type { CircuitBreakerState } from '../types'
 

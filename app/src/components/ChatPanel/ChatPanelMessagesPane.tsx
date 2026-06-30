@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, type MutableRefObject } 
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ChatMessage } from '../../types'
 import type { RunStats } from '../../../shared/generationMetrics'
-import type { AgentPhase } from '../AgentStatusBar'
+import type { AgentPhase } from '../../contexts/agentPhase'
 import { groupToolMessages, shouldShowAssistantMessage } from './helpers'
 import { ChatMessages } from './ChatMessages'
 

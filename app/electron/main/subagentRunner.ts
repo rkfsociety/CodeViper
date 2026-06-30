@@ -10,7 +10,7 @@ import { getAgentTools } from './agentTools'
 import { resolveAgentHandlerFactories } from './runtimeBootstrap'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings } from '../../src/types'
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import type { SubagentOptions, SubagentResult, SubagentRole } from '../../shared/subagent'
 import { resolveAllowedTools, resolveMaxSteps } from '../../shared/subagent'
 import {
@@ -218,7 +218,7 @@ export async function runSubagent(
 
       // Выполняем инструмент
       const handlerFn = (
-        handlers as Record<string, (args: Record<string, string>) => Promise<string>>
+        handlers as unknown as Record<string, (args: Record<string, string>) => Promise<string>>
       )[toolName]
       let toolResult: string
       try {

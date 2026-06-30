@@ -9,11 +9,16 @@ import {
   RUNTIME_BUILD_HEAD_REL
 } from '../../shared/constants'
 import { runCommandInAppRoot } from './codeviperSource'
-import {
-  getBundledSourceRoot,
-  type BundledSourceSyncResult,
-  runBundledGit
-} from './bundledSourceSync'
+import { getBundledSourceRoot } from './bundledSourcePaths'
+import { runBundledGit } from './bundledGit'
+
+export interface BundledSourceSyncResult {
+  updated: boolean
+  localHead?: string
+  error?: string
+  appDirChanged?: boolean
+  cloneCreated?: boolean
+}
 
 export interface BundledSourceBuildResult {
   built: boolean

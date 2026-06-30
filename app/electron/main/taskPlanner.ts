@@ -1,6 +1,6 @@
 import { isRefusalResponse } from '../../shared/toolCalls'
 import type { LoopGuard } from './agentLoopGuard'
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import type { AgentSettings } from '../../src/types'
 
 export type TaskMode = 'standard'

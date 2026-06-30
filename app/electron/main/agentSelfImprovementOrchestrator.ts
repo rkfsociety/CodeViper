@@ -1,5 +1,5 @@
 import type { AgentStreamPayload } from '../../src/types'
-import type { OllamaMessage } from './agentContext'
+import type { OllamaMessage } from './ollamaMessage'
 import type { ModelRuntime } from './modelRuntime'
 import type { AgentSettings } from '../../src/types'
 import {
