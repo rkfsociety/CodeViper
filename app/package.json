@@ -136,6 +136,7 @@
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
     "systeminformation": "^5.31.11",
+    "typescript": "^6.0.3",
     "ws": "^8.21.0",
     "zod": "^4.4.3"
   },
@@ -165,7 +166,6 @@
     "pngjs": "^7.0.0",
     "prettier": "^3.9.3",
     "typedoc": "^0.28.19",
-    "typescript": "^6.0.3",
     "vite": "^8.1.0",
     "vitest": "^4.1.8"
   }
