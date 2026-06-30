@@ -439,7 +439,7 @@ app.whenReady().then(async () => {
     console.warn('[startup] ensureDefaultSkills:', err instanceof Error ? err.message : String(err))
   })
 
-  if (!app.isPackaged) {
+  if (!app.isPackaged && !process.env.CODEVIPER_E2E) {
     void installReactDevTools()
   }
 
