@@ -5,17 +5,28 @@ import {
   type Page
 } from '@playwright/test'
 import { createRequire } from 'module'
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const require = createRequire(import.meta.url)
 const ELECTRON_PACKAGE_ROOT = path.dirname(require.resolve('electron/package.json'))
-const ELECTRON_PATH = path.join(
-  ELECTRON_PACKAGE_ROOT,
-  'dist',
-  readFileSync(path.join(ELECTRON_PACKAGE_ROOT, 'path.txt'), 'utf8').trim()
-)
+
+function resolveElectronExecutable(): string {
+  const pathTxtFile = path.join(ELECTRON_PACKAGE_ROOT, 'path.txt')
+  if (existsSync(pathTxtFile)) {
+    const relative = readFileSync(pathTxtFile, 'utf8').trim()
+    return path.join(ELECTRON_PACKAGE_ROOT, relative)
+  }
+
+  if (process.platform === 'darwin') {
+    return path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron')
+  }
+  if (process.platform === 'win32') {
+    return path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'electron.exe')
+  }
+  return path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'electron')
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_ROOT = path.resolve(__dirname, '..')
@@ -51,7 +62,7 @@ export async function waitForAppShell(page: Page): Promise<void> {
 
 export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
-    executablePath: ELECTRON_PATH,
+    executablePath: resolveElectronExecutable(),
     args: [MAIN_PATH, ...ciElectronFlags()],
     cwd: APP_ROOT,
     timeout: 60_000,
