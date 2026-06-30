@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import type { AgentRole } from '../types'
+import { MermaidDiagram } from './MermaidDiagram'
 import 'highlight.js/styles/github-dark.min.css'
 import styles from './MessageBody.module.css'
 
@@ -185,6 +186,17 @@ export const MessageBody = React.memo(function MessageBody({
 
       pre: ({ children }: { children?: ReactNode }) => {
         const codeText = extractCodeBlockText(children)
+        const child = React.Children.toArray(children)[0]
+        const className = React.isValidElement<{ className?: string }>(child)
+          ? child.props.className
+          : undefined
+        if (className?.includes('language-mermaid') && codeText.trim()) {
+          return (
+            <div className={styles.mermaidBlock}>
+              <MermaidDiagram chart={codeText.trim()} />
+            </div>
+          )
+        }
         return (
           <div className={styles.codeBlock}>
             <CodeBlockCopyButton text={codeText} />

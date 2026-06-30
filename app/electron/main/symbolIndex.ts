@@ -30,22 +30,22 @@ const IGNORED_DIRS = new Set([
 
 const TS_JS_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts'])
 const PY_EXTENSIONS = new Set(['.py', '.pyw'])
+const CLASS_DIAGRAM_EXTENSIONS = new Set([...TS_JS_EXTENSIONS, '.java', '.cs'])
 
 export const MAX_SYMBOL_RESULTS = 40
 export const MAX_IMPORT_CYCLES = 20
+export const MAX_DEPENDENCY_NODES = 80
+export const MAX_DEPENDENCY_EDGES = 150
+export const MAX_CLASS_DIAGRAM_CLASSES = 60
+export const MAX_CLASS_DIAGRAM_MEMBERS = 12
+export const MAX_DATAFLOW_NODES = 60
+export const MAX_DATAFLOW_EDGES = 120
 
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts']
 const INDEX_FILENAMES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx', 'index.mjs']
 
 export type SymbolKind =
-  | 'function'
-  | 'class'
-  | 'method'
-  | 'variable'
-  | 'interface'
-  | 'type'
-  | 'enum'
-  | 'module'
+  'function' | 'class' | 'method' | 'variable' | 'interface' | 'type' | 'enum' | 'module'
 
 export interface SymbolLocation {
   path: string
@@ -233,11 +233,17 @@ function isIndexableFile(filePath: string): boolean {
   return TS_JS_EXTENSIONS.has(ext) || PY_EXTENSIONS.has(ext)
 }
 
+function isClassDiagramFile(filePath: string): boolean {
+  return CLASS_DIAGRAM_EXTENSIONS.has(extname(filePath).toLowerCase())
+}
+
 async function walkProjectFiles(
   startDir: string,
   onFile: (absolutePath: string) => Promise<boolean | void>,
-  onProgress?: (scanned: number) => void
+  onProgress?: (scanned: number) => void,
+  fileFilter?: (filePath: string) => boolean
 ): Promise<number> {
+  const acceptFile = fileFilter ?? isIndexableFile
   let visited = 0
 
   async function walk(dir: string): Promise<boolean> {
@@ -262,7 +268,7 @@ async function walkProjectFiles(
         continue
       }
 
-      if (!entry.isFile() || !isIndexableFile(fullPath)) continue
+      if (!entry.isFile() || !acceptFile(fullPath)) continue
       visited += 1
       if (onProgress && visited % 25 === 0) onProgress(visited)
       const stop = await onFile(fullPath)
@@ -586,14 +592,18 @@ export function formatImportCycles(projectPath: string, result: ImportCycleResul
   return `Найдено циклов импорта: ${result.cycles.length}${result.truncated ? '+' : ''}\n${lines.join('\n')}${footer}`
 }
 
-export async function findImportCycles(
+export interface ImportGraphResult {
+  graph: Map<string, string[]>
+  filesScanned: number
+}
+
+export async function buildImportGraph(
   projectPath: string,
-  options?: { subpath?: string; maxCycles?: number; onProgress?: (scanned: number) => void }
-): Promise<ImportCycleResult> {
+  options?: { subpath?: string; onProgress?: (scanned: number) => void }
+): Promise<ImportGraphResult> {
   const startDir = options?.subpath?.trim()
     ? resolve(projectPath, options.subpath.trim())
     : resolve(projectPath)
-  const maxCycles = options?.maxCycles ?? MAX_IMPORT_CYCLES
   const graph = new Map<string, string[]>()
   let filesScanned = 0
 
@@ -608,10 +618,873 @@ export async function findImportCycles(
     options?.onProgress
   )
 
+  return { graph, filesScanned }
+}
+
+export interface DependencyDiagramResult {
+  mermaid: string
+  nodeCount: number
+  edgeCount: number
+  truncated: boolean
+  filesScanned: number
+}
+
+function relModulePath(projectPath: string, absolutePath: string): string {
+  return relative(projectPath, absolutePath).replace(/\\/g, '/')
+}
+
+function sanitizeMermaidLabel(label: string): string {
+  return label.replace(/"/g, "'")
+}
+
+function toMermaidNodeId(index: number): string {
+  return `N${index}`
+}
+
+function filterGraphByFocus(
+  graph: Map<string, string[]>,
+  focusFile: string
+): Map<string, string[]> {
+  const filtered = new Map<string, string[]>()
+  const focusImports = graph.get(focusFile) ?? []
+  const importers: string[] = []
+  for (const [from, targets] of graph) {
+    if (targets.includes(focusFile)) importers.push(from)
+  }
+
+  const keep = new Set<string>([focusFile, ...focusImports, ...importers])
+  for (const node of keep) {
+    const targets = (graph.get(node) ?? []).filter((target) => keep.has(target))
+    if (targets.length || node === focusFile) filtered.set(node, targets)
+  }
+  return filtered
+}
+
+export function graphToMermaid(
+  projectPath: string,
+  graph: Map<string, string[]>,
+  limits?: { maxNodes?: number; maxEdges?: number }
+): Pick<DependencyDiagramResult, 'mermaid' | 'nodeCount' | 'edgeCount' | 'truncated'> {
+  const maxNodes = limits?.maxNodes ?? MAX_DEPENDENCY_NODES
+  const maxEdges = limits?.maxEdges ?? MAX_DEPENDENCY_EDGES
+  const nodeIndex = new Map<string, number>()
+  const edges: Array<[string, string]> = []
+  let truncated = false
+
+  const sortedSources = [...graph.keys()].sort()
+  for (const from of sortedSources) {
+    const targets = [...(graph.get(from) ?? [])].sort()
+    for (const to of targets) {
+      if (edges.length >= maxEdges) {
+        truncated = true
+        break
+      }
+      if (!nodeIndex.has(from)) {
+        if (nodeIndex.size >= maxNodes) {
+          truncated = true
+          continue
+        }
+        nodeIndex.set(from, nodeIndex.size)
+      }
+      if (!nodeIndex.has(to)) {
+        if (nodeIndex.size >= maxNodes) {
+          truncated = true
+          continue
+        }
+        nodeIndex.set(to, nodeIndex.size)
+      }
+      edges.push([from, to])
+    }
+    if (truncated) break
+  }
+
+  const lines = ['graph LR']
+  const sortedNodes = [...nodeIndex.entries()].sort((a, b) => a[1] - b[1])
+  for (const [path, idx] of sortedNodes) {
+    lines.push(
+      `  ${toMermaidNodeId(idx)}["${sanitizeMermaidLabel(relModulePath(projectPath, path))}"]`
+    )
+  }
+  for (const [from, to] of edges) {
+    const fromId = nodeIndex.get(from)
+    const toId = nodeIndex.get(to)
+    if (fromId == null || toId == null) continue
+    lines.push(`  ${toMermaidNodeId(fromId)} --> ${toMermaidNodeId(toId)}`)
+  }
+
+  return {
+    mermaid: lines.join('\n'),
+    nodeCount: nodeIndex.size,
+    edgeCount: edges.length,
+    truncated
+  }
+}
+
+export async function buildDependencyDiagram(
+  projectPath: string,
+  options?: {
+    subpath?: string
+    focus?: string
+    maxNodes?: number
+    maxEdges?: number
+    onProgress?: (scanned: number) => void
+  }
+): Promise<DependencyDiagramResult> {
+  const { graph: fullGraph, filesScanned } = await buildImportGraph(projectPath, {
+    subpath: options?.subpath,
+    onProgress: options?.onProgress
+  })
+
+  let graph = fullGraph
+  const focus = options?.focus?.trim()
+  if (focus) {
+    const focusFile = resolve(projectPath, focus)
+    graph = filterGraphByFocus(fullGraph, focusFile)
+    if (!graph.size) {
+      graph = new Map([[focusFile, fullGraph.get(focusFile) ?? []]])
+    }
+  }
+
+  const diagram = graphToMermaid(projectPath, graph, {
+    maxNodes: options?.maxNodes,
+    maxEdges: options?.maxEdges
+  })
+
+  return { ...diagram, filesScanned }
+}
+
+export function formatDependencyDiagram(result: DependencyDiagramResult): string {
+  if (!result.nodeCount) {
+    return `Граф зависимостей пуст (просмотрено файлов: ${result.filesScanned})`
+  }
+
+  const header = `Граф зависимостей: ${result.nodeCount} модулей, ${result.edgeCount} связей${
+    result.truncated ? ' (обрезано)' : ''
+  }`
+
+  return `${header}\n\n\`\`\`mermaid\n${result.mermaid}\n\`\`\`\n\n(просмотрено файлов: ${result.filesScanned})`
+}
+
+export async function findImportCycles(
+  projectPath: string,
+  options?: { subpath?: string; maxCycles?: number; onProgress?: (scanned: number) => void }
+): Promise<ImportCycleResult> {
+  const maxCycles = options?.maxCycles ?? MAX_IMPORT_CYCLES
+  const { graph, filesScanned } = await buildImportGraph(projectPath, options)
   const { cycles, truncated } = findCyclesInGraph(graph, maxCycles)
   return {
     cycles: cycles.map((chain) => ({ chain })),
     truncated,
     filesScanned
   }
+}
+
+// ── Class diagram (TS / Java / C#) ───────────────────────────────────────────
+
+export type ClassDiagramKind = 'class' | 'interface' | 'abstract'
+
+export interface ClassDiagramMember {
+  name: string
+  visibility: '+' | '-' | '#' | '~'
+}
+
+export interface ClassDiagramClass {
+  name: string
+  filePath: string
+  kind: ClassDiagramKind
+  extends: string[]
+  implements: string[]
+  members: ClassDiagramMember[]
+}
+
+export interface ClassDiagramResult {
+  mermaid: string
+  classCount: number
+  relationCount: number
+  truncated: boolean
+  filesScanned: number
+}
+
+const JAVA_CLASS =
+  /^(?:public\s+|private\s+|protected\s+)?(?:abstract\s+|final\s+)?class\s+([A-Za-z_]\w*)(?:\s+extends\s+([A-Za-z_][\w.]*))?(?:\s+implements\s+([A-Za-z_][\w.,\s]*))?/
+const JAVA_INTERFACE =
+  /^(?:public\s+|private\s+|protected\s+)?interface\s+([A-Za-z_]\w*)(?:\s+extends\s+([A-Za-z_][\w.,\s]*))?/
+const JAVA_METHOD =
+  /^\s*(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?(?:[\w<>\x5B\x5D,\s.?]+)\s+([A-Za-z_]\w*)\s*\(/
+const JAVA_FIELD =
+  /^\s*(?:public|private|protected)\s+(?:static\s+)?(?:final\s+)?(?:[\w<>\x5B\x5D,\s]+)\s+([A-Za-z_]\w*)\s*(?:=|;)/
+
+const CS_CLASS =
+  /^(?:public|private|protected|internal)?\s*(?:abstract\s+|sealed\s+|partial\s+|static\s+)*class\s+([A-Za-z_]\w*)(?:\s*:\s*([A-Za-z_][\w.,\s<>]*))?/
+const CS_INTERFACE =
+  /^(?:public|private|protected|internal)?\s*interface\s+([A-Za-z_]\w*)(?:\s*:\s*([A-Za-z_][\w.,\s<>]*))?/
+const CS_MEMBER =
+  /^\s*(?:public|private|protected|internal)\s+(?:static\s+)?(?:[\w<>\x5B\x5D,\s.?]+)\s+([A-Za-z_]\w*)\s*(?:\(|{|;)/
+
+function tsVisibility(modifiers: Ts.NodeArray<Ts.ModifierLike> | undefined): '+' | '-' | '#' {
+  const ts = getTs()
+  if (!modifiers) return '+'
+  for (const mod of modifiers) {
+    if (mod.kind === ts.SyntaxKind.PrivateKeyword) return '-'
+    if (mod.kind === ts.SyntaxKind.ProtectedKeyword) return '#'
+  }
+  return '+'
+}
+
+function splitTypeList(value: string): string[] {
+  return value
+    .split(',')
+    .map((part) => part.trim().split(/[<.\s]/)[0])
+    .filter((part) => /^[A-Za-z_]\w*$/.test(part))
+}
+
+function collectTsClasses(
+  sourceFile: Ts.SourceFile,
+  filePath: string,
+  out: ClassDiagramClass[]
+): void {
+  const ts = getTs()
+
+  function memberName(node: Ts.ClassElement | Ts.TypeElement): string | null {
+    if (
+      (ts.isMethodDeclaration(node) ||
+        ts.isPropertyDeclaration(node) ||
+        ts.isGetAccessorDeclaration(node) ||
+        ts.isSetAccessorDeclaration(node)) &&
+      ts.isIdentifier(node.name)
+    ) {
+      return node.name.text
+    }
+    if (ts.isMethodSignature(node) || ts.isPropertySignature(node)) {
+      if (ts.isIdentifier(node.name)) return node.name.text
+    }
+    return null
+  }
+
+  function visit(node: Ts.Node): void {
+    if (ts.isClassDeclaration(node) && node.name) {
+      const info: ClassDiagramClass = {
+        name: node.name.text,
+        filePath,
+        kind: node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AbstractKeyword)
+          ? 'abstract'
+          : 'class',
+        extends: [],
+        implements: [],
+        members: []
+      }
+      for (const clause of node.heritageClauses ?? []) {
+        const names = clause.types.map((type) => type.expression.getText(sourceFile))
+        if (clause.token === ts.SyntaxKind.ExtendsKeyword) info.extends = names
+        if (clause.token === ts.SyntaxKind.ImplementsKeyword) info.implements = names
+      }
+      for (const member of node.members) {
+        const name = memberName(member)
+        if (!name || name === 'constructor') continue
+        let visibility: '+' | '-' | '#' = '+'
+        if (ts.isMethodDeclaration(member) || ts.isPropertyDeclaration(member)) {
+          visibility = tsVisibility(member.modifiers)
+        }
+        info.members.push({ name, visibility })
+      }
+      out.push(info)
+    } else if (ts.isInterfaceDeclaration(node) && node.name) {
+      const info: ClassDiagramClass = {
+        name: node.name.text,
+        filePath,
+        kind: 'interface',
+        extends: [],
+        implements: [],
+        members: []
+      }
+      for (const clause of node.heritageClauses ?? []) {
+        if (clause.token === ts.SyntaxKind.ExtendsKeyword) {
+          info.extends = clause.types.map((type) => type.expression.getText(sourceFile))
+        }
+      }
+      for (const member of node.members) {
+        const name = memberName(member)
+        if (!name) continue
+        info.members.push({ name, visibility: '+' })
+      }
+      out.push(info)
+    }
+    ts.forEachChild(node, visit)
+  }
+
+  visit(sourceFile)
+}
+
+function javaVisibility(line: string): '+' | '-' | '#' | '~' {
+  if (/\bprivate\b/.test(line)) return '-'
+  if (/\bprotected\b/.test(line)) return '#'
+  if (/\bpublic\b/.test(line)) return '+'
+  return '~'
+}
+
+function collectJavaClasses(content: string, filePath: string, out: ClassDiagramClass[]): void {
+  const lines = content.split('\n')
+  let current: ClassDiagramClass | null = null
+  let braceDepth = 0
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!current) {
+      const classMatch = trimmed.match(JAVA_CLASS)
+      if (classMatch) {
+        current = {
+          name: classMatch[1],
+          filePath,
+          kind: /\babstract\b/.test(trimmed) ? 'abstract' : 'class',
+          extends: classMatch[2] ? [classMatch[2].split('.').pop()!] : [],
+          implements: classMatch[3] ? splitTypeList(classMatch[3]) : [],
+          members: []
+        }
+        braceDepth = (line.match(/{/g) ?? []).length - (line.match(/}/g) ?? []).length
+        if (braceDepth <= 0 && line.includes('{')) {
+          out.push(current)
+          current = null
+          braceDepth = 0
+        }
+        continue
+      }
+      const ifaceMatch = trimmed.match(JAVA_INTERFACE)
+      if (ifaceMatch) {
+        current = {
+          name: ifaceMatch[1],
+          filePath,
+          kind: 'interface',
+          extends: ifaceMatch[2] ? splitTypeList(ifaceMatch[2]) : [],
+          implements: [],
+          members: []
+        }
+        braceDepth = (line.match(/{/g) ?? []).length - (line.match(/}/g) ?? []).length
+        if (braceDepth <= 0 && line.includes('{')) {
+          out.push(current)
+          current = null
+          braceDepth = 0
+        }
+      }
+      continue
+    }
+
+    braceDepth += (line.match(/{/g) ?? []).length
+    braceDepth -= (line.match(/}/g) ?? []).length
+
+    const methodMatch = line.match(JAVA_METHOD)
+    if (methodMatch?.[1] && methodMatch[1] !== current.name) {
+      current.members.push({ name: methodMatch[1], visibility: javaVisibility(line) })
+    } else {
+      const fieldMatch = line.match(JAVA_FIELD)
+      if (fieldMatch?.[1]) {
+        current.members.push({ name: fieldMatch[1], visibility: javaVisibility(line) })
+      }
+    }
+
+    if (braceDepth <= 0) {
+      out.push(current)
+      current = null
+      braceDepth = 0
+    }
+  }
+}
+
+function csVisibility(line: string): '+' | '-' | '#' | '~' {
+  if (/\bprivate\b/.test(line)) return '-'
+  if (/\bprotected\b/.test(line)) return '#'
+  if (/\binternal\b/.test(line)) return '~'
+  return '+'
+}
+
+function collectCsClasses(content: string, filePath: string, out: ClassDiagramClass[]): void {
+  const lines = content.split('\n')
+  let current: ClassDiagramClass | null = null
+  let braceDepth = 0
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!current) {
+      const classMatch = trimmed.match(CS_CLASS)
+      if (classMatch) {
+        const bases = classMatch[2] ? splitTypeList(classMatch[2]) : []
+        const extendsList: string[] = []
+        const implementsList: string[] = []
+        for (const base of bases) {
+          if (base.startsWith('I') && base.length > 1 && base[1] === base[1].toUpperCase()) {
+            implementsList.push(base)
+          } else {
+            extendsList.push(base)
+          }
+        }
+        current = {
+          name: classMatch[1],
+          filePath,
+          kind: /\babstract\b/.test(trimmed) ? 'abstract' : 'class',
+          extends: extendsList,
+          implements: implementsList,
+          members: []
+        }
+        braceDepth = (line.match(/{/g) ?? []).length - (line.match(/}/g) ?? []).length
+        if (braceDepth <= 0 && line.includes('{')) {
+          out.push(current)
+          current = null
+          braceDepth = 0
+        }
+        continue
+      }
+      const ifaceMatch = trimmed.match(CS_INTERFACE)
+      if (ifaceMatch) {
+        current = {
+          name: ifaceMatch[1],
+          filePath,
+          kind: 'interface',
+          extends: ifaceMatch[2] ? splitTypeList(ifaceMatch[2]) : [],
+          implements: [],
+          members: []
+        }
+        braceDepth = (line.match(/{/g) ?? []).length - (line.match(/}/g) ?? []).length
+        if (braceDepth <= 0 && line.includes('{')) {
+          out.push(current)
+          current = null
+          braceDepth = 0
+        }
+      }
+      continue
+    }
+
+    braceDepth += (line.match(/{/g) ?? []).length
+    braceDepth -= (line.match(/}/g) ?? []).length
+
+    const memberMatch = line.match(CS_MEMBER)
+    if (memberMatch?.[1] && !['get', 'set'].includes(memberMatch[1])) {
+      current.members.push({ name: memberMatch[1], visibility: csVisibility(line) })
+    }
+
+    if (braceDepth <= 0) {
+      out.push(current)
+      current = null
+      braceDepth = 0
+    }
+  }
+}
+
+async function collectFileClasses(filePath: string): Promise<ClassDiagramClass[]> {
+  let content: string
+  try {
+    content = await readFile(filePath, 'utf-8')
+  } catch {
+    return []
+  }
+  if (content.includes('\0')) return []
+
+  const ext = extname(filePath).toLowerCase()
+  const out: ClassDiagramClass[] = []
+
+  if (TS_JS_EXTENSIONS.has(ext)) {
+    const ts = getTs()
+    const sourceFile = ts.createSourceFile(
+      filePath,
+      content,
+      ts.ScriptTarget.Latest,
+      true,
+      scriptKindForExt(ext)
+    )
+    collectTsClasses(sourceFile, filePath, out)
+    return out
+  }
+
+  if (ext === '.java') {
+    collectJavaClasses(content, filePath, out)
+    return out
+  }
+
+  if (ext === '.cs') {
+    collectCsClasses(content, filePath, out)
+    return out
+  }
+
+  return out
+}
+
+function sanitizeClassId(name: string): string {
+  const cleaned = name.replace(/[^A-Za-z0-9_]/g, '_')
+  return cleaned || 'Class'
+}
+
+function uniqueClassIds(classes: ClassDiagramClass[]): Map<ClassDiagramClass, string> {
+  const used = new Map<string, number>()
+  const ids = new Map<ClassDiagramClass, string>()
+  for (const cls of classes) {
+    const base = sanitizeClassId(cls.name)
+    const count = used.get(base) ?? 0
+    used.set(base, count + 1)
+    ids.set(cls, count === 0 ? base : `${base}_${count}`)
+  }
+  return ids
+}
+
+function resolveRelationTarget(name: string, knownNames: Set<string>): string | null {
+  const simple = name.split(/[<.\s]/)[0]
+  if (!simple || !knownNames.has(simple)) return null
+  return simple
+}
+
+export function classesToMermaid(
+  classes: ClassDiagramClass[],
+  limits?: { maxClasses?: number; maxMembers?: number }
+): Pick<ClassDiagramResult, 'mermaid' | 'classCount' | 'relationCount' | 'truncated'> {
+  const maxClasses = limits?.maxClasses ?? MAX_CLASS_DIAGRAM_CLASSES
+  const maxMembers = limits?.maxMembers ?? MAX_CLASS_DIAGRAM_MEMBERS
+  const selected = classes.slice(0, maxClasses)
+  const truncated = classes.length > selected.length
+  const ids = uniqueClassIds(selected)
+  const knownNames = new Set(selected.map((cls) => cls.name))
+  const lines = ['classDiagram']
+  let relationCount = 0
+
+  for (const cls of selected) {
+    const id = ids.get(cls)!
+    const memberLines: string[] = []
+    const members = cls.members.slice(0, maxMembers)
+    for (const member of members) {
+      memberLines.push(`        ${member.visibility}${member.name}()`)
+    }
+    if (cls.members.length > members.length) {
+      memberLines.push('        ...')
+    }
+    if (cls.kind === 'interface') {
+      memberLines.unshift('        <<interface>>')
+    } else if (cls.kind === 'abstract') {
+      memberLines.unshift('        <<abstract>>')
+    }
+    if (memberLines.length) {
+      lines.push(`    class ${id} {`)
+      lines.push(...memberLines)
+      lines.push('    }')
+    } else {
+      lines.push(`    class ${id}`)
+    }
+  }
+
+  for (const cls of selected) {
+    const childId = ids.get(cls)!
+    for (const base of cls.extends) {
+      const target = resolveRelationTarget(base, knownNames)
+      if (!target) continue
+      const parent = selected.find((item) => item.name === target)
+      if (!parent) continue
+      lines.push(`    ${ids.get(parent)!} <|-- ${childId}`)
+      relationCount += 1
+    }
+    for (const iface of cls.implements) {
+      const target = resolveRelationTarget(iface, knownNames)
+      if (!target) continue
+      const ifaceClass = selected.find((item) => item.name === target)
+      if (!ifaceClass) continue
+      lines.push(`    ${ids.get(ifaceClass)!} <|.. ${childId}`)
+      relationCount += 1
+    }
+  }
+
+  return {
+    mermaid: lines.join('\n'),
+    classCount: selected.length,
+    relationCount,
+    truncated
+  }
+}
+
+export async function buildClassDiagram(
+  projectPath: string,
+  options?: {
+    subpath?: string
+    maxClasses?: number
+    maxMembers?: number
+    onProgress?: (scanned: number) => void
+  }
+): Promise<ClassDiagramResult> {
+  const startDir = options?.subpath?.trim()
+    ? resolve(projectPath, options.subpath.trim())
+    : resolve(projectPath)
+  const classes: ClassDiagramClass[] = []
+  let filesScanned = 0
+
+  await walkProjectFiles(
+    startDir,
+    async (filePath) => {
+      filesScanned += 1
+      const found = await collectFileClasses(filePath)
+      for (const cls of found) {
+        classes.push(cls)
+        if (classes.length >= (options?.maxClasses ?? MAX_CLASS_DIAGRAM_CLASSES) * 2) {
+          return true
+        }
+      }
+      return false
+    },
+    options?.onProgress,
+    isClassDiagramFile
+  )
+
+  classes.sort((a, b) => a.name.localeCompare(b.name) || a.filePath.localeCompare(b.filePath))
+  const diagram = classesToMermaid(classes, {
+    maxClasses: options?.maxClasses,
+    maxMembers: options?.maxMembers
+  })
+
+  return { ...diagram, filesScanned }
+}
+
+export function formatClassDiagram(result: ClassDiagramResult): string {
+  if (!result.classCount) {
+    return `Классы не найдены (просмотрено файлов: ${result.filesScanned})`
+  }
+
+  const header = `Диаграмма классов: ${result.classCount} типов, ${result.relationCount} связей${
+    result.truncated ? ' (обрезано)' : ''
+  }`
+
+  return `${header}\n\n\`\`\`mermaid\n${result.mermaid}\n\`\`\`\n\n(просмотрено файлов: ${result.filesScanned})`
+}
+
+// ── Dataflow diagram (IPC / HTTP / FS) ───────────────────────────────────────
+
+export type DataflowKind = 'ipc_out' | 'ipc_in' | 'http' | 'fs_read' | 'fs_write'
+
+export interface DataflowDiagramResult {
+  mermaid: string
+  nodeCount: number
+  edgeCount: number
+  truncated: boolean
+  filesScanned: number
+}
+
+const DATAFLOW_EXTERNAL = {
+  fs: 'EXT_FS',
+  http: 'EXT_HTTP',
+  ipc: 'EXT_IPC'
+} as const
+
+function externalTarget(kind: DataflowKind): string {
+  switch (kind) {
+    case 'ipc_out':
+    case 'ipc_in':
+      return DATAFLOW_EXTERNAL.ipc
+    case 'http':
+      return DATAFLOW_EXTERNAL.http
+    case 'fs_read':
+    case 'fs_write':
+      return DATAFLOW_EXTERNAL.fs
+  }
+}
+
+function dataflowEdgeLabel(kind: DataflowKind, detail?: string): string {
+  switch (kind) {
+    case 'ipc_out':
+      return detail ? `invoke ${detail}` : 'IPC out'
+    case 'ipc_in':
+      return detail ? `handle ${detail}` : 'IPC in'
+    case 'http':
+      return detail ?? 'HTTP'
+    case 'fs_read':
+      return detail ?? 'read'
+    case 'fs_write':
+      return detail ?? 'write'
+  }
+}
+
+function isDataflowInbound(kind: DataflowKind): boolean {
+  return kind === 'ipc_in' || kind === 'fs_read'
+}
+
+function detectModuleDataflows(content: string): Array<{ kind: DataflowKind; detail?: string }> {
+  const seen = new Set<string>()
+  const flows: Array<{ kind: DataflowKind; detail?: string }> = []
+
+  const add = (kind: DataflowKind, detail?: string) => {
+    const key = `${kind}:${detail ?? ''}`
+    if (seen.has(key)) return
+    seen.add(key)
+    flows.push({ kind, detail })
+  }
+
+  for (const match of content.matchAll(/ipcRenderer\.invoke\s*\(\s*['"`]([^'"`]+)['"`]/g)) {
+    add('ipc_out', match[1])
+  }
+  for (const match of content.matchAll(/ipcRenderer\.send\s*\(\s*['"`]([^'"`]+)['"`]/g)) {
+    add('ipc_out', match[1])
+  }
+  for (const match of content.matchAll(/window\.codeviper\.(\w+)/g)) {
+    add('ipc_out', match[1])
+  }
+  for (const match of content.matchAll(/ipcMain\.handle\s*\(\s*['"`]([^'"`]+)['"`]/g)) {
+    add('ipc_in', match[1])
+  }
+  for (const match of content.matchAll(/ipcMain\.on\s*\(\s*['"`]([^'"`]+)['"`]/g)) {
+    add('ipc_in', match[1])
+  }
+  for (const match of content.matchAll(
+    /contextBridge\.exposeInMainWorld\s*\(\s*['"`]([^'"`]+)['"`]/g
+  )) {
+    add('ipc_in', match[1])
+  }
+
+  if (/\bfetch\s*\(/.test(content)) add('http', 'fetch')
+  if (/axios\.\w+/.test(content)) add('http', 'axios')
+  if (/\bhttps?\.(get|request|post)\s*\(/.test(content)) add('http', 'http')
+
+  if (/\breadFile(?:Sync)?\s*\(/.test(content)) add('fs_read', 'readFile')
+  if (/\bcreateReadStream\s*\(/.test(content)) add('fs_read', 'readStream')
+  if (/\breaddir(?:Sync)?\s*\(/.test(content)) add('fs_read', 'readdir')
+  if (/\bstat(?:Sync)?\s*\(/.test(content)) add('fs_read', 'stat')
+
+  if (/\bwriteFile(?:Sync)?\s*\(/.test(content)) add('fs_write', 'writeFile')
+  if (/\bappendFile(?:Sync)?\s*\(/.test(content)) add('fs_write', 'appendFile')
+  if (/\bcreateWriteStream\s*\(/.test(content)) add('fs_write', 'writeStream')
+  if (/\bunlink(?:Sync)?\s*\(/.test(content)) add('fs_write', 'unlink')
+
+  if (/\brequests\.\w+/.test(content)) add('http', 'requests')
+  if (/\bhttpx\.\w+/.test(content)) add('http', 'httpx')
+  if (/\bopen\s*\(/.test(content)) add('fs_read', 'open')
+
+  return flows
+}
+
+async function collectFileDataflows(
+  filePath: string
+): Promise<Array<{ kind: DataflowKind; detail?: string }>> {
+  let content: string
+  try {
+    content = await readFile(filePath, 'utf-8')
+  } catch {
+    return []
+  }
+  if (content.includes('\0')) return []
+  return detectModuleDataflows(content)
+}
+
+export function dataflowToMermaid(
+  projectPath: string,
+  moduleFlows: Map<string, Array<{ kind: DataflowKind; detail?: string }>>,
+  limits?: { maxNodes?: number; maxEdges?: number }
+): Pick<DataflowDiagramResult, 'mermaid' | 'nodeCount' | 'edgeCount' | 'truncated'> {
+  const maxNodes = limits?.maxNodes ?? MAX_DATAFLOW_NODES
+  const maxEdges = limits?.maxEdges ?? MAX_DATAFLOW_EDGES
+  const moduleIds = new Map<string, number>()
+  const extUsed = new Set<string>()
+  const edges: Array<{ from: string; to: string; label: string }> = []
+  let truncated = false
+
+  const sortedModules = [...moduleFlows.keys()].sort()
+  for (const mod of sortedModules) {
+    const flows = moduleFlows.get(mod) ?? []
+    for (const flow of flows) {
+      if (edges.length >= maxEdges) {
+        truncated = true
+        break
+      }
+      const ext = externalTarget(flow.kind)
+      extUsed.add(ext)
+      if (!moduleIds.has(mod)) {
+        if (moduleIds.size >= maxNodes) {
+          truncated = true
+          continue
+        }
+        moduleIds.set(mod, moduleIds.size)
+      }
+      const label = sanitizeMermaidLabel(dataflowEdgeLabel(flow.kind, flow.detail))
+      if (isDataflowInbound(flow.kind)) {
+        edges.push({ from: ext, to: mod, label })
+      } else {
+        edges.push({ from: mod, to: ext, label })
+      }
+    }
+    if (truncated) break
+  }
+
+  const lines = ['flowchart LR']
+  if (extUsed.has(DATAFLOW_EXTERNAL.fs)) {
+    lines.push(`  ${DATAFLOW_EXTERNAL.fs}[("Filesystem")]`)
+  }
+  if (extUsed.has(DATAFLOW_EXTERNAL.http)) {
+    lines.push(`  ${DATAFLOW_EXTERNAL.http}[("HTTP")]`)
+  }
+  if (extUsed.has(DATAFLOW_EXTERNAL.ipc)) {
+    lines.push(`  ${DATAFLOW_EXTERNAL.ipc}[["IPC"]]`)
+  }
+
+  const sortedNodes = [...moduleIds.entries()].sort((a, b) => a[1] - b[1])
+  for (const [path, idx] of sortedNodes) {
+    lines.push(
+      `  ${toMermaidNodeId(idx)}["${sanitizeMermaidLabel(relModulePath(projectPath, path))}"]`
+    )
+  }
+
+  for (const edge of edges) {
+    const mod = edge.from.startsWith('EXT_') ? edge.to : edge.from
+    const modIdx = moduleIds.get(mod)
+    if (modIdx == null) continue
+    const modNode = toMermaidNodeId(modIdx)
+    if (edge.from.startsWith('EXT_')) {
+      lines.push(`  ${edge.from} -->|"${edge.label}"| ${modNode}`)
+    } else {
+      lines.push(`  ${modNode} -->|"${edge.label}"| ${edge.to}`)
+    }
+  }
+
+  return {
+    mermaid: lines.join('\n'),
+    nodeCount: moduleIds.size + extUsed.size,
+    edgeCount: edges.length,
+    truncated
+  }
+}
+
+export async function buildDataflowDiagram(
+  projectPath: string,
+  options?: {
+    subpath?: string
+    focus?: string
+    maxNodes?: number
+    maxEdges?: number
+    onProgress?: (scanned: number) => void
+  }
+): Promise<DataflowDiagramResult> {
+  const startDir = options?.subpath?.trim()
+    ? resolve(projectPath, options.subpath.trim())
+    : resolve(projectPath)
+  const moduleFlows = new Map<string, Array<{ kind: DataflowKind; detail?: string }>>()
+  let filesScanned = 0
+  const focusFile = options?.focus?.trim() ? resolve(projectPath, options.focus.trim()) : undefined
+
+  await walkProjectFiles(
+    startDir,
+    async (filePath) => {
+      filesScanned += 1
+      if (focusFile && filePath !== focusFile) return false
+      const flows = await collectFileDataflows(filePath)
+      if (flows.length) moduleFlows.set(filePath, flows)
+      return false
+    },
+    options?.onProgress
+  )
+
+  const diagram = dataflowToMermaid(projectPath, moduleFlows, {
+    maxNodes: options?.maxNodes,
+    maxEdges: options?.maxEdges
+  })
+
+  return { ...diagram, filesScanned }
+}
+
+export function formatDataflowDiagram(result: DataflowDiagramResult): string {
+  if (!result.edgeCount) {
+    return `Потоки данных не найдены (IPC/HTTP/FS; просмотрено файлов: ${result.filesScanned})`
+  }
+
+  const header = `DFD (модули): ${result.nodeCount} узлов, ${result.edgeCount} потоков${
+    result.truncated ? ' (обрезано)' : ''
+  }`
+
+  return `${header}\n\n\`\`\`mermaid\n${result.mermaid}\n\`\`\`\n\n(просмотрено файлов: ${result.filesScanned})`
 }

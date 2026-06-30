@@ -192,8 +192,11 @@ export function IntegrationsTab({
       if (result.ok && result.nodeKeys) {
         onSettingsChange({
           p2pNodePrivateKey: result.nodeKeys.privateKey,
-          p2pNodePublicKey: result.nodeKeys.publicKey
+          p2pNodePublicKey: result.nodeKeys.publicKey,
+          ...(result.id ? { p2pNodeId: result.id } : {})
         })
+      } else if (result.ok && result.id) {
+        onSettingsChange({ p2pNodeId: result.id })
       }
       setP2pStatus({ ok: result.ok, message: result.message })
     } catch (e) {
@@ -516,6 +519,90 @@ export function IntegrationsTab({
             <a href="https://linear.app/settings/api" target="_blank" rel="noreferrer">
               linear.app/settings/api
             </a>
+          </div>
+        </div>
+      </SettingItem>
+
+      {/* ── Discord webhook ── */}
+      <SettingItem
+        tab="integrations"
+        label="Discord webhook"
+        desc="discord webhook уведомление агент готов embed incoming webhook"
+      >
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>Discord</div>
+          <label>
+            Incoming Webhook URL
+            <input
+              type="url"
+              placeholder="https://discord.com/api/webhooks/…"
+              value={settings.discordWebhookUrl ?? ''}
+              onChange={(e) =>
+                onSettingsChange({ discordWebhookUrl: e.target.value.trim() || undefined })
+              }
+              spellCheck={false}
+            />
+          </label>
+          <div className={`${styles.hint} ${styles.hintInline}`}>
+            POST embed «Агент готов» при завершении прогона. Создать webhook: канал → Настройки →
+            Интеграции → Webhooks.
+          </div>
+        </div>
+      </SettingItem>
+
+      {/* ── Telegram Bot ── */}
+      <SettingItem
+        tab="integrations"
+        label="Telegram Bot"
+        desc="telegram bot уведомление агент готов sendmessage chat_id botfather"
+      >
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>Telegram</div>
+          <label>
+            Bot Token
+            <div className="settings-api-key-row">
+              <input
+                type={apiKeyVisible['telegram'] ? 'text' : 'password'}
+                placeholder="123456789:ABCdefGHI…"
+                value={settings.telegramBotToken ?? ''}
+                onChange={(e) =>
+                  onSettingsChange({ telegramBotToken: e.target.value.trim() || undefined })
+                }
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => toggleKeyVisible('telegram')}
+                title={apiKeyVisible['telegram'] ? 'Скрыть' : 'Показать'}
+              >
+                {apiKeyVisible['telegram'] ? '🙈' : '👁'}
+              </button>
+            </div>
+          </label>
+          <label>
+            Chat ID
+            <input
+              type="text"
+              placeholder="-1001234567890"
+              value={settings.telegramChatId ?? ''}
+              onChange={(e) =>
+                onSettingsChange({ telegramChatId: e.target.value.trim() || undefined })
+              }
+              spellCheck={false}
+            />
+          </label>
+          <div className={`${styles.hint} ${styles.hintInline}`}>
+            Сообщение «Агент готов» через Bot API <code>sendMessage</code>. Токен — у{' '}
+            <a href="https://t.me/BotFather" target="_blank" rel="noreferrer">
+              @BotFather
+            </a>
+            ; chat_id — у{' '}
+            <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer">
+              @userinfobot
+            </a>{' '}
+            или ID группы/канала.
           </div>
         </div>
       </SettingItem>

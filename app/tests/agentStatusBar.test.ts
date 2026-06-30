@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { agentStatusLabel, formatIndexProgressChip } from '../src/components/AgentStatusBar'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  agentStatusLabel,
+  formatIndexProgressChip,
+  formatP2pOfflineLabel
+} from '../src/components/AgentStatusBar'
 import { isIndexProgressLabel } from '../electron/main/progress'
 
 describe('agentStatusLabel', () => {
@@ -38,6 +42,12 @@ describe('formatIndexProgressChip', () => {
   it('форматирует чип индексации', () => {
     expect(formatIndexProgressChip(42)).toBe('Индекс 42%')
     expect(formatIndexProgressChip(0)).toBe('Индекс 0%')
+  })
+})
+
+describe('formatP2pOfflineLabel', () => {
+  it('возвращает текст чипа offline', () => {
+    expect(formatP2pOfflineLabel()).toBe('P2P offline')
   })
 })
 

@@ -30,6 +30,7 @@ interface Props {
   progress: ProgressInfo | null
   indexingProgress: ProgressInfo | null
   p2pCredits: number | null
+  p2pOffline: boolean
   runModel: string
   displayModels: OllamaModel[]
   todoItems: TodoItem[] | null
@@ -97,6 +98,7 @@ export function ChatStatusBar({
   progress,
   indexingProgress,
   p2pCredits,
+  p2pOffline,
   runModel,
   displayModels,
   todoItems,
@@ -151,7 +153,7 @@ export function ChatStatusBar({
 }: Props) {
   return (
     <div className={styles.input}>
-      {(busy || indexingProgress) && (
+      {(busy || indexingProgress || p2pOffline) && (
         <AgentStatusBar
           model={settings.model}
           queueSize={queueSize}
@@ -160,6 +162,7 @@ export function ChatStatusBar({
           progress={busy ? progress : null}
           indexPercent={busy ? null : (indexingProgress?.percent ?? null)}
           p2pCredits={p2pCredits}
+          p2pOffline={p2pOffline}
         />
       )}
 

@@ -31,7 +31,10 @@ export function registerChatsIpc(): void {
       _e,
       id: string,
       patch: Partial<
-        Pick<SavedChat, 'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags'>
+        Pick<
+          SavedChat,
+          'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'starred' | 'tags'
+        >
       >
     ) => {
       const settings = await loadSettings()

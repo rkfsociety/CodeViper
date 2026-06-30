@@ -74,6 +74,10 @@ export function formatP2pCreditsLabel(balance: number): string {
   return `⚡ P2P ${balance} кр.`
 }
 
+export function formatP2pOfflineLabel(): string {
+  return 'P2P offline'
+}
+
 export function formatIndexProgressChip(percent: number): string {
   return `Индекс ${percent}%`
 }
@@ -87,6 +91,8 @@ interface Props {
   /** Прогресс фоновой индексации (autoIndexOnOpen), когда агент не занят */
   indexPercent?: number | null
   p2pCredits?: number | null
+  /** WSS к сигнальному серверу оборван (сервер остановлен и т.п.) */
+  p2pOffline?: boolean
 }
 
 export function AgentStatusBar({
@@ -96,7 +102,8 @@ export function AgentStatusBar({
   onRemoveFromQueue,
   progress = null,
   indexPercent: indexPercentProp = null,
-  p2pCredits = null
+  p2pCredits = null,
+  p2pOffline = false
 }: Props) {
   const {
     agentPhase,
@@ -230,6 +237,14 @@ export function AgentStatusBar({
         {collectiveSyncStatus === 'done' && (
           <span className="agent-collective-sync-chip done" title="Коллективная память обновлена">
             ☁️ GitHub ✓
+          </span>
+        )}
+        {p2pOffline && (
+          <span
+            className="agent-collective-sync-chip offline"
+            title="Нет соединения с P2P-сигнальным сервером (WSS отключён)"
+          >
+            {formatP2pOfflineLabel()}
           </span>
         )}
         {p2pCredits != null && (

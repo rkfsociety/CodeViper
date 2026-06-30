@@ -7,7 +7,17 @@ import {
   findSymbolReferences,
   findImportCycles,
   formatSymbolResults,
-  formatImportCycles
+  formatImportCycles,
+  buildDependencyDiagram,
+  formatDependencyDiagram,
+  graphToMermaid,
+  buildClassDiagram,
+  formatClassDiagram,
+  classesToMermaid,
+  buildDataflowDiagram,
+  formatDataflowDiagram,
+  dataflowToMermaid,
+  type ClassDiagramClass
 } from '../electron/main/symbolIndex'
 
 describe('symbolIndex', () => {
@@ -101,5 +111,170 @@ describe('symbolIndex', () => {
       cycle.chain.some((file) => file.endsWith('leaf.ts') || file.endsWith('sample.ts'))
     )
     expect(cyclic).toBe(false)
+  })
+
+  it('buildDependencyDiagram строит Mermaid-граф import/require', async () => {
+    writeFileSync(
+      join(root, 'src', 'main.ts'),
+      ["import { helper } from './util'", '', 'export const main = helper()'].join('\n')
+    )
+    writeFileSync(join(root, 'src', 'util.ts'), ['export const helper = () => 1'].join('\n'))
+
+    const result = await buildDependencyDiagram(root)
+    expect(result.nodeCount).toBeGreaterThanOrEqual(2)
+    expect(result.edgeCount).toBeGreaterThanOrEqual(1)
+    expect(result.mermaid).toContain('graph LR')
+    expect(result.mermaid).toContain('main.ts')
+    expect(result.mermaid).toContain('util.ts')
+
+    const formatted = formatDependencyDiagram(result)
+    expect(formatted).toContain('```mermaid')
+    expect(formatted).toContain('graph LR')
+  })
+
+  it('graphToMermaid обрезает граф по лимиту рёбер', () => {
+    const graph = new Map<string, string[]>()
+    graph.set(join(root, 'a.ts'), [join(root, 'b.ts')])
+    graph.set(join(root, 'b.ts'), [join(root, 'c.ts'), join(root, 'd.ts')])
+    graph.set(join(root, 'c.ts'), [join(root, 'e.ts')])
+
+    const diagram = graphToMermaid(root, graph, { maxNodes: 10, maxEdges: 1 })
+    expect(diagram.edgeCount).toBe(1)
+    expect(diagram.truncated).toBe(true)
+  })
+
+  it('buildClassDiagram строит Mermaid classDiagram для TS/Java/C#', async () => {
+    writeFileSync(
+      join(root, 'src', 'animal.ts'),
+      [
+        'export class Animal {',
+        '  age: number',
+        '  run() { return this.age }',
+        '}',
+        '',
+        'export class Dog extends Animal {',
+        '  bark() { return "woof" }',
+        '}',
+        '',
+        'export interface Pet {',
+        '  name: string',
+        '}'
+      ].join('\n')
+    )
+    writeFileSync(
+      join(root, 'src', 'Animal.java'),
+      [
+        'public class Animal {',
+        '  public int age;',
+        '  public void run() {}',
+        '}',
+        '',
+        'public class Dog extends Animal {',
+        '  public void bark() {}',
+        '}'
+      ].join('\n')
+    )
+    writeFileSync(
+      join(root, 'src', 'Creature.cs'),
+      [
+        'public class Creature {',
+        '  public int Age { get; set; }',
+        '  public void Move() {}',
+        '}',
+        '',
+        'public class Cat : Creature {',
+        '  public void Meow() {}',
+        '}'
+      ].join('\n')
+    )
+
+    const result = await buildClassDiagram(root)
+    expect(result.classCount).toBeGreaterThanOrEqual(4)
+    expect(result.mermaid).toContain('classDiagram')
+    expect(result.mermaid).toContain('Animal')
+    expect(result.mermaid).toContain('Dog')
+    expect(result.mermaid).toContain('Cat')
+    expect(result.mermaid).toContain('Animal <|-- Dog')
+    expect(result.mermaid).toContain('+run')
+    expect(result.mermaid).toContain('+bark')
+
+    const formatted = formatClassDiagram(result)
+    expect(formatted).toContain('```mermaid')
+    expect(formatted).toContain('classDiagram')
+  })
+
+  it('classesToMermaid отражает implements и interface', () => {
+    const classes: ClassDiagramClass[] = [
+      {
+        name: 'Worker',
+        filePath: join(root, 'worker.ts'),
+        kind: 'interface',
+        extends: [],
+        implements: [],
+        members: [{ name: 'work', visibility: '+' }]
+      },
+      {
+        name: 'Employee',
+        filePath: join(root, 'employee.ts'),
+        kind: 'class',
+        extends: [],
+        implements: ['Worker'],
+        members: [{ name: 'work', visibility: '+' }]
+      }
+    ]
+
+    const diagram = classesToMermaid(classes)
+    expect(diagram.mermaid).toContain('classDiagram')
+    expect(diagram.mermaid).toContain('<<interface>>')
+    expect(diagram.mermaid).toContain('Worker <|.. Employee')
+    expect(diagram.relationCount).toBe(1)
+  })
+
+  it('buildDataflowDiagram строит Mermaid flowchart IPC/HTTP/FS', async () => {
+    writeFileSync(
+      join(root, 'src', 'main.ts'),
+      [
+        "import { ipcMain } from 'electron'",
+        "import { readFile, writeFile } from 'fs/promises'",
+        '',
+        "ipcMain.handle('load-settings', async () => readFile('settings.json', 'utf-8'))",
+        "export async function save(data: string) { await writeFile('out.json', data) }"
+      ].join('\n')
+    )
+    writeFileSync(
+      join(root, 'src', 'App.tsx'),
+      [
+        'export async function load() {',
+        "  const res = await fetch('https://api.example.com/data')",
+        '  return window.codeviper.loadSettings()',
+        '}'
+      ].join('\n')
+    )
+
+    const result = await buildDataflowDiagram(root)
+    expect(result.edgeCount).toBeGreaterThanOrEqual(4)
+    expect(result.mermaid).toContain('flowchart LR')
+    expect(result.mermaid).toContain('EXT_IPC')
+    expect(result.mermaid).toContain('EXT_HTTP')
+    expect(result.mermaid).toContain('EXT_FS')
+    expect(result.mermaid).toContain('main.ts')
+    expect(result.mermaid).toContain('App.tsx')
+
+    const formatted = formatDataflowDiagram(result)
+    expect(formatted).toContain('```mermaid')
+    expect(formatted).toContain('flowchart LR')
+  })
+
+  it('dataflowToMermaid обрезает DFD по лимиту потоков', () => {
+    const flows = new Map<string, Array<{ kind: 'http' | 'fs_read'; detail?: string }>>()
+    flows.set(join(root, 'a.ts'), [
+      { kind: 'http', detail: 'fetch' },
+      { kind: 'fs_read', detail: 'readFile' }
+    ])
+    flows.set(join(root, 'b.ts'), [{ kind: 'http', detail: 'axios' }])
+
+    const diagram = dataflowToMermaid(root, flows, { maxNodes: 10, maxEdges: 1 })
+    expect(diagram.edgeCount).toBe(1)
+    expect(diagram.truncated).toBe(true)
   })
 })

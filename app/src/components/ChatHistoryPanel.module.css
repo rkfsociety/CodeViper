@@ -206,6 +206,22 @@
   border-color: rgba(140, 190, 255, 0.7);
 }
 
+.item.starred {
+  border-color: rgba(255, 215, 80, 0.35);
+}
+
+.item.starred.active {
+  border-color: rgba(140, 190, 255, 0.7);
+}
+
+.favoritesHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+}
+
 .itemIcon {
   flex-shrink: 0;
   display: flex;

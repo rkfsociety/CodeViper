@@ -3,6 +3,7 @@ import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { loadSettings, saveSettings } from '../settings'
 import { addMcpServer, healthCheckMcpServers, removeMcpServer } from '../mcpRegistry'
 import { setSourceRootOverride } from '../codeviperSource'
+import { syncP2pWssConnection } from '../p2pClient'
 import type { IpcContext } from './ipcContext'
 
 export function registerSettingsIpc(ctx: IpcContext): void {
@@ -19,6 +20,7 @@ export function registerSettingsIpc(ctx: IpcContext): void {
     } else {
       setSourceRootOverride(null)
     }
+    syncP2pWssConnection(saved)
     return saved
   })
 

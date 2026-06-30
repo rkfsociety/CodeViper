@@ -39,6 +39,8 @@ type ConfirmState =
   | { kind: 'delete-folder'; folderId: string; name: string }
 
 type FlatItem =
+  | { kind: 'favorites-head'; count: number }
+  | { kind: 'favorite-chat'; chat: SavedChat }
   | { kind: 'folder-head'; folder: ChatFolder }
   | { kind: 'folder-chat'; chat: SavedChat; folderId: string }
   | { kind: 'project-head'; projectPath: string; label: string; count: number }
@@ -116,8 +118,18 @@ export function chatMatchesSearchQuery(chat: SavedChat, query: string): boolean 
   return chatMatchesQuery(chat, query)
 }
 
+/** Сортировка: избранные и закреплённые сверху, затем по дате обновления. */
+export function sortChatsByStarredAndPinned(a: SavedChat, b: SavedChat): number {
+  if (a.starred && !b.starred) return -1
+  if (!a.starred && b.starred) return 1
+  if (a.pinned && !b.pinned) return -1
+  if (!a.pinned && b.pinned) return 1
+  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+}
+
 function getChatIcon(chat: SavedChat): string {
   if (chat.pinned) return '📌'
+  if (chat.starred) return '⭐'
   const title = chat.title.toLowerCase()
   for (const tpl of CHAT_TEMPLATES) {
     if (title.includes(tpl.label.toLowerCase())) return tpl.icon
@@ -237,22 +249,22 @@ export function ChatHistoryPanel({
     if (tag) {
       filtered = filtered.filter((chat) => chat.tags?.some((t) => t.toLowerCase().includes(tag)))
     }
-    return [...filtered].sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1
-      if (!a.pinned && b.pinned) return 1
-      return 0
-    })
+    return [...filtered].sort(sortChatsByStarredAndPinned)
   }, [store, searchQuery, tagFilter, mode])
+
+  const starredChats = useMemo(() => filteredChats.filter((chat) => chat.starred), [filteredChats])
+
+  const listChats = useMemo(() => filteredChats.filter((chat) => !chat.starred), [filteredChats])
 
   const chatsByFolder = useMemo(() => {
     const map = new Map<string | null, SavedChat[]>()
-    for (const chat of filteredChats) {
+    for (const chat of listChats) {
       const key = chat.folderId
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(chat)
     }
     return map
-  }, [filteredChats])
+  }, [listChats])
 
   const folders = useMemo(() => store?.folders ?? [], [store])
   const rootChats = useMemo(() => chatsByFolder.get(null) ?? [], [chatsByFolder])
@@ -307,6 +319,12 @@ export function ChatHistoryPanel({
     const query = searchQuery.trim().toLowerCase()
     const searching = query.length > 0
     const items: FlatItem[] = []
+    if (starredChats.length > 0) {
+      items.push({ kind: 'favorites-head', count: starredChats.length })
+      for (const chat of starredChats) {
+        items.push({ kind: 'favorite-chat', chat })
+      }
+    }
     for (const folder of folders) {
       const folderChats = chatsByFolder.get(folder.id) ?? []
       if (searching && folderChats.length === 0) continue
@@ -336,6 +354,7 @@ export function ChatHistoryPanel({
     }
     return items
   }, [
+    starredChats,
     folders,
     chatsByFolder,
     collapsed,
@@ -350,7 +369,13 @@ export function ChatHistoryPanel({
     getScrollElement: () => listRef.current,
     estimateSize: (i) => {
       const item = flatItems[i]
-      if (!item || item.kind === 'folder-head' || item.kind === 'project-head') return 32
+      if (
+        !item ||
+        item.kind === 'favorites-head' ||
+        item.kind === 'folder-head' ||
+        item.kind === 'project-head'
+      )
+        return 32
       return 48
     },
     overscan: 5
@@ -426,7 +451,7 @@ export function ChatHistoryPanel({
     return (
       <div
         key={chat.id}
-        className={`${styles.item} ${isActive ? styles.active : ''} ${isDragging ? styles.dragging : ''} ${chat.pinned ? styles.pinned : ''}`}
+        className={`${styles.item} ${isActive ? styles.active : ''} ${isDragging ? styles.dragging : ''} ${chat.pinned ? styles.pinned : ''} ${chat.starred ? styles.starred : ''}`}
         draggable={!(chatBusy && chat.id === activeChatId)}
         onDragStart={(e) => handleDragStart(chat.id, e)}
         onDragEnd={handleDragEnd}
@@ -479,13 +504,29 @@ export function ChatHistoryPanel({
             ⤓
           </button>
           <button
+            className={`btn ${styles.historyBtn}${chat.starred ? ' active' : ''}`}
+            title={chat.starred ? 'Убрать из избранного' : 'В избранное'}
+            aria-label={chat.starred ? 'Убрать чат из избранного' : 'Добавить чат в избранное'}
+            aria-pressed={chat.starred ?? false}
+            onClick={(e) => {
+              e.stopPropagation()
+              void window.codeviper
+                .updateChat(chat.id, { starred: !chat.starred })
+                .then(() => onStoreChange?.())
+            }}
+          >
+            ⭐
+          </button>
+          <button
             className={`btn ${styles.historyBtn}${chat.pinned ? ' active' : ''}`}
             title={chat.pinned ? 'Открепить' : 'Закрепить'}
             aria-label={chat.pinned ? 'Открепить чат' : 'Закрепить чат'}
             aria-pressed={chat.pinned ?? false}
             onClick={(e) => {
               e.stopPropagation()
-              void window.codeviper.updateChat(chat.id, { pinned: !chat.pinned })
+              void window.codeviper
+                .updateChat(chat.id, { pinned: !chat.pinned })
+                .then(() => onStoreChange?.())
             }}
           >
             📌
@@ -518,6 +559,15 @@ export function ChatHistoryPanel({
             ✕
           </button>
         </div>
+      </div>
+    )
+  }
+
+  function renderFavoritesHead(count: number) {
+    return (
+      <div className={styles.favoritesHead}>
+        <span className={styles.sectionTitle}>⭐ Избранное</span>
+        <span className={styles.folderCount}>{count}</span>
       </div>
     )
   }
@@ -768,6 +818,10 @@ export function ChatHistoryPanel({
                     paddingBottom: 6
                   }}
                 >
+                  {item.kind === 'favorites-head' && renderFavoritesHead(item.count)}
+
+                  {item.kind === 'favorite-chat' && renderChat(item.chat)}
+
                   {item.kind === 'folder-head' && renderFolderHead(item.folder)}
 
                   {item.kind === 'folder-chat' && (

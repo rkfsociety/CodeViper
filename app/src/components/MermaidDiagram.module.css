@@ -1,0 +1,18 @@
+.diagram {
+  overflow: auto;
+  max-width: 100%;
+  padding: 8px 0;
+}
+
+.diagram :global(svg) {
+  max-width: 100%;
+  height: auto;
+}
+
+.error {
+  margin: 0;
+  padding: 8px;
+  color: var(--color-danger, #f87171);
+  font-size: 12px;
+  white-space: pre-wrap;
+}

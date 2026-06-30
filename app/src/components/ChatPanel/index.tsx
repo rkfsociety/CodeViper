@@ -150,6 +150,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const [todoTitle, setTodoTitle] = useState<string | undefined>(undefined)
   const [indexingProgress, setIndexingProgress] = useState<ProgressInfo | null>(null)
   const [p2pCredits, setP2pCredits] = useState<number | null>(null)
+  const [p2pOffline, setP2pOffline] = useState(false)
   const [slashMenuIndex, setSlashMenuIndex] = useState(0)
   const setTodoItemsRef = useRef<((items: TodoItem[] | null, title?: string) => void) | undefined>(
     undefined
@@ -560,6 +561,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     const token = settings.p2pAuthToken?.trim()
     if (!url || !token) {
       setP2pCredits(null)
+      setP2pOffline(false)
       return
     }
     let cancelled = false
@@ -570,6 +572,28 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       cancelled = true
     }
   }, [settings.p2pServerUrl, settings.p2pAuthToken, settings, busy])
+
+  useEffect(() => {
+    const url = settings.p2pServerUrl?.trim()
+    const token = settings.p2pAuthToken?.trim()
+    const nodeId = settings.p2pNodeId?.trim()
+    const p2pActive = Boolean(url && token && settings.shareCompute && nodeId)
+    if (!p2pActive) {
+      setP2pOffline(false)
+      return
+    }
+    let cancelled = false
+    void window.codeviper.getP2pWssStatus().then((status) => {
+      if (!cancelled) setP2pOffline(status.offline)
+    })
+    const unsub = window.codeviper.onP2pWssStatus((status) => {
+      if (!cancelled) setP2pOffline(status.offline)
+    })
+    return () => {
+      cancelled = true
+      unsub()
+    }
+  }, [settings.p2pServerUrl, settings.p2pAuthToken, settings.p2pNodeId, settings.shareCompute])
 
   // Автоиндексация при смене проекта
   useEffect(() => {
@@ -1055,6 +1079,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         progress={progress}
         indexingProgress={indexingProgress}
         p2pCredits={p2pCredits}
+        p2pOffline={p2pOffline}
         runModel={runModel}
         displayModels={displayModels}
         todoItems={todoItems}

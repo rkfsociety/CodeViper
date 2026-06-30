@@ -190,6 +190,141 @@ export async function relayEncryptedP2pTask(
 
 export type P2pWssTaskHandler = (task: P2pIncomingTask) => void
 
+/** Состояние WSS-подписки узла на сигнальный сервер. */
+export type P2pWssConnectionState = 'idle' | 'connecting' | 'connected' | 'disconnected'
+
+let p2pWssState: P2pWssConnectionState = 'idle'
+let activeP2pSocket: WebSocket | null = null
+let p2pWssStopRequested = false
+const p2pWssStateListeners = new Set<(state: P2pWssConnectionState) => void>()
+
+function emitP2pWssState(state: P2pWssConnectionState): void {
+  if (p2pWssState === state) return
+  p2pWssState = state
+  for (const listener of p2pWssStateListeners) listener(state)
+}
+
+/** Текущее состояние WSS (для IPC и тестов). */
+export function getP2pWssConnectionState(): P2pWssConnectionState {
+  return p2pWssState
+}
+
+/** true, если узел настроен, но WSS не подключён (сервер остановлен / обрыв). */
+export function isP2pWssOffline(): boolean {
+  return p2pWssState === 'disconnected'
+}
+
+export function onP2pWssConnectionChange(
+  listener: (state: P2pWssConnectionState) => void
+): () => void {
+  p2pWssStateListeners.add(listener)
+  return () => p2pWssStateListeners.delete(listener)
+}
+
+/** Сброс WSS-состояния (только unit-тесты). */
+export function resetP2pWssStateForTests(): void {
+  p2pWssStopRequested = true
+  if (activeP2pSocket) {
+    try {
+      activeP2pSocket.removeAllListeners()
+      activeP2pSocket.close()
+    } catch {
+      /* ignore */
+    }
+    activeP2pSocket = null
+  }
+  p2pWssStopRequested = false
+  p2pWssState = 'idle'
+  p2pWssStateListeners.clear()
+}
+
+/** Закрыть WSS и сбросить состояние в idle. */
+export function stopP2pWssConnection(): void {
+  p2pWssStopRequested = true
+  if (activeP2pSocket) {
+    try {
+      activeP2pSocket.removeAllListeners()
+      activeP2pSocket.close()
+    } catch {
+      /* ignore */
+    }
+    activeP2pSocket = null
+  }
+  p2pWssStopRequested = false
+  emitP2pWssState('idle')
+}
+
+function shouldMaintainP2pWss(settings: AgentSettings): boolean {
+  return (
+    settings.shareCompute === true &&
+    Boolean(settings.p2pServerUrl?.trim()) &&
+    Boolean(settings.p2pAuthToken?.trim()) &&
+    Boolean(settings.p2pNodeId?.trim())
+  )
+}
+
+/**
+ * Поддерживать WSS-подписку узла при включённом shareCompute.
+ * При обрыве (остановленный сервер) → disconnected.
+ */
+export function syncP2pWssConnection(
+  settings: AgentSettings,
+  onTask: P2pWssTaskHandler = () => {}
+): void {
+  if (!shouldMaintainP2pWss(settings)) {
+    stopP2pWssConnection()
+    return
+  }
+
+  if (
+    activeP2pSocket &&
+    (activeP2pSocket.readyState === WebSocket.OPEN ||
+      activeP2pSocket.readyState === WebSocket.CONNECTING)
+  ) {
+    return
+  }
+
+  p2pWssStopRequested = true
+  if (activeP2pSocket) {
+    try {
+      activeP2pSocket.removeAllListeners()
+      activeP2pSocket.close()
+    } catch {
+      /* ignore */
+    }
+    activeP2pSocket = null
+  }
+  p2pWssStopRequested = false
+
+  const nodeId = settings.p2pNodeId!.trim()
+  const socket = subscribeP2pTaskWss(settings, nodeId, onTask)
+  if (!socket) {
+    emitP2pWssState('idle')
+    return
+  }
+
+  activeP2pSocket = socket
+  emitP2pWssState('connecting')
+
+  socket.on('open', () => {
+    if (p2pWssStopRequested) return
+    emitP2pWssState('connected')
+  })
+
+  socket.on('close', () => {
+    activeP2pSocket = null
+    if (p2pWssStopRequested) {
+      emitP2pWssState('idle')
+      return
+    }
+    emitP2pWssState('disconnected')
+  })
+
+  socket.on('error', () => {
+    if (!p2pWssStopRequested) emitP2pWssState('disconnected')
+  })
+}
+
 /**
  * Подписка узла на входящие P2P-задачи по WSS (TLS при https:// сервере).
  * В сообщениях только зашифрованное тело — расшифровка на стороне узла.

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { chatMatchesSearchQuery, lastMessagePreview } from '../src/components/ChatHistoryPanel'
+import {
+  chatMatchesSearchQuery,
+  lastMessagePreview,
+  sortChatsByStarredAndPinned
+} from '../src/components/ChatHistoryPanel'
 import type { SavedChat } from '../src/types'
 
 function chat(partial: Partial<SavedChat> & Pick<SavedChat, 'id' | 'title'>): SavedChat {
@@ -36,5 +40,21 @@ describe('ChatHistoryPanel search', () => {
     expect(chatMatchesSearchQuery(c, 'багфикс')).toBe(true)
     expect(chatMatchesSearchQuery(c, 'typecheck')).toBe(true)
     expect(chatMatchesSearchQuery(c, 'roadmap')).toBe(false)
+  })
+
+  it('sortChatsByStarredAndPinned ставит избранные и закреплённые сверху', () => {
+    const plain = chat({ id: '1', title: 'A', updatedAt: '2026-06-03' })
+    const starred = chat({ id: '2', title: 'B', starred: true, updatedAt: '2026-06-01' })
+    const pinned = chat({ id: '3', title: 'C', pinned: true, updatedAt: '2026-06-02' })
+    const starredPinned = chat({
+      id: '4',
+      title: 'D',
+      starred: true,
+      pinned: true,
+      updatedAt: '2026-06-04'
+    })
+
+    const sorted = [plain, starred, pinned, starredPinned].sort(sortChatsByStarredAndPinned)
+    expect(sorted.map((c) => c.id)).toEqual(['4', '2', '3', '1'])
   })
 })

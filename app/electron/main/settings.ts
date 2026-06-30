@@ -3,8 +3,8 @@ import { existsSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { z } from 'zod'
-import type { AgentSettings, GitSyncStrategy } from '../../src/types'
-import { GIT_SYNC_STRATEGIES } from '../../src/types'
+import type { AgentSettings, GitSyncStrategy, UiFontScale } from '../../src/types'
+import { GIT_SYNC_STRATEGIES, UI_FONT_SCALES } from '../../src/types'
 import { normalizePermissionMode } from '../../shared/permissions'
 import { DEFAULT_MODEL_PROVIDER, resolveGeminiModelId } from '../../shared/constants'
 import { writeJsonAtomic } from './fsUtil'
@@ -73,6 +73,9 @@ export const PersistedSettingsSchema = z.object({
   autoVerifyAfterEdit: z.boolean().optional(),
   debugAgent: z.boolean().optional(),
   webhookUrl: z.string().optional(),
+  discordWebhookUrl: z.string().optional(),
+  telegramBotToken: z.string().optional(),
+  telegramChatId: z.string().optional(),
   autoIndexOnOpen: z.boolean().optional(),
   customSystemPrompt: z.string().optional(),
   gitlabToken: z.string().optional(),
@@ -136,7 +139,9 @@ export const PersistedSettingsSchema = z.object({
   p2pAuthToken: z.string().optional(),
   p2pNodePrivateKey: z.string().optional(),
   p2pNodePublicKey: z.string().optional(),
+  p2pNodeId: z.string().optional(),
   uiLightMode: z.boolean().optional(),
+  uiFontScale: z.union([z.literal(0.9), z.literal(1), z.literal(1.1), z.literal(1.25)]).optional(),
   recentProjects: z.array(z.string()).optional(),
   planBeforeExecute: z.boolean().optional(),
   firstRunCompleted: z.boolean().default(false)
@@ -197,6 +202,11 @@ const DEFAULT_SETTINGS: PersistedSettings = {
 
 type LegacySettings = Partial<AgentSettings> & { cloudApiKey?: string }
 
+function resolveUiFontScale(value: number | undefined): UiFontScale | undefined {
+  if (value == null) return undefined
+  return (UI_FONT_SCALES as readonly number[]).includes(value) ? (value as UiFontScale) : undefined
+}
+
 /** Миграция deprecated cloudApiKey → per-provider keys (не сохраняется). */
 function migrateCloudApiKey(settings: LegacySettings): void {
   const cloudKey = settings.cloudApiKey?.trim()
@@ -239,13 +249,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
   migrateCloudApiKey(settings)
 
   const provider = (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as
-    | 'ollama'
-    | 'deepseek'
-    | 'openai'
-    | 'openrouter'
-    | 'gemini'
-    | 'anthropic'
-    | 'custom'
+    'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini' | 'anthropic' | 'custom'
 
   // Миграция: если есть старый providerApiKey, переносим в нужное поле
   const legacyKey = settings.providerApiKey?.trim() ?? ''
@@ -260,6 +264,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
 
   const rawModel = settings.model?.trim() ?? ''
   const model = provider === 'gemini' && rawModel ? resolveGeminiModelId(rawModel) : rawModel
+  const uiFontScale = resolveUiFontScale(settings.uiFontScale)
 
   return {
     version: 1,
@@ -319,6 +324,13 @@ function normalize(settings: LegacySettings): PersistedSettings {
     ...(settings.autoVerifyAfterEdit ? { autoVerifyAfterEdit: true } : {}),
     ...(settings.debugAgent ? { debugAgent: true } : {}),
     ...(settings.webhookUrl?.trim() ? { webhookUrl: settings.webhookUrl.trim() } : {}),
+    ...(settings.discordWebhookUrl?.trim()
+      ? { discordWebhookUrl: settings.discordWebhookUrl.trim() }
+      : {}),
+    ...(settings.telegramBotToken?.trim()
+      ? { telegramBotToken: settings.telegramBotToken.trim() }
+      : {}),
+    ...(settings.telegramChatId?.trim() ? { telegramChatId: settings.telegramChatId.trim() } : {}),
     ...(settings.autoIndexOnOpen ? { autoIndexOnOpen: true } : {}),
     ...(settings.customSystemPrompt?.trim()
       ? { customSystemPrompt: settings.customSystemPrompt.trim() }
@@ -368,9 +380,11 @@ function normalize(settings: LegacySettings): PersistedSettings {
     ...(settings.p2pNodePublicKey?.trim()
       ? { p2pNodePublicKey: settings.p2pNodePublicKey.trim() }
       : {}),
+    ...(settings.p2pNodeId?.trim() ? { p2pNodeId: settings.p2pNodeId.trim() } : {}),
     ...(settings.soundNotifications === true ? { soundNotifications: true } : {}),
     ...(settings.minimizeToTray === false ? { minimizeToTray: false } : {}),
     ...(settings.uiLightMode === true ? { uiLightMode: true } : {}),
+    ...(uiFontScale != null && uiFontScale !== 1 ? { uiFontScale } : {}),
     ...(settings.recentProjects?.length
       ? {
           recentProjects: settings.recentProjects

@@ -58,6 +58,9 @@
 - `find_slow_code` — AST-анализ ts/js/py на медленные участки (вложенные циклы, await/sync I/O/JSON.parse в цикле); отчёт в чате
 
 ### UX и UI
+- Экспорт метрик в CSV: кнопка «CSV» в `MetricsPanel` (byModel + topTools, blob download)
+- Избранные чаты: `starred` в `SavedChat`, звезда ⭐ и секция «Избранное» в `ChatHistoryPanel`
+- Mermaid-диаграммы: `MermaidDiagram` в чате и `ArchitecturePanel`; tools `generate_dependency_diagram`, `generate_class_diagram`, `generate_dataflow_diagram`
 - Ctrl+Shift+T: экспорт трейса при открытой панели трассировки, иначе открыть TracePanel; shortcut в модалке `?`
 - Кнопка «Очистить» в TerminalPanel: сброс вывода к приветственному сообщению
 - Поиск в MemoryPanel: фильтр по тексту (content, теги, scope) и категории (паттерн, ошибка, …)
@@ -95,7 +98,7 @@
 - `server/p2p`: Fastify, auth, router, TLS, кредиты, согласие в UI, тумблер «Поделиться мощностью»
 - Чип **P2P offline** в AgentStatusBar при обрыве WSS к сигнальному серверу
 - MCP health-check и `enabledTools`; webhooks; режим инкогнито; плагины с hot-reload и Zod-валидацией
-- Discord webhook и Telegram Bot (`sendMessage`) — уведомление «Агент готов» в IntegrationsTab
+- Discord webhook и Telegram Bot (`sendMessage`) — уведомление «Агент готов» в IntegrationsTab; `webhookNotify.ts` + unit-тест payload
 - Шаблоны MCP stdio: кнопки + filesystem / + fetch в IntegrationsTab → `mcpStdioServers` в settings.json
 
 ### Качество, CI, установщик

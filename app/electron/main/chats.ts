@@ -35,6 +35,7 @@ interface ChatIndexEntry {
   createdAt: string
   updatedAt: string
   pinned?: boolean
+  starred?: boolean
   tags?: string[]
   mode?: 'chat' | 'code'
 }
@@ -140,6 +141,7 @@ function indexEntryFromChat(chat: SavedChat): ChatIndexEntry {
     createdAt: chat.createdAt,
     updatedAt: chat.updatedAt,
     ...(chat.pinned !== undefined ? { pinned: chat.pinned } : {}),
+    ...(chat.starred !== undefined ? { starred: chat.starred } : {}),
     ...(chat.tags?.length ? { tags: chat.tags } : {}),
     ...(chat.mode ? { mode: chat.mode } : {})
   }
@@ -151,6 +153,7 @@ async function hydrateChat(entry: ChatIndexEntry): Promise<SavedChat> {
     ...entry,
     messages: data.messages,
     ...(entry.pinned !== undefined ? { pinned: entry.pinned } : {}),
+    ...(entry.starred !== undefined ? { starred: entry.starred } : {}),
     ...(entry.tags?.length ? { tags: entry.tags } : {}),
     ...(data.interruptedDraft ? { interruptedDraft: data.interruptedDraft } : {})
   }
@@ -259,7 +262,14 @@ export async function updateChat(
   patch: Partial<
     Pick<
       SavedChat,
-      'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags' | 'interruptedDraft'
+      | 'title'
+      | 'messages'
+      | 'folderId'
+      | 'projectPath'
+      | 'pinned'
+      | 'starred'
+      | 'tags'
+      | 'interruptedDraft'
     >
   >,
   /** Параметры для RAG индексирования новых сообщений */
@@ -273,6 +283,7 @@ export async function updateChat(
   if (patch.folderId !== undefined) entry.folderId = patch.folderId
   if (patch.projectPath !== undefined) entry.projectPath = patch.projectPath
   if (patch.pinned !== undefined) entry.pinned = patch.pinned
+  if (patch.starred !== undefined) entry.starred = patch.starred
   if (patch.tags !== undefined) entry.tags = patch.tags
   entry.updatedAt = new Date().toISOString()
 

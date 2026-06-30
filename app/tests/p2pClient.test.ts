@@ -8,9 +8,13 @@ import { getP2pLoadPauseReason } from '../electron/main/systemStats'
 import {
   acquireP2pTaskSlot,
   getP2pTaskQueueStats,
+  getP2pWssConnectionState,
+  isP2pWssOffline,
   releaseP2pTaskSlot,
   resetP2pTaskQueueForTests,
+  resetP2pWssStateForTests,
   reserveIncomingP2pTask,
+  syncP2pWssConnection,
   tryAcceptIncomingP2pTask
 } from '../electron/main/p2pClient'
 import { P2P_MAX_CONCURRENT_TASKS, P2P_QUEUE_WAIT_TIMEOUT_MS } from '../shared/constants'
@@ -129,5 +133,27 @@ describe('reserveIncomingP2pTask', () => {
     expect(result.statusCode).toBe(503)
 
     vi.useRealTimers()
+  })
+})
+
+describe('syncP2pWssConnection', () => {
+  beforeEach(() => {
+    resetP2pWssStateForTests()
+  })
+
+  it('idle без shareCompute', () => {
+    syncP2pWssConnection({ ...baseSettings, shareCompute: false, p2pNodeId: 'node-1' })
+    expect(getP2pWssConnectionState()).toBe('idle')
+    expect(isP2pWssOffline()).toBe(false)
+  })
+
+  it('idle без p2pNodeId', () => {
+    syncP2pWssConnection({
+      ...baseSettings,
+      shareCompute: true,
+      p2pServerUrl: 'http://localhost:4242',
+      p2pAuthToken: 'token'
+    })
+    expect(getP2pWssConnectionState()).toBe('idle')
   })
 })

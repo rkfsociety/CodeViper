@@ -99,6 +99,39 @@ button {
   height: 100vh;
 }
 
+.skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link:focus {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 10000;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 8px 16px;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border: 2px solid var(--blue);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -745,7 +778,7 @@ button {
 
 .message-body {
   margin-top: 4px;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.6;
   word-break: break-word;
 }
@@ -1031,6 +1064,11 @@ button {
   background: rgba(46, 160, 67, 0.12);
   color: #3fb950;
   border-color: rgba(46, 160, 67, 0.35);
+}
+.agent-collective-sync-chip.offline {
+  background: rgba(248, 81, 73, 0.12);
+  color: #f85149;
+  border-color: rgba(248, 81, 73, 0.35);
 }
 .agent-orchestrating-plan {
   margin: 0;

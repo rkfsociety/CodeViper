@@ -26,7 +26,7 @@ import { TaskPlanner } from './taskPlanner'
 import { CircuitBreakerOpenError } from './modelRuntime'
 import { ProviderBillingError, isProviderFallbackRetryableError } from '../../shared/providerErrors'
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
-import { notifyWebhook } from './webhookNotify'
+import { notifyDiscordWebhook, notifyTelegram, notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
 import {
   resolveOrchestratorBackend,
@@ -1028,18 +1028,29 @@ export class AgentRunner {
         }
       }
 
+      const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
+      const webhookSummary =
+        typeof lastAssistant?.content === 'string'
+          ? lastAssistant.content.slice(0, 500)
+          : userMessage.slice(0, 200)
+      const webhookPayload = {
+        chatId: this.chatId ?? '',
+        projectPath: this.projectPath,
+        summary: webhookSummary,
+        durationMs: Date.now() - runStartMs
+      }
       if (this.settings.webhookUrl) {
-        const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant')
-        const summary =
-          typeof lastAssistant?.content === 'string'
-            ? lastAssistant.content.slice(0, 500)
-            : userMessage.slice(0, 200)
-        void notifyWebhook(this.settings.webhookUrl, {
-          chatId: this.chatId ?? '',
-          projectPath: this.projectPath,
-          summary,
-          durationMs: Date.now() - runStartMs
-        })
+        void notifyWebhook(this.settings.webhookUrl, webhookPayload)
+      }
+      if (this.settings.discordWebhookUrl) {
+        void notifyDiscordWebhook(this.settings.discordWebhookUrl, webhookPayload)
+      }
+      if (this.settings.telegramBotToken && this.settings.telegramChatId) {
+        void notifyTelegram(
+          this.settings.telegramBotToken,
+          this.settings.telegramChatId,
+          webhookPayload
+        )
       }
     }
   }

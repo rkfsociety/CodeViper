@@ -8,6 +8,8 @@ import { loadSettings } from './settings'
 import { ensureDefaultSkills } from './defaultSkills'
 import { loadWindowState, trackWindowState, windowOptionsFromState } from './windowState'
 import { stopSystemStatsPush } from './systemStats'
+import { stopP2pWssStatusPush, startP2pWssStatusPush } from './p2pConnectionPush'
+import { syncP2pWssConnection, stopP2pWssConnection } from './p2pClient'
 import { startUpdateChecks } from './updateChecker'
 import { startRuntimeUpdateNotifier } from './runtimeUpdate'
 import { registerShutdownHook } from './appShutdown'
@@ -74,6 +76,10 @@ registerShutdownHook(() => {
   activeAgentAborts.clear()
 })
 registerShutdownHook(() => stopSystemStatsPush())
+registerShutdownHook(() => {
+  stopP2pWssStatusPush()
+  stopP2pWssConnection()
+})
 registerShutdownHook(async () => {
   await unloadModel().catch(() => {})
 })
@@ -433,6 +439,7 @@ app.whenReady().then(async () => {
 
   await createWindow()
 
+  syncP2pWssConnection(settings)
   scheduleMcpHealthCheck(settings)
 
   void ensureDefaultSkills().catch((err) => {
@@ -446,6 +453,7 @@ app.whenReady().then(async () => {
   if (mainWindow) {
     startUpdateChecks(mainWindow.webContents)
     startRuntimeUpdateNotifier(mainWindow.webContents)
+    startP2pWssStatusPush(mainWindow.webContents)
   }
 
   app.on('activate', () => {
