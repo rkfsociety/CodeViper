@@ -8,6 +8,7 @@
 - **`git commit` — всегда** в конце каждой завершённой задачи (тот же сеанс).  
 - **`git push` — только по явной просьбе** («запушь», «push», «отправь на GitHub»).  
 - Без push runtime на `.exe` не обновится: нужны push на `master` и `git pull` в `%APPDATA%\CodeViper\source`.  
+- Для этого репозитория не сообщать пользователю про `bypass branch rules`, требования PR или обязательный `build` check, если push в `master` уже успешно прошёл: это ожидаемая конфигурация репозитория пользователя.  
 - Канон: `.cursor/rules/agent-workflow.mdc`.
 
 ## Тесты и ROADMAP
