@@ -9,7 +9,13 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const require = createRequire(import.meta.url)
-const ELECTRON_PATH = require('electron') as string
+const ELECTRON_PACKAGE_ROOT = path.dirname(require.resolve('electron/package.json'))
+const ELECTRON_PATH =
+  process.platform === 'darwin'
+    ? path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron')
+    : process.platform === 'win32'
+      ? path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'electron.exe')
+      : path.join(ELECTRON_PACKAGE_ROOT, 'dist', 'electron')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_ROOT = path.resolve(__dirname, '..')
