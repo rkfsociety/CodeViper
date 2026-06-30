@@ -7,6 +7,7 @@
 > Установленный `.exe` — тонкая оболочка; agent runtime подтягивается из клона `%APPDATA%\CodeViper\source` без переустановки NSIS.
 
 ### Когда нужен полный релиз (NSIS, `vX.Y.Z`, переустановка)
+- Type mismatches: tool `find_type_mismatches` — TS type-check отчёт (high/medium/low, path:line:col)
 - Hotkey conflict detection: tool `find_hotkey_conflicts` for `App.tsx`, reporting collisions and reserved shortcuts.
 
 | Ситуация | Действие |
