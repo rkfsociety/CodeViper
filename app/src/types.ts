@@ -64,6 +64,8 @@ export interface SavedChat {
   updatedAt: string
   /** Закреплённый чат — всегда сверху в списке */
   pinned?: boolean
+  /** Избранный чат — секция «Избранное» вверху истории */
+  starred?: boolean
   /** Теги для фильтрации */
   tags?: string[]
   /** Черновик, сохранённый при обрыве стрима */
@@ -211,10 +213,18 @@ export interface AgentSettings {
   minimizeToTray?: boolean
   /** Светлая тема интерфейса (☀️ в шапке) */
   uiLightMode?: boolean
+  /** Масштаб шрифта UI: 0.9 | 1 | 1.1 | 1.25 (по умолчанию 1) */
+  uiFontScale?: UiFontScale
   /** Последние открытые папки проектов (до 10) */
   recentProjects?: string[]
-  /** URL для POST-уведомления при завершении прогона агента (Slack/Discord/n8n) */
+  /** URL для POST-уведомления при завершении прогона агента (Slack/n8n) */
   webhookUrl?: string
+  /** Discord Incoming Webhook — embed «Агент готов» при завершении прогона */
+  discordWebhookUrl?: string
+  /** Telegram Bot API token (@BotFather) для уведомления «Агент готов» */
+  telegramBotToken?: string
+  /** Telegram chat_id получателя уведомлений */
+  telegramChatId?: string
   /** Автоиндексация проекта в Qdrant при смене projectPath */
   autoIndexOnOpen?: boolean
   /** Синхронизировать с Git при запуске (stash/reset); по умолчанию true */
@@ -325,6 +335,8 @@ export interface AgentSettings {
   p2pNodePrivateKey?: string
   /** X25519 public key узла (SPKI DER, base64) */
   p2pNodePublicKey?: string
+  /** ID узла на сигнальном сервере (из /nodes/register) */
+  p2pNodeId?: string
 }
 
 export interface McpToolDefinition {
@@ -355,6 +367,9 @@ export interface McpHealthResult {
 export type GitSyncStrategy = 'stash' | 'rebase' | 'ff-only'
 
 export const GIT_SYNC_STRATEGIES: GitSyncStrategy[] = ['stash', 'rebase', 'ff-only']
+
+export const UI_FONT_SCALES = [0.9, 1, 1.1, 1.25] as const
+export type UiFontScale = (typeof UI_FONT_SCALES)[number]
 
 export const GIT_SYNC_STRATEGY_LABELS: Record<GitSyncStrategy, string> = {
   stash: 'Stash + reset (приоритет GitHub)',
@@ -664,6 +679,53 @@ export interface ImportCycleResult {
   filesScanned: number
 }
 
+export interface DependencyDiagramResult {
+  mermaid: string
+  nodeCount: number
+  edgeCount: number
+  truncated: boolean
+  filesScanned: number
+}
+
+export type DataflowDiagramResult = DependencyDiagramResult
+
+export interface ProjectMetricsLanguageStat {
+  language: string
+  files: number
+  totalLines: number
+  codeLines: number
+  complexity: number
+}
+
+export interface ProjectMetricsFileStat {
+  relativePath: string
+  language: string
+  totalLines: number
+  codeLines: number
+  blankLines: number
+  commentLines: number
+  complexity: number
+}
+
+export interface ProjectMetricsResult {
+  scopePath: string
+  filesScanned: number
+  truncated: boolean
+  skippedLarge: number
+  skippedBinary: number
+  totalFiles: number
+  totalLines: number
+  codeLines: number
+  blankLines: number
+  commentLines: number
+  totalComplexity: number
+  avgComplexity: number
+  maxComplexity: number
+  maxComplexityFile: string | null
+  languages: ProjectMetricsLanguageStat[]
+  largestFiles: ProjectMetricsFileStat[]
+}
+
 export interface BenchmarkResult {
   model: string
   runs: BenchmarkRun[]
@@ -782,7 +844,14 @@ export interface CodeViperAPI {
     patch: Partial<
       Pick<
         SavedChat,
-        'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags' | 'interruptedDraft'
+        | 'title'
+        | 'messages'
+        | 'folderId'
+        | 'projectPath'
+        | 'pinned'
+        | 'starred'
+        | 'tags'
+        | 'interruptedDraft'
       >
     >
   ) => Promise<SavedChat | null>
@@ -889,6 +958,17 @@ export interface CodeViperAPI {
     qdrantApiKey?: string
   ) => Promise<void>
   findImportCycles: (projectPath: string, subpath?: string) => Promise<ImportCycleResult>
+  buildDependencyDiagram: (
+    projectPath: string,
+    subpath?: string,
+    focus?: string
+  ) => Promise<DependencyDiagramResult>
+  buildDataflowDiagram: (
+    projectPath: string,
+    subpath?: string,
+    focus?: string
+  ) => Promise<DataflowDiagramResult>
+  buildProjectMetrics: (projectPath: string, subpath?: string) => Promise<ProjectMetricsResult>
   registerP2pNode: (settings: AgentSettings) => Promise<{
     ok: boolean
     id?: string
@@ -898,6 +978,16 @@ export interface CodeViperAPI {
   getP2pCredits: (
     settings: AgentSettings
   ) => Promise<{ ok: boolean; balance: number; message?: string }>
+  getP2pWssStatus: () => Promise<{
+    state: 'idle' | 'connecting' | 'connected' | 'disconnected'
+    offline: boolean
+  }>
+  onP2pWssStatus: (
+    cb: (status: {
+      state: 'idle' | 'connecting' | 'connected' | 'disconnected'
+      offline: boolean
+    }) => void
+  ) => () => void
   getAgentMetrics: (days?: number) => Promise<unknown>
 }
 

@@ -82,6 +82,7 @@ export const SavedChatSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   pinned: z.boolean().optional(),
+  starred: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
   interruptedDraft: InterruptedDraftSchema.nullable().optional(),
   mode: z.enum(['chat', 'code']).optional()
@@ -535,6 +536,7 @@ export const Contracts = {
         folderId: z.string().nullable().optional(),
         projectPath: z.string().optional(),
         pinned: z.boolean().optional(),
+        starred: z.boolean().optional(),
         tags: z.array(z.string()).optional(),
         interruptedDraft: InterruptedDraftSchema.nullable().optional()
       })
@@ -694,6 +696,65 @@ export const Contracts = {
       filesScanned: z.number().int()
     })
   },
+  [IPC.BUILD_DEPENDENCY_DIAGRAM]: {
+    args: z.tuple([z.string(), z.string().optional(), z.string().optional()]),
+    result: z.object({
+      mermaid: z.string(),
+      nodeCount: z.number().int(),
+      edgeCount: z.number().int(),
+      truncated: z.boolean(),
+      filesScanned: z.number().int()
+    })
+  },
+  [IPC.BUILD_DATAFLOW_DIAGRAM]: {
+    args: z.tuple([z.string(), z.string().optional(), z.string().optional()]),
+    result: z.object({
+      mermaid: z.string(),
+      nodeCount: z.number().int(),
+      edgeCount: z.number().int(),
+      truncated: z.boolean(),
+      filesScanned: z.number().int()
+    })
+  },
+  [IPC.BUILD_PROJECT_METRICS]: {
+    args: z.tuple([z.string(), z.string().optional()]),
+    result: z.object({
+      scopePath: z.string(),
+      filesScanned: z.number().int(),
+      truncated: z.boolean(),
+      skippedLarge: z.number().int(),
+      skippedBinary: z.number().int(),
+      totalFiles: z.number().int(),
+      totalLines: z.number().int(),
+      codeLines: z.number().int(),
+      blankLines: z.number().int(),
+      commentLines: z.number().int(),
+      totalComplexity: z.number(),
+      avgComplexity: z.number(),
+      maxComplexity: z.number(),
+      maxComplexityFile: z.string().nullable(),
+      languages: z.array(
+        z.object({
+          language: z.string(),
+          files: z.number().int(),
+          totalLines: z.number().int(),
+          codeLines: z.number().int(),
+          complexity: z.number()
+        })
+      ),
+      largestFiles: z.array(
+        z.object({
+          relativePath: z.string(),
+          language: z.string(),
+          totalLines: z.number().int(),
+          codeLines: z.number().int(),
+          blankLines: z.number().int(),
+          commentLines: z.number().int(),
+          complexity: z.number()
+        })
+      )
+    })
+  },
   [IPC.CHECK_GITHUB_AUTH]: {
     args: z.tuple([]),
     result: z.object({
@@ -803,6 +864,13 @@ export const Contracts = {
       ok: z.boolean(),
       balance: z.number(),
       message: z.string().optional()
+    })
+  },
+  [IPC.GET_P2P_WSS_STATUS]: {
+    args: z.tuple([]),
+    result: z.object({
+      state: z.enum(['idle', 'connecting', 'connected', 'disconnected']),
+      offline: z.boolean()
     })
   },
   [IPC.SHOW_AGENT_DONE_NOTIFICATION]: {

@@ -119,6 +119,71 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'generate_dependency_diagram',
+      description:
+        'Построить граф импортов между модулями проекта (import/require → Mermaid graph LR). Когда: нужна карта зависимостей, архитектурный обзор, поиск связей между файлами. Не для npm-зависимостей (dependency_summary) или циклов (findImportCycles в UI).',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' },
+          focus: {
+            type: 'string',
+            description:
+              'Файл-центр: показать только его импорты и файлы, которые его импортируют (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_class_diagram',
+      description:
+        'Построить диаграмму классов по AST/парсеру TS/Java/C# (классы, интерфейсы, наследование, методы → Mermaid classDiagram). Когда: обзор ООП-структуры, иерархия типов. Не для графа импортов (generate_dependency_diagram).',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_dataflow_diagram',
+      description:
+        'Построить DFD уровня модуля: потоки IPC (invoke/handle), HTTP (fetch/axios) и FS (readFile/writeFile) → Mermaid flowchart. Когда: понять, как модули общаются с main/renderer, сетью и файловой системой. Не для графа импортов (generate_dependency_diagram).',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' },
+          focus: {
+            type: 'string',
+            description: 'Один файл-модуль: показать только его IPC/HTTP/FS потоки (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_project_metrics',
+      description:
+        'Собрать метрики проекта: LOC, число файлов, разбивка по языкам и оценка цикломатической сложности → Markdown-отчёт. Когда: обзор размера кодовой базы, сравнение модулей. Не для git-истории (recent_changes) или краткой сводки (project_stats).',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Ограничить подпапкой (необязательно)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_in_project',
       description:
         'Универсальный поиск: type="content" — ищет текст/regex внутри файлов (как grep); type="name" — ищет файлы по имени/glob (как find). Используй этот инструмент, когда не уверен, что именно нужно.',

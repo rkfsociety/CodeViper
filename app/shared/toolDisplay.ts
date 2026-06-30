@@ -5,6 +5,7 @@ export const TOOL_LABELS: Record<string, string> = {
   read_file: 'Читаю файл',
   file_info: 'Смотрю метаданные файла',
   project_stats: 'Смотрю сводку проекта',
+  generate_project_metrics: 'Считаю метрики проекта',
   recent_changes: 'Смотрю последние изменения',
   package_info: 'Читаю package.json',
   read_package_lock: 'Читаю package-lock.json',

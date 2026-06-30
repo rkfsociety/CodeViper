@@ -317,7 +317,14 @@ const codeviper = {
     patch: Partial<
       Pick<
         SavedChat,
-        'title' | 'messages' | 'folderId' | 'projectPath' | 'pinned' | 'tags' | 'interruptedDraft'
+        | 'title'
+        | 'messages'
+        | 'folderId'
+        | 'projectPath'
+        | 'pinned'
+        | 'starred'
+        | 'tags'
+        | 'interruptedDraft'
       >
     >
   ) => withTimeout(ipcRenderer.invoke(IPC.UPDATE_CHAT, id, patch), IPC_TIMEOUT_MS, 'updateChat'),
@@ -585,10 +592,48 @@ const codeviper = {
       'findImportCycles'
     ),
 
+  buildDependencyDiagram: (projectPath: string, subpath?: string, focus?: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.BUILD_DEPENDENCY_DIAGRAM, projectPath, subpath, focus),
+      60_000,
+      'buildDependencyDiagram'
+    ),
+
+  buildDataflowDiagram: (projectPath: string, subpath?: string, focus?: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.BUILD_DATAFLOW_DIAGRAM, projectPath, subpath, focus),
+      60_000,
+      'buildDataflowDiagram'
+    ),
+
+  buildProjectMetrics: (projectPath: string, subpath?: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.BUILD_PROJECT_METRICS, projectPath, subpath),
+      60_000,
+      'buildProjectMetrics'
+    ),
+
   registerP2pNode: (settings: import('../../src/types').AgentSettings) =>
     withTimeout(ipcRenderer.invoke(IPC.REGISTER_P2P_NODE, settings), 15_000, 'registerP2pNode'),
   getP2pCredits: (settings: import('../../src/types').AgentSettings) =>
     withTimeout(ipcRenderer.invoke(IPC.GET_P2P_CREDITS, settings), 10_000, 'getP2pCredits'),
+
+  getP2pWssStatus: () =>
+    withTimeout(ipcRenderer.invoke(IPC.GET_P2P_WSS_STATUS), 5_000, 'getP2pWssStatus'),
+
+  onP2pWssStatus: (
+    cb: (status: {
+      state: 'idle' | 'connecting' | 'connected' | 'disconnected'
+      offline: boolean
+    }) => void
+  ) => {
+    const handler = (
+      _e: Electron.IpcRendererEvent,
+      status: { state: 'idle' | 'connecting' | 'connected' | 'disconnected'; offline: boolean }
+    ) => cb(status)
+    ipcRenderer.on(IPC.P2P_WSS_STATUS, handler)
+    return () => ipcRenderer.removeListener(IPC.P2P_WSS_STATUS, handler)
+  },
 
   getAgentMetrics: (days?: number) =>
     withTimeout(ipcRenderer.invoke(IPC.GET_AGENT_METRICS, days), IPC_TIMEOUT_MS, 'getAgentMetrics')

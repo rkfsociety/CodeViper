@@ -66,6 +66,9 @@ export const IPC = {
   BENCHMARK_MODEL: 'benchmark-model',
   AUTO_INDEX_PROJECT: 'auto-index-project',
   FIND_IMPORT_CYCLES: 'find-import-cycles',
+  BUILD_DEPENDENCY_DIAGRAM: 'build-dependency-diagram',
+  BUILD_DATAFLOW_DIAGRAM: 'build-dataflow-diagram',
+  BUILD_PROJECT_METRICS: 'build-project-metrics',
   CHECK_GITHUB_AUTH: 'check-github-auth',
   SELECT_GGUF_FILE: 'select-gguf-file',
   DOWNLOAD_GGUF: 'download-gguf',
@@ -73,6 +76,7 @@ export const IPC = {
   VOTE_MEMORY: 'vote-memory',
   REGISTER_P2P_NODE: 'register-p2p-node',
   GET_P2P_CREDITS: 'get-p2p-credits',
+  GET_P2P_WSS_STATUS: 'get-p2p-wss-status',
   SHOW_AGENT_DONE_NOTIFICATION: 'show-agent-done-notification',
   GET_AGENT_METRICS: 'get-agent-metrics',
   LOAD_UI_LAYOUT: 'load-ui-layout',
@@ -109,7 +113,8 @@ export const IPC = {
   UPDATE_AVAILABLE: 'update-available',
   RUNTIME_UPDATE_READY: 'runtime-update-ready',
   DISMISS_RUNTIME_UPDATE: 'dismiss-runtime-update',
-  MCP_HEALTH_STATUS: 'mcp-health-status'
+  MCP_HEALTH_STATUS: 'mcp-health-status',
+  P2P_WSS_STATUS: 'p2p-wss-status'
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

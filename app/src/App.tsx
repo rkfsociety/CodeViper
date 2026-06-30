@@ -291,6 +291,7 @@ function AppContent() {
 
   const [ollamaFallbackUrl, setOllamaFallbackUrl] = useState<string | null>(null)
   const lightMode = settings.uiLightMode === true
+  const uiFontScale = settings.uiFontScale ?? 1
   const [incognitoMode, setIncognitoMode] = useState(false)
   const incognitoModeRef = useRef(false)
   incognitoModeRef.current = incognitoMode
@@ -595,6 +596,11 @@ function AppContent() {
   useEffect(() => {
     document.documentElement.classList.toggle('light-mode', lightMode)
   }, [lightMode])
+
+  useEffect(() => {
+    const basePx = 16
+    document.documentElement.style.fontSize = uiFontScale === 1 ? '' : `${basePx * uiFontScale}px`
+  }, [uiFontScale])
 
   const resolveConfirm = useCallback(
     (approved: boolean) => {
@@ -999,6 +1005,17 @@ function AppContent() {
     <ChatContext.Provider value={chatContextValue}>
       <McpHealthToastListener />
       <div className={`app${settings.powerSaveMode ? ' power-save' : ''}`}>
+        <a
+          href="#main-chat"
+          className="skip-link"
+          onClick={(e) => {
+            e.preventDefault()
+            document.getElementById('main-chat')?.focus()
+            chatPanelRef.current?.focusInput()
+          }}
+        >
+          К содержимому
+        </a>
         <header className="topbar">
           <div className="logo">
             <img src={logoUrl} alt="CodeViper" className="logo-img" />
@@ -1198,7 +1215,7 @@ function AppContent() {
             </section>
           )}
 
-          <section className="panel panel-main">
+          <section id="main-chat" className="panel panel-main" tabIndex={-1}>
             <div className="panel-header">Агент</div>
             {mountedChatIds.map((chatId) => (
               <ChatContext.Provider key={chatId} value={mountedChatContexts.get(chatId)!}>
@@ -1311,7 +1328,7 @@ function AppContent() {
               <PanelResizer onDrag={resizeMetricsWidth} />
               <section className="panel panel-trace" style={{ width: sidePanelWidths.metrics }}>
                 <Suspense fallback={null}>
-                  <MetricsPanel />
+                  <MetricsPanel projectPath={activeProjectPath || null} />
                 </Suspense>
               </section>
             </>

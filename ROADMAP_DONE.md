@@ -75,6 +75,7 @@
 - Ctrl+` — показать/скрыть встроенный терминал
 - Quick Open (Ctrl+P): fuzzy-поиск по дереву проекта → превью файла
 - Светлая тема: `uiLightMode` в settings.json, восстанавливается после перезапуска
+- Масштаб шрифта UI: `uiFontScale` (90%–125%) в PerformanceTab → `document.documentElement.style.fontSize`
 - ChatPanel: автосохранение черновика ввода в localStorage per chatId (debounce 500 мс), восстановление при переключении чата
 - ChatHistoryPanel: поиск по заголовку и последнему сообщению; при фильтре скрываются пустые папки/проекты, группы разворачиваются
 - Resizable split layout: панель «Превью» справа от чата с перетаскиваемым разделителем; ширина и видимость в `ui-layout.json`
@@ -83,6 +84,7 @@
 - MessageBody: кнопка «Копировать» на каждом fenced code block (`navigator.clipboard.writeText`)
 - MessageRow: «↺ Перегенерировать» для ответа assistant (truncate + resend)
 - DiffPreviewModal (side-by-side, cherry-pick hunks); ProjectTree; @-mentions; trace export/replay; MetricsPanel
+- Авто-генерация метрик проекта: tool `generate_project_metrics` (LOC, языки, сложность → Markdown); секция «Кодовая база» в MetricsPanel; unit-тест fixture
 - Горячие клавиши: Esc — стоп агента; Ctrl+Shift+N — новый чат; Ctrl+B — дерево файлов (модалка `?`)
 - Vision-ввод; ErrorBoundary; prompt templates; tray; UpdateBanner; уведомления и звук по завершении агента; toast при ожидании подтверждения (preview/danger/диалог), если окно не в фокусе
 - Коллективная память: рейтинг, AgentLearningPanel, шаблоны чатов, SelfImprovePlanPanel, `.codeviper/rules.md`
@@ -91,7 +93,9 @@
 
 ### P2P и интеграции
 - `server/p2p`: Fastify, auth, router, TLS, кредиты, согласие в UI, тумблер «Поделиться мощностью»
+- Чип **P2P offline** в AgentStatusBar при обрыве WSS к сигнальному серверу
 - MCP health-check и `enabledTools`; webhooks; режим инкогнито; плагины с hot-reload и Zod-валидацией
+- Discord webhook и Telegram Bot (`sendMessage`) — уведомление «Агент готов» в IntegrationsTab
 - Шаблоны MCP stdio: кнопки + filesystem / + fetch в IntegrationsTab → `mcpStdioServers` в settings.json
 
 ### Качество, CI, установщик

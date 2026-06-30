@@ -3,7 +3,7 @@ import {
   METRICS_PANEL_EVENT_DEBOUNCE_MS,
   METRICS_PANEL_POLL_INTERVAL_MS
 } from '../../shared/constants'
-import type { AgentStreamEvent } from '../types'
+import type { AgentStreamEvent, ProjectMetricsResult } from '../types'
 import styles from './MetricsPanel.module.css'
 
 interface MetricRow {
@@ -29,13 +29,7 @@ interface AgentMetrics {
 const PERIODS = [7, 14, 30, 90] as const
 
 type ModelSortKey =
-  | 'model'
-  | 'runs'
-  | 'success'
-  | 'avgDurationMs'
-  | 'totalTokens'
-  | 'toolCalls'
-  | 'estimatedCostUsd'
+  'model' | 'runs' | 'success' | 'avgDurationMs' | 'totalTokens' | 'toolCalls' | 'estimatedCostUsd'
 type SortDir = 'asc' | 'desc'
 
 type ToolSortKey = 'tool' | 'count'
@@ -99,6 +93,81 @@ function successPct(successRuns: number, runs: number): string {
   return `${Math.round((successRuns / runs) * 100)}%`
 }
 
+function successPctNumber(successRuns: number, runs: number): number | '' {
+  if (runs === 0) return ''
+  return Math.round((successRuns / runs) * 100)
+}
+
+function csvCell(value: string | number): string {
+  const s = String(value)
+  if (/[",\n\r;]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function csvRow(cells: Array<string | number>): string {
+  return cells.map(csvCell).join(';')
+}
+
+function metricsCsvFilename(days: number): string {
+  const stamp = new Date().toISOString().slice(0, 10)
+  return `codeviper-metrics-${days}d-${stamp}.csv`
+}
+
+function buildMetricsCsv(
+  metrics: AgentMetrics,
+  byModel: MetricRow[],
+  topTools: Array<{ tool: string; count: number }>
+): string {
+  const lines: string[] = [
+    csvRow(['Период (дн)', metrics.periodDays]),
+    csvRow(['Прогонов', metrics.totalRuns]),
+    csvRow(['Успешных (%)', successPctNumber(metrics.totalSuccessRuns, metrics.totalRuns)]),
+    csvRow(['Токенов', metrics.totalTokens]),
+    csvRow(['Стоимость (USD)', metrics.totalCostUsd.toFixed(6)]),
+    '',
+    csvRow([
+      'Модель',
+      'Прогонов',
+      'Успех (%)',
+      'Ср. время (мс)',
+      'Токенов',
+      'Инструментов',
+      'Стоимость (USD)'
+    ])
+  ]
+
+  for (const row of byModel) {
+    lines.push(
+      csvRow([
+        row.model,
+        row.runs,
+        successPctNumber(row.successRuns, row.runs),
+        row.avgDurationMs,
+        row.totalTokens,
+        row.toolCalls,
+        row.estimatedCostUsd.toFixed(6)
+      ])
+    )
+  }
+
+  lines.push('', csvRow(['Инструмент', 'Количество']))
+
+  for (const { tool, count } of topTools) {
+    lines.push(csvRow([tool, count]))
+  }
+
+  return `\uFEFF${lines.join('\r\n')}`
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 function shouldRefreshMetricsOnStreamEvent(event: AgentStreamEvent): boolean {
   if (event.type === 'done' || event.type === 'error') return true
   if (event.type === 'tool_end' || event.type === 'generation_metrics') return true
@@ -110,7 +179,134 @@ function shouldRefreshMetricsOnStreamEvent(event: AgentStreamEvent): boolean {
   )
 }
 
-export function MetricsPanel() {
+function fmtComplexity(value: number): string {
+  if (value === 0) return '—'
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function ProjectMetricsSection({ projectPath }: { projectPath: string }) {
+  const [metrics, setMetrics] = useState<ProjectMetricsResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMetrics(null)
+    setError(null)
+    setExpanded(false)
+  }, [projectPath])
+
+  const loadMetrics = () => {
+    setLoading(true)
+    setError(null)
+    void window.codeviper
+      .buildProjectMetrics(projectPath)
+      .then((result) => setMetrics(result))
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : String(err))
+        setMetrics(null)
+      })
+      .finally(() => setLoading(false))
+  }
+
+  const toggleExpanded = () => {
+    setExpanded((open) => {
+      const next = !open
+      if (next && !metrics && !loading) loadMetrics()
+      return next
+    })
+  }
+
+  const summary = metrics
+    ? `${metrics.totalFiles} файлов, ${metrics.codeLines} LOC${metrics.truncated ? '+' : ''}`
+    : 'LOC, языки, сложность'
+
+  return (
+    <section className={styles.projectSection}>
+      <div className={styles.projectHeader}>
+        <div className={styles.projectInfo}>
+          <span className={styles.projectIcon}>📊</span>
+          <span className={styles.projectTitle}>Кодовая база: {summary}</span>
+        </div>
+        <div className={styles.projectActions}>
+          <button type="button" className={styles.projectBtn} onClick={toggleExpanded}>
+            {expanded ? 'Скрыть' : 'Показать'}
+          </button>
+          {expanded && (
+            <button
+              type="button"
+              className={styles.projectBtn}
+              onClick={loadMetrics}
+              disabled={loading}
+            >
+              {loading ? '…' : 'Обновить'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {expanded && (
+        <div className={styles.projectBody}>
+          {loading && <div className={styles.projectHint}>Сканирование проекта…</div>}
+          {error && <div className={styles.projectError}>{error}</div>}
+          {!loading && metrics && (
+            <>
+              <div className={styles.projectSummary}>
+                <div className={styles.summaryCard}>
+                  <span className={styles.cardValue}>{metrics.totalFiles}</span>
+                  <span className={styles.cardLabel}>Файлов</span>
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.cardValue}>{metrics.codeLines}</span>
+                  <span className={styles.cardLabel}>LOC</span>
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.cardValue}>{fmtComplexity(metrics.avgComplexity)}</span>
+                  <span className={styles.cardLabel}>Ср. сложность</span>
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.cardValue}>{metrics.languages.length}</span>
+                  <span className={styles.cardLabel}>Языков</span>
+                </div>
+              </div>
+
+              {metrics.languages.length > 0 && (
+                <div className={styles.projectLangList}>
+                  {metrics.languages.map((lang) => {
+                    const maxCode = Math.max(...metrics.languages.map((item) => item.codeLines), 1)
+                    const pct = Math.round((lang.codeLines / maxCode) * 100)
+                    return (
+                      <div key={lang.language} className={styles.toolRow}>
+                        <span className={styles.toolName}>{lang.language}</span>
+                        <div className={styles.toolBar}>
+                          <div className={styles.toolBarFill} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className={styles.toolCount}>
+                          {lang.files} · {lang.codeLines}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className={styles.projectHint}>
+                Просмотрено: {metrics.filesScanned}
+                {metrics.truncated ? '+' : ''}. Сложность (сумма): {metrics.totalComplexity}
+                {metrics.maxComplexityFile
+                  ? `, макс. ${metrics.maxComplexity} (${metrics.maxComplexityFile})`
+                  : ''}
+                .
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+export function MetricsPanel({ projectPath }: { projectPath?: string | null }) {
   const [days, setDays] = useState<7 | 14 | 30 | 90>(30)
   const [metrics, setMetrics] = useState<AgentMetrics | null>(null)
   const [loading, setLoading] = useState(false)
@@ -212,20 +408,42 @@ export function MetricsPanel() {
     return dir === 'asc' ? '↑' : '↓'
   }
 
+  function exportCsv() {
+    if (!metrics) return
+    const csv = buildMetricsCsv(metrics, sortedByModel, sortedTopTools)
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), metricsCsvFilename(days))
+  }
+
+  const canExport =
+    metrics !== null &&
+    !loading &&
+    (metrics.byModel.length > 0 || metrics.topTools.length > 0 || metrics.totalRuns > 0)
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
         <span>Метрики агента</span>
-        <div className={styles.periods}>
-          {PERIODS.map((d) => (
-            <button
-              key={d}
-              className={`${styles.periodBtn}${days === d ? ` ${styles.active}` : ''}`}
-              onClick={() => setDays(d)}
-            >
-              {d}д
-            </button>
-          ))}
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.exportBtn}
+            onClick={exportCsv}
+            disabled={!canExport}
+            title="Скачать CSV (по моделям и топ инструментов)"
+          >
+            CSV
+          </button>
+          <div className={styles.periods}>
+            {PERIODS.map((d) => (
+              <button
+                key={d}
+                className={`${styles.periodBtn}${days === d ? ` ${styles.active}` : ''}`}
+                onClick={() => setDays(d)}
+              >
+                {d}д
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -359,6 +577,8 @@ export function MetricsPanel() {
       )}
 
       {!loading && !metrics && <div className={styles.empty}>Не удалось загрузить метрики</div>}
+
+      {projectPath ? <ProjectMetricsSection projectPath={projectPath} /> : null}
     </div>
   )
 }
