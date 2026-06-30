@@ -34,9 +34,9 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   text-align: left;
   transition:
@@ -46,25 +46,25 @@
 }
 
 .navItem:hover {
-  background: var(--bg-element);
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-element) 84%, white 16%);
+  color: var(--text-primary);
 }
 
 .navItemActive {
-  background: color-mix(in srgb, var(--blue-bright) 12%, transparent);
-  color: var(--blue-bright);
+  background: color-mix(in srgb, var(--blue-bright) 22%, transparent);
+  color: #9fc3ff;
 }
 
 .navItemActive:hover {
-  background: color-mix(in srgb, var(--blue-bright) 16%, transparent);
-  color: var(--blue-bright);
+  background: color-mix(in srgb, var(--blue-bright) 28%, transparent);
+  color: #c4dcff;
 }
 
 .navIcon {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  opacity: 0.8;
+  opacity: 0.92;
 }
 
 .navItemActive .navIcon {
@@ -511,6 +511,11 @@
   background: var(--bg-element);
   color: var(--text-primary);
   outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.82;
 }
 
 .searchInput:focus {
