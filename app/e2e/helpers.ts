@@ -23,13 +23,23 @@ const CI_LINUX_ELECTRON_FLAGS = [
   '--ozone-platform=x11'
 ]
 
+const CI_DARWIN_ELECTRON_FLAGS = ['--disable-gpu']
+
 function ciElectronFlags(): string[] {
   if (!process.env.CI) return []
-  // Linux CI (xvfb): ozone x11. На Windows/macOS эти флаги ломают запуск.
-  return process.platform === 'linux' ? CI_LINUX_ELECTRON_FLAGS : []
+  if (process.platform === 'linux') return CI_LINUX_ELECTRON_FLAGS
+  if (process.platform === 'darwin') return CI_DARWIN_ELECTRON_FLAGS
+  return []
 }
 
 const MODAL_DISMISS_TIMEOUT_MS = 20_000
+const APP_SHELL_TIMEOUT_MS = process.env.CI ? 45_000 : 20_000
+
+/** Ждём React-оболочку: domcontentloaded приходит до выполнения module-бандла. */
+export async function waitForAppShell(page: Page): Promise<void> {
+  await page.waitForLoadState('load', { timeout: APP_SHELL_TIMEOUT_MS }).catch(() => {})
+  await expect(page.locator('.app .topbar')).toBeVisible({ timeout: APP_SHELL_TIMEOUT_MS })
+}
 
 export async function launchApp(): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
@@ -45,7 +55,16 @@ export async function launchApp(): Promise<{ app: ElectronApplication; page: Pag
   })
 
   const page = await app.firstWindow({ timeout: 60_000 })
+  if (process.env.CI) {
+    page.on('pageerror', (err) => {
+      console.error('[e2e][pageerror]', err.message)
+    })
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') console.error('[e2e][console]', msg.text())
+    })
+  }
   await page.waitForLoadState('domcontentloaded')
+  await waitForAppShell(page)
   await dismissBlockingModals(page)
   return { app, page }
 }
