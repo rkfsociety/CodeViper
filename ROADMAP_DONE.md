@@ -102,3 +102,5 @@
 - `check_cve`: проверка уязвимостей через NVD и OSV API (отчёт в чате)
 - Авто-архивация выполненных пунктов ROADMAP: `complete_self_improvement_item` теперь переносит блок в ROADMAP_DONE.md
 - `prioritize_roadmap_items` — приоритизация задач ROADMAP по пользе и риску для self-improvement и UI
+
+- Очередь сообщений в AgentStatusBar: кнопка ✕ удаляет pending run без остановки остальных

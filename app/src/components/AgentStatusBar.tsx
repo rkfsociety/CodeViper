@@ -82,6 +82,8 @@ export function formatIndexProgressChip(percent: number): string {
 interface Props {
   model?: string
   queueSize?: number
+  queueItems?: Array<{ id: string; text: string }>
+  onRemoveFromQueue?: (index: number) => void
   progress?: ProgressInfo | null
   /** Прогресс фоновой индексации (autoIndexOnOpen), когда агент не занят */
   indexPercent?: number | null
@@ -91,6 +93,8 @@ interface Props {
 export function AgentStatusBar({
   model,
   queueSize = 0,
+  queueItems = [],
+  onRemoveFromQueue,
   progress = null,
   indexPercent: indexPercentProp = null,
   p2pCredits = null
@@ -168,6 +172,7 @@ export function AgentStatusBar({
                     runStats
                   )
   const liveText = formatAgentLivePhrase(agentPhase)
+  const queuedItems = queueItems.slice(0, queueSize)
 
   return (
     <div
@@ -237,6 +242,28 @@ export function AgentStatusBar({
           </span>
         )}
       </div>
+      {queuedItems.length > 0 && (
+        <div className="agent-status-queue" aria-label="Очередь сообщений">
+          {queuedItems.map((item, index) => (
+            <div className="agent-status-queue-item" key={`${item.id}-${index}`}>
+              <span className="agent-status-queue-text" title={item.text}>
+                {item.text}
+              </span>
+              {onRemoveFromQueue && (
+                <button
+                  type="button"
+                  className="agent-status-queue-remove"
+                  aria-label={`Удалить сообщение из очереди: ${item.text}`}
+                  title="Удалить из очереди"
+                  onClick={() => onRemoveFromQueue(index)}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       {orchestrating && orchestratingPlan && planExpanded && (
         <pre className="agent-orchestrating-plan">{orchestratingPlan}</pre>
       )}

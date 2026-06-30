@@ -401,6 +401,13 @@ export function useMessageQueue({
     return [...queueRef.current]
   }
 
+  function removeFromQueue(index: number) {
+    if (index < 0 || index >= queueRef.current.length) return
+    queueRef.current = queueRef.current.filter((_, i) => i !== index)
+    setQueueSize(queueRef.current.length)
+    syncBusyState(agentRunningRef.current, queueRef.current.length)
+  }
+
   async function regenerateAssistantReply(assistantMessageId: string): Promise<boolean> {
     if (!chatIdRef.current || !projectPathRef.current) return false
     if (agentRunningRef.current) return false
@@ -431,6 +438,7 @@ export function useMessageQueue({
     regenerateAssistantReply,
     resetQueue,
     getQueueSnapshot,
+    removeFromQueue,
     queueSize,
     agentRunning,
     agentRunningRef,

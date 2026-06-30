@@ -385,6 +385,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     regenerateAssistantReply,
     resetQueue,
     getQueueSnapshot,
+    removeFromQueue,
     queueSize,
     agentRunning,
     busy
@@ -1050,6 +1051,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         busy={busy}
         agentRunning={agentRunning}
         queueSize={queueSize}
+        queueItems={getQueueSnapshot()}
+        onRemoveFromQueue={removeFromQueue}
         progress={progress}
         indexingProgress={indexingProgress}
         p2pCredits={p2pCredits}

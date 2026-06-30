@@ -26,6 +26,8 @@ interface Props {
   busy: boolean
   agentRunning: boolean
   queueSize: number
+  queueItems: Array<{ id: string; text: string }>
+  onRemoveFromQueue: (index: number) => void
   progress: ProgressInfo | null
   indexingProgress: ProgressInfo | null
   p2pCredits: number | null
@@ -93,6 +95,8 @@ export function ChatStatusBar({
   busy,
   agentRunning,
   queueSize,
+  queueItems,
+  onRemoveFromQueue,
   progress,
   indexingProgress,
   p2pCredits,
@@ -156,6 +160,8 @@ export function ChatStatusBar({
         <AgentStatusBar
           model={settings.model}
           queueSize={queueSize}
+          queueItems={queueItems}
+          onRemoveFromQueue={onRemoveFromQueue}
           progress={busy ? progress : null}
           indexPercent={busy ? null : (indexingProgress?.percent ?? null)}
           p2pCredits={p2pCredits}

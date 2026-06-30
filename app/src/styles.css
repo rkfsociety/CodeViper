@@ -972,6 +972,49 @@ button {
   color: var(--text, #ccc);
   border-color: var(--text-muted, #999);
 }
+
+.agent-status-queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.agent-status-queue-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border, #444);
+  border-radius: 999px;
+  background: var(--bg-3, #3a3a3a);
+  color: var(--text-muted, #999);
+}
+
+.agent-status-queue-text {
+  max-width: min(42vw, 420px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-status-queue-remove {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted, #999);
+  cursor: pointer;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.agent-status-queue-remove:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text, #ccc);
+}
 .agent-collective-sync-chip {
   display: inline-flex;
   align-items: center;

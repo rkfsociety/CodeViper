@@ -1,4 +1,4 @@
-# Дорожная карта CodeViper
+﻿# Дорожная карта CodeViper
 
 Задачи для самоулучшения агента. Выполненное — [ROADMAP_DONE.md](ROADMAP_DONE.md). Назад в [README](README.md).
 
@@ -24,7 +24,7 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 ### 🟢 S — простые
 
-> Одна правка, 1–2 файла, быстрая проверка. Начинать с этих пунктов. Пункты **1–139**.
+> Одна правка, 1–2 файла, быстрая проверка. Начинать с этих пунктов. Пункты **1–138**.
 
 
 
@@ -39,55 +39,48 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 
 
 
-**1 · S · Очередь: удалить элемент** — уровень 3
-- **Цель:** кнопка ✕ у каждого сообщения в очереди (`AgentStatusBar` / queue UI)
-- **Файлы:** `AgentStatusBar.tsx`, `QueueContext.tsx`
-- **Действие:** `removeFromQueue(index)` IPC или context
-- **Проверка:** элемент исчезает, остальные выполняются
-
-
-**2 · S · Skip link «К содержимому»** — уровень 3
+**1 · S · Skip link «К содержимому»** — уровень 3
 - **Цель:** скрытая ссылка в начале `App.tsx` → `#main-chat`
 - **Файлы:** `App.tsx`, `styles.css`
 - **Действие:** `:focus` показывает ссылку
 - **Проверка:** Tab с первого элемента → skip → фокус в чате
 
 
-**3 · S · Экспорт метрик в CSV** — уровень 3
+**2 · S · Экспорт метрик в CSV** — уровень 3
 - **Цель:** кнопка в `MetricsPanel` → CSV byModel + topTools
 - **Файлы:** `MetricsPanel.tsx`
 - **Действие:** blob download
 - **Проверка:** CSV открывается в Excel
 
 
-**4 · S · Документация plugin-authoring** — уровень 3
+**3 · S · Документация plugin-authoring** — уровень 3
 - **Цель:** гайд автора плагина: схема tool, пример `.js`, hot-reload
 - **Файлы:** `docs/plugin-authoring.md`, ссылка в `README.md`
 - **Действие:** минимальный working example + ограничения (только `.js`)
 - **Проверка:** файл существует; README ссылается на него
 
 
-**5 · S · Discord webhook** — уровень 3
+**4 · S · Discord webhook** — уровень 3
 - **Цель:** `discordWebhookUrl` — уведомление «агент готов» в Discord
 - **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`, `settings.ts`
 - **Действие:** POST embed JSON
 - **Проверка:** unit-тест payload
 
 
-**6 · S · Telegram Bot уведомления** — уровень 3
+**5 · S · Telegram Bot уведомления** — уровень 3
 - **Цель:** `telegramBotToken` + `telegramChatId` в настройках
 - **Файлы:** `webhookNotify.ts`, `IntegrationsTab.tsx`
 - **Действие:** `sendMessage` API
 - **Проверка:** mock fetch test
 
 
-**7 · S · Чип P2P offline** — уровень 3
+**6 · S · Чип P2P offline** — уровень 3
 - **Файлы:** `AgentStatusBar.tsx`, `p2pClient.ts`
 - **Действие:** «P2P offline» при disconnect
 - **Проверка:** виден при остановленном сервере
 
 
-**8 · S · Масштаб шрифта UI** — уровень 3
+**7 · S · Масштаб шрифта UI** — уровень 3
 - **Цель:** `uiFontScale: 0.9 | 1 | 1.1 | 1.25` в настройках → `document.documentElement.style.fontSize`
 - **Файлы:** `PerformanceTab.tsx`, `settings.ts`, `App.tsx`
 - **Действие:** select в PerformanceTab; применение при загрузке
@@ -3590,3 +3583,4 @@ N · [S/M/L/XL] · Краткое название — уровень 1|2|3|4
 - **Файлы:** `index.ts`, `App.tsx`, `registerAppIpc.ts`
 - **Действие:** «Открыть в новом окне» в меню чата
 - **Проверка:** два окна — один чат синхронизирован
+
