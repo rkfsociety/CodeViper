@@ -44,10 +44,10 @@ describe('runtimeBootstrap', () => {
   const cloneMain = join(cloneApp, 'out', 'main', 'index.js')
   const cloneHandlers = join(cloneApp, 'out', 'main', 'runtimeHandlers.js')
   const cloneRenderer = join(cloneApp, 'out', 'renderer', 'index.html')
-  const clonePreload = join(cloneApp, 'out', 'preload', 'index.js')
+  const clonePreload = join(cloneApp, 'out', 'preload', 'index.cjs')
   const asarMain = join(process.cwd(), 'app', 'out', 'main', 'index.js')
   const asarRenderer = join(process.cwd(), 'app', 'out', 'renderer', 'index.html')
-  const asarPreload = join(process.cwd(), 'app', 'out', 'preload', 'index.js')
+  const asarPreload = join(process.cwd(), 'app', 'out', 'preload', 'index.cjs')
 
   beforeEach(() => {
     setRuntimeBootstrapTestHooks(null)

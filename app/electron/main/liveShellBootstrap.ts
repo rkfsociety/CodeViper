@@ -44,7 +44,7 @@ export function resolveLiveShellPathsFromClone(): LiveShellPaths | null {
 
   const root = getBundledSourceAppRoot()
   const renderer = join(root, 'out/renderer/index.html')
-  const preload = join(root, 'out/preload/index.js')
+  const preload = join(root, 'out/preload/index.cjs')
   const main = join(root, 'out/main/index.js')
 
   if (!existsSync(main) || statSync(main).size < BUNDLED_RUNTIME_MAIN_MIN_BYTES) return null

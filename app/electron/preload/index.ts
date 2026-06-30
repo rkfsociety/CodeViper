@@ -10,7 +10,7 @@ import type {
   SavedChat
 } from '../../src/types'
 import { withTimeout } from '../../shared/withTimeout'
-import { IPC } from '../../shared/ipcContracts'
+import { IPC } from '../../shared/ipcChannels'
 
 const IPC_TIMEOUT_MS = 30_000
 

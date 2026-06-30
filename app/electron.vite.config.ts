@@ -37,13 +37,13 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin({ exclude: ['zod'] })],
+    plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
         input: resolve(__dirname, 'electron/preload/index.ts'),
         output: {
           format: 'cjs',
-          entryFileNames: 'index.js'
+          entryFileNames: 'index.cjs'
         }
       }
     }

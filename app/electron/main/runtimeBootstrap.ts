@@ -1,6 +1,6 @@
 import { appendFile, mkdir } from 'fs/promises'
 import { existsSync, statSync } from 'fs'
-import { dirname, join } from 'path'
+import { dirname, join, resolve } from 'path'
 import { pathToFileURL } from 'url'
 import { app } from 'electron'
 import {
@@ -16,7 +16,7 @@ import { resetSelfCommitRuntimeCacheForTests } from './selfCommitRuntime'
 const RUNTIME_MAIN_FILE = join('out', 'main', 'index.js')
 const RUNTIME_HANDLERS_FILE = join('out', 'main', 'runtimeHandlers.js')
 const RUNTIME_RENDERER_FILE = join('out', 'renderer', 'index.html')
-const RUNTIME_PRELOAD_FILE = join('out', 'preload', 'index.js')
+const RUNTIME_PRELOAD_FILE = join('out', 'preload', 'index.cjs')
 
 export interface BundledShellPaths {
   rendererIndex: string
@@ -116,16 +116,16 @@ export function isValidBundledRuntimeMain(mainPath: string): boolean {
 
 function asarShellPaths(): BundledShellPaths {
   return {
-    rendererIndex: join(app.getAppPath(), 'out', 'renderer', 'index.html'),
-    preloadScript: join(app.getAppPath(), 'out', 'preload', 'index.js'),
+    rendererIndex: resolve(app.getAppPath(), 'out', 'renderer', 'index.html'),
+    preloadScript: resolve(app.getAppPath(), 'out', 'preload', 'index.cjs'),
     fromClone: false
   }
 }
 
 function devShellPaths(mainDir: string): BundledShellPaths {
   return {
-    rendererIndex: join(mainDir, '../renderer/index.html'),
-    preloadScript: join(mainDir, '../preload/index.js'),
+    rendererIndex: resolve(mainDir, '../renderer/index.html'),
+    preloadScript: resolve(mainDir, '../preload/index.cjs'),
     fromClone: false
   }
 }
@@ -169,8 +169,8 @@ export function resolveBundledShellPaths(options?: {
       isValidBundledPreloadScript(clonePreload)
     ) {
       return {
-        rendererIndex: cloneRenderer,
-        preloadScript: clonePreload,
+        rendererIndex: resolve(cloneRenderer),
+        preloadScript: resolve(clonePreload),
         fromClone: true
       }
     }

@@ -2,7 +2,7 @@ import { app, BrowserWindow, Menu, session } from 'electron'
 import { appendFile, mkdir } from 'fs/promises'
 import { mkdirSync } from 'fs'
 import { tmpdir } from 'os'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { setSourceRootOverride } from './codeviperSource'
 import { loadSettings } from './settings'
 import { ensureDefaultSkills } from './defaultSkills'
@@ -217,10 +217,11 @@ async function createWindow(): Promise<void> {
     backgroundColor: '#0d1117',
     ...(icon ? { icon } : {}),
     webPreferences: {
-      preload: shell.preloadScript,
+      preload: resolve(shell.preloadScript),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      // В CI (xvfb/macOS headless) sandbox ломает тяжёлый preload; в E2E отключаем.
+      sandbox: process.env.CODEVIPER_E2E !== '1'
     }
   })
 

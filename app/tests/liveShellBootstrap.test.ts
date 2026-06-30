@@ -56,7 +56,7 @@ describe('liveShellBootstrap', () => {
   it('resolveLiveShellPathsFromClone возвращает null если preload слишком мал', () => {
     vi.mocked(statSync).mockImplementation((p) => {
       const path = String(p).replace(/\\/g, '/')
-      if (path.endsWith('preload/index.js')) return { size: 10 } as ReturnType<typeof statSync>
+      if (path.endsWith('preload/index.cjs')) return { size: 10 } as ReturnType<typeof statSync>
       if (path.endsWith('index.html')) return { size: 671 } as ReturnType<typeof statSync>
       return { size: BUNDLED_RUNTIME_MAIN_MIN_BYTES + 100 } as ReturnType<typeof statSync>
     })

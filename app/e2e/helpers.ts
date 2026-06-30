@@ -12,7 +12,8 @@ const require = createRequire(import.meta.url)
 const ELECTRON_PATH = require('electron') as string
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const MAIN_PATH = path.resolve(__dirname, '../out/main/index.js')
+const APP_ROOT = path.resolve(__dirname, '..')
+const MAIN_PATH = path.resolve(APP_ROOT, 'out/main/index.js')
 
 const CI_LINUX_ELECTRON_FLAGS = [
   '--no-sandbox',
@@ -35,8 +36,11 @@ function ciElectronFlags(): string[] {
 const MODAL_DISMISS_TIMEOUT_MS = 20_000
 const APP_SHELL_TIMEOUT_MS = process.env.CI ? 45_000 : 20_000
 
-/** Ждём React-оболочку: domcontentloaded приходит до выполнения module-бандла. */
+/** Ждём preload-мост и React-оболочку. */
 export async function waitForAppShell(page: Page): Promise<void> {
+  await page.waitForFunction(() => window.codeviper != null, {
+    timeout: APP_SHELL_TIMEOUT_MS
+  })
   await page.waitForLoadState('load', { timeout: APP_SHELL_TIMEOUT_MS }).catch(() => {})
   await expect(page.locator('.app .topbar')).toBeVisible({ timeout: APP_SHELL_TIMEOUT_MS })
 }
@@ -45,6 +49,7 @@ export async function launchApp(): Promise<{ app: ElectronApplication; page: Pag
   const app = await electron.launch({
     executablePath: ELECTRON_PATH,
     args: [MAIN_PATH, ...ciElectronFlags()],
+    cwd: APP_ROOT,
     timeout: 60_000,
     env: {
       ...process.env,
