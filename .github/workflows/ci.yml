@@ -114,6 +114,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # RELEASE_PUSH_TOKEN — PAT с bypass на master; без него bump из CI падает на защищённой ветке
+          token: ${{ secrets.RELEASE_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+          # RELEASE_PUSH_TOKEN — PAT с bypass на master; без него bump из CI падает на защищённой ветке
+          token: ${{ secrets.RELEASE_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Configure git
         run: |
