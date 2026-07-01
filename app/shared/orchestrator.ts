@@ -1,22 +1,31 @@
 import { ORCHESTRATOR_DEFAULT_OLLAMA_MODEL } from './constants'
+import {
+  isCloudOrchestratorConfigured,
+  type OrchestratorCloudSettingsSlice
+} from './orchestratorCloud'
 
-export type OrchestratorBackend = 'gguf' | 'ollama'
+export type OrchestratorBackend = 'gguf' | 'ollama' | 'cloud'
 
 /** Поля настроек, нужные для выбора бэкенда оркестратора. */
 export interface OrchestratorSettingsSlice {
   orchestratorBackend?: OrchestratorBackend
   orchestratorModelPath?: string
   orchestratorOllamaModel?: string
+  orchestratorCloudModel?: string
   orchestratorEnabled?: boolean
   planBeforeExecute?: boolean
   orchestratorMinMessageLength?: number
 }
 
-/** GGUF, если явно выбран или уже скачан файл; иначе Ollama. */
+/** GGUF, cloud или Ollama — по явной настройке и провайдеру агента. */
 export function resolveOrchestratorBackend(
-  settings: OrchestratorSettingsSlice
+  settings: OrchestratorSettingsSlice & { modelProvider?: string; orchestratorCloudModel?: string }
 ): OrchestratorBackend {
-  if (settings.orchestratorBackend === 'gguf' || settings.orchestratorBackend === 'ollama') {
+  if (
+    settings.orchestratorBackend === 'gguf' ||
+    settings.orchestratorBackend === 'ollama' ||
+    settings.orchestratorBackend === 'cloud'
+  ) {
     return settings.orchestratorBackend
   }
   return settings.orchestratorModelPath?.trim() ? 'gguf' : 'ollama'
@@ -28,9 +37,10 @@ export function resolveOrchestratorOllamaModel(settings: OrchestratorSettingsSli
 }
 
 /** Есть ли настроенный бэкенд для analyze(). */
-export function isOrchestratorConfigured(settings: OrchestratorSettingsSlice): boolean {
+export function isOrchestratorConfigured(settings: OrchestratorCloudSettingsSlice): boolean {
   const backend = resolveOrchestratorBackend(settings)
   if (backend === 'gguf') return !!settings.orchestratorModelPath?.trim()
+  if (backend === 'cloud') return isCloudOrchestratorConfigured(settings)
   return !!resolveOrchestratorOllamaModel(settings)
 }
 

@@ -15,6 +15,12 @@ import {
   ORCHESTRATOR_DEFAULT_OLLAMA_MODEL
 } from '../../../shared/constants'
 import { isOrchestratorConfigured, resolveOrchestratorBackend } from '../../../shared/orchestrator'
+import {
+  filterOrchestratorCloudModels,
+  isCloudModelProvider,
+  orchestratorCloudProviderLabel,
+  resolveOrchestratorCloudModel
+} from '../../../shared/orchestratorCloud'
 import { ModelPanel } from '../ModelPanel'
 import { CloudModelSelector } from '../CloudModelSelector'
 import { SettingItem } from './shared'
@@ -79,7 +85,34 @@ export function ModelTab({
     return models
   }, [provider, models, settings.literouterTier, settings.openrouterTier])
 
+  const orchestratorCloudModels = useMemo(
+    () => filterOrchestratorCloudModels(settings, models),
+    [settings, models]
+  )
+
+  const orchestratorBackend = resolveOrchestratorBackend(settings)
+  const cloudProvider = isCloudModelProvider(provider)
+
   if (!isActive && !isSearching) return null
+
+  function orchestratorCloudModelPatch(
+    tierModels: OllamaModel[]
+  ): Partial<AgentSettings> | undefined {
+    if (orchestratorBackend !== 'cloud') return undefined
+    const current = settings.orchestratorCloudModel
+    const valid = current && tierModels.some((m) => m.name === current)
+    if (valid) return undefined
+    const next = tierModels[0]?.name ?? resolveOrchestratorCloudModel(settings, tierModels)
+    return next ? { orchestratorCloudModel: next } : undefined
+  }
+
+  function selectOrchestratorCloudBackend() {
+    const nextModel = resolveOrchestratorCloudModel(settings, orchestratorCloudModels)
+    onSettingsChange({
+      orchestratorBackend: 'cloud',
+      ...(nextModel ? { orchestratorCloudModel: nextModel } : {})
+    })
+  }
 
   function pickLiteRouterTier(tier: 'free' | 'paid') {
     const filtered = filterLiteRouterModelsByTier(models, tier)
@@ -90,7 +123,8 @@ export function ModelTab({
     onSettingsChange({
       literouterTier: tier,
       model: nextModel,
-      ...(selected?.contextLength ? { modelContextLength: selected.contextLength } : {})
+      ...(selected?.contextLength ? { modelContextLength: selected.contextLength } : {}),
+      ...orchestratorCloudModelPatch(filtered)
     })
   }
 
@@ -100,7 +134,8 @@ export function ModelTab({
     onSettingsChange({
       openrouterTier: tier,
       model: currentValid ? settings.model : (filtered[0]?.name ?? settings.model),
-      ...(filtered[0]?.contextLength ? { modelContextLength: filtered[0].contextLength } : {})
+      ...(filtered[0]?.contextLength ? { modelContextLength: filtered[0].contextLength } : {}),
+      ...orchestratorCloudModelPatch(filtered)
     })
   }
 
@@ -429,10 +464,15 @@ export function ModelTab({
                     className={`btn${isFree ? ' active' : ''}`}
                     onClick={() => {
                       const first = GEMINI_FREE_MODELS[0]
+                      const freeGeminiModels = filterOrchestratorCloudModels(
+                        { ...settings, geminiTier: 'free' },
+                        models
+                      )
                       onSettingsChange({
                         geminiTier: 'free',
                         model: first.id,
-                        geminiRpm: first.rpm
+                        geminiRpm: first.rpm,
+                        ...orchestratorCloudModelPatch(freeGeminiModels)
                       })
                     }}
                   >
@@ -444,7 +484,8 @@ export function ModelTab({
                     onClick={() =>
                       onSettingsChange({
                         geminiTier: 'paid',
-                        model: settings.model || GEMINI_MODEL_DEFAULT
+                        model: settings.model || GEMINI_MODEL_DEFAULT,
+                        ...orchestratorCloudModelPatch(models)
                       })
                     }
                   >
@@ -1268,27 +1309,62 @@ export function ModelTab({
             </div>
 
             <div style={{ display: 'flex', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+              {cloudProvider && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <input
+                    type="radio"
+                    name="orchestrator-backend"
+                    checked={orchestratorBackend === 'cloud'}
+                    onChange={selectOrchestratorCloudBackend}
+                  />
+                  {orchestratorCloudProviderLabel(provider)} (текущий провайдер)
+                </label>
+              )}
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                 <input
                   type="radio"
                   name="orchestrator-backend"
-                  checked={resolveOrchestratorBackend(settings) === 'ollama'}
+                  checked={orchestratorBackend === 'ollama'}
                   onChange={() => onSettingsChange({ orchestratorBackend: 'ollama' })}
                 />
-                Ollama (рекомендуется)
+                Ollama (локально)
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                 <input
                   type="radio"
                   name="orchestrator-backend"
-                  checked={resolveOrchestratorBackend(settings) === 'gguf'}
+                  checked={orchestratorBackend === 'gguf'}
                   onChange={() => onSettingsChange({ orchestratorBackend: 'gguf' })}
                 />
                 GGUF (node-llama-cpp)
               </label>
             </div>
 
-            {resolveOrchestratorBackend(settings) === 'ollama' ? (
+            {orchestratorBackend === 'cloud' && cloudProvider ? (
+              <div style={{ marginTop: 8 }}>
+                <CloudModelSelector
+                  provider={provider}
+                  model={
+                    settings.orchestratorCloudModel ??
+                    resolveOrchestratorCloudModel(settings, orchestratorCloudModels)
+                  }
+                  defaultModel={resolveOrchestratorCloudModel(settings, orchestratorCloudModels)}
+                  models={orchestratorCloudModels}
+                  onChange={(modelId) => onSettingsChange({ orchestratorCloudModel: modelId })}
+                />
+                <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4 }}>
+                  {provider === 'literouter' &&
+                    (settings.literouterTier ?? 'free') === 'free' &&
+                    'Только модели с суффиксом :free (режим Free).'}
+                  {provider === 'openrouter' &&
+                    (settings.openrouterTier ?? 'free') === 'free' &&
+                    'Только бесплатные модели каталога OpenRouter.'}
+                  {provider === 'gemini' &&
+                    (settings.geminiTier ?? 'free') === 'free' &&
+                    'Только модели бесплатного tier Gemini.'}
+                </div>
+              </div>
+            ) : orchestratorBackend === 'ollama' ? (
               <div style={{ marginTop: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>

@@ -3,6 +3,7 @@ import {
   analyze,
   analyzeGguf,
   analyzeOllama,
+  analyzeCloud,
   parseOrchestratorResult,
   buildOrchestratorPrompt
 } from '../electron/main/orchestratorModel'
@@ -15,6 +16,13 @@ vi.mock('../electron/main/nodeLlama', () => ({
 vi.mock('../electron/main/providers/ollamaProvider', () => ({
   OllamaProvider: vi.fn().mockImplementation(function OllamaProvider() {
     return { chat: vi.fn() }
+  })
+}))
+
+const cloudChat = vi.fn()
+vi.mock('../electron/main/modelRuntime', () => ({
+  ModelRuntime: vi.fn().mockImplementation(function ModelRuntime() {
+    return { chat: cloudChat }
   })
 }))
 
@@ -98,6 +106,23 @@ describe('orchestratorModel.analyze', () => {
     const r = parseOrchestratorResult('Sorry, I cannot help.')
     expect(r.isComplex).toBe(false)
     expect(r.plan).toBe('')
+  })
+
+  it('analyze() маршрутизирует на cloud', async () => {
+    cloudChat.mockImplementation(async function* () {
+      yield { content: '{"plan":"облако","isComplex":false}', stop_reason: 'stop' }
+    })
+    const r = await analyze('тест', {
+      backend: 'cloud',
+      cloudProviderConfig: {
+        type: 'literouter',
+        baseUrl: 'https://lr.example',
+        apiKey: 'k',
+        model: 'deepseek:free'
+      }
+    })
+    expect(r.plan).toBe('облако')
+    expect(cloudChat).toHaveBeenCalled()
   })
 
   it('строковый второй аргумент — GGUF (обратная совместимость)', async () => {

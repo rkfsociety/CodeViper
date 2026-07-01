@@ -137,8 +137,9 @@ export const PersistedSettingsSchema = z.object({
     .optional(),
   enabledPlugins: z.array(z.string()).optional(),
   orchestratorModelPath: z.string().optional(),
-  orchestratorBackend: z.enum(['gguf', 'ollama']).optional(),
+  orchestratorBackend: z.enum(['gguf', 'ollama', 'cloud']).optional(),
   orchestratorOllamaModel: z.string().optional(),
+  orchestratorCloudModel: z.string().optional(),
   orchestratorEnabled: z.boolean().optional(),
   orchestratorMinMessageLength: z.number().optional(),
   explorerEnabled: z.boolean().optional(),
@@ -404,11 +405,16 @@ function normalize(settings: LegacySettings): PersistedSettings {
     ...(settings.orchestratorModelPath?.trim()
       ? { orchestratorModelPath: settings.orchestratorModelPath.trim() }
       : {}),
-    ...(settings.orchestratorBackend === 'gguf' || settings.orchestratorBackend === 'ollama'
+    ...(settings.orchestratorBackend === 'gguf' ||
+    settings.orchestratorBackend === 'ollama' ||
+    settings.orchestratorBackend === 'cloud'
       ? { orchestratorBackend: settings.orchestratorBackend }
       : {}),
     ...(settings.orchestratorOllamaModel?.trim()
       ? { orchestratorOllamaModel: settings.orchestratorOllamaModel.trim() }
+      : {}),
+    ...(settings.orchestratorCloudModel?.trim()
+      ? { orchestratorCloudModel: settings.orchestratorCloudModel.trim() }
       : {}),
     ...(settings.orchestratorEnabled === true ? { orchestratorEnabled: true } : {}),
     ...(settings.orchestratorMinMessageLength !== undefined

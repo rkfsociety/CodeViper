@@ -36,6 +36,7 @@ import {
   shouldGeneratePlanWithAgentModel,
   shouldRunOrchestratorAnalysis
 } from '../../shared/orchestrator'
+import { buildOrchestratorCloudProviderConfig } from '../../shared/orchestratorCloud'
 import { resolveAutoDelegationRole, runSubagent } from './subagentRunner'
 
 import { ResponseEmitter } from './agentResponseEmitter'
@@ -310,6 +311,8 @@ export class AgentRunner {
           ggufPath: this.settings.orchestratorModelPath,
           ollamaUrl: this.settings.ollamaUrl,
           ollamaModel: resolveOrchestratorOllamaModel(this.settings),
+          cloudProviderConfig:
+            backend === 'cloud' ? buildOrchestratorCloudProviderConfig(this.settings) : undefined,
           signal: this.emitter.abortSignal
         })
         orchestratorIsComplex = result.isComplex

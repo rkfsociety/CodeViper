@@ -266,8 +266,9 @@ export const AgentSettingsSchema = z.object({
     )
     .optional(),
   orchestratorModelPath: z.string().optional(),
-  orchestratorBackend: z.enum(['gguf', 'ollama']).optional(),
+  orchestratorBackend: z.enum(['gguf', 'ollama', 'cloud']).optional(),
   orchestratorOllamaModel: z.string().optional(),
+  orchestratorCloudModel: z.string().optional(),
   orchestratorEnabled: z.boolean().optional(),
   orchestratorMinMessageLength: z.number().optional(),
   autoCollectivePr: z.boolean().optional(),

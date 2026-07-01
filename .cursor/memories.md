@@ -53,3 +53,7 @@
 - Симптом: после «Отмена» в чате `???? ?? ???????????…`; в баннере плана — пересказ задачи, а не шаги; оркестратор выключен, но план шёл через qwen2.5:3b.  
 - Корень: (1) UTF-8 в `agent.ts`; (2) `planBeforeExecute` вызывал `analyze()` оркестратора даже при `orchestratorEnabled=false`; (3) слабый промпт планировщика.  
 - Фикс: UTF-8 строки; при `planBeforeExecute` без оркестратора — `generateExecutionPlan()` основной моделью; оркестратор только при `orchestratorEnabled`.
+
+**2026-07-01 · облачный оркестратор (LiteRouter free tier)**  
+- Запрос: выбор облачной модели оркестратора в рамках провайдера и tier (LiteRouter free → только `:free`).  
+- Фикс: `orchestratorBackend: cloud`, `orchestratorCloudModel`, UI в ModelTab, `analyzeCloud()` через тот же API-ключ провайдера агента.

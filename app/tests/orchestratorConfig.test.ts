@@ -72,6 +72,12 @@ describe('orchestrator config', () => {
     expect(shouldGeneratePlanWithAgentModel({ planBeforeExecute: true }, 10)).toBe(false)
   })
 
+  it('resolveOrchestratorBackend поддерживает cloud', () => {
+    expect(
+      resolveOrchestratorBackend({ orchestratorBackend: 'cloud', modelProvider: 'literouter' })
+    ).toBe('cloud')
+  })
+
   it('shouldAwaitPlanConfirmation только при planBeforeExecute', () => {
     expect(shouldAwaitPlanConfirmation({ planBeforeExecute: true })).toBe(true)
     expect(shouldAwaitPlanConfirmation({})).toBe(false)

@@ -3,7 +3,9 @@ import { mkdir, rename, unlink } from 'fs/promises'
 import { join } from 'path'
 import { loadModel, unloadModel } from './nodeLlama'
 import { OllamaProvider } from './providers/ollamaProvider'
+import { ModelRuntime } from './modelRuntime'
 import type { OrchestratorBackend } from '../../shared/orchestrator'
+import type { ProviderConfig } from '../../shared/modelProvider'
 import {
   ORCHESTRATOR_DEFAULT_GGUF_FILENAME,
   ORCHESTRATOR_DEFAULT_GGUF_URL,
@@ -27,6 +29,7 @@ export interface OrchestratorAnalyzeOptions {
   ggufPath?: string
   ollamaUrl?: string
   ollamaModel?: string
+  cloudProviderConfig?: ProviderConfig
   signal?: AbortSignal
 }
 
@@ -82,6 +85,31 @@ export async function analyzeOllama(
   return parseResult(raw)
 }
 
+export async function analyzeCloud(
+  message: string,
+  providerConfig: ProviderConfig,
+  signal?: AbortSignal
+): Promise<OrchestratorResult> {
+  const runtime = new ModelRuntime(providerConfig)
+  const model = providerConfig.model?.trim()
+  if (!model) throw new Error('Не задана облачная модель оркестратора')
+  const prompt = buildOrchestratorPrompt(message)
+  let raw = ''
+  for await (const chunk of runtime.chat({
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    tools: [],
+    stream: true,
+    temperature: ORCHESTRATOR_TEMPERATURE,
+    max_tokens: ORCHESTRATOR_MAX_TOKENS,
+    signal
+  })) {
+    raw += chunk.content
+    if (chunk.stop_reason) break
+  }
+  return parseResult(raw)
+}
+
 export async function analyze(
   message: string,
   options: OrchestratorAnalyzeOptions | string
@@ -94,6 +122,12 @@ export async function analyze(
     const model = options.ollamaModel?.trim()
     if (!model) throw new Error('Не задана Ollama-модель оркестратора')
     return analyzeOllama(message, url, model, options.signal)
+  }
+  if (options.backend === 'cloud') {
+    if (!options.cloudProviderConfig) {
+      throw new Error('Не задан провайдер облачного оркестратора')
+    }
+    return analyzeCloud(message, options.cloudProviderConfig, options.signal)
   }
   const path = options.ggufPath?.trim()
   if (!path) throw new Error('Не выбран GGUF-файл оркестратора')

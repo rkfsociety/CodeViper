@@ -312,10 +312,12 @@ export interface AgentSettings {
   enabledPlugins?: string[]
   /** Путь к GGUF-файлу для локального оркестратора (node-llama-cpp) */
   orchestratorModelPath?: string
-  /** Бэкенд оркестратора: Ollama (рекомендуется) или GGUF */
-  orchestratorBackend?: 'gguf' | 'ollama'
+  /** Бэкенд оркестратора: Ollama, GGUF или облако (текущий провайдер агента) */
+  orchestratorBackend?: 'gguf' | 'ollama' | 'cloud'
   /** Имя модели Ollama для оркестратора (например qwen2.5:3b) */
   orchestratorOllamaModel?: string
+  /** Облачная модель оркестратора (в рамках tier провайдера агента) */
+  orchestratorCloudModel?: string
   /** Включить оркестратор для предпланирования задач */
   orchestratorEnabled?: boolean
   /** Сначала показать план перед вызовом инструментов (основная модель или оркестратор) */
