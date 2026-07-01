@@ -222,6 +222,8 @@ export interface AgentSettings {
   minimizeToTray?: boolean
   /** Светлая тема интерфейса (☀️ в шапке) */
   uiLightMode?: boolean
+  /** Режим высокой контрастности: усиленные границы и focus для слабовидящих */
+  highContrastMode?: boolean
   /** Масштаб шрифта UI: 0.9 | 1 | 1.1 | 1.25 (по умолчанию 1) */
   uiFontScale?: UiFontScale
   /** Последние открытые папки проектов (до 10) */

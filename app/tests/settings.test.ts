@@ -311,6 +311,23 @@ describe('liveRuntimeFromGit', () => {
     expect(loaded.uiLightMode).toBe(true)
   })
 
+  it('сохраняет и загружает highContrastMode', async () => {
+    const saved = await saveSettings(makeSettings({ highContrastMode: true }))
+    expect(saved.highContrastMode).toBe(true)
+
+    const jsonCall = mockWriteFile.mock.calls.find((args: unknown[]) =>
+      String(args[1]).includes('highContrastMode')
+    )
+    expect(jsonCall).toBeDefined()
+    const parsed = JSON.parse(String(jsonCall![1])) as Record<string, unknown>
+    expect(parsed.highContrastMode).toBe(true)
+
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(String(jsonCall![1]))
+    const loaded = await loadSettings()
+    expect(loaded.highContrastMode).toBe(true)
+  })
+
   it('сохраняет recentProjects в settings.json', async () => {
     const paths = ['C:/proj-a', 'C:/proj-b']
     const saved = await saveSettings(makeSettings({ recentProjects: paths }))

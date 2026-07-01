@@ -154,6 +154,7 @@ export const PersistedSettingsSchema = z.object({
   p2pNodePublicKey: z.string().optional(),
   p2pNodeId: z.string().optional(),
   uiLightMode: z.boolean().optional(),
+  highContrastMode: z.boolean().optional(),
   uiFontScale: z.union([z.literal(0.9), z.literal(1), z.literal(1.1), z.literal(1.25)]).optional(),
   recentProjects: z.array(z.string()).optional(),
   planBeforeExecute: z.boolean().optional(),
@@ -437,6 +438,7 @@ function normalize(settings: LegacySettings): PersistedSettings {
     ...(settings.soundNotifications === true ? { soundNotifications: true } : {}),
     ...(settings.minimizeToTray === false ? { minimizeToTray: false } : {}),
     ...(settings.uiLightMode === true ? { uiLightMode: true } : {}),
+    ...(settings.highContrastMode === true ? { highContrastMode: true } : {}),
     ...(uiFontScale != null && uiFontScale !== 1 ? { uiFontScale } : {}),
     ...(settings.recentProjects?.length
       ? {

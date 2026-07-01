@@ -293,6 +293,7 @@ function AppContent() {
 
   const [ollamaFallbackUrl, setOllamaFallbackUrl] = useState<string | null>(null)
   const lightMode = settings.uiLightMode === true
+  const highContrastMode = settings.highContrastMode === true
   const uiFontScale = settings.uiFontScale ?? 1
   const [incognitoMode, setIncognitoMode] = useState(false)
   const incognitoModeRef = useRef(false)
@@ -621,6 +622,10 @@ function AppContent() {
   useEffect(() => {
     document.documentElement.classList.toggle('light-mode', lightMode)
   }, [lightMode])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('high-contrast', highContrastMode)
+  }, [highContrastMode])
 
   useEffect(() => {
     const basePx = 16

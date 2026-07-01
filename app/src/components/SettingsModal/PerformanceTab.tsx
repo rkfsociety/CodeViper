@@ -21,6 +21,33 @@ export function PerformanceTab({ isActive, isSearching, settings, onSettingsChan
     <>
       <SettingItem
         tab="performance"
+        label="High contrast mode"
+        desc="high contrast accessibility low vision borders focus buttons panels"
+      >
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>Accessibility</div>
+
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={settings.highContrastMode === true}
+              onChange={(e) => onSettingsChange({ highContrastMode: e.target.checked })}
+            />
+            <span className={styles.track} aria-hidden="true">
+              <span className={styles.thumb} />
+            </span>
+            <span className={styles.toggleContent}>
+              <span className={styles.title}>High contrast mode</span>
+              <span className={styles.desc}>
+                Makes panel and button borders plus focus outlines more visible.
+              </span>
+            </span>
+          </label>
+        </div>
+      </SettingItem>
+
+      <SettingItem
+        tab="performance"
         label="Режимы производительности"
         desc="энергосбережение power save CPU GPU статы PR pull requests ручной manual refresh"
       >

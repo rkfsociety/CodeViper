@@ -18,6 +18,7 @@
   --border: #30363d;
   --border-hover: #484f58;
   --border-subtle: #21262d;
+  --focus-ring: color-mix(in srgb, var(--blue-bright) 20%, transparent);
 
   /* ── Текст ───────────────────────────────────────────────────────────── */
   --text-primary: #e6edf3;
@@ -1854,7 +1855,7 @@ button.topbar-pill.topbar-download-error {
 .modal textarea:focus {
   outline: none;
   border-color: var(--blue-bright);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-bright) 20%, transparent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* Подсказка под селектором режима доступа */
@@ -2088,6 +2089,62 @@ button.topbar-pill.topbar-download-error {
 :root.light-mode .panel {
   background: var(--bg-surface);
   border-color: var(--border);
+}
+
+:root.high-contrast {
+  --border: #f0f6fc;
+  --border-hover: #ffffff;
+  --border-subtle: #c9d1d9;
+  --focus-ring: rgba(255, 255, 255, 0.42);
+}
+
+:root.light-mode.high-contrast {
+  --border: #0f1720;
+  --border-hover: #000000;
+  --border-subtle: #24292f;
+  --focus-ring: rgba(9, 105, 218, 0.38);
+}
+
+:root.high-contrast .topbar,
+:root.high-contrast .panel,
+:root.high-contrast .modal,
+:root.high-contrast .terminal-dock,
+:root.high-contrast .terminal-dock-header,
+:root.high-contrast .btn,
+:root.high-contrast .message.user,
+:root.high-contrast .message.tool,
+:root.high-contrast .message.system,
+:root.high-contrast .message-body pre,
+:root.high-contrast .message-body code,
+:root.high-contrast .message-menu-trigger,
+:root.high-contrast .message-menu-dropdown,
+:root.high-contrast .todo-panel,
+:root.high-contrast .toast,
+:root.high-contrast .settings input,
+:root.high-contrast .settings select,
+:root.high-contrast .settings textarea {
+  border-color: var(--border) !important;
+}
+
+:root.high-contrast .btn,
+:root.high-contrast .settings input,
+:root.high-contrast .settings select,
+:root.high-contrast .settings textarea {
+  border-width: 2px;
+}
+
+:root.high-contrast .panel-resizer::after {
+  width: 2px;
+  background: var(--border);
+}
+
+:root.high-contrast button:focus-visible,
+:root.high-contrast a:focus-visible,
+:root.high-contrast input:focus-visible,
+:root.high-contrast select:focus-visible,
+:root.high-contrast textarea:focus-visible {
+  outline: 3px solid var(--border-hover);
+  outline-offset: 2px;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
