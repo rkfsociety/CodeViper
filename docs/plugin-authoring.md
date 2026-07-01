@@ -1,4 +1,4 @@
-# Авторство плагинов CodeViper
+﻿# Авторство плагинов CodeViper
 
 Краткий гайд: как добавить свои инструменты агенту через файлы в `~/.codeviper/plugins/`.
 
@@ -138,3 +138,5 @@ module.exports = {
 - [API инструментов агента](tools-api.md) — встроенные tools и соглашения по `parameters`
 - [Интеграции (MCP)](integrations.md) — внешние tools с полноценным runtime
 - Исходники: [`pluginLoader.ts`](../app/electron/main/pluginLoader.ts), [`agentTools/index.ts`](../app/electron/main/agentTools/index.ts)
+
+## Import skills from a repository`r`n`r`nIf a plugin repo ships `skills/*/SKILL.md` files, CodeViper can import them into `ViperSkills.md` from Settings > Plugins > "Import skills from repo". This is the recommended path for Superpowers-style repositories such as [`obra/superpowers`](https://github.com/obra/superpowers).`r`n

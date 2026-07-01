@@ -7,21 +7,38 @@ interface Props {
 }
 
 export function PluginsTab({ isActive, isSearching }: Props) {
+  const importSuperpowers = async () => {
+    const pluginRoot = await window.codeviper.selectFolder()
+    if (!pluginRoot) return
+    const result = await window.codeviper.importSkillsFromDirectory('', pluginRoot)
+    const message =
+      `Импорт завершен: ${result.imported} skills` +
+      (result.skipped ? `, пропущено ${result.skipped}` : '') +
+      (result.warnings.length ? `. ${result.warnings[0]}` : '')
+    window.alert(message)
+  }
+
   if (!isActive && !isSearching) return null
 
   return (
     <SettingItem tab="plugins" label="Плагины" desc="Подключить дополнительные инструменты">
       <div className={styles.settingSection}>
         <p>
-          Плагины хранятся в <code>~/.codeviper/plugins</code>. Откройте папку и добавьте файлы{' '}
-          <code>.js</code> с инструментами агента.
+          Плагины-<code>.js</code> хранятся в <code>~/.codeviper/plugins</code>. Для skill-based
+          репозиториев, таких как <code>obra/superpowers</code>, выберите корень клона и
+          импортируйте папку <code>skills/</code> в ViperSkills.
         </p>
-        <button
-          className={styles.button}
-          onClick={() => (window as any).electron?.ipcRenderer.invoke('open-plugins-folder')}
-        >
-          📂 Открыть папку
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            className={styles.button}
+            onClick={() => (window as any).electron?.ipcRenderer.invoke('open-plugins-folder')}
+          >
+            📂 Открыть папку
+          </button>
+          <button className={styles.button} onClick={importSuperpowers}>
+            Импортировать skills из репозитория
+          </button>
+        </div>
       </div>
     </SettingItem>
   )

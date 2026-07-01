@@ -12,6 +12,7 @@ import { dismissRuntimeUpdate } from '../runtimeUpdate'
 import { forceSyncBundledSource } from '../bundledSourceSync'
 import { getPluginsDirectory } from '../pluginLoader'
 import { loadUiLayout, saveUiLayout } from '../uiLayout'
+import { importSkillsFromDirectory } from '../skills'
 import type { AppState } from '../../../src/types'
 import type { IpcContext } from './ipcContext'
 
@@ -124,5 +125,9 @@ export function registerAppIpc(ctx: IpcContext): void {
     const dir = getPluginsDirectory()
     await shell.openPath(dir)
     return dir
+  })
+
+  ipcMain.handle('import-plugin-skills', async (_e, projectPath: string, pluginRoot: string) => {
+    return importSkillsFromDirectory(projectPath, pluginRoot)
   })
 }

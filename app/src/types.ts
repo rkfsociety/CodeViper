@@ -836,6 +836,14 @@ export interface CodeViperAPI {
   deleteMemory: (projectPath: string, id: string) => Promise<boolean>
   voteMemory: (entryId: string, delta: 1 | -1) => Promise<number>
   listSkills: (projectPath: string) => Promise<AgentSkill[]>
+  importSkillsFromDirectory: (
+    projectPath: string,
+    pluginRoot: string
+  ) => Promise<{
+    imported: number
+    skipped: number
+    warnings: string[]
+  }>
   createSkill: (
     projectPath: string,
     input: { name: string; description: string; instructions: string; triggers?: string[] }

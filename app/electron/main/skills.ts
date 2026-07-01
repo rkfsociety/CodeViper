@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { existsSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { makeId } from '../../shared/makeId'
@@ -455,4 +455,102 @@ export async function touchSkill(projectPath: string, id: string): Promise<void>
   target.useCount = skill.useCount
   target.updatedAt = skill.updatedAt
   await saveStore(path, store)
+}
+
+export interface ImportedSkillsResult {
+  imported: number
+  skipped: number
+  warnings: string[]
+}
+
+function parseSkillMarkdownFrontmatter(raw: string): {
+  name: string
+  description: string
+  triggers?: string[]
+  instructions: string
+} | null {
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
+  if (!match) return null
+
+  const metaBlock = match[1] ?? ''
+  const body = (match[2] ?? '').trim()
+  const meta: Record<string, string> = {}
+
+  for (const line of metaBlock.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const idx = trimmed.indexOf(':')
+    if (idx < 0) continue
+    const key = trimmed.slice(0, idx).trim().toLowerCase()
+    const value = trimmed
+      .slice(idx + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '')
+    if (key) meta[key] = value
+  }
+
+  const name = meta.name?.trim()
+  const description = meta.description?.trim() ?? ''
+  if (!name || !body) return null
+
+  const triggers = meta.triggers
+    ? meta.triggers
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : []
+
+  return {
+    name,
+    description,
+    triggers,
+    instructions: body
+  }
+}
+
+export async function importSkillsFromDirectory(
+  projectPath: string,
+  pluginRoot: string
+): Promise<ImportedSkillsResult> {
+  const result: ImportedSkillsResult = { imported: 0, skipped: 0, warnings: [] }
+  const skillsDir = join(pluginRoot, 'skills')
+  if (!existsSync(skillsDir)) {
+    result.warnings.push('Не найдена папка skills')
+    return result
+  }
+
+  const entries = readdirSync(skillsDir, { withFileTypes: true })
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue
+    const skillPath = join(skillsDir, entry.name, 'SKILL.md')
+    if (!existsSync(skillPath)) {
+      result.skipped += 1
+      continue
+    }
+
+    try {
+      const raw = await readFile(skillPath, 'utf-8')
+      const parsed = parseSkillMarkdownFrontmatter(raw)
+      if (!parsed) {
+        result.skipped += 1
+        result.warnings.push(`Пропуск ${entry.name}: нет валидного frontmatter`)
+        continue
+      }
+
+      await createSkill(projectPath, {
+        name: parsed.name,
+        description: parsed.description,
+        instructions: parsed.instructions,
+        triggers: parsed.triggers
+      })
+      result.imported += 1
+    } catch (error) {
+      result.skipped += 1
+      result.warnings.push(
+        `Пропуск ${entry.name}: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }
+
+  return result
 }

@@ -150,3 +150,4 @@
 - **Файлы:** `settingsPathAnalysis.ts`, `settings.ts`, `agentTools/core.ts`, `agentHandlersProjectTerminal.ts`
 - **Действие:** `loadSettings()` + проверка полей-путей через `access()`; список битых путей
 - **Проверка:** `npm test -- settingsPathAnalysis.test.ts`; `find_settings_path_issues()` -> отчет
+

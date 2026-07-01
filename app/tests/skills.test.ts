@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
+﻿import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 import { existsSync, readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 
@@ -11,6 +11,7 @@ vi.mock('electron', () => ({
 import {
   createSkill,
   deleteSkill,
+  importSkillsFromDirectory,
   listSkills,
   parseSkillsMarkdown,
   renderSkillsMarkdown,
@@ -129,5 +130,29 @@ describe('ViperSkills.md', () => {
 
     const raw = readFileSync(join(USER_DATA, SKILLS_FILENAME), 'utf-8')
     expect(raw).toContain('v2')
+  })
+
+  it('importSkillsFromDirectory imports skills from a plugin repo', async () => {
+    const { mkdirSync, writeFileSync } = await import('fs')
+    const repoRoot = join(USER_DATA, 'superpowers-repo')
+    mkdirSync(join(repoRoot, 'skills', 'test-skill'), { recursive: true })
+    writeFileSync(
+      join(repoRoot, 'skills', 'test-skill', 'SKILL.md'),
+      `---
+name: Test Skill
+description: Imported from repo
+triggers: todo, plan
+---
+Do the thing.
+`
+    )
+
+    const result = await importSkillsFromDirectory('', repoRoot)
+    expect(result.imported).toBe(1)
+    expect(result.skipped).toBe(0)
+
+    const skills = await listSkills('')
+    expect(skills[0]?.name).toBe('Test Skill')
+    expect(skills[0]?.triggers).toEqual(['todo', 'plan'])
   })
 })

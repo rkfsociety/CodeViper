@@ -286,6 +286,12 @@ const codeviper = {
 
   listSkills: (projectPath: string) =>
     withTimeout(ipcRenderer.invoke(IPC.LIST_SKILLS, projectPath), IPC_TIMEOUT_MS, 'listSkills'),
+  importSkillsFromDirectory: (projectPath: string, pluginRoot: string) =>
+    withTimeout(
+      ipcRenderer.invoke('import-plugin-skills', projectPath, pluginRoot),
+      IPC_TIMEOUT_MS,
+      'importSkillsFromDirectory'
+    ),
 
   createSkill: (
     projectPath: string,
