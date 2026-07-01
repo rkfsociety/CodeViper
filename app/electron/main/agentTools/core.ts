@@ -896,6 +896,23 @@ export const GIT_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_commit_message_issues',
+      description:
+        'Отчёт по commit-сообщениям в последних N коммитах: поиск сообщений вне Conventional Commits',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'string',
+            description: 'Число последних коммитов 1–100 (по умолчанию 50)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'git_commit',
       description:
         'Создать git-коммит staged-изменений с сообщением (безопаснее run_command git commit)',

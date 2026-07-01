@@ -54,6 +54,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'git_status',
   'git_diff',
   'git_log',
+  'find_commit_message_issues',
   'recent_changes',
   'package_info',
   'read_package_lock',

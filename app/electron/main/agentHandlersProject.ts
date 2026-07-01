@@ -11,6 +11,7 @@ import {
   gitStatus,
   gitDiff,
   gitLog,
+  findCommitMessageIssues,
   gitCommit,
   gitPush,
   gitCheckout,
@@ -244,6 +245,11 @@ export function createProjectToolHandlers(
         limit: args.limit,
         path: args.path,
         oneline: args.oneline
+      }),
+
+    find_commit_message_issues: async (args) =>
+      findCommitMessageIssues(projectPath, {
+        limit: args.limit
       }),
 
     git_commit: async (args) => {

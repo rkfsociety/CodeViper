@@ -163,6 +163,7 @@ export interface ToolArgs {
   git_status: { path?: string }
   git_diff: { path?: string; staged?: string; commit?: string }
   git_log: { limit?: string; path?: string; oneline?: string }
+  find_commit_message_issues: { limit?: string }
   git_commit: { message: string }
   git_push: { remote?: string; branch?: string }
   git_checkout: { branch: string; force?: string }

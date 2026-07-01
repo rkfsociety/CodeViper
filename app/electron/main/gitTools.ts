@@ -6,6 +6,9 @@ import { cliSpawnBase } from './windowsGitEnv'
 const MAX_OUTPUT_CHARS = 20_000
 const DEFAULT_LOG_LIMIT = 20
 const MAX_LOG_LIMIT = 100
+const DEFAULT_COMMIT_MESSAGE_LOG_LIMIT = 50
+const CONVENTIONAL_COMMIT_RE =
+  /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+/i
 
 interface GitResult {
   code: number
@@ -139,6 +142,50 @@ export async function gitLog(
 
   const result = await runGit(projectPath, args)
   return formatGitResult(result)
+}
+
+export async function findCommitMessageIssues(
+  projectPath: string,
+  options: { limit?: string } = {}
+): Promise<string> {
+  const repoError = await ensureGitRepo(projectPath)
+  if (repoError) return repoError
+
+  const limit = parseLogLimit(options.limit ?? String(DEFAULT_COMMIT_MESSAGE_LOG_LIMIT))
+  const result = await runGit(projectPath, ['log', '-n', String(limit), '--format=%s'])
+  if (result.code !== 0) return formatGitResult(result)
+
+  const messages = result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (!messages.length) {
+    return `РџСѓСЃС‚Р°СЏ РёСЃС‚РѕСЂРёСЏ commit-СЃРѕРѕР±С‰РµРЅРёР№ Р·Р° РїРѕСЃР»РµРґРЅРёРµ ${limit} РєРѕРјРјРёС‚РѕРІ.`
+  }
+
+  const issues = messages
+    .map((message, index) => {
+      if (CONVENTIONAL_COMMIT_RE.test(message)) return null
+      return `[${index + 1}] ${message}`
+    })
+    .filter((line): line is string => Boolean(line))
+
+  const badCount = issues.length
+  const goodCount = messages.length - badCount
+  const header = [
+    `РџСЂРѕРІРµСЂРµРЅРѕ commit-РѕРІ: ${messages.length}`,
+    `Conventional Commits: ${goodCount}`,
+    `РќРµРїРѕРІРѕР·РєРµ РЅР° conventional: ${badCount}`
+  ]
+
+  if (!issues.length) {
+    return [...header, 'РџСЂРѕР±Р»РµРј РЅРµ РЅР°Р№РґРµРЅРѕ.'].join('\n')
+  }
+
+  return [...header, '', 'РРµСЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёРµ commit-сообщения:', ...issues].join(
+    '\n'
+  )
 }
 
 const MAX_COMMIT_MESSAGE_LEN = 5000
