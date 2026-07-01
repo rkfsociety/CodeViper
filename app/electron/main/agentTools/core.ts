@@ -834,6 +834,22 @@ export const FILE_TOOLS = [
         required: []
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_docker_port_issues',
+      description: 'Отчёт о конфликтах портов и publish без bind в docker-compose.yml',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Путь к docker-compose.yml или папке проекта (необязательно)'
+          }
+        }
+      }
+    }
   }
 ] as const
 

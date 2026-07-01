@@ -260,6 +260,7 @@ export interface ToolArgs {
     command?: string
     path?: string
   }
+  find_docker_port_issues: { path?: string }
 }
 
 type MissingToolArgs = Exclude<ToolName, keyof ToolArgs>

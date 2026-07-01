@@ -63,6 +63,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'find_aria_issues',
   'find_integration_url_issues',
   'find_cron_issues',
+  'find_docker_port_issues',
   'test_summary',
   'search_memory',
   'list_skills',
