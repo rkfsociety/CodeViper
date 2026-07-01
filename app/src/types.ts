@@ -318,7 +318,7 @@ export interface AgentSettings {
   orchestratorOllamaModel?: string
   /** Включить оркестратор для предпланирования задач */
   orchestratorEnabled?: boolean
-  /** Сначала показать план оркестратора перед вызовом инструментов */
+  /** Сначала показать план перед вызовом инструментов (основная модель или оркестратор) */
   planBeforeExecute?: boolean
   /** Onboarding-визард завершён (false при первой установке) */
   firstRunCompleted?: boolean

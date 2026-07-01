@@ -28,10 +28,12 @@ import { ProviderBillingError, isProviderFallbackRetryableError } from '../../sh
 import { flushCollectiveMemoryToGit, getPendingCollectiveMemoryCount } from './collectiveMemorySync'
 import { notifyDiscordWebhook, notifyTelegram, notifyWebhook } from './webhookNotify'
 import { analyze } from './orchestratorModel'
+import { generateExecutionPlan } from './agentPlan'
 import {
   resolveOrchestratorBackend,
   resolveOrchestratorOllamaModel,
   shouldAwaitPlanConfirmation,
+  shouldGeneratePlanWithAgentModel,
   shouldRunOrchestratorAnalysis
 } from '../../shared/orchestrator'
 import { resolveAutoDelegationRole, runSubagent } from './subagentRunner'
@@ -263,7 +265,43 @@ export class AgentRunner {
     let orchestratorPlanHint = ''
     let orchestratorIsComplex = false
 
-    if (shouldRunOrchestratorAnalysis(this.settings, userMessage.length)) {
+    if (shouldGeneratePlanWithAgentModel(this.settings, userMessage.length)) {
+      this.emitter.emit({ type: 'orchestrating', orchestrating: true })
+      try {
+        const plan = await generateExecutionPlan({
+          userMessage,
+          projectPath: this.projectPath,
+          settings: this.settings,
+          modelRuntime: this.ctx.modelRuntime,
+          providerConfig: this.ctx.providerConfig,
+          signal: this.emitter.abortSignal
+        })
+        if (plan) {
+          orchestratorPlanHint = plan
+          this.emitter.emit({
+            type: 'orchestrating',
+            orchestrating: false,
+            content: plan
+          })
+          if (shouldAwaitPlanConfirmation(this.settings) && this.confirmPlan) {
+            const approved = await this.confirmPlan(plan)
+            if (!approved) {
+              this.emitter.emit({
+                type: 'context',
+                content: '⏹ Выполнение отменено — план не подтверждён.'
+              })
+              this.emitter.emit({ type: 'done' })
+              return
+            }
+          }
+        } else {
+          this.emitter.emit({ type: 'orchestrating', orchestrating: false })
+        }
+      } catch (err) {
+        console.error('[AgentRunner] agent plan error:', err)
+        this.emitter.emit({ type: 'orchestrating', orchestrating: false, error: String(err) })
+      }
+    } else if (shouldRunOrchestratorAnalysis(this.settings, userMessage.length)) {
       this.emitter.emit({ type: 'orchestrating', orchestrating: true })
       try {
         const backend = resolveOrchestratorBackend(this.settings)

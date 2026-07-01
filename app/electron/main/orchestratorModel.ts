@@ -227,5 +227,6 @@ function parseResult(raw: string): OrchestratorResult {
 
 export {
   shouldAwaitPlanConfirmation,
+  shouldGeneratePlanWithAgentModel,
   shouldRunOrchestratorAnalysis
 } from '../../shared/orchestrator'

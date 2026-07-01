@@ -4,6 +4,7 @@ import {
   resolveOrchestratorBackend,
   resolveOrchestratorOllamaModel,
   shouldAwaitPlanConfirmation,
+  shouldGeneratePlanWithAgentModel,
   shouldRunOrchestratorAnalysis
 } from '../shared/orchestrator'
 import { ORCHESTRATOR_DEFAULT_OLLAMA_MODEL } from '../shared/constants'
@@ -44,14 +45,31 @@ describe('orchestrator config', () => {
     ).toBe(true)
   })
 
-  it('shouldRunOrchestratorAnalysis при planBeforeExecute без orchestratorEnabled', () => {
+  it('shouldRunOrchestratorAnalysis только при orchestratorEnabled', () => {
     expect(
-      shouldRunOrchestratorAnalysis({ orchestratorBackend: 'ollama', planBeforeExecute: true }, 50)
+      shouldRunOrchestratorAnalysis(
+        { orchestratorBackend: 'ollama', orchestratorEnabled: true },
+        50
+      )
     ).toBe(true)
     expect(
-      shouldRunOrchestratorAnalysis({ orchestratorBackend: 'ollama', planBeforeExecute: true }, 10)
+      shouldRunOrchestratorAnalysis({ orchestratorBackend: 'ollama', planBeforeExecute: true }, 50)
     ).toBe(false)
     expect(shouldRunOrchestratorAnalysis({ orchestratorBackend: 'ollama' }, 50)).toBe(false)
+    expect(
+      shouldRunOrchestratorAnalysis(
+        { orchestratorBackend: 'ollama', orchestratorEnabled: true },
+        10
+      )
+    ).toBe(false)
+  })
+
+  it('shouldGeneratePlanWithAgentModel при planBeforeExecute без orchestratorEnabled', () => {
+    expect(shouldGeneratePlanWithAgentModel({ planBeforeExecute: true }, 50)).toBe(true)
+    expect(
+      shouldGeneratePlanWithAgentModel({ planBeforeExecute: true, orchestratorEnabled: true }, 50)
+    ).toBe(false)
+    expect(shouldGeneratePlanWithAgentModel({ planBeforeExecute: true }, 10)).toBe(false)
   })
 
   it('shouldAwaitPlanConfirmation только при planBeforeExecute', () => {

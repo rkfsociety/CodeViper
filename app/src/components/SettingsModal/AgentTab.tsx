@@ -36,8 +36,9 @@ export function AgentTab({ isActive, isSearching, settings, onSettingsChange }: 
             <span className={styles.toggleContent}>
               <span className={styles.title}>Сначала показать план</span>
               <span className={styles.desc}>
-                Оркестратор формирует план шагов до вызова инструментов; выполнение начинается после
-                подтверждения
+                Основная модель формирует нумерованный план до вызова инструментов; выполнение
+                начинается после подтверждения. Если включён оркестратор (вкладка «Модель») — план
+                строит модель планировщика
               </span>
             </span>
           </label>

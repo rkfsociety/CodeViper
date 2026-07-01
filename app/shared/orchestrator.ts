@@ -34,7 +34,7 @@ export function isOrchestratorConfigured(settings: OrchestratorSettingsSlice): b
   return !!resolveOrchestratorOllamaModel(settings)
 }
 
-/** Запускать analyze() при включённом оркестраторе или planBeforeExecute. */
+/** Запускать analyze() только при включённом оркестраторе (план + isComplex). */
 export function shouldRunOrchestratorAnalysis(
   settings: OrchestratorSettingsSlice,
   messageLength: number
@@ -42,9 +42,19 @@ export function shouldRunOrchestratorAnalysis(
   const minLen = settings.orchestratorMinMessageLength ?? 30
   if (messageLength < minLen) return false
   if (!isOrchestratorConfigured(settings)) return false
-  return settings.orchestratorEnabled === true || settings.planBeforeExecute === true
+  return settings.orchestratorEnabled === true
 }
 
 export function shouldAwaitPlanConfirmation(settings: { planBeforeExecute?: boolean }): boolean {
   return settings.planBeforeExecute === true
+}
+
+/** План перед выполнением основной моделью, если оркестратор выключен. */
+export function shouldGeneratePlanWithAgentModel(
+  settings: OrchestratorSettingsSlice,
+  messageLength: number
+): boolean {
+  const minLen = settings.orchestratorMinMessageLength ?? 30
+  if (messageLength < minLen) return false
+  return settings.planBeforeExecute === true && settings.orchestratorEnabled !== true
 }
