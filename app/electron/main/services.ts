@@ -11,7 +11,8 @@ import {
   writeFile
 } from 'fs/promises'
 import { constants, existsSync, watch as fsWatch } from 'fs'
-import { dirname, join, relative, resolve, sep } from 'path'
+import { basename, dirname, join, relative, resolve, sep } from 'path'
+import { findFilesInTree } from './fileSearch'
 import type { FileNode } from '../../src/types'
 import {
   applySearchReplace,
@@ -327,6 +328,59 @@ export async function safeReadFilePartial(
   readCacheEvict()
   readFileCache.set(cacheKey, { result, mtimeMs: info.mtimeMs })
   return result
+}
+
+/** Подсказки при ENOENT / «не файл» для read_file: папка, app/src, похожие пути. */
+export async function formatProjectReadErrorHint(
+  projectPath: string,
+  requestedPath: string,
+  errorMessage: string
+): Promise<string> {
+  const isEnoent = /ENOENT|no such file or directory/i.test(errorMessage)
+  const isNotFile = /Это не файл/i.test(errorMessage)
+  if (!isEnoent && !isNotFile) return errorMessage
+
+  const normalized = requestedPath.replace(/\\/g, '/').replace(/\/+$/, '')
+  const absRequested = resolve(projectPath, normalized || '.')
+  const hints: string[] = []
+
+  if (isNotFile) {
+    hints.push(`Путь — папка, не файл. Используй list_directory с path: "${normalized || '.'}".`)
+  } else {
+    try {
+      const info = await stat(absRequested)
+      if (info.isDirectory()) {
+        hints.push(
+          `Путь — папка, не файл. Используй list_directory с path: "${normalized || '.'}".`
+        )
+      }
+    } catch {
+      // path missing — fall through to prefix / basename hints
+    }
+  }
+
+  if (isEnoent && /^src(\/|$)/i.test(normalized) && !/^app\//i.test(normalized)) {
+    const alt = `app/${normalized}`
+    if (existsSync(resolve(projectPath, alt))) {
+      hints.push(
+        `В этом проекте исходники в app/: попробуй read_file ${alt} или list_directory ${alt}.`
+      )
+    }
+  }
+
+  const base = basename(normalized)
+  if (base && base !== '.' && base !== '..') {
+    const { paths } = await findFilesInTree(projectPath, base, { maxResults: 3 })
+    const rels = paths
+      .map((p) => relative(projectPath, p).split(sep).join('/'))
+      .filter((r) => r !== normalized)
+    if (rels.length) {
+      hints.push(`Похожие файлы: ${rels.join(', ')}. Попробуй read_file ${rels[0]}.`)
+    }
+  }
+
+  if (!hints.length) return errorMessage
+  return `${errorMessage}\n\n${hints.join('\n')}`
 }
 
 export async function safeWriteFile(

@@ -5,6 +5,7 @@ import { createUnifiedDiff } from './diffUtil'
 import type { ToolHandlers } from './agentTools'
 import { formatFileTree } from './agentContext'
 import {
+  formatProjectReadErrorHint,
   safeReadFilePartial,
   safeWriteFile,
   safeCreateFile,
@@ -60,7 +61,13 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
       assertInsideProject(args.path, 'файл')
       const offset = args.offset ? parseInt(args.offset, 10) : 0
       const limit = args.limit ? parseInt(args.limit, 10) : undefined
-      return safeReadFilePartial(projectPath, args.path, offset, limit)
+      try {
+        return await safeReadFilePartial(projectPath, args.path, offset, limit)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        const enriched = await formatProjectReadErrorHint(projectPath, args.path, message)
+        throw new Error(enriched)
+      }
     },
 
     read_multiple_files: async (args) => {

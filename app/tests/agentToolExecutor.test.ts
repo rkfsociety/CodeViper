@@ -125,4 +125,24 @@ describe('ToolExecutor.executeParallel', () => {
 
     expect(elapsed).toBeGreaterThanOrEqual(TOOL_DELAY_MS * 2 - 10)
   })
+
+  it('добавляет nudge при повторном read_file с тем же неверным путём', async () => {
+    const executor = new ToolExecutor('/tmp/project', minimalSettings(), () => {})
+    executor.beginRun()
+    executor.overrideHandlers({
+      read_file: async () => 'Ошибка: ENOENT: no such file or directory'
+    })
+
+    const [first] = await executor.executeParallel(
+      [{ function: { name: 'read_file', arguments: { path: 'src' } } }],
+      1
+    )
+    expect(first.output).not.toMatch(/уже пробовал/)
+
+    const [second] = await executor.executeParallel(
+      [{ function: { name: 'read_file', arguments: { path: 'src' } } }],
+      2
+    )
+    expect(second.output).toMatch(/уже пробовал read_file/)
+  })
 })

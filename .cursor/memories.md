@@ -25,7 +25,11 @@
 
 ## Trace-отчёты
 
-**2026-07-01 · trace 1782905400753 — selfImproveMode=false + ENOENT съедался контекстом**  
+**2026-07-01 · trace 1782927821235 — read_file src ENOENT в monorepo**  
+- Задача: ROADMAP `find_commit_message_issues`, claude-haiku-4.5-cheap:free.  
+- Корень: модель 2× `read_file("src")` — в CodeViper нет корневого `src/`, только `app/src/`; LoopGuard не срабатывал (между вызовами были find_files).  
+- Фикс: `formatProjectReadErrorHint` (app/src, list_directory для папок, basename search); nudge при повторном неверном read_file в прогоне.
+  
 - Задача: ROADMAP `find_magic_numbers` (уровень 3), gemini-2.5-flash:free.  
 - Корень: (1) `TaskPlanner.isSelfImprove` всегда `false` → `beginRun(false)` / `prepareAgentRunContext(false)` — `read_file` не ремапился в `read_codeviper_file`, нет self-improve промпта; (2) `dropSupersededErrors` удалял ENOENT, если раньше был успешный `read_file` (индекс ROADMAP), модель не видела ошибку и 6× повторяла тот же путь.  
 - Фикс: `isSelfImprovementTask` в TaskPlanner + agent.ts; переписан `dropSupersededErrors` — ошибка снимается только при успехе **позже** в истории.

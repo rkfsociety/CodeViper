@@ -25,6 +25,8 @@ const CREATE_MISSING_CONTENT_HINT =
   'create_file / write_file требуют path и content (полное содержимое).'
 const READ_FILE_ALREADY_IN_RUN_HINT =
   'Этот файл уже читался в этом прогоне. Используй данные выше или offset/limit для другого фрагмента.'
+const READ_FILE_REPEAT_FAIL_HINT =
+  'Ты уже пробовал read_file с этим путём — он неверный. Следуй подсказкам выше, используй list_directory или find_files.'
 
 export const PARALLEL_SAFE_TOOLS = new Set([
   'read_file',
@@ -151,9 +153,11 @@ export class ToolExecutor {
   private toolHandlers?: ToolHandlers
   clearEditSnapshots?: () => void
   private readonly readPathsThisRun = new Set<string>()
+  private readonly failedReadPathsThisRun = new Set<string>()
 
   beginRun(): void {
     this.readPathsThisRun.clear()
+    this.failedReadPathsThisRun.clear()
   }
 
   private enrichToolOutput(name: string, args: Record<string, string>, output: string): string {
@@ -182,7 +186,14 @@ export class ToolExecutor {
     if (name === 'read_file') {
       const key = (args.path ?? '').trim()
       const hasOffset = Boolean(String(args.offset ?? '').trim())
-      if (!/ENOENT|no such file|Ошибка:/i.test(result) && key && !hasOffset) {
+      const isError = /ENOENT|no such file|Ошибка:|Это не файл/i.test(result)
+      if (isError && key) {
+        if (this.failedReadPathsThisRun.has(key)) {
+          result += `\n\n${READ_FILE_REPEAT_FAIL_HINT}`
+        } else {
+          this.failedReadPathsThisRun.add(key)
+        }
+      } else if (!isError && key && !hasOffset) {
         if (this.readPathsThisRun.has(key)) {
           result += `\n\n${READ_FILE_ALREADY_IN_RUN_HINT}`
         } else {
