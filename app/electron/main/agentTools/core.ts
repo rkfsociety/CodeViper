@@ -119,6 +119,24 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_magic_numbers',
+      description:
+        'AST-анализ ts/js на магические числовые литералы вне shared/constants.ts и без именованной константы рядом. Возвращает path:line:col и значение.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Папка или файл для анализа (относительно корня проекта)'
+          }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_dead_code',
       description:
         'AST-анализ ts/js на мёртвый код: недостижимые операторы после return/throw/break/continue, if с константным true/false и тернарные операторы с константным условием. Возвращает отчёт с severity (high/medium/low) и path:line:col.',

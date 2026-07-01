@@ -123,6 +123,7 @@ export interface ToolArgs {
   find_symbol: { name: string; path?: string }
   find_references: { name: string; path?: string }
   find_slow_code: { path?: string }
+  find_magic_numbers: { path?: string }
   find_dead_code: { path?: string }
   find_type_mismatches: { path?: string }
   find_hotkey_conflicts: { path?: string }

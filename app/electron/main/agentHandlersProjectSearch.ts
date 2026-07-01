@@ -13,6 +13,7 @@ import {
   buildDataflowDiagram,
   formatDataflowDiagram
 } from './symbolIndex'
+import { findMagicNumbers, formatMagicNumbersOutput } from './magicNumberIndex'
 import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
 import { findTypeMismatches, formatTypeMismatchReport } from './typeMismatchIndex'
@@ -102,6 +103,23 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress('AST-анализ медленного кода', scanPercent(scanned))
         })
         return formatSlowCodeReport(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_magic_numbers: async (args) => {
+      assertInsideProject(args.path, '?????????? ?????? ???????? ?????? ??????????????', {
+        allowEmpty: true
+      })
+      try {
+        emitProgress('AST-???????????? ???????????????????? ????????', 0)
+        const result = await findMagicNumbers(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) =>
+            emitProgress('AST-???????????? ???????????????????? ????????', scanPercent(scanned))
+        })
+        return formatMagicNumbersOutput(projectPath, result)
       } finally {
         clearProgress()
       }

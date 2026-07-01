@@ -57,3 +57,4 @@
 **2026-07-01 · облачный оркестратор (LiteRouter free tier)**  
 - Запрос: выбор облачной модели оркестратора в рамках провайдера и tier (LiteRouter free → только `:free`).  
 - Фикс: `orchestratorBackend: cloud`, `orchestratorCloudModel`, UI в ModelTab, `analyzeCloud()` через тот же API-ключ провайдера агента.
+2026-07-01 ?? trace 1782919052296 ? added find_magic_numbers AST tool for numeric-literal noise, with tests and handler wiring.
