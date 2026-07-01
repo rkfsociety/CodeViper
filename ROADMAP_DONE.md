@@ -126,3 +126,5 @@
 - Auto-update installer fallback handles async `spawn` errors without main-process crash dialog.
 
 - Tool `find_magic_numbers`: отчёт о «магических» числовых литералах вне `shared/constants.ts` и без именованной константы рядом
+
+- Tool `find_unsafe_regex`: report of regex with catastrophic backtracking (ReDoS) risk

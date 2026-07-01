@@ -16,6 +16,7 @@ import {
 import { findMagicNumbers, formatMagicNumbersOutput } from './magicNumberIndex'
 import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
+import { findUnsafeRegex, formatUnsafeRegexOutput } from './unsafeRegexAnalysis'
 import { findTypeMismatches, formatTypeMismatchReport } from './typeMismatchIndex'
 import { findHotkeyConflicts, formatHotkeyConflictReport } from './hotkeyConflictIndex'
 import { buildProjectMetrics, formatProjectMetrics } from './projectMetricsIndex'
@@ -120,6 +121,20 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
             emitProgress('AST-???????????? ???????????????????? ????????', scanPercent(scanned))
         })
         return formatMagicNumbersOutput(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_unsafe_regex: async (args) => {
+      assertInsideProject(args.path, 'папка или файл для анализа', { allowEmpty: true })
+      try {
+        emitProgress('AST-анализ unsafe regex', 0)
+        const result = await findUnsafeRegex(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) => emitProgress('AST-анализ unsafe regex', scanPercent(scanned))
+        })
+        return formatUnsafeRegexOutput(projectPath, result)
       } finally {
         clearProgress()
       }
