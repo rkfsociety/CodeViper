@@ -13,7 +13,11 @@ import { makeId } from '../../../shared/makeId'
 import type { AgentSettings, ChatMessage, OllamaModel, ProgressInfo, TodoItem } from '../../types'
 import { filterToolCallingModels } from '../../types'
 import { filterAgentCapableModels } from '../../../shared/recommendedModels'
-import { GEMINI_FREE_MODELS, filterOpenRouterModelsByTier } from '../../../shared/constants'
+import {
+  GEMINI_FREE_MODELS,
+  filterLiteRouterModelsByTier,
+  filterOpenRouterModelsByTier
+} from '../../../shared/constants'
 import { expandSlashCommand, matchSlashCommands } from '../../../shared/slashCommands'
 import type { SlashCommand } from '../../../shared/slashCommands'
 import styles from '../ChatPanel.module.css'
@@ -233,6 +237,20 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       return filtered
     }
 
+    if (provider === 'literouter') {
+      const tier = settings.literouterTier ?? 'free'
+      let filtered = filterLiteRouterModelsByTier(models, tier)
+      if (filtered.length === 0 && models.length > 0) {
+        filtered = models
+      }
+      const current = settings.model?.trim()
+      if (current && !filtered.some((m) => m.name === current)) {
+        const active = models.find((m) => m.name === current)
+        if (active) filtered = [active, ...filtered]
+      }
+      return filtered
+    }
+
     if (isCloud && provider in CLOUD_KNOWN_MODELS) {
       const known = CLOUD_KNOWN_MODELS[provider as keyof typeof CLOUD_KNOWN_MODELS]
       if (known.length > 0) {
@@ -245,7 +263,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       }
     }
     return models
-  }, [settings.modelProvider, settings.geminiTier, settings.openrouterTier, settings.model, models])
+  }, [
+    settings.modelProvider,
+    settings.geminiTier,
+    settings.openrouterTier,
+    settings.literouterTier,
+    settings.model,
+    models
+  ])
 
   // Облако: список как есть. Ollama: все установленные модели (рекомендуемые — выше).
   const displayModels = useMemo(() => {
@@ -709,7 +734,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       appendMessage(msg)
       await submitMessage(msg.id, message.content)
     },
-    [busy, chatId, projectPath, submitMessage]
+    [appendMessage, busy, chatId, projectPath, submitMessage]
   )
 
   const regenerateAssistantMessage = useCallback(

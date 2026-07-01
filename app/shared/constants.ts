@@ -98,6 +98,7 @@ export const DEEPSEEK_MODEL_DEFAULT = 'deepseek-chat'
 export const LITEROUTER_API_BASE_URL = 'https://api.literouter.com/v1'
 /** Модель LiteRouter по умолчанию */
 export const LITEROUTER_MODEL_DEFAULT = 'deepseek:free'
+export const LITEROUTER_FREE_MODEL_SUFFIX = ':free'
 /** URL OpenRouter API (OpenAI-совместимый, агрегатор моделей) */
 /** URL Gemini API */
 export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
@@ -147,6 +148,19 @@ export type GeminiFreeModelId = (typeof GEMINI_FREE_MODELS)[number]['id']
 export const OPENROUTER_API_BASE_URL = 'https://openrouter.ai/api/v1'
 /** Суффикс бесплатных моделей OpenRouter в id каталога */
 export const OPENROUTER_FREE_MODEL_SUFFIX = ':free'
+
+export function isLiteRouterFreeModel(modelId: string): boolean {
+  return modelId.includes(LITEROUTER_FREE_MODEL_SUFFIX)
+}
+
+export function filterLiteRouterModelsByTier<T extends { name: string }>(
+  models: T[],
+  tier: 'free' | 'paid'
+): T[] {
+  return tier === 'free'
+    ? models.filter((m) => isLiteRouterFreeModel(m.name))
+    : models.filter((m) => !isLiteRouterFreeModel(m.name))
+}
 
 export function isOpenRouterFreeModel(modelId: string): boolean {
   return modelId.includes(OPENROUTER_FREE_MODEL_SUFFIX)

@@ -10,6 +10,7 @@ import {
   GEMINI_FREE_MODELS,
   LITEROUTER_API_BASE_URL,
   LITEROUTER_MODEL_DEFAULT,
+  filterLiteRouterModelsByTier,
   filterOpenRouterModelsByTier,
   ORCHESTRATOR_DEFAULT_OLLAMA_MODEL
 } from '../../../shared/constants'
@@ -66,15 +67,32 @@ export function ModelTab({
   }, [])
 
   const provider = settings.modelProvider ?? 'ollama'
+  const showDeprecatedLiteRouterTierInDeepseek = false
 
   const selectorModels = useMemo(() => {
+    if (provider === 'literouter') {
+      return filterLiteRouterModelsByTier(models, settings.literouterTier ?? 'free')
+    }
     if (provider === 'openrouter') {
       return filterOpenRouterModelsByTier(models, settings.openrouterTier ?? 'free')
     }
     return models
-  }, [provider, models, settings.openrouterTier])
+  }, [provider, models, settings.literouterTier, settings.openrouterTier])
 
   if (!isActive && !isSearching) return null
+
+  function pickLiteRouterTier(tier: 'free' | 'paid') {
+    const filtered = filterLiteRouterModelsByTier(models, tier)
+    const fallbackModel = tier === 'free' ? LITEROUTER_MODEL_DEFAULT : settings.model
+    const currentValid = filtered.some((m) => m.name === settings.model)
+    const nextModel = currentValid ? settings.model : (filtered[0]?.name ?? fallbackModel)
+    const selected = filtered.find((m) => m.name === nextModel)
+    onSettingsChange({
+      literouterTier: tier,
+      model: nextModel,
+      ...(selected?.contextLength ? { modelContextLength: selected.contextLength } : {})
+    })
+  }
 
   function pickOpenRouterTier(tier: 'free' | 'paid') {
     const filtered = filterOpenRouterModelsByTier(models, tier)
@@ -180,6 +198,7 @@ export function ModelTab({
     }
     if (newProvider === 'literouter') {
       if (!settings.literouterBaseUrl?.trim()) patch.literouterBaseUrl = LITEROUTER_API_BASE_URL
+      patch.literouterTier = settings.literouterTier ?? 'free'
       if (!(settings.model || '').trim()) patch.model = LITEROUTER_MODEL_DEFAULT
     }
     if (newProvider === 'anthropic' && !/^claude/i.test(settings.model || '')) {
@@ -257,6 +276,30 @@ export function ModelTab({
               URL: <code>{DEEPSEEK_API_BASE_URL}</code>, модель по умолчанию:{' '}
               <code>{DEEPSEEK_MODEL_DEFAULT}</code>.
             </div>
+            {showDeprecatedLiteRouterTierInDeepseek && (
+              <>
+                <div className={styles.geminiTierRow}>
+                  <button
+                    type="button"
+                    className={`btn${(settings.literouterTier ?? 'free') === 'free' ? ' active' : ''}`}
+                    onClick={() => pickLiteRouterTier('free')}
+                  >
+                    Р‘РµСЃРїР»Р°С‚РЅС‹Р№
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn${(settings.literouterTier ?? 'free') === 'paid' ? ' active' : ''}`}
+                    onClick={() => pickLiteRouterTier('paid')}
+                  >
+                    РџР»Р°С‚РЅС‹Р№
+                  </button>
+                </div>
+                <div className={styles.hint}>
+                  Р‘РµСЃРїР»Р°С‚РЅС‹Р№ СЂРµР¶РёРј РїРѕРєР°Р·С‹РІР°РµС‚ С‚РѕР»СЊРєРѕ РјРѕРґРµР»Рё СЃ
+                  СЃСѓС„С„РёРєСЃРѕРј <code>:free</code>.
+                </div>
+              </>
+            )}
             <label>
               DeepSeek API ключ
               <div className="settings-api-key-row">
@@ -301,6 +344,25 @@ export function ModelTab({
               <strong>LiteRouter</strong> использует OpenAI-совместимый proxy. Базовый URL:{' '}
               <code>{LITEROUTER_API_BASE_URL}</code>, модель по умолчанию:{' '}
               <code>{LITEROUTER_MODEL_DEFAULT}</code>.
+            </div>
+            <div className={styles.geminiTierRow}>
+              <button
+                type="button"
+                className={`btn${(settings.literouterTier ?? 'free') === 'free' ? ' active' : ''}`}
+                onClick={() => pickLiteRouterTier('free')}
+              >
+                Бесплатный
+              </button>
+              <button
+                type="button"
+                className={`btn${(settings.literouterTier ?? 'free') === 'paid' ? ' active' : ''}`}
+                onClick={() => pickLiteRouterTier('paid')}
+              >
+                Платный
+              </button>
+            </div>
+            <div className={styles.hint}>
+              Бесплатный режим показывает только модели с суффиксом <code>:free</code>.
             </div>
             <label>
               API базовый URL

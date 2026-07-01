@@ -32,6 +32,37 @@ vi.mock('fs', async (importOriginal) => {
   return { ...actual, existsSync: mockExistsSync }
 })
 
+describe('literouterTier', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockWriteFile.mockResolvedValue(undefined)
+  })
+
+  it('СЃРѕС…СЂР°РЅСЏРµС‚ Рё Р·Р°РіСЂСѓР¶Р°РµС‚ literouterTier', async () => {
+    const saved = await saveSettings(
+      makeSettings({
+        modelProvider: 'literouter',
+        model: 'openai/gpt-4o-mini',
+        literouterTier: 'paid'
+      })
+    )
+
+    expect(saved.literouterTier).toBe('paid')
+
+    const jsonCall = mockWriteFile.mock.calls.find((args: unknown[]) =>
+      String(args[1]).includes('literouterTier')
+    )
+    expect(jsonCall).toBeDefined()
+    const parsed = JSON.parse(String(jsonCall![1])) as Record<string, unknown>
+    expect(parsed.literouterTier).toBe('paid')
+
+    mockExistsSync.mockReturnValue(true)
+    mockReadFile.mockResolvedValue(String(jsonCall![1]))
+    const loaded = await loadSettings()
+    expect(loaded.literouterTier).toBe('paid')
+  })
+})
+
 vi.mock('fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs/promises')>()
   return {

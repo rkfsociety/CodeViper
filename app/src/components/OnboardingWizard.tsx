@@ -5,6 +5,7 @@ import { CloudModelSelector } from './CloudModelSelector'
 import {
   CODEVIPER_GITHUB_CLONE_URL,
   DEEPSEEK_MODEL_DEFAULT,
+  filterLiteRouterModelsByTier,
   filterOpenRouterModelsByTier,
   GEMINI_MODEL_DEFAULT,
   LITEROUTER_MODEL_DEFAULT
@@ -62,6 +63,9 @@ function applyProviderPatch(draft: AgentSettings, provider: ModelProvider): Part
   if (provider === 'openrouter') {
     patch.openrouterTier = draft.openrouterTier ?? 'free'
   }
+  if (provider === 'literouter') {
+    patch.literouterTier = draft.literouterTier ?? 'free'
+  }
   return patch
 }
 
@@ -102,11 +106,14 @@ export function OnboardingWizard({
   const provider = draft.modelProvider ?? 'ollama'
 
   const selectorModels = useMemo(() => {
+    if (provider === 'literouter') {
+      return filterLiteRouterModelsByTier(models, draft.literouterTier ?? 'free')
+    }
     if (provider === 'openrouter') {
       return filterOpenRouterModelsByTier(models, draft.openrouterTier ?? 'free')
     }
     return models
-  }, [provider, models, draft.openrouterTier])
+  }, [provider, models, draft.literouterTier, draft.openrouterTier])
 
   const defaultModel = defaultModelForProvider(provider)
 
@@ -124,6 +131,7 @@ export function OnboardingWizard({
       model: draft.model,
       autoModel: draft.autoModel,
       openrouterTier: draft.openrouterTier,
+      literouterTier: draft.literouterTier,
       modelContextLength: draft.modelContextLength
     }
   }
@@ -243,19 +251,60 @@ export function OnboardingWizard({
                   </select>
                 </div>
               ) : (
-                <CloudModelSelector
-                  provider={provider}
-                  model={draft.model ?? ''}
-                  defaultModel={defaultModel}
-                  models={selectorModels}
-                  onChange={(model, contextLength) =>
-                    patchDraft({
-                      autoModel: false,
-                      model,
-                      ...(contextLength ? { modelContextLength: contextLength } : {})
-                    })
-                  }
-                />
+                <>
+                  {provider === 'literouter' && (
+                    <div className={styles.field}>
+                      <label>LiteRouter mode</label>
+                      <div className={styles.providerGrid}>
+                        <button
+                          type="button"
+                          className={`btn${(draft.literouterTier ?? 'free') === 'free' ? ' active' : ''}`}
+                          onClick={() => {
+                            const freeModels = filterLiteRouterModelsByTier(models, 'free')
+                            const currentValid = freeModels.some((m) => m.name === draft.model)
+                            patchDraft({
+                              literouterTier: 'free',
+                              model: currentValid
+                                ? draft.model
+                                : (freeModels[0]?.name ?? LITEROUTER_MODEL_DEFAULT)
+                            })
+                          }}
+                        >
+                          Free
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn${(draft.literouterTier ?? 'free') === 'paid' ? ' active' : ''}`}
+                          onClick={() => {
+                            const paidModels = filterLiteRouterModelsByTier(models, 'paid')
+                            const currentValid = paidModels.some((m) => m.name === draft.model)
+                            patchDraft({
+                              literouterTier: 'paid',
+                              model: currentValid
+                                ? draft.model
+                                : (paidModels[0]?.name ?? draft.model)
+                            })
+                          }}
+                        >
+                          Paid
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <CloudModelSelector
+                    provider={provider}
+                    model={draft.model ?? ''}
+                    defaultModel={defaultModel}
+                    models={selectorModels}
+                    onChange={(model, contextLength) =>
+                      patchDraft({
+                        autoModel: false,
+                        model,
+                        ...(contextLength ? { modelContextLength: contextLength } : {})
+                      })
+                    }
+                  />
+                </>
               )}
             </>
           )}

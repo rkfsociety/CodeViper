@@ -199,6 +199,7 @@ export interface AgentSettings {
   geminiTier?: 'free' | 'paid'
   /** Уровень OpenRouter: бесплатные модели (:free) или платные */
   openrouterTier?: 'free' | 'paid'
+  literouterTier?: 'free' | 'paid'
   /** API ключ Claude (Anthropic) */
   claudeApiKey?: string
   /** API ключ Groq */
