@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { ModelPreflightError, formatListModelsHttpError } from '../shared/modelPreflight'
 import { OllamaProvider } from '../electron/main/providers/ollamaProvider'
 import { responseMentionsToolsWithoutCall } from '../shared/actionVerification'
-import { looksLikeSelfImproveTextPlan } from '../shared/selfImprovement'
 import { pickBaseSystemPrompt } from '../shared/agentPromptLayers'
 import { isExtendedPromptModel } from '../shared/recommendedModels'
 
@@ -47,20 +46,6 @@ describe('responseMentionsToolsWithoutCall', () => {
 
   it('ловит «Инструмент grep_files:»', () => {
     expect(responseMentionsToolsWithoutCall('Инструмент grep_files:\nquery: foo')).toBe(true)
-  })
-})
-
-describe('looksLikeSelfImproveTextPlan', () => {
-  it('распознаёт ### Действие без tool calls', () => {
-    const text = `### Действие
-
-1. **Обновление openaiProvider.ts:**
-   - Переиспользовать client.
-
-### Проверка
-
-- npm test`
-    expect(looksLikeSelfImproveTextPlan(text)).toBe(true)
   })
 })
 

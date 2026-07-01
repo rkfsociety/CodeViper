@@ -5,7 +5,7 @@ import { voteEntry } from '../collectiveScores'
 import { createSkill, deleteSkill, listSkills } from '../skills'
 import { createGist, formatMemoriesAsMarkdown, formatSkillsAsMarkdown } from '../gist'
 import { loadSettings } from '../settings'
-import { resolveSelfImproveBranch } from '../../../shared/selfImprovement'
+import { resolveCollectiveMemoryBranch } from '../../../shared/constants'
 import {
   getPendingCollectiveMemoryCount,
   flushCollectiveMemoryToGit
@@ -62,7 +62,7 @@ export function registerMemoryIpc(): void {
   ipcMain.handle(IPC.GET_COLLECTIVE_SYNC_STATUS, async (_e, ...a) => {
     parseIpcArgs(Contracts[IPC.GET_COLLECTIVE_SYNC_STATUS].args, a)
     const settings = await loadSettings()
-    const branch = resolveSelfImproveBranch(settings.selfImproveBranch)
+    const branch = resolveCollectiveMemoryBranch(settings.collectiveMemoryBranch)
     const pendingCount = getPendingCollectiveMemoryCount()
     return { branch, pendingCount }
   })
@@ -72,7 +72,7 @@ export function registerMemoryIpc(): void {
     const settings = await loadSettings()
     return flushCollectiveMemoryToGit(
       summary,
-      settings.selfImproveBranch,
+      settings.collectiveMemoryBranch,
       settings.autoCollectivePr
     )
   })

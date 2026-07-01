@@ -153,14 +153,10 @@ export interface AgentSettings {
   clarifyMode?: boolean
   /** Глубокое рассуждение: think:true для think-моделей, усиленный промпт для остальных */
   deepReasoning?: boolean
-  /** Автоматически коммитить и пушить самоправки агента (правки исходников CodeViper) */
-  autoPushSelfEdits?: boolean
-  /** После успешной правки файлов CodeViper — запустить typecheck и/или test */
-  autoVerifyAfterEdit?: boolean
   /** Подробные console-логи и полный tool I/O в agent-*.ndjson */
   debugAgent?: boolean
-  /** Ветка git для автокоммита правок CodeViper (по умолчанию agent/self-improve) */
-  selfImproveBranch?: string
+  /** Ветка git для коллективной памяти (по умолчанию agent/self-improve) */
+  collectiveMemoryBranch?: string
   /** Синхронизировать глобальные знания в docs/collective/ViperMemory.md на GitHub */
   syncCollectiveMemory?: boolean
   /** Автоматически создавать PR после успешного push коллективной памяти */
@@ -458,15 +454,6 @@ export interface AgentContextMessagePreview {
   charCount: number
 }
 
-export interface SelfImprovementPlanItem {
-  id: string
-  title: string
-  done: boolean
-  attemptCount?: number
-  blocked?: boolean
-  blockReason?: string
-}
-
 export interface TodoItem {
   id: string
   title: string
@@ -531,7 +518,6 @@ export interface AgentStreamPayload {
     | 'learning_saved'
     | 'skill_saved'
     | 'context'
-    | 'self_improve_plan'
     | 'todo_update'
     | 'model_selected'
     | 'generation_metrics'
@@ -564,7 +550,6 @@ export interface AgentStreamPayload {
   toolOutput?: string
   memoryId?: string
   skillId?: string
-  planItems?: SelfImprovementPlanItem[]
   todoItems?: TodoItem[]
   selectedModel?: string
   modelReason?: string

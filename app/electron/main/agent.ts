@@ -14,7 +14,6 @@ import {
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
-import { isSelfImprovementTask } from '../../shared/selfImprovement'
 import {
   prepareAgentRunContext,
   injectHardToolCallingSystemHint,
@@ -172,8 +171,6 @@ export class AgentRunner {
       confirm,
       previewFn,
       hunkSelectionFn,
-      undefined,
-      undefined,
       chatId
     )
 
@@ -224,7 +221,6 @@ export class AgentRunner {
 
     const runStartMs = Date.now()
     const taskMode = TaskPlanner.detectMode(userMessage)
-    const selfImproveMode = isSelfImprovementTask(userMessage)
     void agentLogger.write({
       event: 'run_start',
       model: this.settings.model,
@@ -242,8 +238,7 @@ export class AgentRunner {
         modelContextLength: this.settings.modelContextLength,
         permissionMode: this.settings.permissionMode ?? 'bypass',
         chatMode: this.settings.chatMode === true,
-        cloudEnabled: this.settings.cloudEnabled === true,
-        selfImproveAutoPush: false
+        cloudEnabled: this.settings.cloudEnabled === true
       }
     })
     this.emitter.trace('run_start', runStartTrace.label, runStartTrace.data)
@@ -263,7 +258,7 @@ export class AgentRunner {
       return
     }
 
-    this.toolExecutor.beginRun(selfImproveMode)
+    this.toolExecutor.beginRun()
 
     let orchestratorPlanHint = ''
     let orchestratorIsComplex = false
@@ -411,7 +406,6 @@ export class AgentRunner {
       history,
       userMessage,
       this.settings.model,
-      selfImproveMode,
       {
         ollamaUrl: this.settings.ollamaUrl,
         providerConfig: this.ctx.summarizeProviderConfig,
@@ -443,7 +437,6 @@ export class AgentRunner {
 
     const messages = prepared.messages
     let usedTools = false
-    let selfEdited = false
     const mutatingToolsUsed = new Set<string>()
     let requireToolNext = false
 
@@ -457,11 +450,7 @@ export class AgentRunner {
         this.emitter.throwIfAborted()
         step++
 
-        const compression = await this.ctx.compressMessagesInPlace(
-          messages,
-          this.settings.model,
-          taskPlanner.isSelfImprove
-        )
+        const compression = await this.ctx.compressMessagesInPlace(messages, this.settings.model)
         const compressTrace = buildContextCompressTraceData({
           step,
           durationMs: compression.durationMs,
@@ -476,11 +465,7 @@ export class AgentRunner {
 
         const stepStartMs = Date.now()
         const toolsJsonChars = JSON.stringify(
-          getAgentTools(
-            taskPlanner.isSelfImprove,
-            this.settings.disabledTools,
-            this.settings.mcpServers
-          )
+          getAgentTools(this.settings.disabledTools, this.settings.mcpServers)
         ).length
         const ctxChars = compression.after.contextChars
         const llmRequestTrace = buildLlmRequestTraceData({
@@ -527,7 +512,7 @@ export class AgentRunner {
               )
             )
             response = await Promise.race([
-              this.ctx.chat(messages, tryModel, taskPlanner.isSelfImprove, {
+              this.ctx.chat(messages, tryModel, {
                 requireTool: requireToolNext,
                 skipCompression: true
               }),
@@ -818,7 +803,7 @@ export class AgentRunner {
               content: assistantText,
               thinking: assistantThinking
             })
-          } else if (!taskPlanner.isSelfImprove) {
+          } else {
             const systemMsg = messages.find((m) => m.role === 'system')
             const systemChars =
               systemMsg && typeof systemMsg.content === 'string' ? systemMsg.content.length : 0
@@ -880,8 +865,6 @@ export class AgentRunner {
             )
           })
 
-        let stepInvocations: Array<{ name: string; args: Record<string, string> }> = []
-
         if (allParallelSafe) {
           const results = await this.toolExecutor.executeParallel(toolCalls, step)
           for (const { id, name, output } of results) {
@@ -894,10 +877,6 @@ export class AgentRunner {
             }
             messages.push(msg)
           }
-          stepInvocations = results.map((r, i) => ({
-            name: r.name,
-            args: parseToolArgs(toolCalls[i]?.function.arguments ?? {})
-          }))
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
@@ -919,12 +898,7 @@ export class AgentRunner {
           for (const name of batch.mutatingToolNames) {
             if (MUTATING_TOOLS.has(name)) mutatingToolsUsed.add(name)
           }
-          if (batch.selfEdited) selfEdited = true
           for (const msg of batch.toolMessages) messages.push(msg)
-          stepInvocations = batch.invocations.map((inv) => ({
-            name: inv.name,
-            args: inv.args
-          }))
           ragGrepNudged =
             (await maybeAppendRagSearchHintAfterEmptyGrep(
               messages,
@@ -943,13 +917,6 @@ export class AgentRunner {
             }
             continue
           }
-        }
-
-        const scopeNudge = loopGuard.checkTaskScope(userMessage, mutatingToolsUsed, stepInvocations)
-        if (scopeNudge) {
-          this.pushNudge(messages, step, 'scope', scopeNudge)
-          requireToolNext = true
-          continue
         }
 
         const stallResult = loopGuard.checkExplorationStall(
@@ -996,12 +963,9 @@ export class AgentRunner {
         session_cost_usd: this.ctx.sessionCostUsd > 0 ? this.ctx.sessionCostUsd : undefined
       })
       traceRunEnd(runSuccess ? 'ok' : 'error')
-      if (selfEdited) {
-        this.emitter.emit({ type: 'context', content: '????????? ?????????.' })
-      }
 
       if (this.settings.syncCollectiveMemory !== false && getPendingCollectiveMemoryCount() > 0) {
-        const branch = this.settings.selfImproveBranch?.trim() || 'agent/self-improve'
+        const branch = this.settings.collectiveMemoryBranch?.trim() || 'agent/self-improve'
         this.emitter.emit({
           type: 'collective_sync',
           collectiveSyncStatus: 'syncing',
@@ -1011,7 +975,7 @@ export class AgentRunner {
         try {
           const result = await flushCollectiveMemoryToGit(
             userMessage,
-            this.settings.selfImproveBranch
+            this.settings.collectiveMemoryBranch
           )
           this.emitter.emit({
             type: 'collective_sync',

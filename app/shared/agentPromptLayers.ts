@@ -25,21 +25,3 @@ export function pickBaseSystemPrompt(model: string): string {
   }
   return `${BASE_SYSTEM_PROMPT_CORE}\n${BASE_SYSTEM_PROMPT_EXTENDED.split('\n\n')[0]}`
 }
-
-export const SELF_EDIT_CONTEXT_CORE = `Корень app/ — исходники CodeViper. Только *_codeviper_* для app/, tests/, ROADMAP.
-read_codeviper_file → edit_codeviper_file → run_codeviper_command (typecheck, test) → commit_and_push_self_edits.`
-
-export const SELF_EDIT_CONTEXT_EXTENDED = `Инструменты:
-- list/read/write/create/edit/append_codeviper_file, run_codeviper_command
-- create_codeviper_branch, push_codeviper_branch, create_codeviper_pr
-- create_skill / update_skill — глобальные навыки
-
-Тесты (tests/*.test.ts): импорт ../electron/main/..., ../shared/...
-
-Workflow: изучить → ветка → правки → typecheck && test → commit → PR.`
-
-export function pickSelfEditContextBlock(model: string): string {
-  const core = `# Исходники CodeViper\n${SELF_EDIT_CONTEXT_CORE}`
-  if (!isExtendedPromptModel(model)) return core
-  return `${core}\n\n${SELF_EDIT_CONTEXT_EXTENDED}`
-}

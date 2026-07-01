@@ -16,10 +16,6 @@ vi.mock('../electron/main/skills', () => ({
   buildSkillsContext: async () => '## Активные навыки (skills)\n1. **Viper Memory**'
 }))
 
-vi.mock('../electron/main/codeviperSource', () => ({
-  buildSelfEditContext: () => '# Исходники CodeViper\nКорень: /app'
-}))
-
 import { buildAgentContextPreview, estimateTokens } from '../electron/main/agentContext'
 import type { ChatMessage } from '../src/types'
 

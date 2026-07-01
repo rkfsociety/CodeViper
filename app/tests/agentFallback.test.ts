@@ -33,10 +33,6 @@ vi.mock('../electron/main/agentContext', async (importOriginal) => {
   }
 })
 
-vi.mock('../electron/main/selfCommit', () => ({
-  commitAndPushSelfEdits: vi.fn().mockResolvedValue({ ok: true, message: 'ok' })
-}))
-
 vi.mock('../electron/main/agentOllamaApi', () => ({
   pingOllama: vi.fn(async () => true)
 }))

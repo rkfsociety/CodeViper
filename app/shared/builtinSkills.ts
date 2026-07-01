@@ -4,14 +4,12 @@ export const BUILTIN_SKILL_IDS = [
   'viper-files',
   'viper-codebase',
   'viper-terminal',
-  'viper-self-edit',
-  'viper-memory',
-  'viper-model-training'
+  'viper-memory'
 ] as const
 
 export type BuiltinSkillId = (typeof BUILTIN_SKILL_IDS)[number]
 
-export const BUILTIN_SKILLS_VERSION = 3
+export const BUILTIN_SKILLS_VERSION = 4
 
 export function isBuiltinSkill(id: string): id is BuiltinSkillId {
   return (BUILTIN_SKILL_IDS as readonly string[]).includes(id)

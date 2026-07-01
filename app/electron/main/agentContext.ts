@@ -1,4 +1,3 @@
-import { app } from 'electron'
 import type {
   AgentContextMessagePreview,
   AgentContextPreview,
@@ -10,12 +9,10 @@ import type {
   McpServerConfig
 } from '../../src/types'
 import { looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../../shared/toolCalls'
-import { buildSelfEditContext } from './codeviperSource'
 import { buildMemoryContext } from './memory'
 import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
 import { getAgentTools, formatAgentToolsSummary } from './agentTools'
-import { pickSelfImprovementModePrompt } from '../../shared/selfImprovement'
 import {
   DEEP_REASONING_PROMPT,
   isThinkingModel,
@@ -44,7 +41,7 @@ export const GREP_EMPTY_RESULT_PREFIX = 'Совпадений не найден�
 
 export const RAG_SEARCH_TOOL_NAME = 'search_knowledge_base'
 
-const GREP_TOOL_NAMES = new Set(['grep_files', 'grep_codeviper_files', 'search_in_project'])
+const GREP_TOOL_NAMES = new Set(['grep_files', 'search_in_project'])
 
 export function isGrepToolName(toolName: string): boolean {
   return GREP_TOOL_NAMES.has(toolName)
@@ -160,7 +157,6 @@ function buildSystemPrompt(
   projectPath: string,
   memoryContext: string,
   projectTreeText: string,
-  selfImproveMode = false,
   clarifyMode = false,
   cotReasoning = false,
   chatMode = false,
@@ -175,7 +171,6 @@ function buildSystemPrompt(
   }
 
   const parts = [pickBaseSystemPrompt(model)]
-  if (selfImproveMode) parts.push(buildSelfEditContext(app.isPackaged, model))
 
   // Для не-think моделей даём краткую подсказку к последовательной работе.
   if (cotReasoning) {
@@ -184,13 +179,8 @@ function buildSystemPrompt(
     parts.push(`## Размышления\n${THINKING_LANGUAGE_HINT}`)
   }
 
-  // Уточняющие вопросы несовместимы с автономным самоулучшением.
-  if (clarifyMode && !selfImproveMode) {
+  if (clarifyMode) {
     parts.push(CLARIFY_PROMPT)
-  }
-
-  if (selfImproveMode) {
-    parts.push(pickSelfImprovementModePrompt(model))
   }
 
   if (projectPath.trim()) {
@@ -405,7 +395,6 @@ export async function buildAgentContextPreview(
   history: ChatMessage[],
   userMessage: string,
   model: string,
-  selfImproveMode = false,
   options: PrepareAgentContextOptions = {}
 ): Promise<AgentContextPreview> {
   const chatMode = options.chatMode === true
@@ -434,7 +423,6 @@ export async function buildAgentContextPreview(
     projectPath,
     memorySkillsContext,
     projectTreeText,
-    selfImproveMode,
     options.clarifyMode,
     cotReasoning,
     chatMode,
@@ -479,9 +467,7 @@ export async function buildAgentContextPreview(
     )
     .filter((m): m is OllamaMessage => m !== null)
 
-  const activeTools = chatMode
-    ? []
-    : getAgentTools(selfImproveMode, options.disabledTools, options.mcpServers)
+  const activeTools = chatMode ? [] : getAgentTools(options.disabledTools, options.mcpServers)
   const toolsJsonChars = JSON.stringify(activeTools).length
   const initialMessages: OllamaMessage[] = [
     { role: 'system', content: systemContent },
@@ -533,16 +519,11 @@ export async function buildAgentContextPreview(
 
   const projectContent =
     !chatMode && projectPath.trim() ? buildProjectContext(projectPath, projectTreeText) : ''
-  const toolsContent = chatMode ? '' : formatAgentToolsSummary(selfImproveMode)
+  const toolsContent = chatMode ? '' : formatAgentToolsSummary()
 
   const sections: AgentContextSection[] = [
     section('instructions', 'Инструкции агента', pickBaseSystemPrompt(model))
   ]
-  if (selfImproveMode) {
-    sections.push(
-      section('self-edit', 'Саморедактирование', buildSelfEditContext(app.isPackaged, model))
-    )
-  }
 
   if (projectContent) {
     sections.push(section('project', 'Проект', projectContent, projectPath))
@@ -555,17 +536,6 @@ export async function buildAgentContextPreview(
         'ViperMemory и навыки',
         memorySkillsContext,
         'Релевантные записи и skills'
-      )
-    )
-  }
-
-  if (selfImproveMode) {
-    sections.push(
-      section(
-        'self-improve',
-        'Автономное самоулучшение',
-        pickSelfImprovementModePrompt(model),
-        'До выполнения всех пунктов'
       )
     )
   }
@@ -609,17 +579,9 @@ export async function prepareAgentRunContext(
   history: ChatMessage[],
   userMessage: string,
   model: string,
-  selfImproveMode = false,
   options: PrepareAgentContextOptions = {}
 ): Promise<{ messages: OllamaMessage[]; preview: AgentContextPreview }> {
-  const preview = await buildAgentContextPreview(
-    projectPath,
-    history,
-    userMessage,
-    model,
-    selfImproveMode,
-    options
-  )
+  const preview = await buildAgentContextPreview(projectPath, history, userMessage, model, options)
   const userImages = options.userImages
   const messages: OllamaMessage[] = redactMessagesForModel(
     preview.messages.map((item, idx, arr) => {

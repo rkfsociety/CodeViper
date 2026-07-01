@@ -16,10 +16,6 @@ vi.mock('../electron/main/skills', () => ({
   buildSkillsContext: async () => ''
 }))
 
-vi.mock('../electron/main/codeviperSource', () => ({
-  buildSelfEditContext: () => ''
-}))
-
 vi.mock('../electron/main/contextRAG', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../electron/main/contextRAG')>()
   return { ...actual }

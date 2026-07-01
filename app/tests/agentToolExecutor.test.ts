@@ -36,10 +36,6 @@ vi.mock('../electron/main/agentHandlersLinear', () => ({
   createLinearToolHandlers: () => ({})
 }))
 
-vi.mock('../electron/main/agentHandlersCodeViper', () => ({
-  createCodeViperToolHandlers: () => ({})
-}))
-
 vi.mock('../electron/main/agentHandlersMemory', () => ({
   createMemoryToolHandlers: () => ({})
 }))
@@ -50,10 +46,6 @@ vi.mock('../electron/main/agentHandlersSkills', () => ({
 
 vi.mock('../electron/main/agentHandlersTodo', () => ({
   createTodoToolHandlers: () => ({})
-}))
-
-vi.mock('../electron/main/agentHandlersModels', () => ({
-  createModelToolHandlers: () => ({})
 }))
 
 vi.mock('../electron/main/agentHandlersWeb', () => ({

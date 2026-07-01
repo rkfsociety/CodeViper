@@ -74,8 +74,16 @@ export const CONTEXT_SUMMARIZE_TIMEOUT_MS = 45_000
 export const AGENT_TRACE_SCHEMA_VERSION = 2
 /** Максимальное суммарное время одного прогона агента (мс). По истечении — ошибка таймаута. */
 export const AGENT_RUN_TIMEOUT_MS = 24 * 60 * 60 * 1000
-/** Таймаут для режима автономного самообучения — значительно больше обычного. */
-export const SELF_IMPROVE_RUN_TIMEOUT_MS = 2 * 60 * 60 * 1000
+
+/** Ветка collective memory по умолчанию (agent/*). */
+export const DEFAULT_COLLECTIVE_MEMORY_BRANCH = 'agent/self-improve'
+
+export function resolveCollectiveMemoryBranch(configured?: string): string {
+  const trimmed = configured?.trim()
+  if (!trimmed) return DEFAULT_COLLECTIVE_MEMORY_BRANCH
+  if (!/^agent\//i.test(trimmed)) return DEFAULT_COLLECTIVE_MEMORY_BRANCH
+  return trimmed.toLowerCase()
+}
 
 // ── Очередь сообщений ─────────────────────────────────────────────────────────
 /** Максимальное число сообщений в очереди агента */

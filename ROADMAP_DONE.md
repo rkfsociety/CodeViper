@@ -124,3 +124,5 @@
 - `prioritize_roadmap_items` — приоритизация задач ROADMAP по пользе и риску для self-improvement и UI
 
 - Auto-update installer fallback handles async `spawn` errors without main-process crash dialog.
+
+- Tool `find_magic_numbers`: отчёт о «магических» числовых литералах вне `shared/constants.ts` и без именованной константы рядом

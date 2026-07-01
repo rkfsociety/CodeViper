@@ -14,9 +14,9 @@ const INSTALLED = [
 ]
 
 describe('modelRouter', () => {
-  it('оценивает самоулучшение как сложную задачу', () => {
-    const task = analyzeTask('изучи код и начни улучшать себя')
-    expect(task.difficulty).toBeGreaterThan(85)
+  it('оценивает сложную правку как задачу с кодом', () => {
+    const task = analyzeTask('рефакторинг agent.ts: добавь поддержку новых инструментов и тесты')
+    expect(task.difficulty).toBeGreaterThan(45)
     expect(task.needsCoder).toBe(true)
   })
 

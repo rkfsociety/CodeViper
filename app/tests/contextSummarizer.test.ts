@@ -145,9 +145,9 @@ describe('contextSummarizer', () => {
     const messages: OllamaMessage[] = [
       { role: 'system', content: 'sys' },
       { role: 'user', content: 'task' },
-      { role: 'tool', content: `Инструмент read_codeviper_file:\n${fileBody}` },
-      { role: 'tool', content: `Инструмент read_codeviper_file:\n${fileBody}` },
-      { role: 'tool', content: `Инструмент read_codeviper_file:\n${fileBody}` },
+      { role: 'tool', content: `Инструмент read_file:\n${fileBody}` },
+      { role: 'tool', content: `Инструмент read_file:\n${fileBody}` },
+      { role: 'tool', content: `Инструмент read_file:\n${fileBody}` },
       { role: 'user', content: 'продолжай' }
     ]
 

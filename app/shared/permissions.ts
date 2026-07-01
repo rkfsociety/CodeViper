@@ -14,10 +14,6 @@ export const PERMISSION_MODE_LABELS: Record<PermissionMode, string> = {
 // (запуск команд и создание моделей — потенциально опаснее правок файлов).
 const CONFIRM_IN_ACCEPT_EDITS = new Set<string>([
   'run_command',
-  'run_codeviper_command',
-  'create_ollama_model',
-  // Создание PR — внешнее действие (публикация на GitHub), подтверждаем всегда кроме bypass.
-  'create_codeviper_pr',
   'git_commit',
   'git_push',
   'git_checkout',

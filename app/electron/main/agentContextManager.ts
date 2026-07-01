@@ -276,11 +276,10 @@ export class ContextManager {
   /** Сжать messages на месте; возвращает метрики для трейса. */
   async compressMessagesInPlace(
     messages: OllamaMessage[],
-    model: string,
-    selfImproveMode: boolean
+    model: string
   ): Promise<CompressionStepResult> {
     const toolsJsonChars = JSON.stringify(
-      getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
+      getAgentTools(this.settings.disabledTools, this.settings.mcpServers)
     ).length
     const threshold = this.resolveSummarizeThreshold()
     const before = buildMessageContextStats(
@@ -355,7 +354,6 @@ export class ContextManager {
   async chat(
     messages: OllamaMessage[],
     model: string,
-    selfImproveMode: boolean,
     options?: { requireTool?: boolean; skipCompression?: boolean }
   ): Promise<ChatResult> {
     if (this.providerConfig.type === 'ollama') {
@@ -379,7 +377,7 @@ export class ContextManager {
     }
 
     if (!options?.skipCompression) {
-      await this.compressMessagesInPlace(messages, model, selfImproveMode)
+      await this.compressMessagesInPlace(messages, model)
     }
 
     const isCloud = this.providerConfig.type !== 'ollama'
@@ -402,7 +400,7 @@ export class ContextManager {
     const mcpToolNames = getMcpAgentToolNames(this.settings.mcpServers)
     const toolsForProvider = this.settings.chatMode
       ? []
-      : getAgentTools(selfImproveMode, this.settings.disabledTools, this.settings.mcpServers)
+      : getAgentTools(this.settings.disabledTools, this.settings.mcpServers)
     const chatOptions = {
       model,
       messages: chatMessages,

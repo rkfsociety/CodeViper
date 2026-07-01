@@ -43,17 +43,6 @@ export const TOOL_LABELS: Record<string, string> = {
   delete_skill: 'Удаляю навык',
   read_skill_data: 'Читаю данные навыка',
   write_skill_data: 'Сохраняю данные навыка',
-  list_codeviper_directory: 'Смотрю исходники CodeViper',
-  grep_codeviper_files: 'Ищу в коде CodeViper',
-  find_codeviper_files: 'Ищу файлы CodeViper',
-  read_codeviper_file: 'Читаю код CodeViper',
-  write_codeviper_file: 'Правлю код CodeViper',
-  create_codeviper_file: 'Создаю файл CodeViper',
-  edit_codeviper_file: 'Редактирую код CodeViper',
-  append_codeviper_file: 'Дописываю в CodeViper',
-  run_codeviper_command: 'Команда в CodeViper',
-  preview_ollama_modelfile: 'Собираю Modelfile',
-  create_ollama_model: 'Создаю модель Ollama',
   index_project: 'Индексирую проект'
 }
 
@@ -83,11 +72,6 @@ const FILE_PATH_TOOLS = new Set([
   'move_file',
   'undo_edit',
   'file_info',
-  'read_codeviper_file',
-  'write_codeviper_file',
-  'create_codeviper_file',
-  'edit_codeviper_file',
-  'append_codeviper_file',
   'read_multiple_files'
 ])
 
@@ -189,11 +173,8 @@ export function compactToolChatLine(
 
   switch (name) {
     case 'list_directory':
-    case 'list_codeviper_directory':
     case 'grep_files':
     case 'find_files':
-    case 'grep_codeviper_files':
-    case 'find_codeviper_files':
     case 'git_status':
     case 'git_diff':
     case 'git_log': {
@@ -201,7 +182,6 @@ export function compactToolChatLine(
       return count > 0 ? `✓ ${label} — ${count} элементов` : `✓ ${label} — пусто`
     }
     case 'read_file':
-    case 'read_codeviper_file':
     case 'read_multiple_files': {
       const lines = body ? body.split('\n').length : 0
       return `✓ ${withFilePath(label, filePath, `${lines} строк`)}`

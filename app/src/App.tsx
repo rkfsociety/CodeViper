@@ -83,7 +83,6 @@ const DEFAULT_SETTINGS: AgentSettings = {
   permissionMode: 'acceptEdits',
   clarifyMode: false,
   deepReasoning: false,
-  autoPushSelfEdits: true,
   summarizeModel: '',
   gitSyncOnStartup: true,
   gitSyncStrategy: 'stash'

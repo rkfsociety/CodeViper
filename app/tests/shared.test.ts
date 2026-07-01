@@ -241,7 +241,6 @@ describe('permissions', () => {
     expect(toolRequiresConfirm('acceptEdits', 'write_file')).toBe(false)
     expect(toolRequiresConfirm('acceptEdits', 'edit_file')).toBe(false)
     expect(toolRequiresConfirm('acceptEdits', 'run_command')).toBe(true)
-    expect(toolRequiresConfirm('acceptEdits', 'create_ollama_model')).toBe(true)
   })
 })
 

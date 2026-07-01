@@ -42,11 +42,8 @@ export interface AgentHandlerFactories {
   createGitLabToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
   createJiraToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
   createLinearToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
-  createCodeViperToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
   createMemoryToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
   createSkillsToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
-  createSelfImprovementToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
-  createModelToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
   createTodoToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
   createWebToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>
   createMcpToolHandlers: UnsafeHandlerFactory<Partial<ToolHandlers>>

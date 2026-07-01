@@ -29,10 +29,8 @@ describe('toolRequiresConfirm', () => {
     expect(toolRequiresConfirm('acceptEdits', 'delete_file')).toBe(false)
   })
 
-  it('acceptEdits — команды и создание модели требуют подтверждения', () => {
+  it('acceptEdits — команды требуют подтверждения', () => {
     expect(toolRequiresConfirm('acceptEdits', 'run_command')).toBe(true)
-    expect(toolRequiresConfirm('acceptEdits', 'run_codeviper_command')).toBe(true)
-    expect(toolRequiresConfirm('acceptEdits', 'create_ollama_model')).toBe(true)
     expect(toolRequiresConfirm('acceptEdits', 'git_commit')).toBe(true)
     expect(toolRequiresConfirm('acceptEdits', 'git_push')).toBe(true)
     expect(toolRequiresConfirm('acceptEdits', 'git_checkout')).toBe(true)

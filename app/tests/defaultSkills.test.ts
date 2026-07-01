@@ -11,7 +11,6 @@ vi.mock('electron', () => ({
 import {
   ensureDefaultSkills,
   VIPER_MEMORY_SKILL_ID,
-  VIPER_MODEL_TRAINING_SKILL_ID,
   VIPER_FILES_SKILL_ID,
   VIPER_CODEBASE_SKILL_ID,
   VIPER_AGENT_CORE_SKILL_ID
@@ -55,7 +54,7 @@ describe('ensureDefaultSkills', () => {
     await ensureDefaultSkills()
     const skill = await getSkill('', VIPER_AGENT_CORE_SKILL_ID, 'global')
     expect(skill?.instructions).toContain('list_directory')
-    expect(skill?.instructions).toContain('grep_codeviper_files')
+    expect(skill?.instructions).toContain('grep_files')
   })
 
   it('создаёт viper-memory при первом запуске', async () => {
@@ -63,12 +62,6 @@ describe('ensureDefaultSkills', () => {
     const skill = await getSkill('', VIPER_MEMORY_SKILL_ID, 'global')
     expect(skill).not.toBeNull()
     expect(skill?.instructions).toContain('ViperMemory.md')
-  })
-
-  it('создаёт viper-model-training при первом запуске', async () => {
-    await ensureDefaultSkills()
-    const skill = await getSkill('', VIPER_MODEL_TRAINING_SKILL_ID, 'global')
-    expect(skill?.instructions).toContain('create_ollama_model')
   })
 
   it('не дублирует навыки при повторном вызове', async () => {

@@ -35,8 +35,7 @@ export const PersistedSettingsSchema = z.object({
   deepReasoning: z.boolean(),
   excludeThinkingFromHistory: z.boolean(),
   showLiveThinking: z.boolean().optional(),
-  autoPushSelfEdits: z.boolean(),
-  selfImproveBranch: z.string().optional(),
+  collectiveMemoryBranch: z.string().optional(),
   syncCollectiveMemory: z.boolean().optional(),
   summarizeModel: z.string(),
   modelProvider: ModelProviderSchema,
@@ -74,7 +73,6 @@ export const PersistedSettingsSchema = z.object({
   aggressiveCompression: z.boolean().optional(),
   commandBlocklist: z.array(z.string()).optional(),
   commandAllowlist: z.array(z.string()).optional(),
-  autoVerifyAfterEdit: z.boolean().optional(),
   debugAgent: z.boolean().optional(),
   webhookUrl: z.string().optional(),
   discordWebhookUrl: z.string().optional(),
@@ -186,7 +184,6 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   clarifyMode: false,
   deepReasoning: false,
   excludeThinkingFromHistory: true,
-  autoPushSelfEdits: true,
   summarizeModel: '',
   modelProvider: DEFAULT_MODEL_PROVIDER,
   providerApiKey: '',
@@ -217,7 +214,29 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   firstRunCompleted: false
 }
 
-type LegacySettings = Partial<AgentSettings> & { cloudApiKey?: string }
+type LegacySettings = Partial<AgentSettings> & {
+  cloudApiKey?: string
+  /** @deprecated → collectiveMemoryBranch */
+  selfImproveBranch?: string
+  /** @deprecated удалено */
+  autoPushSelfEdits?: boolean
+  /** @deprecated удалено */
+  autoVerifyAfterEdit?: boolean
+}
+
+function resolveCollectiveMemoryBranchSetting(settings: LegacySettings): string | undefined {
+  const branch = settings.collectiveMemoryBranch?.trim() || settings.selfImproveBranch?.trim()
+  return branch || undefined
+}
+
+function migrateLegacySelfImproveFields(obj: Record<string, unknown>): void {
+  if (!obj.collectiveMemoryBranch && typeof obj.selfImproveBranch === 'string') {
+    obj.collectiveMemoryBranch = obj.selfImproveBranch
+  }
+  delete obj.selfImproveBranch
+  delete obj.autoPushSelfEdits
+  delete obj.autoVerifyAfterEdit
+}
 
 function resolveUiFontScale(value: number | undefined): UiFontScale | undefined {
   if (value == null) return undefined
@@ -308,7 +327,6 @@ function normalize(settings: LegacySettings): PersistedSettings {
     deepReasoning: settings.deepReasoning === true,
     excludeThinkingFromHistory: settings.excludeThinkingFromHistory !== false,
     ...(settings.showLiveThinking === true ? { showLiveThinking: true } : {}),
-    autoPushSelfEdits: settings.autoPushSelfEdits !== false,
     summarizeModel: settings.summarizeModel?.trim() ?? '',
     modelProvider: provider,
     providerApiKey: '',
@@ -351,7 +369,6 @@ function normalize(settings: LegacySettings): PersistedSettings {
     ...(settings.aggressiveCompression ? { aggressiveCompression: true } : {}),
     ...(settings.commandBlocklist?.length ? { commandBlocklist: settings.commandBlocklist } : {}),
     ...(settings.commandAllowlist?.length ? { commandAllowlist: settings.commandAllowlist } : {}),
-    ...(settings.autoVerifyAfterEdit ? { autoVerifyAfterEdit: true } : {}),
     ...(settings.debugAgent ? { debugAgent: true } : {}),
     ...(settings.webhookUrl?.trim() ? { webhookUrl: settings.webhookUrl.trim() } : {}),
     ...(settings.discordWebhookUrl?.trim()
@@ -372,8 +389,8 @@ function normalize(settings: LegacySettings): PersistedSettings {
       : {}),
     ...(settings.gitlabUrl?.trim() ? { gitlabUrl: settings.gitlabUrl.trim() } : {}),
     ...(settings.disabledTools?.length ? { disabledTools: settings.disabledTools } : {}),
-    ...(settings.selfImproveBranch?.trim()
-      ? { selfImproveBranch: settings.selfImproveBranch.trim() }
+    ...(resolveCollectiveMemoryBranchSetting(settings)
+      ? { collectiveMemoryBranch: resolveCollectiveMemoryBranchSetting(settings) }
       : {}),
     ...(settings.syncCollectiveMemory === false ? { syncCollectiveMemory: false } : {}),
     ...(settings.sourceRootOverride?.trim()
@@ -494,6 +511,7 @@ export async function loadSettings(): Promise<PersistedSettings> {
         obj.cloudApiKey = decryptApiKeyPlainFallback(obj.cloudApiKey)
       }
       migrateCloudApiKey(obj as LegacySettings)
+      migrateLegacySelfImproveFields(obj)
       delete obj.cloudApiKey
     }
 

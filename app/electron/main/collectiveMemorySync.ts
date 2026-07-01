@@ -10,7 +10,7 @@ import {
   COLLECTIVE_MEMORY_PUSH_RETRY_MAX,
   MIN_COLLECTIVE_ENTRY_LENGTH
 } from '../../shared/constants'
-import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
+import { resolveCollectiveMemoryBranch } from '../../shared/constants'
 import type { AgentSkill, MemoryEntry, MemoryStore, SkillsStore } from '../../src/types'
 import { parseMemoryMarkdown, renderMemoryMarkdown } from './memoryMarkdown'
 import { parseSkillsMarkdown } from './skillsMarkdown'
@@ -196,7 +196,7 @@ async function readCollectiveStoreForMerge(): Promise<MemoryStore> {
   if (!token) return emptyStore()
 
   const settings = await loadSettings()
-  const branch = resolveSelfImproveBranch(settings.selfImproveBranch)
+  const branch = resolveCollectiveMemoryBranch(settings.collectiveMemoryBranch)
   try {
     const remote = await getRepoFileViaApi(token, COLLECTIVE_MEMORY_REPO_PATH, branch)
     if (remote) return parseMemoryMarkdown(remote.content)
@@ -242,7 +242,7 @@ export async function pullCollectiveMemoryFromRemote(
   const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
   if (!repoRoot) return { ok: false, message: 'не git-репозиторий — pull пропущен' }
 
-  const branch = resolveSelfImproveBranch(configuredBranch)
+  const branch = resolveCollectiveMemoryBranch(configuredBranch)
 
   const fetchResult = await runGitCmd(repoRoot, ['fetch', 'origin', branch])
   if (fetchResult.code !== 0) {
@@ -353,7 +353,7 @@ export async function flushCollectiveMemoryToGit(
   }
 
   const reasons = rejected.map((r) => r.reason)
-  const branch = resolveSelfImproveBranch(configuredBranch)
+  const branch = resolveCollectiveMemoryBranch(configuredBranch)
   const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
 
   if (!repoRoot) {
@@ -480,7 +480,7 @@ export async function pullCollectiveSkillsFromRemote(
   const repoRoot = await getRepoRoot(getCodeViperSourceRoot())
   if (!repoRoot) return { ok: false, message: 'не git-репозиторий — pull пропущен' }
 
-  const branch = resolveSelfImproveBranch(configuredBranch)
+  const branch = resolveCollectiveMemoryBranch(configuredBranch)
 
   const fetchResult = await runGitCmd(repoRoot, ['fetch', 'origin', branch])
   if (fetchResult.code !== 0) {

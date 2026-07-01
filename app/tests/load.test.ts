@@ -43,11 +43,6 @@ vi.mock('../electron/main/agentContext', async (importOriginal) => {
   }
 })
 
-// ── selfCommit ────────────────────────────────────────────────────────────────
-vi.mock('../electron/main/selfCommit', () => ({
-  commitAndPushSelfEdits: vi.fn().mockResolvedValue({ ok: true, message: 'ok' })
-}))
-
 // ── ModelRuntime ───────────────────────────────────────────────────────────────
 vi.mock('../electron/main/modelRuntime', () => {
   function MockModelRuntime() {

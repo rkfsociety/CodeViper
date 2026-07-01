@@ -47,11 +47,6 @@ vi.mock('../electron/main/agentContext', async (importOriginal) => {
   }
 })
 
-// ── selfCommit ───────────────────────────────────────────────────────────────
-vi.mock('../electron/main/selfCommit', () => ({
-  commitAndPushSelfEdits: vi.fn().mockResolvedValue({ ok: true, message: 'ok' })
-}))
-
 // ── ModelRuntime — использует chatState.impl из vi.hoisted() ─────────────────
 vi.mock('../electron/main/modelRuntime', () => {
   function MockModelRuntime() {
@@ -390,8 +385,7 @@ describe('AgentRunner — интеграционный прогон', () => {
     ).toBe(true)
 
     const assistant = emitted.find((e) => e.type === 'assistant') as
-      | { type: 'assistant'; content: string }
-      | undefined
+      { type: 'assistant'; content: string } | undefined
     expect(assistant?.content).toContain('Найдены 2 риска')
   })
 
@@ -426,8 +420,7 @@ describe('AgentRunner — интеграционный прогон', () => {
     ).toBe(true)
 
     const assistant = emitted.find((e) => e.type === 'assistant') as
-      | { type: 'assistant'; content: string }
-      | undefined
+      { type: 'assistant'; content: string } | undefined
     expect(assistant?.content).toContain('3 теста упали')
   })
 })

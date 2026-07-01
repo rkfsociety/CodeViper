@@ -2,7 +2,6 @@ import { app } from 'electron'
 import { existsSync } from 'fs'
 import { basename, dirname, join, relative, resolve, sep } from 'path'
 import { findFilesInTree } from './fileSearch'
-import { pickSelfEditContextBlock } from '../../shared/agentPromptLayers'
 import {
   isInsideProject,
   runCommand,
@@ -108,7 +107,7 @@ export async function formatCodeViperEnoentHint(
     .filter((r) => r !== normalizedRequested)
   if (!rels.length) return errorMessage
 
-  return `${errorMessage}\n\nПохожие файлы: ${rels.join(', ')}. Попробуй read_codeviper_file ${rels[0]}`
+  return `${errorMessage}\n\nПохожие файлы: ${rels.join(', ')}. Попробуй read_file ${rels[0]}`
 }
 
 export function isAllowedSelfPath(sourceRoot: string, targetPath: string): boolean {
@@ -263,17 +262,4 @@ export async function runCommandInAppRoot(appRoot: string, command: string, time
 export async function runCodeViperCommand(command: string) {
   const root = getCodeViperSourceRoot()
   return runCommandInAppRoot(root, command)
-}
-
-export function buildSelfEditContext(isPackaged = false, model = ''): string {
-  const root = getCodeViperSourceRoot()
-  const buildStep = !isPackaged ? ' && npm run build' : ''
-  const layers = pickSelfEditContextBlock(model)
-  return `# Исходники CodeViper (саморедактирование)
-Корень app/: ${root}
-Репозиторий (ROADMAP.md, ROADMAP_DONE.md, README.md): ${join(root, '..')}
-
-**Не путать с папкой установки** (Program Files, рядом с CodeViper.exe).
-
-${layers}${isPackaged ? '' : `\n\nrun_codeviper_command: npm run typecheck && npm test${buildStep}`}`
 }

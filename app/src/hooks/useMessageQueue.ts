@@ -6,11 +6,7 @@ import { detectDanger } from '../../shared/dangerDetector'
 import type { DangerWarning } from '../../shared/dangerDetector'
 import type { AgentPrerequisiteIssue, AgentSettings, ChatMessage } from '../types'
 import { AgentError } from '../../shared/agentError'
-import {
-  AGENT_RUN_TIMEOUT_MS,
-  MAX_QUEUE_SIZE,
-  SELF_IMPROVE_RUN_TIMEOUT_MS
-} from '../../shared/constants'
+import { AGENT_RUN_TIMEOUT_MS, MAX_QUEUE_SIZE } from '../../shared/constants'
 
 export interface PrerequisiteBlock {
   issues: AgentPrerequisiteIssue[]
@@ -194,7 +190,7 @@ export function useMessageQueue({
         err.message.includes('network'))
 
     void text
-    const runTimeoutMs = Math.max(AGENT_RUN_TIMEOUT_MS, SELF_IMPROVE_RUN_TIMEOUT_MS)
+    const runTimeoutMs = AGENT_RUN_TIMEOUT_MS
 
     for (let attempt = 0; attempt <= 1; attempt++) {
       let timeoutHandle: ReturnType<typeof setTimeout> | undefined

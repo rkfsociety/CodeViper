@@ -24,15 +24,6 @@ export const MUTATING_TOOLS = new Set([
   'update_skill',
   'delete_skill',
   'write_skill_data',
-  'write_codeviper_file',
-  'create_codeviper_file',
-  'edit_codeviper_file',
-  'append_codeviper_file',
-  'delete_codeviper_file',
-  'move_codeviper_file',
-  'run_codeviper_command',
-  'create_ollama_model',
-  'create_codeviper_pr',
   'index_project',
   'create_jira_issue',
   'create_linear_issue',
@@ -161,11 +152,9 @@ const FAKE_TOOL_OUTPUT_PATTERNS: RegExp[] = [
   /Для начала выполним несколько шагов для разведки[\s\S]*Вывод:/i
 ]
 
-/** qwen2.5-coder: «Инструмент read_codeviper_file:\nПуть: …» вместо native tool call (trace 1782686538797). */
+/** Модель описала вызов инструмента текстом вместо native tool call. */
 const SIMULATED_TOOL_TRANSCRIPT_PATTERNS: RegExp[] = [
-  /Инструмент\s+(?:read|edit|write|create|list|grep|find|run|complete|set)_(?:codeviper_)?\w+:\s*[\s\S]*?(?:Путь|Файл|ID|Содержимое|Строка для замены):/i,
-  /Инструмент\s+complete_self_improvement_item:\s*\n?\s*ID:/i,
-  /Инструмент\s+set_self_improvement_plan:/i
+  /Инструмент\s+(?:read|edit|write|create|list|grep|find|run|complete|set)_\w+:\s*[\s\S]*?(?:Путь|Файл|ID|Содержимое|Строка для замены):/i
 ]
 
 export function looksLikeSimulatedToolTranscript(assistantText: string): boolean {
@@ -185,8 +174,8 @@ export function looksLikeFakeToolOutput(assistantText: string): boolean {
 
 /** Модель описала вызов инструмента текстом/bash вместо native tool call (qwen2.5-coder). */
 const PSEUDO_TOOL_INVOCATION_PATTERNS: RegExp[] = [
-  /(?:^|\n)\s*(?:bash|shell|sh)\s*\n\s*(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)/im,
-  /(?:^|\n)\s*(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)\s+\S/m,
+  /(?:^|\n)\s*(?:bash|shell|sh)\s*\n\s*(?:grep|read|edit|run)_(?:files|file|command)/im,
+  /(?:^|\n)\s*(?:grep|read|edit|run)_(?:files|file|command)\s+\S/m,
   /(?:Используем|вызови|выполним)\s+`?(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)/iu,
   /(?:Пример команды|### Пример)[\s\S]{0,200}(?:grep|read|edit|run)_(?:codeviper_)?(?:files|file|command)/iu
 ]
@@ -305,14 +294,14 @@ export function shouldRetryForMissingTools(
 }
 
 export const EXPLORATION_STALL_NUDGE = `⚠️ Достаточно разведки — несколько шагов подряд только чтение/поиск без правок.
-Задача требует изменения кода: вызови edit_file / search_replace (для исходников CodeViper — edit_codeviper_file).
-Не перечитывай те же файлы и не расширяй scope (IPC, preload) — правь файлы из задачи.`
+Задача требует изменения кода: вызови edit_file / preview_patch / write_file.
+Не перечитывай те же файлы — правь файлы из задачи.`
 
 export const EXPLORATION_STALL_ABORT_MESSAGE = `🛑 Прогон остановлен: слишком много шагов разведки (read/grep) без правок.
-Вызови edit_codeviper_file по файлам из «Файлы:» или смените модель (бесплатные лимиты OpenRouter быстро исчерпываются на «вечной разведке»).`
+Вызови edit_file по целевым файлам или смените модель.`
 
-export const FAKE_TOOL_OUTPUT_NUDGE = `STOP. Ты описал инструмент текстом («Инструмент read_codeviper_file:» / «Вывод: … завершено») — это не выполнение.
-Вызови реальный tool call: read_codeviper_file / edit_codeviper_file / run_codeviper_command.
+export const FAKE_TOOL_OUTPUT_NUDGE = `STOP. Ты описал инструмент текстом («Инструмент read_file:» / «Вывод: … завершено») — это не выполнение.
+Вызови реальный tool call: read_file / edit_file / run_command.
 Не пиши JSON, не симулируй «Путь:» / «Содержимое файла:» — только официальный tool calling.`
 
 export const FAKE_TOOL_OUTPUT_NUDGE_COMPACT = `STOP: только native tool_calls. Не пиши «Инструмент …» / «Путь:» / «Вывод:».`
@@ -328,11 +317,11 @@ export const SIMULATED_TOOL_ABORT_MESSAGE =
 export const MAX_SIMULATED_TOOL_RESPONSE_RETRIES = 3
 
 export const TOOL_VERIFICATION_NUDGE = `STOP. Не давай пользователю пошаговый план и не советуй Figma/Material-UI — это делаешь ТЫ через инструменты.
-Сейчас вызови tool calling: list_directory / read_file или list_codeviper_directory / read_codeviper_file для изучения, затем create_file / edit_file / write_file (или codeviper_* аналоги) для правок.
+Сейчас вызови tool calling: list_directory / read_file для изучения, затем create_file / edit_file / write_file для правок.
 Не пиши JSON вызова инструмента текстом — только официальный tool calling.
 После успешных инструментов — одно короткое сообщение, что изменено.`
 
-export const TOOL_VERIFICATION_NUDGE_COMPACT = `STOP: вызови tool call (read/edit_codeviper_file). Не план текстом.`
+export const TOOL_VERIFICATION_NUDGE_COMPACT = `STOP: вызови tool call (read_file/edit_file). Не план текстом.`
 
 export const TOOL_VERIFICATION_FAILED_MESSAGE =
   'Не удалось выполнить действие: модель не вызвала нужные инструменты. Попробуй переформулировать задачу или выбрать другую модель.'

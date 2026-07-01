@@ -150,9 +150,9 @@ describe('actionVerification', () => {
     expect(shouldRetryForMissingTools(roadmapMsg, fake, new Set(), true)).toBe(true)
   })
 
-  it('looksLikeFakeToolOutput ловит «Инструмент read_codeviper_file: Путь:» (trace 1782686538797)', () => {
-    const fake = `Инструмент read_codeviper_file:
-Путь: app/codeviper/index.ts
+  it('looksLikeFakeToolOutput ловит «Инструмент read_file: Путь:»', () => {
+    const fake = `Инструмент read_file:
+Путь: app/src/index.ts
 
 Содержимое файла:
 typescript
@@ -164,12 +164,12 @@ export async function indexProject() {}`
     const text = `### Пример команды:
 
 bash
-grep_codeviper_files openaiProvider.ts "baseUrl|apiKey"
+grep_files src "baseUrl|apiKey"
 
 Эта команда выполнит поиск.`
     expect(looksLikePseudoToolInvocation(text)).toBe(true)
     expect(
-      looksLikePseudoToolInvocation('Сейчас прочитаю openaiProvider.ts через read_codeviper_file.')
+      looksLikePseudoToolInvocation('Сейчас прочитаю openaiProvider.ts через read_file.')
     ).toBe(false)
   })
 })

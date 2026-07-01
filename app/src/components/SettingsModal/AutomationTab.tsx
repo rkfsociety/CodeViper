@@ -14,53 +14,16 @@ interface Props {
 export function AutomationTab({ isActive, isSearching, settings, onSettingsChange }: Props) {
   if (!isActive && !isSearching) return null
 
+  const collectiveBranch = settings.collectiveMemoryBranch?.trim() || 'agent/self-improve'
+
   return (
     <SettingItem
       tab="automation"
       label="Автоматизация"
-      desc="автокоммит git синхронизация push pull стратегия startup запуск stash rebase fast-forward runtime github live"
+      desc="git синхронизация push pull стратегия startup запуск stash rebase fast-forward runtime github live коллективная память"
     >
       <div className={styles.section}>
         <div className={styles.sectionLabel}>Автоматизация</div>
-
-        <label className={styles.toggle}>
-          <input
-            type="checkbox"
-            checked={settings.autoPushSelfEdits !== false}
-            onChange={(e) => onSettingsChange({ autoPushSelfEdits: e.target.checked })}
-          />
-          <span className={styles.track} aria-hidden="true">
-            <span className={styles.thumb} />
-          </span>
-          <span className={styles.toggleContent}>
-            <span className={styles.title}>Автокоммит правок CodeViper</span>
-            <span className={styles.desc}>
-              После правок исходников CodeViper — commit + push в ветку{' '}
-              <code>{settings.selfImproveBranch?.trim() || 'agent/self-improve'}</code>, не в master
-            </span>
-          </span>
-        </label>
-
-        <label className={styles.toggle}>
-          <input
-            type="checkbox"
-            checked={settings.autoVerifyAfterEdit === true}
-            onChange={(e) =>
-              onSettingsChange({ autoVerifyAfterEdit: e.target.checked || undefined })
-            }
-          />
-          <span className={styles.track} aria-hidden="true">
-            <span className={styles.thumb} />
-          </span>
-          <span className={styles.toggleContent}>
-            <span className={styles.title}>Автопроверка после правки</span>
-            <span className={styles.desc}>
-              После каждой успешной правки исходников CodeViper — запускать{' '}
-              <code>npm run typecheck</code> и <code>npm test</code>; результат появляется как
-              tool_result в чате
-            </span>
-          </span>
-        </label>
 
         <label className={styles.toggle}>
           <input
@@ -81,17 +44,19 @@ export function AutomationTab({ isActive, isSearching, settings, onSettingsChang
         </label>
 
         <div style={{ marginTop: '0.75rem' }}>
-          <div className={styles.sectionLabel}>Ветка правок CodeViper</div>
+          <div className={styles.sectionLabel}>Ветка коллективной памяти</div>
           <input
             type="text"
             className={styles.searchInput}
             placeholder="agent/self-improve"
-            value={settings.selfImproveBranch ?? ''}
-            onChange={(e) => onSettingsChange({ selfImproveBranch: e.target.value || undefined })}
+            value={settings.collectiveMemoryBranch ?? ''}
+            onChange={(e) =>
+              onSettingsChange({ collectiveMemoryBranch: e.target.value || undefined })
+            }
             spellCheck={false}
           />
           <div className={styles.hint}>
-            Только <code>agent/*</code> — используется для автокоммита правок CodeViper
+            Только <code>agent/*</code> — используется для sync глобальных знаний на GitHub
           </div>
         </div>
 
@@ -108,7 +73,7 @@ export function AutomationTab({ isActive, isSearching, settings, onSettingsChang
             <span className={styles.title}>Коллективная память на GitHub</span>
             <span className={styles.desc}>
               Глобальные знания (🧠 Запомнено) → <code>docs/collective/ViperMemory.md</code> в ветке{' '}
-              <code>{settings.selfImproveBranch?.trim() || 'agent/self-improve'}</code>
+              <code>{collectiveBranch}</code>
             </span>
           </span>
         </label>

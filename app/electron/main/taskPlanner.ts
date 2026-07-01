@@ -1,5 +1,4 @@
 import { isRefusalResponse } from '../../shared/toolCalls'
-import { isSelfImprovementTask } from '../../shared/selfImprovement'
 import type { LoopGuard } from './agentLoopGuard'
 import type { OllamaMessage } from './ollamaMessage'
 import type { AgentSettings } from '../../src/types'
@@ -57,7 +56,6 @@ class StandardPlanningStrategy implements PlanningStrategy {
 export class TaskPlanner {
   readonly mode: TaskMode
   private readonly strategy: PlanningStrategy
-  private readonly userMessage: string
 
   constructor(
     mode: TaskMode,
@@ -67,12 +65,7 @@ export class TaskPlanner {
     customStrategy?: PlanningStrategy
   ) {
     this.mode = mode
-    this.userMessage = userMessage
     this.strategy = customStrategy ?? new StandardPlanningStrategy(loopGuard, userMessage)
-  }
-
-  get isSelfImprove(): boolean {
-    return isSelfImprovementTask(this.userMessage)
   }
 
   async decide(ctx: PlannerContext): Promise<PlannerAction> {

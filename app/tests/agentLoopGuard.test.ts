@@ -141,26 +141,6 @@ describe('LoopGuard', () => {
     })
   })
 
-  describe('checkTaskScope', () => {
-    const scopedMsg = `Цель: tool list_pull_requests
-Файлы: integrations.ts, agentHandlersGitHub.ts`
-
-    it('nudge при read вне списка «Файлы:»', () => {
-      const nudge = loopGuard.checkTaskScope(scopedMsg, new Set(), [
-        { name: 'read_file', args: { path: 'app/shared/ipcContracts.ts' } }
-      ])
-      expect(nudge).toContain('integrations.ts')
-    })
-
-    it('не nudge для файла из scope', () => {
-      expect(
-        loopGuard.checkTaskScope(scopedMsg, new Set(), [
-          { name: 'read_file', args: { path: 'app/electron/main/agentHandlersGitHub.ts' } }
-        ])
-      ).toBeNull()
-    })
-  })
-
   describe('decideNoToolAction', () => {
     it('passthrough для информационного вопроса без инструментов', async () => {
       const result = await loopGuard.decideNoToolAction(

@@ -177,29 +177,6 @@ Sync-FromGitHub
 $commitAfter = try { (git -C $repo rev-parse HEAD 2>$null) } catch { $null }
 $codeChanged = ($commitBefore -ne $commitAfter) -and ($null -ne $commitAfter)
 
-# Применяем отложенные правки агента (записаны в предыдущей сессии через stageSelfEditsForRestart)
-$pendingMarker = Join-Path $root '.pending-restart'
-$pendingApplied = $false
-if (Test-Path $pendingMarker) {
-  $label = (Get-Content $pendingMarker -Raw -ErrorAction SilentlyContinue).Trim()
-  Write-Log "найден маркер отложенных правок: $label"
-  $apply = Confirm-Action "Агент подготовил правки исходников:`n`n$label`n`nПрименить при запуске?"
-  if ($apply) {
-    git -C $repo stash pop 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-      Write-Log "правки агента применены из git stash"
-      $pendingApplied = $true
-    } else {
-      Write-Log "git stash pop не удался (конфликт?) — правки не применены"
-      Show-Error "Не удалось применить правки агента (конфликт при git stash pop).`nВыполни вручную: git stash pop"
-    }
-  } else {
-    git -C $repo stash drop stash@{0} 2>$null | Out-Null
-    Write-Log "правки агента отклонены пользователем — stash удалён"
-  }
-  Remove-Item $pendingMarker -Force -ErrorAction SilentlyContinue
-}
-
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   Show-Error "Node.js не найден.`nУстановите с https://nodejs.org и перезапустите."
   exit 1
@@ -248,7 +225,7 @@ if ($needInstall) {
 # Пересобираем, если код обновился из GitHub, out/ отсутствует, устарел или зависимости переустановились
 $outDir = Join-Path $root 'out'
 $staleBuild = Test-StaleBuild
-$needBuild = $codeChanged -or (-not (Test-Path $outDir)) -or $staleBuild -or $pendingApplied -or $needInstall
+$needBuild = $codeChanged -or (-not (Test-Path $outDir)) -or $staleBuild -or $needInstall
 
 if ($needBuild) {
   $buildReason = if ($staleBuild) { 'исходники новее out/' } else { 'код обновился с GitHub или out/ отсутствует' }

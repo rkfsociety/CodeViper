@@ -5,7 +5,7 @@ export function normalizeToolLoopSignature(
   name: string,
   args: Record<string, string | unknown>
 ): string {
-  if (name === 'read_file' || name === 'read_codeviper_file' || name === 'file_info') {
+  if (name === 'read_file' || name === 'file_info') {
     return `${name}:${String(args.path ?? '').trim()}`
   }
   if (name === 'read_multiple_files') {

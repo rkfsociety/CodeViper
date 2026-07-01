@@ -433,8 +433,8 @@ app.whenReady().then(async () => {
   })
 
   if (settings.gitSyncOnStartup && !process.env.CODEVIPER_E2E) {
-    pullCollectiveMemoryFromRemote(settings.selfImproveBranch).catch(() => {})
-    pullCollectiveSkillsFromRemote(settings.selfImproveBranch).catch(() => {})
+    pullCollectiveMemoryFromRemote(settings.collectiveMemoryBranch).catch(() => {})
+    pullCollectiveSkillsFromRemote(settings.collectiveMemoryBranch).catch(() => {})
   }
 
   await createWindow()

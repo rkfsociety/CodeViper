@@ -36,10 +36,6 @@ vi.mock('../electron/main/agentContext', async (importOriginal) => {
   }
 })
 
-vi.mock('../electron/main/selfCommit', () => ({
-  commitAndPushSelfEdits: vi.fn().mockResolvedValue({ ok: true, message: 'ok' })
-}))
-
 vi.mock('../electron/main/modelRuntime', async (importOriginal) => {
   const original = await importOriginal<typeof import('../electron/main/modelRuntime')>()
 

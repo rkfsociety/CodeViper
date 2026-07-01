@@ -143,7 +143,7 @@ describe('mcpTools', () => {
       }
     ]
 
-    const toolNames = getAgentTools(false, undefined, mcpServers).map((tool) => tool.name)
+    const toolNames = getAgentTools(undefined, mcpServers).map((tool) => tool.name)
     const toolA = buildMcpAgentToolName('https://mcp.example.com', 'toolA')
     const toolB = buildMcpAgentToolName('https://mcp.example.com', 'toolB')
 

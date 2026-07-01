@@ -1,9 +1,6 @@
 import { spawn } from 'child_process'
-import { writeFile, readFile } from 'fs/promises'
-import { join } from 'path'
-import { app } from 'electron'
 import { CODEVIPER_RUNTIME_SYNC_BRANCH } from '../../shared/constants'
-import { resolveSelfImproveBranch } from '../../shared/selfImprovement'
+import { resolveCollectiveMemoryBranch } from '../../shared/constants'
 import { getCodeViperSourceRoot } from './codeviperSource'
 import { resolveGitRepoRoot } from './githubAuth'
 import { cliSpawnBase, resolveGhExecutable, resolveGitExecutable } from './windowsGitEnv'
@@ -228,7 +225,7 @@ export async function ensureSelfImproveBranch(
   cwd?: string
 ): Promise<SelfCommitResult & { branch?: string }> {
   const source = cwd ?? getCodeViperSourceRoot()
-  const branch = resolveSelfImproveBranch(configuredBranch)
+  const branch = resolveCollectiveMemoryBranch(configuredBranch)
   const baseBranch = CODEVIPER_RUNTIME_SYNC_BRANCH
   const remoteRef = `origin/${baseBranch}`
 
@@ -332,7 +329,7 @@ export async function commitAndPushRepoPaths(
   const branchResult = await ensureSelfImproveBranch(configuredBranch, source)
   if (!branchResult.ok) return branchResult
 
-  const branch = branchResult.branch ?? resolveSelfImproveBranch(configuredBranch)
+  const branch = branchResult.branch ?? resolveCollectiveMemoryBranch(configuredBranch)
   const repoRoot = await getRepoRoot(source)
   if (!repoRoot) {
     return { ok: false, message: 'не git-репозиторий — push коллективной памяти пропущен' }
@@ -563,182 +560,5 @@ export async function createCodeViperPr(title?: string, body?: string): Promise<
   return {
     ok: true,
     message: `PR создан (не смержен, ждёт ревью): ${url || `ветка ${branch} → ${base}`}`
-  }
-}
-
-/** Получает текущую версию из package.json */
-async function getCurrentVersion(appPath: string): Promise<string | null> {
-  try {
-    const pkgPath = join(appPath, 'package.json')
-    const content = await readFile(pkgPath, 'utf8')
-    const pkg = JSON.parse(content)
-    return pkg.version ?? null
-  } catch {
-    return null
-  }
-}
-
-/**
- * Создаёт release-тег и пушит его в GitHub.
- * Вызывается автоматически после успешного push если app.isPackaged.
- * Триггирит GitHub Actions workflow для создания release.
- */
-async function createAndPushReleaseTag(cwd: string): Promise<string> {
-  // Вызываем npm run bump patch
-  const bumpResult = await runCmd('npm', cwd, ['run', 'bump', 'patch'])
-  if (bumpResult.code !== 0) {
-    throw new Error(`npm run bump patch не удался: ${bumpResult.stderr || bumpResult.stdout}`)
-  }
-
-  // Читаем новую версию из package.json
-  const newVersion = await getCurrentVersion(cwd)
-  if (!newVersion) {
-    throw new Error('не удалось прочитать версию после bump')
-  }
-
-  // git push (отправляем коммит от bump)
-  try {
-    await runGitWithRetry(cwd, ['push'], 'push after bump')
-  } catch (err) {
-    throw new Error(
-      `git push после bump не удался: ${err instanceof Error ? err.message : String(err)}`
-    )
-  }
-
-  // git push --tags (отправляем тег)
-  try {
-    await runGitWithRetry(cwd, ['push', '--tags'], 'push --tags')
-  } catch (err) {
-    throw new Error(
-      `git push --tags не удался: ${err instanceof Error ? err.message : String(err)}`
-    )
-  }
-
-  return newVersion
-}
-
-/**
- * Коммитит и пушит изменения исходников CodeViper (самоправки агента).
- * Best-effort: не git-репозиторий, отсутствие изменений или офлайн — не ошибка приложения.
- * Если app.isPackaged, после успешного push создаёт release-тег и пушит его.
- */
-export async function commitAndPushSelfEdits(
-  summary: string,
-  configuredBranch?: string
-): Promise<SelfCommitResult> {
-  // Все операции выполняются в каталоге исходников (app/) и ограничены им
-  // через pathspec '.', чтобы не затронуть прочие файлы репозитория.
-  const source = getCodeViperSourceRoot()
-
-  const branchResult = await ensureSelfImproveBranch(configuredBranch, source)
-  if (!branchResult.ok) return branchResult
-
-  const branch = branchResult.branch ?? resolveSelfImproveBranch(configuredBranch)
-
-  let status: GitResult
-  try {
-    status = await runGitWithRetry(source, ['status', '--porcelain', '--', '.'], 'status')
-  } catch (err) {
-    return { ok: false, message: `git status: ${err instanceof Error ? err.message : String(err)}` }
-  }
-  if (!status.stdout.trim()) {
-    return { ok: true, message: 'нет изменений для коммита' }
-  }
-
-  try {
-    await runGitWithRetry(source, ['add', '-A', '--', '.'], 'add')
-  } catch (err) {
-    return { ok: false, message: `git add: ${err instanceof Error ? err.message : String(err)}` }
-  }
-
-  const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 80) || 'правки агента'
-  const message = `chore(self): автоправки агента — ${shortSummary}\n\nCo-authored-by: CodeViper <295331836+CodeViperApp@users.noreply.github.com>`
-
-  try {
-    await runGitWithRetry(source, ['commit', '-m', message, '--', '.'], 'commit')
-  } catch (err) {
-    return {
-      ok: false,
-      message: `git commit не удался: ${err instanceof Error ? err.message : String(err)}`
-    }
-  }
-
-  try {
-    await runGitWithRetry(source, ['push', '--set-upstream', 'origin', branch], 'push')
-  } catch (err) {
-    return {
-      ok: false,
-      message: `коммит сделан в ${branch}, но push не удался (офлайн?): ${err instanceof Error ? err.message : String(err)}`
-    }
-  }
-
-  // Если приложение в packaged-режиме и мы на master, создать release-тег
-  if (app.isPackaged && branch === 'master') {
-    try {
-      const repoRoot = await getRepoRoot(source)
-      if (repoRoot) {
-        const version = await createAndPushReleaseTag(repoRoot)
-        return {
-          ok: true,
-          message: `самоправки запушены в ${branch}, создан release-тег v${version}. GitHub Actions запустит workflow: https://github.com/rkfsociety/CodeViper/actions`
-        }
-      }
-    } catch (err) {
-      // Коммит+push успешен, но тег не создан — это не критично
-      return {
-        ok: true,
-        message: `самоправки закоммичены и запушены в ветку ${branch}, но создание release-тага не удалось: ${err instanceof Error ? err.message : String(err)}`
-      }
-    }
-  }
-
-  return { ok: true, message: `самоправки закоммичены и запушены в ветку ${branch}` }
-}
-
-/**
- * Сохраняет правки исходников CodeViper в git stash и пишет маркер `.pending-restart`.
- * При следующем запуске CodeViper.cmd пользователю предложат применить эти правки.
- * Используется когда агент редактирует свои файлы вне режима самоулучшения.
- */
-export async function stageSelfEditsForRestart(summary: string): Promise<SelfCommitResult> {
-  const source = getCodeViperSourceRoot()
-
-  try {
-    await runGitWithRetry(source, ['rev-parse', '--show-toplevel'], 'rev-parse')
-  } catch {
-    return {
-      ok: false,
-      message: 'не git-репозиторий — правки остались на диске, пересборка при следующем запуске'
-    }
-  }
-
-  let status: GitResult
-  try {
-    status = await runGitWithRetry(source, ['status', '--porcelain', '--', '.'], 'status')
-  } catch (err) {
-    return { ok: false, message: `git status: ${err instanceof Error ? err.message : String(err)}` }
-  }
-  if (!status.stdout.trim()) {
-    return { ok: true, message: 'нет изменений для отложенного применения' }
-  }
-
-  const shortSummary = summary.trim().replace(/\s+/g, ' ').slice(0, 72) || 'правки агента'
-  const label = `agent-pending: ${shortSummary}`
-
-  // pathspec '.' ограничивает stash только файлами в app/ (текущий каталог)
-  try {
-    await runGitWithRetry(source, ['stash', 'push', '-u', '-m', label, '--', '.'], 'stash')
-  } catch (err) {
-    return {
-      ok: false,
-      message: `git stash не удался: ${err instanceof Error ? err.message : String(err)} — правки остались на диске`
-    }
-  }
-
-  await writeFile(join(source, '.pending-restart'), label, 'utf8')
-
-  return {
-    ok: true,
-    message: 'правки сохранены и будут применены при следующем запуске CodeViper'
   }
 }

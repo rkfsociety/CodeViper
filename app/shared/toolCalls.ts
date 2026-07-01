@@ -80,24 +80,6 @@ export const AGENT_TOOL_NAMES = [
   'set_todo_list',
   'complete_todo_item',
   'clear_todo_list',
-  // CodeViper self-edit
-  'list_codeviper_directory',
-  'grep_codeviper_files',
-  'find_codeviper_files',
-  'read_codeviper_file',
-  'write_codeviper_file',
-  'create_codeviper_file',
-  'edit_codeviper_file',
-  'append_codeviper_file',
-  'delete_codeviper_file',
-  'move_codeviper_file',
-  'run_codeviper_command',
-  'create_codeviper_branch',
-  'push_codeviper_branch',
-  'create_codeviper_pr',
-  // Модели
-  'preview_ollama_modelfile',
-  'create_ollama_model',
   // Индексация
   'index_project',
   // Веб

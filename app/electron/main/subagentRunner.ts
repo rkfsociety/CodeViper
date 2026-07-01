@@ -121,7 +121,7 @@ export async function runSubagent(
 
   // Все доступные инструменты агента — затем фильтруем по allowedTools
   // getAgentTools возвращает трансформированный формат { name, description, input_schema }
-  const allTools = getAgentTools(false, settings.disabledTools)
+  const allTools = getAgentTools(settings.disabledTools)
   const filteredTools = allTools.filter((t) => allowedTools.includes(t.name))
 
   // Обработчики инструментов (только project-tools для explorer/editor)

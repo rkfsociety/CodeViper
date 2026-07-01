@@ -34,12 +34,12 @@ describe('normalizeToolLoopSignature', () => {
     expect(a).toBe('read_file:app/foo.ts')
   })
 
-  it('ignores offset/limit for read_codeviper_file', () => {
-    const sig = normalizeToolLoopSignature('read_codeviper_file', {
+  it('ignores offset/limit for read_file', () => {
+    const sig = normalizeToolLoopSignature('read_file', {
       path: 'electron/main/agent.ts',
       limit: '100'
     })
-    expect(sig).toBe('read_codeviper_file:electron/main/agent.ts')
+    expect(sig).toBe('read_file:electron/main/agent.ts')
   })
 
   it('sorts paths in read_multiple_files (JSON string)', () => {
