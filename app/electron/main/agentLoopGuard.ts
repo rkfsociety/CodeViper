@@ -17,7 +17,14 @@ import {
   MAX_CONSECUTIVE_SAME_TOOL,
   MAX_SAME_TOOL_TOTAL
 } from '../../shared/constants'
-import { checkTaskScopeViolation } from '../../shared/selfImprovement'
+import {
+  buildTaskScopeNudge,
+  checkTaskScopeViolation,
+  guessScopedCodeViperPath,
+  parseTaskScopedFiles
+} from '../../shared/selfImprovement'
+import { getCodeViperSourceRoot } from './codeviperSource'
+import { resolveRoadmapFilePaths } from './roadmapParser'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './ollamaMessage'
 import type { ModelRuntime } from './modelRuntime'
@@ -115,13 +122,41 @@ export class LoopGuard {
   ): string | null {
     if (this.taskScopeNudged) return null
     for (const inv of invocations) {
-      const nudge = checkTaskScopeViolation(userMessage, mutatingToolsUsed, inv.name, inv.args)
-      if (nudge) {
-        this.taskScopeNudged = true
-        return nudge
-      }
+      const violation = checkTaskScopeViolation(userMessage, mutatingToolsUsed, inv.name, inv.args)
+      if (!violation) continue
+      this.taskScopeNudged = true
+      const scoped = parseTaskScopedFiles(userMessage)
+      if (!scoped?.length) return violation
+      return buildTaskScopeNudge(scoped, this.resolveScopedFilePaths(scoped))
     }
     return null
+  }
+
+  private resolveScopedFilePaths(scopedFiles: string[]): string[] {
+    const filesField = scopedFiles.join(', ')
+    let resolved: string[] = []
+    try {
+      resolved = resolveRoadmapFilePaths(filesField, getCodeViperSourceRoot())
+    } catch {
+      resolved = []
+    }
+
+    const paths: string[] = []
+    const seenBasenames = new Set<string>()
+    for (const p of resolved) {
+      const bn = p.split('/').pop()?.toLowerCase() ?? ''
+      if (bn && !seenBasenames.has(bn)) {
+        paths.push(p)
+        seenBasenames.add(bn)
+      }
+    }
+    for (const scoped of scopedFiles) {
+      const bn = scoped.replace(/\\/g, '/').split('/').pop()?.toLowerCase() ?? ''
+      if (!bn || seenBasenames.has(bn)) continue
+      paths.push(guessScopedCodeViperPath(scoped))
+      seenBasenames.add(bn)
+    }
+    return paths
   }
 
   /** Определяет что делать когда модель не вызвала инструменты.

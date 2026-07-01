@@ -25,7 +25,11 @@
 
 ## Trace-отчёты
 
-**2026-07-01 · trace 1782898738171 — find_files: __dirname is not defined**  
+**2026-07-01 · trace 1782901466868 — scope nudge: .ts → src/components/**  
+- Задача: ROADMAP `find_magic_numbers` (уровень 3). Агент 15+ шагов разведки, 0 правок, abort пользователем.  
+- Корень: `guessScopedCodeViperPath` отправлял bare `.ts` (`magicNumberAnalysis.ts`, `agentHandlers*.ts`) в `src/components/`; nudge вёл агента в несуществующие пути, модель крутила `read_skill` + `find_files` + `list_directory src` (ENOENT).  
+- Фикс: `.tsx` → `src/components/`, bare `.ts` / `agentHandlers*` / `*Analysis.ts` → `electron/main/`; `agentTools/` → `electron/main/agentTools/`; scope nudge через `resolveRoadmapFilePaths` + guess для новых файлов; partial path `agentTools/core.ts` в roadmapParser.
+  
 - Задача: ROADMAP `find_magic_numbers` (уровень 3). Агент зациклился на `find_files` (~30+ вызовов), `list_directory` работал.  
 - Корень: `fileSearchInWorker.ts` — `join(__dirname, 'fileSearchWorker.js')` в ESM-бандле live runtime из git-клона.  
 - Фикс: `getElectronMainDir()` (`import.meta.url` fallback) в `electronMainDir.ts`; то же для `embeddingQueue` / `largeFileQueue`.

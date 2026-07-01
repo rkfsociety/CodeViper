@@ -352,21 +352,44 @@ export function isPathWithinTaskScope(toolPath: string, scopedFiles: string[]): 
   return false
 }
 
-/** Угадывает путь в app/ по basename из поля «Файлы:». */
+/** Угадывает путь в app/ по basename из поля «Файлы:» (порядок каталогов как в roadmapParser). */
 export function guessScopedCodeViperPath(scopedFile: string): string {
   let norm = scopedFile.trim().replace(/\\/g, '/').replace(/^\.\//, '')
   if (norm.startsWith('app/')) norm = norm.slice(4)
+
   if (norm.includes('/')) {
     if (/^components\//i.test(norm) && !/^src\//i.test(norm)) return `src/${norm}`
+    if (/^agentTools\//i.test(norm)) return `electron/main/${norm}`
+    if (/^(electron|src|shared|tests)\//i.test(norm)) return norm
     return norm
   }
-  if (/\.tsx?$/i.test(norm)) return `src/components/${norm}`
+
+  if (/\.tsx$/i.test(norm)) {
+    if (/model.*tab|tab.*model/i.test(norm)) return `src/components/SettingsModal/${norm}`
+    return `src/components/${norm}`
+  }
+
+  if (/^agentHandlers/i.test(norm) || /Analysis\.ts$/i.test(norm)) {
+    return `electron/main/${norm}`
+  }
+  if (/Provider\.ts$/i.test(norm)) {
+    return `electron/main/providers/${norm}`
+  }
+
+  // .ts без пути — main/shared, не renderer (trace 1782901466868: magicNumberAnalysis.ts → src/components/)
+  if (/\.ts$/i.test(norm)) return `electron/main/${norm}`
+
   return norm
 }
 
-export function buildTaskScopeNudge(scopedFiles: string[]): string {
-  const resolved = scopedFiles.map(guessScopedCodeViperPath)
-  return `⚠️ Файлы задачи: ${scopedFiles.join(', ')}. UI-компоненты в src/components/ (не app/components/). Сначала read_codeviper_file ${resolved.join(' или ')} (или find_codeviper_files pattern=имя), затем edit_codeviper_file с old_string из read.`
+export function buildTaskScopeNudge(scopedFiles: string[], resolvedPaths?: string[]): string {
+  const resolved = resolvedPaths?.length ? resolvedPaths : scopedFiles.map(guessScopedCodeViperPath)
+  const hasUi = scopedFiles.some((f) => /\.tsx$/i.test(f.trim()))
+  const uiHint = hasUi ? ' UI-компоненты в src/components/ (не app/components/).' : ''
+  const createHint = scopedFiles.some((f) => /\.ts$/i.test(f.trim()) && !f.includes('/'))
+    ? ' Новый .ts из «Файлы» → create_codeviper_file после read эталона из той же папки.'
+    : ''
+  return `⚠️ Файлы задачи: ${scopedFiles.join(', ')}.${uiHint} Сначала read_codeviper_file ${resolved.join(' или ')} (или find_codeviper_files pattern=имя), затем edit_codeviper_file / create_codeviper_file с old_string из read.${createHint}`
 }
 
 /** Инструмент с path-аргументом и проверка scope по полю «Файлы:». */

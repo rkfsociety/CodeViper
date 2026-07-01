@@ -100,6 +100,26 @@ describe('selfImprovement', () => {
     expect(nudge).toContain('find_codeviper_files')
   })
 
+  it('guessScopedCodeViperPath — main-process .ts, не src/components (trace 1782901466868)', () => {
+    expect(guessScopedCodeViperPath('magicNumberAnalysis.ts')).toBe(
+      'electron/main/magicNumberAnalysis.ts'
+    )
+    expect(guessScopedCodeViperPath('agentHandlersProjectSearch.ts')).toBe(
+      'electron/main/agentHandlersProjectSearch.ts'
+    )
+    expect(guessScopedCodeViperPath('agentTools/core.ts')).toBe('electron/main/agentTools/core.ts')
+    const nudge = buildTaskScopeNudge([
+      'magicNumberAnalysis.ts',
+      'agentTools/core.ts',
+      'agentHandlersProjectSearch.ts'
+    ])
+    expect(nudge).toContain('electron/main/magicNumberAnalysis.ts')
+    expect(nudge).toContain('electron/main/agentTools/core.ts')
+    expect(nudge).toContain('electron/main/agentHandlersProjectSearch.ts')
+    expect(nudge).not.toContain('src/components/magicNumberAnalysis')
+    expect(nudge).not.toContain('UI-компоненты')
+  })
+
   it('определяет пути исходников CodeViper', () => {
     expect(isCodeViperSourceRelativePath('tests/agent.test.ts')).toBe(true)
     expect(isCodeViperSourceRelativePath('../ROADMAP.md')).toBe(true)

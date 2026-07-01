@@ -410,7 +410,8 @@ function tryAddRoadmapPath(
   }
 }
 
-export function resolveRoadmapFileHints(filesField: string, sourceRoot: string): string {
+/** Разрешает пути из поля «Файлы:» относительно app/ (существующие файлы на диске). */
+export function resolveRoadmapFilePaths(filesField: string, sourceRoot: string): string[] {
   const resolved: string[] = []
   const seen = new Set<string>()
 
@@ -437,12 +438,21 @@ export function resolveRoadmapFileHints(filesField: string, sourceRoot: string):
       continue
     }
 
+    if (ref.includes('/') && !/^(electron|src|shared|tests)\//i.test(ref)) {
+      tryAddRoadmapPath(sourceRoot, `electron/main/${ref}`, seen, resolved)
+    }
+
     const bn = basename(ref)
     for (const dir of ROADMAP_SEARCH_DIRS) {
       tryAddRoadmapPath(sourceRoot, `${dir}/${bn}`, seen, resolved)
     }
   }
 
+  return resolved
+}
+
+export function resolveRoadmapFileHints(filesField: string, sourceRoot: string): string {
+  const resolved = resolveRoadmapFilePaths(filesField, sourceRoot)
   const lines = resolved.map((p) => `- ${p}`)
   let note = ''
   if (/ModelTab\/providers/i.test(filesField)) {

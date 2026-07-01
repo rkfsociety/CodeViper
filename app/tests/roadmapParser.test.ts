@@ -13,7 +13,8 @@ import {
   listRoadmapItems,
   readRoadmapItem,
   resolveRoadmapPath,
-  resolveRoadmapFileHints
+  resolveRoadmapFileHints,
+  resolveRoadmapFilePaths
 } from '../electron/main/roadmapParser'
 import { getCodeViperSourceRoot } from '../electron/main/codeviperSource'
 
@@ -65,6 +66,17 @@ describe('roadmapParser', () => {
     expect(hints).toContain('electron/main/modelRuntime.ts')
     expect(hints).toContain('src/components/SettingsModal/ModelTab.tsx')
     expect(hints).toContain('ModelTab/providers/')
+  })
+
+  it('resolveRoadmapFilePaths — find_magic_numbers файлы (trace 1782901466868)', () => {
+    const root = getCodeViperSourceRoot()
+    const paths = resolveRoadmapFilePaths(
+      'magicNumberAnalysis.ts, agentTools/core.ts, agentHandlersProjectSearch.ts',
+      root
+    )
+    expect(paths).toContain('electron/main/agentTools/core.ts')
+    expect(paths).toContain('electron/main/agentHandlersProjectSearch.ts')
+    expect(paths).not.toContain('src/components/magicNumberAnalysis.ts')
   })
 
   it('resolveRoadmapFileHints — ProjectTreePanel.tsx и index_project (trace 1782686538797)', () => {
