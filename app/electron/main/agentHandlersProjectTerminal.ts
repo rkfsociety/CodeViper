@@ -28,6 +28,7 @@ import {
 } from './automationScheduler'
 import { findSettingsPathIssues, formatSettingsPathIssuesOutput } from './settingsPathAnalysis'
 import { findDockerEnvIssues, findDockerPortIssues } from './dockerComposeAnalysis'
+import { findP2pConnectionIssues } from './p2pConnectionAnalysis'
 import { findP2pCreditIssues } from './p2pCreditAnalysis'
 import { loadSettings } from './settings'
 
@@ -512,6 +513,15 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
       try {
         emitProgress('Проверка P2P credits…', null)
         return await findP2pCreditIssues(projectPath, { path: args.path })
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_p2p_connection_issues: async (args: any) => {
+      try {
+        emitProgress('Проверка P2P connection…', null)
+        return await findP2pConnectionIssues(projectPath, { path: args.path })
       } finally {
         clearProgress()
       }

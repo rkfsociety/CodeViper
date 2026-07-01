@@ -11,7 +11,7 @@
 5. Unit-тест `app/tests/<name>.test.ts` - минимум один позитивный и один негативный
 6. **Проверка:** `npm test -- <name>.test.ts` + вызов tool агентом -> отчет
 
-Всего пунктов: 18.
+????? ???????: 17.
 
 **4 · S · Tool `find_commit_message_issues`**
 - **Цель:** отчет о commit-сообщениях не по Conventional Commits в последних N коммитах
@@ -37,13 +37,7 @@
 - **Действие:** статический разбор + runtime read credits store при наличии
 - **Проверка:** `npm test -- p2pCreditAnalysis.test.ts`; `find_p2p_credit_issues()` -> отчет
 
-**8 · S · Tool `find_p2p_connection_issues`**
-- **Цель:** отчет о невалидных WSS URL и reconnect backoff в `p2pClient.ts` и settings
-- **Файлы:** `p2pConnectionAnalysis.ts`, `p2pClient.ts`, `agentTools/core.ts`
-- **Действие:** проверка URL, таймаутов, `maxRetries`; ping health endpoint если настроен
-- **Проверка:** `npm test -- p2pConnectionAnalysis.test.ts`; `find_p2p_connection_issues()` -> отчет
-
-**9 · S · Tool `find_symbol_index_issues`**
+**8 · S · Tool `find_symbol_index_issues`**
 - **Цель:** отчет о рассинхроне символьного индекса (ts/js/py): stale entries, файлы без индекса
 - **Файлы:** `symbolIndexHealth.ts`, `symbolIndex.ts`, `agentTools/core.ts`
 - **Действие:** сравнить mtime файлов vs index; smoke `find_symbol`
@@ -115,7 +109,7 @@
 - **Действие:** validate role `performance` block
 - **Проверка:** `npm test -- subagentConfigAnalysis.test.ts`; `find_performance_subagent_issues()` -> отчет
 
-**21 · S · Tool `find_settings_path_issues`**
+**20 · S · Tool `find_settings_path_issues`**
 - **Цель:** отчет о битых путях в `settings.json` (`sourceRootOverride`, `gitRepoRoot`, `orchestratorModelPath`, `recentProjects`)
 - **Файлы:** `settingsPathAnalysis.ts`, `settings.ts`, `agentTools/core.ts`, `agentHandlersProjectTerminal.ts`
 - **Действие:** `loadSettings()` + проверка полей-путей через `access()`; список битых путей

@@ -264,6 +264,7 @@ export interface ToolArgs {
   find_docker_env_issues: { path?: string }
   find_skill_file_issues: { path?: string }
   find_p2p_credit_issues: { path?: string }
+  find_p2p_connection_issues: { path?: string }
 }
 
 type MissingToolArgs = Exclude<ToolName, keyof ToolArgs>
