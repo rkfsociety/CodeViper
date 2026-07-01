@@ -788,6 +788,24 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_index_param_issues',
+      description:
+        'РћС‚С‡С‘С‚ Рѕ РЅРµРєРѕСЂСЂРµРєС‚РЅС‹С… РїР°СЂР°РјРµС‚СЂР°С… РёРЅРґРµРєСЃР°С†РёРё (chunk size, overlap, batch) РІ settings Рё rag.ts',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description:
+              'РџСѓС‚СЊ Рє project root, settings.ts РёР»Рё rag.ts (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_integration_url_issues',
       description:
         'Проверить URL интеграций в settings: GitLab/Jira base URL, webhook/discord webhook, P2P ws(s), token без URL. Возвращает отчёт в чат.',

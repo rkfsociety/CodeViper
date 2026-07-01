@@ -27,6 +27,7 @@ import {
   type AutomationRule
 } from './automationScheduler'
 import { findSettingsPathIssues, formatSettingsPathIssuesOutput } from './settingsPathAnalysis'
+import { findIndexParamIssues } from './indexParamAnalysis'
 import { findDockerEnvIssues, findDockerPortIssues } from './dockerComposeAnalysis'
 import { findP2pConnectionIssues } from './p2pConnectionAnalysis'
 import { findP2pCreditIssues } from './p2pCreditAnalysis'
@@ -486,6 +487,15 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
         emitProgress('Проверка путей в settings.json…', null)
         const result = await findSettingsPathIssues()
         return formatSettingsPathIssuesOutput(result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_index_param_issues: async (args: any) => {
+      try {
+        emitProgress('Проверка index parameters…', null)
+        return await findIndexParamIssues(projectPath, { path: args.path })
       } finally {
         clearProgress()
       }

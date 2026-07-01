@@ -94,6 +94,7 @@ export const AGENT_TOOL_NAMES = [
   // Тесты
   'find_integration_url_issues',
   'find_cron_issues',
+  'find_index_param_issues',
   'find_p2p_connection_issues',
   'run_tests'
 ] as const
