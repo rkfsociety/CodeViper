@@ -5,7 +5,10 @@ import { join } from 'path'
 import type { AppUpdater } from 'electron-updater'
 import type { WebContents } from 'electron'
 import type { UpdateInfo } from '../../shared/updateInfo'
-import { resolveWindowsPendingInstaller } from '../../shared/updateInstall'
+import {
+  launchDetachedWindowsInstaller,
+  resolveWindowsPendingInstaller
+} from '../../shared/updateInstall'
 import {
   formatCheckForUpdatesMessage,
   type CheckForUpdatesResult
@@ -336,22 +339,17 @@ function runWindowsInstallerFallback(): boolean {
   const installer = resolveWindowsPendingInstaller(localAppData)
   if (!installer) return false
 
-  try {
-    const child = spawn(installer, [], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: false
+  const launched = launchDetachedWindowsInstaller(installer, spawn, (err) => {
+    void logUpdate('windows-installer-fallback-failed', {
+      error: err.message
     })
-    child.unref()
+  })
+  if (launched) {
     void logUpdate('windows-installer-fallback', { installer })
     app.exit(0)
     return true
-  } catch (err) {
-    void logUpdate('windows-installer-fallback-failed', {
-      error: err instanceof Error ? err.message : String(err)
-    })
-    return false
   }
+  return false
 }
 
 async function prepareForInstall(): Promise<void> {
