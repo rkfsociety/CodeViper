@@ -89,6 +89,42 @@ function isFunctionComponentName(name: string): boolean {
   return /^[A-Z]/.test(name)
 }
 
+function calleeName(ts: typeof import('typescript'), expr: Ts.Expression): string | null {
+  if (ts.isIdentifier(expr)) return expr.text
+  if (ts.isPropertyAccessExpression(expr)) return expr.name.text
+  return null
+}
+
+function functionUsesMemoHooks(
+  ts: typeof import('typescript'),
+  fn: Ts.FunctionLikeDeclarationBase
+): boolean {
+  let found = false
+
+  function visit(node: Ts.Node): void {
+    if (found) return
+    if (ts.isCallExpression(node)) {
+      const name = calleeName(ts, node.expression)
+      if (name === 'useMemo' || name === 'useCallback') {
+        found = true
+        return
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+
+  if (fn.body) visit(fn.body)
+  return found
+}
+
+function initializerIsMemoizedComponent(
+  ts: typeof import('typescript'),
+  initializer: Ts.Expression
+): boolean {
+  if (!ts.isCallExpression(initializer)) return false
+  return calleeName(ts, initializer.expression) === 'memo'
+}
+
 function collectCandidates(sourceFile: Ts.SourceFile, filePath: string): RerenderCandidateIssue[] {
   const ts = getTs()
   const issues: RerenderCandidateIssue[] = []
@@ -107,7 +143,11 @@ function collectCandidates(sourceFile: Ts.SourceFile, filePath: string): Rerende
   function visit(node: Ts.Node): void {
     if (ts.isFunctionDeclaration(node) && node.name && isExported(node)) {
       const name = node.name.text
-      if (isFunctionComponentName(name) && hasPropsParameter(ts, node)) {
+      if (
+        isFunctionComponentName(name) &&
+        hasPropsParameter(ts, node) &&
+        !functionUsesMemoHooks(ts, node)
+      ) {
         report(node.name, name)
       }
     } else if (ts.isVariableStatement(node) && isExported(node)) {
@@ -115,9 +155,13 @@ function collectCandidates(sourceFile: Ts.SourceFile, filePath: string): Rerende
         if (!ts.isIdentifier(decl.name) || !decl.initializer) continue
         const name = decl.name.text
         if (!isFunctionComponentName(name)) continue
+        if (initializerIsMemoizedComponent(ts, decl.initializer)) continue
 
         if (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) {
-          if (hasPropsParameter(ts, decl.initializer)) {
+          if (
+            hasPropsParameter(ts, decl.initializer) &&
+            !functionUsesMemoHooks(ts, decl.initializer)
+          ) {
             report(decl.name, name)
           }
         }

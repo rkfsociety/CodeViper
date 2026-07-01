@@ -1,6 +1,6 @@
 # S: UI, интеграции и уведомления
 
-Пункты **3-23** - каждый пункт = **один инструмент агента** `find_*`, который возвращает **текстовый отчет в чат** без правки кода пользователя.
+Пункты **4-23** - каждый пункт = **один инструмент агента** `find_*`, который возвращает **текстовый отчет в чат** без правки кода пользователя.
 
 **Шаблон реализации для всех пунктов ниже:**
 
@@ -11,13 +11,7 @@
 5. Unit-тест `app/tests/<name>.test.ts` - минимум один позитивный и один негативный
 6. **Проверка:** `npm test -- <name>.test.ts` + вызов tool агентом -> отчет
 
-Всего пунктов: 21.
-
-**3 · S · Tool `find_rerender_candidates`**
-- **Цель:** отчет о React-компонентах `.tsx` без `memo`/`useMemo`/`useCallback`, экспортируемых из `components/` и принимающих props
-- **Файлы:** `rerenderCandidateAnalysis.ts`, `agentTools/core.ts`, `agentHandlersProjectSearch.ts`
-- **Действие:** AST JSX: `function X(` / `export function` + props interface; эвристика "кандидат на мемоизацию"
-- **Проверка:** `npm test -- rerenderCandidateAnalysis.test.ts`; `find_rerender_candidates({ path: "app/src/components" })`
+Всего пунктов: 20.
 
 **4 · S · Tool `find_merge_conflicts`**
 - **Цель:** отчет о маркерах merge-конфликта `<<<<<<<`, `=======`, `>>>>>>>` в проекте

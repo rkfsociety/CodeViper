@@ -44,6 +44,7 @@
 ### Агент и инструменты
 - `find_import_issues`: AST-проверка import/require с различением `tsconfig paths` alias и реальных npm-пакетов, без ложных срабатываний на `node_modules`
 - `find_missing_tests`: поиск `*.ts` / `*.tsx` без парных `*.test.ts` / `*.spec.ts` рядом с исходником или в зеркальной папке `tests/`
+- `find_rerender_candidates`: эвристика по React `.tsx` для экспортируемых компонентов с props, исключая случаи, где уже есть `memo`, `useMemo` или `useCallback`
 - Авто-обнаружение тяжёлых зависимостей в `node_modules`: список пакетов больше 1 MB в терминальном обработчике
 - Авто-обнаружение неправильных aria-атрибутов: tool `find_aria_issues` — AST-анализ JSX, по умолчанию `MessageBody.tsx` и `App.tsx`
 - Tool `find_integration_url_issues`: GitLab/Jira/webhook/P2P URL в settings → отчёт (`integrationUrlValidation.ts`)
@@ -131,7 +132,5 @@
 - Tool `find_magic_numbers`: отчёт о «магических» числовых литералах вне `shared/constants.ts` и без именованной константы рядом
 
 - Tool `find_unsafe_regex`: report of regex with catastrophic backtracking (ReDoS) risk
-
-- Tool `find_rerender_candidates`: ????? ? React-??????????? `.tsx` ??? memo/useMemo/useCallback, ?????????????? ?? `components/` ? ??????????? props
 
 - Plugins: added a Settings UI path for plugin folders and a Superpowers-style skills import flow from repository roots

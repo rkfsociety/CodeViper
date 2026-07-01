@@ -58,4 +58,22 @@ describe('rerenderCandidateAnalysis', () => {
     expect(result.issues).toHaveLength(0)
     expect(formatRerenderCandidatesOutput(root, result)).toContain('не найдены')
   })
+
+  it('пропускает компонент если внутри него уже есть useMemo или useCallback', async () => {
+    writeFileSync(
+      join(root, 'app', 'src', 'components', 'Hooks.tsx'),
+      [
+        'import { useCallback, useMemo } from "react"',
+        'type HooksProps = { items: string[]; onPick(id: string): void }',
+        'export function Hooks(props: HooksProps) {',
+        '  const value = useMemo(() => props.items.join(","), [props.items])',
+        '  const handlePick = useCallback(() => props.onPick(value), [props, value])',
+        '  return <button onClick={handlePick}>{value}</button>',
+        '}'
+      ].join('\n')
+    )
+
+    const result = await findRerenderCandidates(root, { subpath: 'app/src/components/Hooks.tsx' })
+    expect(result.issues).toHaveLength(0)
+  })
 })
