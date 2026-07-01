@@ -22,6 +22,7 @@ import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
 import { CHAT_TEMPLATES } from '../shared/chatTemplates'
 import { ProjectTreePanel } from './components/ProjectTreePanel'
+import { ArchitectureGraphWindow } from './components/ArchitecturePanel'
 import { FilePreviewPanel } from './components/FilePreviewPanel'
 import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { UpdateBanner, applyUpdateInfo } from './components/UpdateBanner'
@@ -142,6 +143,9 @@ function AppContent() {
   const [tracePanelOpen, setTracePanelOpen] = useState(initialLayout.panels.tracePanelOpen)
   const [metricsPanelOpen, setMetricsPanelOpen] = useState(initialLayout.panels.metricsPanelOpen)
   const [previewOpen, setPreviewOpen] = useState(initialLayout.panels.previewOpen)
+  const [architectureGraphOpen, setArchitectureGraphOpen] = useState<
+    'dependencies' | 'dataflow' | null
+  >(null)
   const [previewPath, setPreviewPath] = useState<string | null>(null)
   const [sidePanelWidths, setSidePanelWidths] = useState(initialLayout.sidePanelWidths)
   const [fileTreeOpen, setFileTreeOpen] = useState(initialLayout.panels.fileTreeOpen)
@@ -321,6 +325,10 @@ function AppContent() {
     [chatStore, activeChatId]
   )
   const activeProjectPath = activeChat?.projectPath ?? ''
+
+  useEffect(() => {
+    if (!activeProjectPath) setArchitectureGraphOpen(null)
+  }, [activeProjectPath])
 
   const flushCurrentChat = useCallback(async () => {
     const chatId = activeChatIdRef.current
@@ -1075,6 +1083,32 @@ function AppContent() {
               Терминал
             </button>
             <button
+              className={`btn ${architectureGraphOpen === 'dependencies' ? 'active' : ''}`}
+              onClick={() => setArchitectureGraphOpen('dependencies')}
+              disabled={!activeProjectPath}
+              title={
+                activeProjectPath
+                  ? 'Зависимости модулей: граф import/require'
+                  : 'Сначала выберите проект в чате'
+              }
+              aria-label="Открыть граф зависимостей модулей"
+            >
+              🧭 Граф
+            </button>
+            <button
+              className={`btn ${architectureGraphOpen === 'dataflow' ? 'active' : ''}`}
+              onClick={() => setArchitectureGraphOpen('dataflow')}
+              disabled={!activeProjectPath}
+              title={
+                activeProjectPath
+                  ? 'Потоки данных: IPC / HTTP / FS'
+                  : 'Сначала выберите проект в чате'
+              }
+              aria-label="Открыть граф потоков данных"
+            >
+              🔀 DFD
+            </button>
+            <button
               className={`btn ${prPanelOpen ? 'active' : ''}`}
               onClick={() => setPrPanelOpen((open) => togglePanel('prPanelOpen', open))}
               title="Статус Pull Requests"
@@ -1408,6 +1442,12 @@ function AppContent() {
             </>
           )}
         </div>
+
+        <ArchitectureGraphWindow
+          projectPath={activeProjectPath}
+          kind={architectureGraphOpen}
+          onClose={() => setArchitectureGraphOpen(null)}
+        />
 
         <QuickOpenPalette
           open={quickOpenOpen}

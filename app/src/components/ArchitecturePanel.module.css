@@ -101,3 +101,47 @@
   overflow: auto;
   max-height: 360px;
 }
+
+.windowOverlay {
+  position: fixed;
+  inset: 52px 0 0;
+  z-index: 900;
+  display: flex;
+  padding: 18px;
+  background: rgba(13, 17, 23, 0.74);
+}
+
+.window {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  border: 1px solid var(--color-border, var(--border));
+  border-radius: 8px;
+  background: var(--color-bg, var(--bg-surface));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+}
+
+.windowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border, var(--border));
+}
+
+.windowBody {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  padding: 14px;
+}
+
+.windowBody :global(.mermaid-diagram) {
+  min-height: 100%;
+}

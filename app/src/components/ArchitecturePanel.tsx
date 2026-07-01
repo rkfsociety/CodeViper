@@ -12,6 +12,8 @@ interface Props {
   projectPath: string | null
 }
 
+type DiagramKind = 'dependencies' | 'dataflow'
+
 const SHELL_UPGRADE_HINT =
   'Функция недоступна в текущей оболочке. Перезапустите CodeViper.exe после git pull в source или установите последний релиз.'
 
@@ -77,27 +79,37 @@ function ImportCyclesBanner({
   )
 }
 
-function DependencyDiagramSection({ projectPath }: { projectPath: string }) {
-  const [result, setResult] = useState<DependencyDiagramResult | null>(null)
+function ArchitectureDiagramWindow({
+  projectPath,
+  kind,
+  onClose
+}: {
+  projectPath: string
+  kind: DiagramKind
+  onClose: () => void
+}) {
+  const [result, setResult] = useState<DependencyDiagramResult | DataflowDiagramResult | null>(null)
   const [loading, setLoading] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isDependencies = kind === 'dependencies'
 
   useEffect(() => {
     setResult(null)
     setError(null)
-    setExpanded(false)
-  }, [projectPath])
+  }, [projectPath, kind])
 
   const loadDiagram = () => {
-    if (!hasCodeviperApi('buildDependencyDiagram')) {
+    const apiName = isDependencies ? 'buildDependencyDiagram' : 'buildDataflowDiagram'
+    if (!hasCodeviperApi(apiName)) {
       setError(SHELL_UPGRADE_HINT)
       return
     }
     setLoading(true)
     setError(null)
-    void window.codeviper
-      .buildDependencyDiagram(projectPath)
+    const request = isDependencies
+      ? window.codeviper.buildDependencyDiagram(projectPath)
+      : window.codeviper.buildDataflowDiagram(projectPath)
+    void request
       .then((diagram) => setResult(diagram))
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : String(err))
@@ -106,149 +118,62 @@ function DependencyDiagramSection({ projectPath }: { projectPath: string }) {
       .finally(() => setLoading(false))
   }
 
-  const toggleExpanded = () => {
-    setExpanded((open) => {
-      const next = !open
-      if (next && !result && !loading) loadDiagram()
-      return next
-    })
-  }
-
-  const summary = result
-    ? `${result.nodeCount} модулей, ${result.edgeCount} связей${result.truncated ? '+' : ''}`
-    : 'граф import/require'
-
-  return (
-    <div className={styles.section}>
-      <div className={styles.header}>
-        <div className={styles.info}>
-          <span className={styles.icon}>🧭</span>
-          <span className={styles.title}>Зависимости модулей: {summary}</span>
-        </div>
-        <div className={styles.actions}>
-          <button type="button" className={styles.btnToggle} onClick={toggleExpanded}>
-            {expanded ? 'Скрыть' : 'Показать'}
-          </button>
-          {expanded && (
-            <button
-              type="button"
-              className={styles.btnToggle}
-              onClick={loadDiagram}
-              disabled={loading}
-            >
-              {loading ? '…' : 'Обновить'}
-            </button>
-          )}
-        </div>
-      </div>
-      {expanded && (
-        <div className={styles.diagramWrap}>
-          {loading && <div className={styles.hint}>Построение графа…</div>}
-          {error && <div className={styles.error}>{error}</div>}
-          {!loading && result && result.nodeCount > 0 && (
-            <>
-              <MermaidDiagram chart={result.mermaid} />
-              <div className={styles.hint}>
-                Просмотрено файлов: {result.filesScanned}
-                {result.truncated ? '. Граф обрезан по лимиту узлов/рёбер.' : ''}
-              </div>
-            </>
-          )}
-          {!loading && result && result.nodeCount === 0 && (
-            <div className={styles.hint}>
-              Относительных импортов не найдено (просмотрено файлов: {result.filesScanned}).
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function DataflowDiagramSection({ projectPath }: { projectPath: string }) {
-  const [result, setResult] = useState<DataflowDiagramResult | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [expanded, setExpanded] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
-    setResult(null)
-    setError(null)
-    setExpanded(false)
-  }, [projectPath])
+    loadDiagram()
+    // loadDiagram closes over the current projectPath/kind pair.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectPath, kind])
 
-  const loadDiagram = () => {
-    if (!hasCodeviperApi('buildDataflowDiagram')) {
-      setError(SHELL_UPGRADE_HINT)
-      return
-    }
-    setLoading(true)
-    setError(null)
-    void window.codeviper
-      .buildDataflowDiagram(projectPath)
-      .then((diagram) => setResult(diagram))
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : String(err))
-        setResult(null)
-      })
-      .finally(() => setLoading(false))
-  }
-
-  const toggleExpanded = () => {
-    setExpanded((open) => {
-      const next = !open
-      if (next && !result && !loading) loadDiagram()
-      return next
-    })
-  }
-
-  const summary = result
-    ? `${result.nodeCount} узлов, ${result.edgeCount} потоков${result.truncated ? '+' : ''}`
-    : 'IPC / HTTP / FS'
+  const hasContent = result ? (isDependencies ? result.nodeCount > 0 : result.edgeCount > 0) : false
+  const emptyText = isDependencies
+    ? `Относительных импортов не найдено (просмотрено файлов: ${result?.filesScanned ?? 0}).`
+    : `IPC/HTTP/FS потоки не найдены (просмотрено файлов: ${result?.filesScanned ?? 0}).`
+  const loadingText = isDependencies ? 'Построение графа...' : 'Построение DFD...'
+  const title = isDependencies
+    ? 'Зависимости модулей: граф import/require'
+    : 'Потоки данных: IPC / HTTP / FS'
+  const icon = isDependencies ? '🧭' : '🔀'
+  const truncatedText = isDependencies
+    ? '. Граф обрезан по лимиту узлов/рёбер.'
+    : '. DFD обрезан по лимиту узлов/потоков.'
 
   return (
-    <div className={styles.section}>
-      <div className={styles.header}>
-        <div className={styles.info}>
-          <span className={styles.icon}>🔀</span>
-          <span className={styles.title}>Потоки данных: {summary}</span>
-        </div>
-        <div className={styles.actions}>
-          <button type="button" className={styles.btnToggle} onClick={toggleExpanded}>
-            {expanded ? 'Скрыть' : 'Показать'}
-          </button>
-          {expanded && (
+    <div className={styles.windowOverlay} role="dialog" aria-modal="true" aria-label={title}>
+      <div className={styles.window}>
+        <div className={styles.windowHeader}>
+          <div className={styles.info}>
+            <span className={styles.icon}>{icon}</span>
+            <span className={styles.title}>{title}</span>
+          </div>
+          <div className={styles.actions}>
             <button
               type="button"
               className={styles.btnToggle}
               onClick={loadDiagram}
               disabled={loading}
             >
-              {loading ? '…' : 'Обновить'}
+              {loading ? '...' : 'Обновить'}
             </button>
-          )}
+            <button type="button" className={styles.btnDismiss} onClick={onClose}>
+              Закрыть
+            </button>
+          </div>
         </div>
-      </div>
-      {expanded && (
-        <div className={styles.diagramWrap}>
-          {loading && <div className={styles.hint}>Построение DFD…</div>}
+        <div className={styles.windowBody}>
+          {loading && <div className={styles.hint}>{loadingText}</div>}
           {error && <div className={styles.error}>{error}</div>}
-          {!loading && result && result.edgeCount > 0 && (
+          {!loading && result && hasContent && (
             <>
               <MermaidDiagram chart={result.mermaid} />
               <div className={styles.hint}>
                 Просмотрено файлов: {result.filesScanned}
-                {result.truncated ? '. DFD обрезан по лимиту узлов/потоков.' : ''}
+                {result.truncated ? truncatedText : ''}
               </div>
             </>
           )}
-          {!loading && result && result.edgeCount === 0 && (
-            <div className={styles.hint}>
-              IPC/HTTP/FS потоки не найдены (просмотрено файлов: {result.filesScanned}).
-            </div>
-          )}
+          {!loading && result && !hasContent && <div className={styles.hint}>{emptyText}</div>}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -304,8 +229,19 @@ export function ArchitecturePanel({ projectPath }: Props) {
           onDismiss={() => setCyclesDismissed(true)}
         />
       )}
-      <DependencyDiagramSection projectPath={projectPath} />
-      <DataflowDiagramSection projectPath={projectPath} />
     </div>
   )
+}
+
+export function ArchitectureGraphWindow({
+  projectPath,
+  kind,
+  onClose
+}: {
+  projectPath: string | null
+  kind: DiagramKind | null
+  onClose: () => void
+}) {
+  if (!projectPath || !kind) return null
+  return <ArchitectureDiagramWindow projectPath={projectPath} kind={kind} onClose={onClose} />
 }
