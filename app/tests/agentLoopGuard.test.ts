@@ -10,7 +10,9 @@ import {
 import {
   EXPLORATION_STALL_NUDGE,
   EXPLORATION_STALL_ABORT_MESSAGE,
-  DUPLICATE_TOOL_BATCH_NUDGE
+  DUPLICATE_TOOL_BATCH_NUDGE,
+  CROSS_STEP_TOOL_REPEAT_NUDGE,
+  IDENTICAL_ASSISTANT_NUDGE
 } from '../shared/actionVerification'
 import type { AgentSettings } from '../src/types'
 import type { ModelRuntime } from '../electron/main/modelRuntime'
@@ -88,6 +90,42 @@ describe('LoopGuard', () => {
       loopGuard.checkDuplicateToolBatch(batchA)
       expect(loopGuard.checkDuplicateToolBatch(batchB)).toBeNull()
       expect(loopGuard.checkDuplicateToolBatch(batchB)).toBe(DUPLICATE_TOOL_BATCH_NUDGE)
+    })
+  })
+
+  describe('checkIdenticalAssistantResponse', () => {
+    it('nudge при повторе того же текста assistant с tool_calls', () => {
+      const text =
+        'Я реализую инструмент find_commit_message_issues. Сначала изучу структуру проекта.'
+      expect(loopGuard.checkIdenticalAssistantResponse(text, true)).toBeNull()
+      loopGuard.noteAssistantResponseWithTools(text, true)
+      expect(loopGuard.checkIdenticalAssistantResponse(text, true)).toBe(IDENTICAL_ASSISTANT_NUDGE)
+    })
+  })
+
+  describe('checkCrossStepToolRepeats', () => {
+    it('nudge при двух повторах сигнатур из прошлого шага', () => {
+      const sigA = 'find_files:{"pattern":"*commitMessage*"}'
+      const sigB = 'find_files:{"pattern":"*gitTools*"}'
+      loopGuard.markToolSignaturesExecuted([sigA, sigB])
+      const nudge = loopGuard.checkCrossStepToolRepeats(
+        [sigA, sigB, 'find_files:{"pattern":"agentTools"}'],
+        true
+      )
+      expect(nudge).toBe(CROSS_STEP_TOOL_REPEAT_NUDGE)
+    })
+
+    it('не nudge для non-mutation задачи', () => {
+      loopGuard.markToolSignaturesExecuted([
+        'find_files:{"pattern":"a"}',
+        'find_files:{"pattern":"b"}'
+      ])
+      expect(
+        loopGuard.checkCrossStepToolRepeats(
+          ['find_files:{"pattern":"a"}', 'find_files:{"pattern":"b"}'],
+          false
+        )
+      ).toBeNull()
     })
   })
 

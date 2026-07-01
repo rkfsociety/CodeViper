@@ -272,6 +272,9 @@ export type NudgeTraceSource =
   | 'exploration_stall'
   | 'require_tool'
   | 'duplicate_tool_batch'
+  | 'cross_step_repeat'
+  | 'identical_assistant'
+  | 'task_files'
 
 export function buildNudgeTraceData(
   step: number,

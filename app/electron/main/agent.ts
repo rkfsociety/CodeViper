@@ -55,6 +55,11 @@ import { ContextManager } from './agentContextManager'
 import { ToolExecutor, PARALLEL_SAFE_TOOLS } from './agentToolExecutor'
 import { parseToolArgs } from './parseToolArgs'
 import { buildToolBatchSignature, normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
+import {
+  buildTaskFilesUnreadNudge,
+  extractTaskFileBasenames,
+  wasAnyTaskFileRead
+} from '../../shared/taskFileHints'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
 import {
@@ -702,9 +707,33 @@ export class AgentRunner {
           const batchSignatures = toolCalls.map((tc) =>
             normalizeToolLoopSignature(tc.function.name, parseToolArgs(tc.function.arguments ?? {}))
           )
-          const batchNudge = loopGuard.checkDuplicateToolBatch(
-            buildToolBatchSignature(batchSignatures)
-          )
+          const batchSig = buildToolBatchSignature(batchSignatures)
+          const mutationTask = taskLikelyNeedsMutation(userMessage)
+
+          const identicalNudge = loopGuard.checkIdenticalAssistantResponse(assistantText, true)
+          if (identicalNudge) {
+            const tokens = requestTokens
+            const llmResponseTrace = buildLlmResponseTraceData({
+              step,
+              durationMs,
+              tokens,
+              inputTokens: response.metrics?.requestInputTokens,
+              outputTokens: response.metrics?.requestOutputTokens,
+              toksPerSec:
+                response.metrics?.tokensPerSec != null
+                  ? Math.round(response.metrics.tokensPerSec * 10) / 10
+                  : undefined,
+              text: assistantText,
+              thinking: assistantThinking,
+              toolCalls: toolCalls.map((tc) => tc.function.name)
+            })
+            this.emitter.trace('llm_response', llmResponseTrace.label, llmResponseTrace.data)
+            this.pushNudge(messages, step, 'identical_assistant', identicalNudge)
+            requireToolNext = true
+            continue
+          }
+
+          const batchNudge = loopGuard.checkDuplicateToolBatch(batchSig)
           if (batchNudge) {
             const tokens = requestTokens
             const llmResponseTrace = buildLlmResponseTraceData({
@@ -723,6 +752,29 @@ export class AgentRunner {
             })
             this.emitter.trace('llm_response', llmResponseTrace.label, llmResponseTrace.data)
             this.pushNudge(messages, step, 'duplicate_tool_batch', batchNudge)
+            requireToolNext = true
+            continue
+          }
+
+          const crossStepNudge = loopGuard.checkCrossStepToolRepeats(batchSignatures, mutationTask)
+          if (crossStepNudge) {
+            const tokens = requestTokens
+            const llmResponseTrace = buildLlmResponseTraceData({
+              step,
+              durationMs,
+              tokens,
+              inputTokens: response.metrics?.requestInputTokens,
+              outputTokens: response.metrics?.requestOutputTokens,
+              toksPerSec:
+                response.metrics?.tokensPerSec != null
+                  ? Math.round(response.metrics.tokensPerSec * 10) / 10
+                  : undefined,
+              text: assistantText,
+              thinking: assistantThinking,
+              toolCalls: toolCalls.map((tc) => tc.function.name)
+            })
+            this.emitter.trace('llm_response', llmResponseTrace.label, llmResponseTrace.data)
+            this.pushNudge(messages, step, 'cross_step_repeat', crossStepNudge)
             requireToolNext = true
             continue
           }
@@ -776,6 +828,10 @@ export class AgentRunner {
               : {})
           }
           messages.push(assistantMsg)
+        }
+
+        if (toolCalls.length > 0) {
+          loopGuard.noteAssistantResponseWithTools(assistantText, true)
         }
 
         if (!toolCalls.length) {
@@ -1014,6 +1070,25 @@ export class AgentRunner {
             }
             continue
           }
+        }
+
+        if (toolCalls.length > 0) {
+          const executedSignatures = toolCalls.map((tc) =>
+            normalizeToolLoopSignature(tc.function.name, parseToolArgs(tc.function.arguments ?? {}))
+          )
+          loopGuard.markToolSignaturesExecuted(executedSignatures)
+        }
+
+        const taskFileBasenames = extractTaskFileBasenames(userMessage)
+        if (
+          taskFileBasenames.length &&
+          step <= 2 &&
+          taskLikelyNeedsMutation(userMessage) &&
+          !wasAnyTaskFileRead(messages, taskFileBasenames)
+        ) {
+          this.pushNudge(messages, step, 'task_files', buildTaskFilesUnreadNudge(taskFileBasenames))
+          requireToolNext = true
+          continue
         }
 
         const stallResult = loopGuard.checkExplorationStall(

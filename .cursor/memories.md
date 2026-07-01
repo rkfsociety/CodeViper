@@ -25,6 +25,12 @@
 
 ## Trace-отчёты
 
+**2026-07-01 · trace 1782936461204 — identical assistant + cross-step find_files (find_commit_message_issues)**  
+- Задача: ROADMAP `find_commit_message_issues`, claude-haiku-4.5-cheap:free (literouter).  
+- Корень: шаг 2 — тот же текст assistant и повтор *commitMessage*/*gitTools* find_files; list_directory/read_file src (ENOENT) несмотря на подсказку app/src; файлы из «Файлы:» не читались. duplicate_tool_batch не срабатывал (набор отличался).  
+- Фикс: `checkIdenticalAssistantResponse`, `checkCrossStepToolRepeats`, nudge «Файлы» (`taskFileHints.ts`); repeat-hint для list_directory.  
+- Тесты: `agentLoopGuard.test.ts`, `taskFileHints.test.ts`.
+
 **2026-07-01 · trace 1782935231774 — Reviewer subagent JSON.parse("")**  
 - Задача: code review → автоделегирование Reviewer, literouter.  
 - Корень: `subagentRunner` вызывал `JSON.parse("")` на пустых native tool args от cloud-провайдера → `Unexpected end of JSON input`.  

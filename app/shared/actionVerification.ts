@@ -297,6 +297,13 @@ export const DUPLICATE_TOOL_BATCH_NUDGE = `⚠️ Ты повторяешь то
 Не вызывай снова project_stats / find_files / list_directory с теми же аргументами.
 Прочитай найденные файлы (read_file) и переходи к правкам (write_file / edit_file), либо смени стратегию.`
 
+export const CROSS_STEP_TOOL_REPEAT_NUDGE = `⚠️ Ты повторяешь инструменты с теми же аргументами, что уже вызывал на прошлом шаге — ответы уже в истории.
+Не вызывай снова find_files / list_directory / read_file с теми же путями.
+Прочитай найденные файлы из задачи и переходи к правкам (edit_file / write_file).`
+
+export const IDENTICAL_ASSISTANT_NUDGE = `⚠️ Ты повторяешь тот же текст ответа, что и на прошлом шаге — это признак застревания.
+Не повторяй разведку: прочитай файлы из поля «Файлы» задачи и начни правки (edit_file / write_file).`
+
 export const EXPLORATION_STALL_NUDGE = `⚠️ Достаточно разведки — несколько шагов подряд только чтение/поиск без правок.
 Задача требует изменения кода: вызови edit_file / preview_patch / write_file.
 Не перечитывай те же файлы — правь файлы из задачи.`

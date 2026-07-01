@@ -8,7 +8,9 @@ import {
   pickFakeToolOutputNudge,
   EXPLORATION_STALL_NUDGE,
   EXPLORATION_STALL_ABORT_MESSAGE,
-  DUPLICATE_TOOL_BATCH_NUDGE
+  DUPLICATE_TOOL_BATCH_NUDGE,
+  CROSS_STEP_TOOL_REPEAT_NUDGE,
+  IDENTICAL_ASSISTANT_NUDGE
 } from '../../shared/actionVerification'
 import { escalateModel } from '../../shared/modelRouter'
 import {
@@ -40,6 +42,8 @@ export class LoopGuard {
   private consecutiveSameToolCount = 0
   private lastToolBatchSignature: string | null = null
   private consecutiveDuplicateBatchCount = 0
+  private readonly executedToolSignatures = new Set<string>()
+  private lastAssistantTextWithTools: string | null = null
   private readonly toolCallCounts = new Map<string, number>()
   private verificationRetries = 0
   private verificationNoticeSent = false
@@ -87,6 +91,39 @@ export class LoopGuard {
       return DUPLICATE_TOOL_BATCH_NUDGE
     }
     return null
+  }
+
+  /** Тот же текст assistant на соседних шагах с tool_calls — застрявшая cloud-модель. */
+  checkIdenticalAssistantResponse(assistantText: string, hasToolCalls: boolean): string | null {
+    const normalized = assistantText.trim()
+    if (!hasToolCalls || !normalized) return null
+    if (normalized === this.lastAssistantTextWithTools) {
+      return IDENTICAL_ASSISTANT_NUDGE
+    }
+    return null
+  }
+
+  noteAssistantResponseWithTools(assistantText: string, hasToolCalls: boolean): void {
+    if (!hasToolCalls) return
+    const normalized = assistantText.trim()
+    if (normalized) this.lastAssistantTextWithTools = normalized
+  }
+
+  /** Повтор tool call с теми же args на другом шаге (find_files уже в истории). */
+  checkCrossStepToolRepeats(signatures: string[], mutationTask: boolean): string | null {
+    if (!mutationTask || !signatures.length) return null
+    let repeats = 0
+    for (const sig of signatures) {
+      if (this.executedToolSignatures.has(sig)) repeats++
+    }
+    if (repeats >= 2) return CROSS_STEP_TOOL_REPEAT_NUDGE
+    return null
+  }
+
+  markToolSignaturesExecuted(signatures: string[]): void {
+    for (const sig of signatures) {
+      if (sig) this.executedToolSignatures.add(sig)
+    }
   }
 
   /** Проверяет суммарное число вызовов инструмента. Возвращает нудж если лимит превышен. */
