@@ -6,6 +6,7 @@ import { registerLiveRuntimeTraceIpc } from './ipc/registerLiveRuntimeTraceIpc'
 import { registerLiveRuntimeGithubTraceIpc } from './ipc/registerLiveRuntimeGithubTraceIpc'
 import { registerLiveRuntimeUiLayoutIpc } from './ipc/registerLiveRuntimeUiLayoutIpc'
 import { installLiveShellRendererReload } from './liveShellBootstrap'
+import { getRuntimeBuildHead } from './bundledSourceBuild'
 
 let liveShellExtrasInstalled = false
 
@@ -18,7 +19,6 @@ export function ensureLiveRuntimeExtras(): void {
   registerLiveRuntimeUiLayoutIpc()
   installLiveShellRendererReload()
   void (async () => {
-    const { getRuntimeBuildHead } = await import('./bundledSourceBuild')
     const head = getRuntimeBuildHead()
     if (!head) return
     const { recordRuntimeAppliedHead } = await import('./runtimeUpdateState')

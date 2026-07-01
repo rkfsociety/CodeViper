@@ -14,7 +14,10 @@ import {
 } from '../../shared/constants'
 import { loadSettings, saveSettings } from './settings'
 import { cliSpawnBase } from './windowsGitEnv'
-import type { BundledSourceBuildResult } from './bundledSourceBuild'
+import {
+  maybeBuildBundledSourceAfterSync,
+  type BundledSourceBuildResult
+} from './bundledSourceBuild'
 import type { GitRunResult } from './bundledGit'
 import { getBundledSourceRoot, getBundledSourceAppRoot } from './bundledSourcePaths'
 export { getBundledSourceRoot } from './bundledSourcePaths'
@@ -382,7 +385,6 @@ export async function resolveMaybeBuildAfterSync(): Promise<MaybeBuildAfterSyncF
     }
   }
 
-  const { maybeBuildBundledSourceAfterSync } = await import('./bundledSourceBuild')
   return maybeBuildBundledSourceAfterSync
 }
 
@@ -468,7 +470,6 @@ export async function forceSyncBundledSource(): Promise<ForceBundledSourceSyncRe
     }
   }
 
-  const { maybeBuildBundledSourceAfterSync } = await import('./bundledSourceBuild')
   const buildResult = await maybeBuildBundledSourceAfterSync(syncResult, { force: true })
 
   if (buildResult?.error) {

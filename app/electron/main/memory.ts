@@ -8,6 +8,7 @@ import type { MemoryCategory, MemoryEntry, MemoryScope, MemoryStore } from '../.
 import { upsertEmbedding, removeEmbedding, semanticSearch } from './embeddings'
 import { renderMemoryMarkdown } from './memoryMarkdown'
 import { loadScores, COLLECTIVE_SCORE_HIDE_THRESHOLD } from './collectiveScores'
+import { readCollectiveMemoryEntries } from './collectiveMemorySync'
 export { parseMemoryMarkdown, renderMemoryMarkdown, MEMORY_STORE_MARKER } from './memoryMarkdown'
 
 export const MEMORY_FILENAME = 'ViperMemory.md'
@@ -205,7 +206,6 @@ export async function listMemories(
   const s = storages ?? defaultStorages(projectPath)
   const global = await s.global.read()
   const project = projectPath ? await s.project.read() : emptyStore()
-  const { readCollectiveMemoryEntries } = await import('./collectiveMemorySync')
   const rawCollective = await readCollectiveMemoryEntries()
   const scores = await loadScores()
   const collective = rawCollective

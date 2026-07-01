@@ -11,6 +11,9 @@ import {
 import { runCommandInAppRoot } from './codeviperSource'
 import { getBundledSourceRoot } from './bundledSourcePaths'
 import { runBundledGit } from './bundledGit'
+import { loadSettings } from './settings'
+import { initBundledRuntimeFromSettings, initBundledShellPaths } from './runtimeBootstrap'
+import { reloadAllWindowsRendererFromClone } from './liveShellBootstrap'
 
 export interface BundledSourceSyncResult {
   updated: boolean
@@ -214,13 +217,9 @@ export function shouldBuildBundledSourceAfterSync(
 /** Частичный hot-reload handlers после сборки; UI/preload требуют relaunch .exe. */
 async function tryApplyRuntimeWithoutRelaunch(): Promise<void> {
   try {
-    const { loadSettings } = await import('./settings')
     const settings = await loadSettings()
-    const { initBundledRuntimeFromSettings, initBundledShellPaths } =
-      await import('./runtimeBootstrap')
     await initBundledRuntimeFromSettings(settings)
     initBundledShellPaths(settings.liveRuntimeFromGit !== false)
-    const { reloadAllWindowsRendererFromClone } = await import('./liveShellBootstrap')
     await reloadAllWindowsRendererFromClone()
   } catch {
     /* fallback: пользователь перезапустит по баннеру */

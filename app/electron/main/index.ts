@@ -44,6 +44,7 @@ import type { AgentSettings, AgentStreamPayload } from '../../src/types'
 import { IPC } from '../../shared/ipcContracts'
 import { healthCheckMcpServers } from './mcpRegistry'
 import { runBundledSourceStartupSync } from './bundledSourceSync'
+import { getRuntimeBuildHead } from './bundledSourceBuild'
 import {
   initBundledRuntimeFromSettings,
   initBundledShellPaths,
@@ -423,7 +424,6 @@ app.whenReady().then(async () => {
   await initBundledRuntimeFromSettings(settings)
   if (isBundledRuntimeFromClone()) {
     void import('./runtimeUpdateState').then(async ({ recordRuntimeAppliedHead }) => {
-      const { getRuntimeBuildHead } = await import('./bundledSourceBuild')
       const head = getRuntimeBuildHead()
       if (head) await recordRuntimeAppliedHead(head)
     })
