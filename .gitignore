@@ -17,6 +17,7 @@ app/.pending-restart
 app/docs-api
 app/test-results/
 app/playwright-report/
+app/test-userdata-plugin-catalog/
 CodeViper.exe
 CodeViper-Setup.exe
 CodeViper-new.exe
