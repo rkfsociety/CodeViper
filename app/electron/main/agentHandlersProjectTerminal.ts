@@ -27,7 +27,7 @@ import {
   type AutomationRule
 } from './automationScheduler'
 import { findSettingsPathIssues, formatSettingsPathIssuesOutput } from './settingsPathAnalysis'
-import { findDockerPortIssues } from './dockerComposeAnalysis'
+import { findDockerEnvIssues, findDockerPortIssues } from './dockerComposeAnalysis'
 import { loadSettings } from './settings'
 
 function formatEslintOutput(filePath: string, stdout: string): string {
@@ -493,6 +493,15 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
       try {
         emitProgress('РџСЂРѕРІРµСЂРєР° docker-compose портоввЂ¦', null)
         return await findDockerPortIssues(projectPath, { path: args.path })
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_docker_env_issues: async (args: any) => {
+      try {
+        emitProgress('Проверка docker-compose environment…', null)
+        return await findDockerEnvIssues(projectPath, { path: args.path })
       } finally {
         clearProgress()
       }

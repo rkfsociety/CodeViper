@@ -12,8 +12,16 @@ export type DockerPortIssue = {
   message: string
 }
 
+export type DockerEnvIssue = {
+  service: string
+  file: string
+  type: 'missing-env-example'
+  key: string
+  message: string
+}
+
 export type DockerComposeAnalysisResult = {
-  issues: DockerPortIssue[]
+  issues: Array<DockerPortIssue | DockerEnvIssue>
 }
 
 function toStringValue(value: unknown): string {
@@ -71,6 +79,58 @@ function collectServicePorts(
     existing.push({ service: serviceName, file: composeFile, mapping: mappingText })
     hostPorts.set(mapping.hostPort, existing)
   }
+}
+
+function parseEnvFile(text: string): Set<string> {
+  const keys = new Set<string>()
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=/)
+    if (match) keys.add(match[1]!)
+  }
+  return keys
+}
+
+function collectEnvKeysFromValue(value: unknown, keys: Set<string>): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (typeof entry !== 'string') continue
+      const trimmed = entry.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*(?::|=)/)
+      if (match) keys.add(match[1]!)
+    }
+    return
+  }
+
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      if (key.trim()) keys.add(key)
+    }
+  }
+}
+
+async function resolveEnvFiles(projectPath: string): Promise<{
+  envExample: Set<string>
+  env: Set<string>
+}> {
+  const envExample = new Set<string>()
+  const env = new Set<string>()
+
+  for (const [fileName, target] of [
+    ['.env.example', envExample],
+    ['.env', env]
+  ] as const) {
+    try {
+      const raw = await readFile(resolve(projectPath, fileName), 'utf8')
+      for (const key of parseEnvFile(raw)) target.add(key)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return { envExample, env }
 }
 
 async function resolveComposeFilePath(projectPath: string, path?: string): Promise<string | null> {
@@ -167,4 +227,54 @@ export async function findDockerPortIssues(
     )
   })
   return lines.join('\n')
+}
+
+export async function findDockerEnvIssues(
+  projectPath: string,
+  options: { path?: string } = {}
+): Promise<string> {
+  const composeFile = await resolveComposeFilePath(projectPath, options.path)
+  if (!composeFile) return 'docker-compose.yml не найден'
+  const compose = await readComposeFile(composeFile)
+  if (!compose) return `docker-compose.yml не найден или не удалось прочитать: ${composeFile}`
+
+  const services = compose.services
+  if (!services || typeof services !== 'object' || Array.isArray(services)) {
+    return 'docker-compose.yml: секция services не найдена'
+  }
+
+  const { envExample, env } = await resolveEnvFiles(projectPath)
+  const issues: DockerEnvIssue[] = []
+
+  for (const [serviceName, rawService] of Object.entries(services as Record<string, unknown>)) {
+    if (!rawService || typeof rawService !== 'object' || Array.isArray(rawService)) continue
+    const service = rawService as Record<string, unknown>
+    const envKeys = new Set<string>()
+    collectEnvKeysFromValue(service.environment, envKeys)
+    collectEnvKeysFromValue(service.env_file, envKeys)
+
+    for (const key of envKeys) {
+      if (envExample.has(key)) continue
+      issues.push({
+        service: serviceName,
+        file: composeFile,
+        type: 'missing-env-example',
+        key,
+        message:
+          env.has(key) && !envExample.has(key)
+            ? `переменная ${key} есть в .env, но отсутствует в .env.example`
+            : `переменная ${key} отсутствует в .env.example`
+      })
+    }
+  }
+
+  if (!issues.length)
+    return 'Переменных docker-compose environment, отсутствующих в .env.example, не найдено.'
+
+  return [
+    `Найдено ${issues.length} проблем docker-compose environment:`,
+    ...issues.map(
+      (issue, index) => `[${index + 1}] ${issue.service} (${issue.file})\n    ${issue.message}`
+    )
+  ].join('\n')
 }

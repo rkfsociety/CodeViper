@@ -850,6 +850,22 @@ export const FILE_TOOLS = [
         }
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_docker_env_issues',
+      description: 'Отчёт о переменных из docker-compose environment, отсутствующих в .env.example',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Путь к docker-compose.yml или папке проекта (необязательно)'
+          }
+        }
+      }
+    }
   }
 ] as const
 
