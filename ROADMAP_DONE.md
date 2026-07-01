@@ -35,6 +35,7 @@
 - Документация live runtime: README, `docs/development.md`
 
 ### Архитектура и рефакторинг
+- `find_docker_env_issues`: report for `docker-compose` `environment` variables missing from `.env.example`.
 - `find_skill_file_issues`: отчёт о битых SKILL.md, пустых trigger и дубликатах trigger при cross-check с `list_skills`
 - Авто-обнаружение циклов импортов: `findImportCycles` в `symbolIndex.ts`, предупреждение в чате через `ArchitecturePanel`
 - IPC → 9 модулей `register*Ipc`; `agentTools` → core/integrations/mcp; `agentHandlersProject` → file/search/terminal

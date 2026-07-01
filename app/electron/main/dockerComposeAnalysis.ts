@@ -123,11 +123,19 @@ function parseEnvFile(text: string): Set<string> {
 function collectEnvKeysFromValue(value: unknown, keys: Set<string>): void {
   if (Array.isArray(value)) {
     for (const entry of value) {
-      if (typeof entry !== 'string') continue
-      const trimmed = entry.trim()
-      if (!trimmed || trimmed.startsWith('#')) continue
-      const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*(?::|=)/)
-      if (match) keys.add(match[1]!)
+      if (typeof entry === 'string') {
+        const trimmed = entry.trim()
+        if (!trimmed || trimmed.startsWith('#')) continue
+        const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\s*(?::|=).*)?$/)
+        if (match) keys.add(match[1]!)
+        continue
+      }
+
+      if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+        for (const key of Object.keys(entry as Record<string, unknown>)) {
+          if (key.trim()) keys.add(key)
+        }
+      }
     }
     return
   }

@@ -114,4 +114,43 @@ SECRET_KEY=dev-secret
       rmSync(dir, { recursive: true, force: true })
     }
   })
+
+  it('reports list-style passthrough env keys missing from .env.example', async () => {
+    const dir = initTempProject()
+    try {
+      writeFileSync(
+        join(dir, 'docker-compose.yml'),
+        `services:
+  app:
+    image: node
+    environment:
+      - API_URL=https://example.test
+      - SECRET_KEY
+      - DEBUG:
+`,
+        'utf8'
+      )
+      writeFileSync(
+        join(dir, '.env.example'),
+        `API_URL=https://example.test
+DEBUG=false
+`,
+        'utf8'
+      )
+      writeFileSync(
+        join(dir, '.env'),
+        `SECRET_KEY=dev-secret
+`,
+        'utf8'
+      )
+
+      const result = await findDockerEnvIssues(dir)
+      expect(result).toMatch(/SECRET_KEY/)
+      expect(result).toMatch(/\.env/)
+      expect(result).not.toMatch(/API_URL/)
+      expect(result).not.toMatch(/DEBUG/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
