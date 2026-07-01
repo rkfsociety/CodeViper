@@ -6,6 +6,7 @@ import type {
   ImportCycleResult
 } from '../types'
 import { MermaidDiagram } from './MermaidDiagram'
+import { PanZoomViewport } from './PanZoomViewport'
 import styles from './ArchitecturePanel.module.css'
 
 interface Props {
@@ -164,7 +165,9 @@ function ArchitectureDiagramWindow({
           {error && <div className={styles.error}>{error}</div>}
           {!loading && result && hasContent && (
             <>
-              <MermaidDiagram chart={result.mermaid} />
+              <PanZoomViewport>
+                <MermaidDiagram chart={result.mermaid} interactive />
+              </PanZoomViewport>
               <div className={styles.hint}>
                 Просмотрено файлов: {result.filesScanned}
                 {result.truncated ? truncatedText : ''}

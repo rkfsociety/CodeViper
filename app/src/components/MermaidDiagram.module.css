@@ -4,9 +4,20 @@
   padding: 8px 0;
 }
 
+.diagramInteractive {
+  overflow: visible;
+  max-width: none;
+  padding: 16px;
+}
+
 .diagram :global(svg) {
   max-width: 100%;
   height: auto;
+}
+
+.diagramInteractive :global(svg) {
+  max-width: none;
+  display: block;
 }
 
 .error {

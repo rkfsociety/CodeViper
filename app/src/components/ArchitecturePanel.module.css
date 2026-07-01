@@ -138,10 +138,6 @@
   flex: 1;
   flex-direction: column;
   gap: 10px;
-  overflow: auto;
+  overflow: hidden;
   padding: 14px;
-}
-
-.windowBody :global(.mermaid-diagram) {
-  min-height: 100%;
 }

@@ -4,9 +4,11 @@ import styles from './MermaidDiagram.module.css'
 interface Props {
   chart: string
   className?: string
+  /** Без ограничения ширины — для pan/zoom в больших графах */
+  interactive?: boolean
 }
 
-export function MermaidDiagram({ chart, className }: Props) {
+export function MermaidDiagram({ chart, className, interactive = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,5 +56,10 @@ export function MermaidDiagram({ chart, className }: Props) {
     )
   }
 
-  return <div ref={containerRef} className={`${styles.diagram} ${className ?? ''}`} />
+  return (
+    <div
+      ref={containerRef}
+      className={`${styles.diagram} ${interactive ? styles.diagramInteractive : ''} ${className ?? ''}`}
+    />
+  )
 }
