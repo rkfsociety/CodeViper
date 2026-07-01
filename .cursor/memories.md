@@ -22,3 +22,10 @@
 **2026-06-30 · ROADMAP_DONE — формат записи (appendRoadmapDoneItem)**  
 - `complete_self_improvement_item` пишет в `ROADMAP_DONE.md` через `formatRoadmapDoneEntry`: **одна строка** `- Название: цель`, не `formatRoadmapItemDetail` (полный шаблон Цель/Файлы/Действие).  
 - Дубликаты по заголовку не дописываются повторно.
+
+## Trace-отчёты
+
+**2026-07-01 · trace 1782898738171 — find_files: __dirname is not defined**  
+- Задача: ROADMAP `find_magic_numbers` (уровень 3). Агент зациклился на `find_files` (~30+ вызовов), `list_directory` работал.  
+- Корень: `fileSearchInWorker.ts` — `join(__dirname, 'fileSearchWorker.js')` в ESM-бандле live runtime из git-клона.  
+- Фикс: `getElectronMainDir()` (`import.meta.url` fallback) в `electronMainDir.ts`; то же для `embeddingQueue` / `largeFileQueue`.

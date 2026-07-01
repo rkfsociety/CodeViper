@@ -1,6 +1,7 @@
 import { Worker } from 'worker_threads'
 import { join } from 'path'
 import { stat } from 'fs/promises'
+import { getElectronMainDir } from './electronMainDir'
 import type { GrepMatch } from './fileSearch'
 import { MAX_GREP_RESULTS, MAX_FIND_RESULTS } from './fileSearch'
 
@@ -77,7 +78,7 @@ async function grepCacheSet(
 
 function runWorker<T>(req: object, onProgress?: (scanned: number) => void): Promise<T> {
   return new Promise((resolve, reject) => {
-    const workerPath = join(__dirname, 'fileSearchWorker.js')
+    const workerPath = join(getElectronMainDir(), 'fileSearchWorker.js')
     const worker = new Worker(workerPath, { workerData: req })
 
     worker.on('message', (msg: { type: string; scanned?: number; data?: T; message?: string }) => {

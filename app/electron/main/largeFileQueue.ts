@@ -1,5 +1,6 @@
 import { Worker } from 'worker_threads'
 import { join } from 'path'
+import { getElectronMainDir } from './electronMainDir'
 
 interface PendingRequest {
   resolve: (content: string) => void
@@ -13,7 +14,7 @@ const pending = new Map<number, PendingRequest>()
 function getWorker(): Worker {
   if (worker) return worker
 
-  worker = new Worker(join(__dirname, 'largeFileWorker.js'))
+  worker = new Worker(join(getElectronMainDir(), 'largeFileWorker.js'))
 
   worker.on(
     'message',

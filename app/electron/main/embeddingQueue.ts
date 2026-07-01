@@ -1,5 +1,6 @@
 import { Worker } from 'worker_threads'
 import { join } from 'path'
+import { getElectronMainDir } from './electronMainDir'
 import { PROJECT_INDEX_DEBOUNCE_MS } from '../../shared/constants'
 import { EMBED_MODEL, cosineSimilarity } from './embeddingShared'
 
@@ -108,7 +109,7 @@ function dispatchOne(item: QueueItem): Promise<void> {
 function getWorker(): Worker {
   if (worker) return worker
 
-  worker = new Worker(join(__dirname, 'embeddingWorker.js'), {
+  worker = new Worker(join(getElectronMainDir(), 'embeddingWorker.js'), {
     workerData: { model: EMBED_MODEL }
   })
 
