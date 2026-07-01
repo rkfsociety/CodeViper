@@ -832,7 +832,8 @@ export interface CodeViperAPI {
   checkAgentPrerequisites: (
     ollamaUrl: string,
     projectPath: string,
-    skipOllamaCheck?: boolean
+    skipOllamaCheck?: boolean,
+    chatMode?: boolean
   ) => Promise<AgentPrerequisitesResult>
   loadSettings: () => Promise<AgentSettings>
   loadUiLayout: () => Promise<import('../shared/uiLayout').UiLayoutState>

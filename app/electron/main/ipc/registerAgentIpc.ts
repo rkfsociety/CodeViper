@@ -192,10 +192,12 @@ export function registerAgentIpc(ctx: IpcContext): void {
       })
 
       const skipOllama = (settings.modelProvider ?? 'ollama') !== 'ollama'
+      const chatMode = settings.chatMode === true
       const prerequisites = await checkAgentPrerequisites(
         settings.ollamaUrl,
         projectPath,
-        skipOllama
+        skipOllama,
+        chatMode
       )
       if (!prerequisites.ok) {
         stream(chatId, {
@@ -220,11 +222,11 @@ export function registerAgentIpc(ctx: IpcContext): void {
         let installed: Awaited<ReturnType<typeof fetchOllamaModels>> = []
         if (!isCloudProvider) {
           installed = await fetchOllamaModels(settings.ollamaUrl)
-          const toolInstalled = filterToolCallingModels(installed)
-          const useAuto = shouldUseAutoModel(settings.autoModel, toolInstalled.length)
+          const modelPool = chatMode ? installed : filterToolCallingModels(installed)
+          const useAuto = shouldUseAutoModel(settings.autoModel, modelPool.length)
 
           if (useAuto) {
-            const selection = selectModelForTask(userMessage, toolInstalled, settings.model)
+            const selection = selectModelForTask(userMessage, modelPool, settings.model)
             if (selection) {
               const { unloaded } = await prepareOllamaModel(settings.ollamaUrl, selection.model)
               effectiveSettings = { ...settings, model: selection.model }
@@ -234,11 +236,11 @@ export function registerAgentIpc(ctx: IpcContext): void {
                 modelReason: selection.reason,
                 content: formatModelSwitchMessage(selection.model, selection.reason, unloaded)
               })
-            } else if (!settings.model.trim() && toolInstalled[0]) {
-              effectiveSettings = { ...settings, model: toolInstalled[0].name }
+            } else if (!settings.model.trim() && modelPool[0]) {
+              effectiveSettings = { ...settings, model: modelPool[0].name }
             }
-          } else if (!effectiveSettings.model.trim() && toolInstalled[0]) {
-            effectiveSettings = { ...settings, model: toolInstalled[0].name }
+          } else if (!effectiveSettings.model.trim() && modelPool[0]) {
+            effectiveSettings = { ...settings, model: modelPool[0].name }
           }
         }
 

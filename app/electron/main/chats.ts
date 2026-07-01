@@ -235,7 +235,9 @@ export async function createChat(
     ? (index.folders.find((f) => f.id === folderId)?.projectPath ?? '')
     : ''
   const lastProjectPath =
-    folderProjectPath || (index.chats.find((c) => c.projectPath)?.projectPath ?? '')
+    mode === 'chat'
+      ? ''
+      : folderProjectPath || (index.chats.find((c) => c.projectPath)?.projectPath ?? '')
 
   const chat: SavedChat = {
     id: makeId(),

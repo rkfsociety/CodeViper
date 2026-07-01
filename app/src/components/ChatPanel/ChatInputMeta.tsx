@@ -90,83 +90,89 @@ export function ChatInputMeta({
   return (
     <div className={styles.inputMeta}>
       <div className={styles.metaLeft}>
-        <div className={styles.projectPicker} ref={projectMenuRef}>
-          <button
-            type="button"
-            className={styles.metaBtn}
-            title={
-              projectLocked
-                ? `Проект зафиксирован — чат уже содержит сообщения (${projectPath})`
-                : projectPath || 'Открыть проект'
-            }
-            onClick={!projectLocked ? () => setProjectMenuOpen((open) => !open) : undefined}
-            style={projectLocked ? { cursor: 'default' } : undefined}
-            disabled={busy && !projectLocked}
-            aria-haspopup={!projectLocked ? 'menu' : undefined}
-            aria-expanded={!projectLocked ? projectMenuOpen : undefined}
-          >
-            📁 {projectPath ? formatProjectLabel(projectPath) : 'Открыть'}
-            {!projectLocked && (
-              <span className={styles.modelChevron}>{projectMenuOpen ? '▴' : '▾'}</span>
-            )}
-            {projectLocked && <span style={{ opacity: 0.45, fontSize: 9, marginLeft: 2 }}>🔒</span>}
-          </button>
-          {projectMenuOpen && !projectLocked && (
-            <div className={styles.projectMenu} role="menu">
-              {recents.length > 0 && (
-                <>
-                  <div className={styles.projectMenuTitle}>Недавние</div>
-                  {recents.map((path) => {
-                    const isCurrent = path === projectPath
-                    return (
-                      <button
-                        key={path}
-                        type="button"
-                        role="menuitem"
-                        className={`${styles.projectMenuItem}${isCurrent ? ` ${styles.projectMenuItemActive}` : ''}`}
-                        title={path}
-                        disabled={isCurrent}
-                        onClick={() => {
-                          setProjectMenuOpen(false)
-                          onOpenRecentProject?.(path)
-                        }}
-                      >
-                        <span className={styles.projectMenuName}>
-                          {formatRecentProjectLabel(path)}
-                        </span>
-                        <span className={styles.projectMenuPath}>{path}</span>
-                      </button>
-                    )
-                  })}
-                  <div className={styles.projectMenuSep} />
-                </>
+        {!settings.chatMode && (
+          <div className={styles.projectPicker} ref={projectMenuRef}>
+            <button
+              type="button"
+              className={styles.metaBtn}
+              title={
+                projectLocked
+                  ? `Проект зафиксирован — чат уже содержит сообщения (${projectPath})`
+                  : projectPath || 'Открыть проект'
+              }
+              onClick={!projectLocked ? () => setProjectMenuOpen((open) => !open) : undefined}
+              style={projectLocked ? { cursor: 'default' } : undefined}
+              disabled={busy && !projectLocked}
+              aria-haspopup={!projectLocked ? 'menu' : undefined}
+              aria-expanded={!projectLocked ? projectMenuOpen : undefined}
+            >
+              📁 {projectPath ? formatProjectLabel(projectPath) : 'Открыть'}
+              {!projectLocked && (
+                <span className={styles.modelChevron}>{projectMenuOpen ? '▴' : '▾'}</span>
               )}
-              <button
-                type="button"
-                role="menuitem"
-                className={styles.projectMenuBrowse}
-                onClick={() => {
-                  setProjectMenuOpen(false)
-                  onPickProject()
-                }}
-              >
-                Обзор папок…
-              </button>
-            </div>
-          )}
-        </div>
+              {projectLocked && (
+                <span style={{ opacity: 0.45, fontSize: 9, marginLeft: 2 }}>🔒</span>
+              )}
+            </button>
+            {projectMenuOpen && !projectLocked && (
+              <div className={styles.projectMenu} role="menu">
+                {recents.length > 0 && (
+                  <>
+                    <div className={styles.projectMenuTitle}>Недавние</div>
+                    {recents.map((path) => {
+                      const isCurrent = path === projectPath
+                      return (
+                        <button
+                          key={path}
+                          type="button"
+                          role="menuitem"
+                          className={`${styles.projectMenuItem}${isCurrent ? ` ${styles.projectMenuItemActive}` : ''}`}
+                          title={path}
+                          disabled={isCurrent}
+                          onClick={() => {
+                            setProjectMenuOpen(false)
+                            onOpenRecentProject?.(path)
+                          }}
+                        >
+                          <span className={styles.projectMenuName}>
+                            {formatRecentProjectLabel(path)}
+                          </span>
+                          <span className={styles.projectMenuPath}>{path}</span>
+                        </button>
+                      )
+                    })}
+                    <div className={styles.projectMenuSep} />
+                  </>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.projectMenuBrowse}
+                  onClick={() => {
+                    setProjectMenuOpen(false)
+                    onPickProject()
+                  }}
+                >
+                  Обзор папок…
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={styles.metaRight}>
-        <button
-          type="button"
-          className={`${styles.metaBtn}${showRulesPanel ? ' ' + styles.metaBtnActive : ''}`}
-          title="Правила проекта (.codeviper/rules.md)"
-          onClick={() => onSetShowRules(!showRulesPanel)}
-          disabled={!projectPath}
-        >
-          📋
-        </button>
+        {!settings.chatMode && (
+          <button
+            type="button"
+            className={`${styles.metaBtn}${showRulesPanel ? ' ' + styles.metaBtnActive : ''}`}
+            title="Правила проекта (.codeviper/rules.md)"
+            onClick={() => onSetShowRules(!showRulesPanel)}
+            disabled={!projectPath}
+          >
+            📋
+          </button>
+        )}
 
         <button
           type="button"
@@ -177,15 +183,17 @@ export function ChatInputMeta({
           ☁️
         </button>
 
-        <button
-          type="button"
-          className={`${styles.metaBtn}${showQuickBar ? ' ' + styles.metaBtnActive : ''}`}
-          title="Быстрые промпты"
-          onClick={() => onSetShowQuickBar(!showQuickBar)}
-          disabled={!projectPath}
-        >
-          /
-        </button>
+        {!settings.chatMode && (
+          <button
+            type="button"
+            className={`${styles.metaBtn}${showQuickBar ? ' ' + styles.metaBtnActive : ''}`}
+            title="Быстрые промпты"
+            onClick={() => onSetShowQuickBar(!showQuickBar)}
+            disabled={!projectPath}
+          >
+            /
+          </button>
+        )}
 
         <div className={styles.modelPicker} ref={modelPickerRef}>
           <button

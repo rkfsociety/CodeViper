@@ -40,6 +40,7 @@ interface Props {
   onOpenRecentProject?: (path: string) => void
   onBrowseProject?: () => void
   showLiveThinking?: boolean
+  isChatMode?: boolean
 }
 
 function renderWorkPanel(
@@ -92,7 +93,8 @@ export function ChatMessages({
   recentProjects = [],
   onOpenRecentProject,
   onBrowseProject,
-  showLiveThinking = false
+  showLiveThinking = false,
+  isChatMode = false
 }: Props) {
   const draftMessageId = draftMessageIdRef.current
   const workOpts = { busy, agentPhase, draftMessageId, showLiveThinking }
@@ -100,10 +102,17 @@ export function ChatMessages({
 
   return (
     <div className={styles.messages} ref={scrollRef}>
-      {!chatId && <div className="empty">Создай чат слева, выбери проект и опиши задачу.</div>}
+      {!chatId && (
+        <div className="empty">
+          {isChatMode
+            ? 'Создай чат слева и начни разговор.'
+            : 'Создай чат слева, выбери проект и опиши задачу.'}
+        </div>
+      )}
       {chatId && messagesCount === 0 && (
         <WelcomePanel
           onSelect={onInsertPrompt}
+          isChatMode={isChatMode}
           hasProject={Boolean(projectPath)}
           currentProjectPath={projectPath ?? ''}
           recentProjects={recentProjects}

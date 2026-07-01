@@ -50,21 +50,88 @@ const WELCOME_PROMPTS: QuickPrompt[] = [
 interface Props {
   onSelect: (text: string) => void
   hasProject?: boolean
+  isChatMode?: boolean
   currentProjectPath?: string
   recentProjects?: string[]
   onOpenRecentProject?: (path: string) => void
   onBrowseProject?: () => void
 }
 
+const CHAT_PROMPTS: QuickPrompt[] = [
+  {
+    icon: '💡',
+    title: 'Обсудить идею',
+    description: 'Мозговой штурм без кода',
+    text: 'Помоги обдумать идею: '
+  },
+  {
+    icon: '📖',
+    title: 'Объясни',
+    description: 'Простыми словами',
+    text: 'Объясни простыми словами: '
+  },
+  {
+    icon: '✍️',
+    title: 'Написать текст',
+    description: 'Письмо, заметка, пост',
+    text: 'Помоги написать: '
+  },
+  {
+    icon: '🌐',
+    title: 'Перевод',
+    description: 'С контекстом и тоном',
+    text: 'Переведи на русский (сохрани тон): '
+  }
+]
+
 export function WelcomePanel({
   onSelect,
   hasProject = true,
+  isChatMode = false,
   currentProjectPath = '',
   recentProjects = [],
   onOpenRecentProject,
   onBrowseProject
 }: Props) {
   const recents = recentProjects.filter((path) => path.trim())
+
+  if (isChatMode) {
+    return (
+      <div className="welcome-panel">
+        <div className="welcome-hero">
+          <div className="welcome-hero-icon" aria-hidden="true">
+            <img src={logoUrl} alt="CodeViper" width={64} height={64} />
+          </div>
+          <h2 className="welcome-title">Просто чат</h2>
+          <p className="welcome-subtitle">
+            Задайте вопрос или начните разговор — без проекта, файлов и команд.
+          </p>
+        </div>
+
+        <div className="welcome-grid">
+          {CHAT_PROMPTS.map((item) => (
+            <button
+              key={item.title}
+              type="button"
+              className="welcome-card"
+              onClick={() => onSelect(item.text)}
+            >
+              <span className="welcome-card-icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <span className="welcome-card-title">{item.title}</span>
+              <span className="welcome-card-desc">{item.description}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="welcome-hints">
+          <span>Enter — отправить</span>
+          <span>Shift+Enter — новая строка</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="welcome-panel">

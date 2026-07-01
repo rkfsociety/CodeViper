@@ -72,4 +72,20 @@ describe('checkAgentPrerequisites', () => {
     expect(result.ok).toBe(true)
     expect(existsSync(join(TMP, 'package.json'))).toBe(true)
   })
+
+  it('в chatMode достаточно любой модели без tool calling', async () => {
+    const { fetchOllamaModelsWithDetails } = await import('../electron/main/agent')
+    vi.mocked(fetchOllamaModelsWithDetails).mockResolvedValueOnce([
+      {
+        name: 'llama3.2:latest',
+        size: 1,
+        modifiedAt: '',
+        details: undefined,
+        capabilities: []
+      }
+    ])
+
+    const result = await checkAgentPrerequisites('http://127.0.0.1:11434', '', false, true)
+    expect(result.ok).toBe(true)
+  })
 })

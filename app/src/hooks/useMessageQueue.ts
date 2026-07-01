@@ -130,11 +130,15 @@ export function useMessageQueue({
     onBusyChangeRef.current?.(running || queued > 0)
   }
 
+  function needsProject(settings: AgentSettings): boolean {
+    return settings.chatMode !== true
+  }
+
   async function executeRun(userMessageId: string, text: string) {
     const project = projectPathRef.current
     const chat = chatIdRef.current
     const currentSettings = settingsRef.current
-    if (!project || !chat) return
+    if (!chat || (needsProject(currentSettings) && !project)) return
 
     setRunning(true)
     syncBusyState(true, queueRef.current.length)
@@ -145,8 +149,9 @@ export function useMessageQueue({
 
     const prereq = await window.codeviper.checkAgentPrerequisites(
       currentSettings.ollamaUrl,
-      project,
-      (currentSettings.modelProvider ?? 'ollama') !== 'ollama'
+      project || '',
+      (currentSettings.modelProvider ?? 'ollama') !== 'ollama',
+      currentSettings.chatMode === true
     )
     if (!prereq.ok) {
       setRunning(false)
@@ -205,7 +210,7 @@ export function useMessageQueue({
         await Promise.race([
           window.codeviper.runAgent(
             currentSettings,
-            project,
+            project || '',
             chat,
             history,
             text,
@@ -256,7 +261,7 @@ export function useMessageQueue({
     const project = projectPathRef.current
     const chat = chatIdRef.current
     const currentSettings = settingsRef.current
-    if (!project || !chat) return
+    if (!chat || (needsProject(currentSettings) && !project)) return
     if (agentRunningRef.current) return
 
     setRunning(true)
@@ -277,7 +282,7 @@ export function useMessageQueue({
       await Promise.race([
         window.codeviper.runAgent(
           currentSettings,
-          project,
+          project || '',
           chat,
           replayHistory,
           userMessage,
@@ -322,7 +327,8 @@ export function useMessageQueue({
   processNextQueuedRunRef.current = processNextQueuedRun
 
   async function submitMessage(userMessageId: string, text: string) {
-    if (!chatIdRef.current || !projectPathRef.current) return
+    const settings = settingsRef.current
+    if (!chatIdRef.current || (needsProject(settings) && !projectPathRef.current)) return
     const danger = detectDanger(text)
     if (danger) {
       onDangerWarningRef.current({ warning: danger, pendingRun: { userMessageId, text } })
@@ -347,7 +353,8 @@ export function useMessageQueue({
   }
 
   async function confirmDangerRun(userMessageId: string, text: string) {
-    if (!chatIdRef.current || !projectPathRef.current) return
+    const settings = settingsRef.current
+    if (!chatIdRef.current || (needsProject(settings) && !projectPathRef.current)) return
     if (agentRunningRef.current) {
       queueRef.current.push({ id: userMessageId, text })
       setQueueSize(queueRef.current.length)
@@ -403,7 +410,8 @@ export function useMessageQueue({
   }
 
   async function regenerateAssistantReply(assistantMessageId: string): Promise<boolean> {
-    if (!chatIdRef.current || !projectPathRef.current) return false
+    const settings = settingsRef.current
+    if (!chatIdRef.current || (needsProject(settings) && !projectPathRef.current)) return false
     if (agentRunningRef.current) return false
 
     const plan = planAssistantRegenerate(messagesRef.current, assistantMessageId)

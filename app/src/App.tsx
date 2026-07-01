@@ -1279,7 +1279,7 @@ function AppContent() {
           )}
 
           <section id="main-chat" className="panel panel-main" tabIndex={-1}>
-            <div className="panel-header">Агент</div>
+            <div className="panel-header">{agentMode === 'chat' ? 'Чат' : 'Агент'}</div>
             {mountedChatIds.map((chatId) => (
               <ChatContext.Provider key={chatId} value={mountedChatContexts.get(chatId)!}>
                 <div

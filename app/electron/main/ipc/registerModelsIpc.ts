@@ -84,8 +84,8 @@ export function registerModelsIpc(ctx: IpcContext): void {
 
   ipcMain.handle(
     'check-agent-prerequisites',
-    async (_e, ollamaUrl: string, projectPath: string, skipOllamaCheck = false) =>
-      checkAgentPrerequisites(ollamaUrl, projectPath, skipOllamaCheck)
+    async (_e, ollamaUrl: string, projectPath: string, skipOllamaCheck = false, chatMode = false) =>
+      checkAgentPrerequisites(ollamaUrl, projectPath, skipOllamaCheck, chatMode)
   )
 
   ipcMain.handle(IPC.SELECT_GGUF_FILE, async () => {

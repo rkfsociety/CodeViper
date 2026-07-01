@@ -41,6 +41,14 @@ describe('создание и обновление чатов', () => {
     expect(chat.title).toBe('Новый чат')
   })
 
+  it('в режиме chat не подставляет projectPath из других чатов', async () => {
+    const codeChat = await createChat()
+    await updateChat(codeChat.id, { projectPath: 'C:\\demo\\project' })
+    const chat = await createChat(null, 'chat')
+    expect(chat.mode).toBe('chat')
+    expect(chat.projectPath).toBe('')
+  })
+
   it('обновляет поля чата', async () => {
     const chat = await createChat()
     const updated = await updateChat(chat.id, { title: 'Моя задача' })

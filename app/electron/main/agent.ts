@@ -266,7 +266,10 @@ export class AgentRunner {
     let orchestratorPlanHint = ''
     let orchestratorIsComplex = false
 
-    if (shouldGeneratePlanWithAgentModel(this.settings, userMessage.length)) {
+    if (
+      shouldGeneratePlanWithAgentModel(this.settings, userMessage.length) &&
+      !this.settings.chatMode
+    ) {
       this.emitter.emit({ type: 'orchestrating', orchestrating: true })
       try {
         const plan = await generateExecutionPlan({
@@ -302,7 +305,10 @@ export class AgentRunner {
         console.error('[AgentRunner] agent plan error:', err)
         this.emitter.emit({ type: 'orchestrating', orchestrating: false, error: String(err) })
       }
-    } else if (shouldRunOrchestratorAnalysis(this.settings, userMessage.length)) {
+    } else if (
+      shouldRunOrchestratorAnalysis(this.settings, userMessage.length) &&
+      !this.settings.chatMode
+    ) {
       this.emitter.emit({ type: 'orchestrating', orchestrating: true })
       try {
         const backend = resolveOrchestratorBackend(this.settings)

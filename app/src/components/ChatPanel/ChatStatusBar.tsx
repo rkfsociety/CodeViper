@@ -218,9 +218,10 @@ export function ChatStatusBar({
         onStop={onStop}
         onSend={onSend}
         model={settings.model}
+        isChatMode={settings.chatMode === true}
       />
 
-      {chatId && (
+      {chatId && !settings.chatMode && (
         <div className={styles.permissionModeBar}>
           <div className={styles.permissionModes}>
             <button

@@ -46,6 +46,7 @@ interface Props {
   onStop: () => void
   onSend: () => void
   model: string
+  isChatMode?: boolean
 }
 
 export { type ChatInputHandle }
@@ -77,7 +78,8 @@ export function ChatInputSection({
   queueSize,
   onStop,
   onSend,
-  model
+  model,
+  isChatMode = false
 }: Props) {
   const totalAttachments = droppedFiles.length + clipboardImages.length
   const totalFileSize = droppedFiles.reduce((s, f) => s + (f.size ?? 0), 0)
@@ -154,7 +156,9 @@ export function ChatInputSection({
             onPaste={onPaste}
             onFocus={onFocus}
             onBlur={onBlur}
-            placeholder="Напиши задачу… (/ — промпты, @ — файлы)"
+            placeholder={
+              isChatMode ? 'Напишите сообщение…' : 'Напиши задачу… (/ — промпты, @ — файлы)'
+            }
             disabled={!chatId}
             rows={3}
           />
@@ -196,7 +200,7 @@ export function ChatInputSection({
               type="button"
               className={styles.sendBtn}
               onClick={onSend}
-              disabled={!model || !chatId || !projectPath || !input.trim()}
+              disabled={!model || !chatId || (!isChatMode && !projectPath) || !input.trim()}
               title={agentRunning ? 'В очередь' : 'Отправить (Enter)'}
             >
               ↑

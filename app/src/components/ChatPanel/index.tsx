@@ -736,7 +736,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   // ── Ввод ─────────────────────────────────────────────────────────────────
   const retryUserMessage = useCallback(
     async (message: ChatMessage) => {
-      if (busy || !chatId || !projectPath) return
+      if (busy || !chatId || (!settings.chatMode && !projectPath)) return
       const msg: ChatMessage = {
         id: makeId(),
         role: 'user',
@@ -746,15 +746,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       appendMessage(msg)
       await submitMessage(msg.id, message.content)
     },
-    [appendMessage, busy, chatId, projectPath, submitMessage]
+    [appendMessage, busy, chatId, projectPath, settings.chatMode, submitMessage]
   )
 
   const regenerateAssistantMessage = useCallback(
     (message: ChatMessage) => {
-      if (busy || !chatId || !projectPath) return
+      if (busy || !chatId || (!settings.chatMode && !projectPath)) return
       void regenerateAssistantReply(message.id)
     },
-    [busy, chatId, projectPath, regenerateAssistantReply]
+    [busy, chatId, projectPath, settings.chatMode, regenerateAssistantReply]
   )
 
   const editUserMessage = useCallback((message: ChatMessage) => {
@@ -844,7 +844,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   async function send() {
     const raw = input.trim()
     const text = expandSlashCommand(raw, settings.promptTemplates)
-    if (!text || !projectPath || !chatId) return
+    if (!text || !chatId || (!settings.chatMode && !projectPath)) return
 
     // Читаем содержимое вложенных файлов
     const textParts: string[] = []
@@ -966,6 +966,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   )
 
   const awaitingClarification =
+    !settings.chatMode &&
     settings.clarifyMode &&
     !busy &&
     !!chatId &&
@@ -1070,6 +1071,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         onOpenRecentProject={onOpenRecentProject}
         onBrowseProject={onPickProject}
         showLiveThinking={settings.showLiveThinking === true}
+        isChatMode={settings.chatMode === true}
       />
 
       {planAwaitingConfirm && (

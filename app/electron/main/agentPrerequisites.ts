@@ -58,7 +58,8 @@ export async function checkProjectNodeDependencies(
 export async function checkAgentPrerequisites(
   ollamaUrl: string,
   projectPath: string,
-  skipOllamaCheck = false
+  skipOllamaCheck = false,
+  chatMode = false
 ): Promise<AgentPrerequisitesResult> {
   const issues: AgentPrerequisiteIssue[] = []
 
@@ -73,7 +74,8 @@ export async function checkAgentPrerequisites(
           ...m,
           supportsTools: m.capabilities != null ? m.capabilities.includes('tools') : undefined
         }))
-        if (filterToolCallingModels(installed).length === 0) {
+        const usable = chatMode ? installed : filterToolCallingModels(installed)
+        if (usable.length === 0) {
           issues.push({
             type: 'no_model',
             suggestedModels: [...DEFAULT_SUGGESTED_MODELS]

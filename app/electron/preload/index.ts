@@ -216,9 +216,20 @@ const codeviper = {
       'summarizeContext'
     ),
 
-  checkAgentPrerequisites: (ollamaUrl: string, projectPath: string, skipOllamaCheck = false) =>
+  checkAgentPrerequisites: (
+    ollamaUrl: string,
+    projectPath: string,
+    skipOllamaCheck = false,
+    chatMode = false
+  ) =>
     withTimeout(
-      ipcRenderer.invoke(IPC.CHECK_AGENT_PREREQUISITES, ollamaUrl, projectPath, skipOllamaCheck),
+      ipcRenderer.invoke(
+        IPC.CHECK_AGENT_PREREQUISITES,
+        ollamaUrl,
+        projectPath,
+        skipOllamaCheck,
+        chatMode
+      ),
       IPC_TIMEOUT_MS,
       'checkAgentPrerequisites'
     ),
