@@ -3,19 +3,9 @@ import {
   isCloudOrchestratorConfigured,
   type OrchestratorCloudSettingsSlice
 } from './orchestratorCloud'
+import type { OrchestratorBackend, OrchestratorSettingsSlice } from './orchestratorTypes'
 
-export type OrchestratorBackend = 'gguf' | 'ollama' | 'cloud'
-
-/** Поля настроек, нужные для выбора бэкенда оркестратора. */
-export interface OrchestratorSettingsSlice {
-  orchestratorBackend?: OrchestratorBackend
-  orchestratorModelPath?: string
-  orchestratorOllamaModel?: string
-  orchestratorCloudModel?: string
-  orchestratorEnabled?: boolean
-  planBeforeExecute?: boolean
-  orchestratorMinMessageLength?: number
-}
+export type { OrchestratorBackend, OrchestratorSettingsSlice } from './orchestratorTypes'
 
 /** GGUF, cloud или Ollama — по явной настройке и провайдеру агента. */
 export function resolveOrchestratorBackend(

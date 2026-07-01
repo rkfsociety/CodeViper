@@ -14,7 +14,7 @@ import {
   LITEROUTER_MODEL_DEFAULT,
   OPENROUTER_API_BASE_URL
 } from './constants'
-import type { OrchestratorSettingsSlice } from './orchestrator'
+import type { OrchestratorSettingsSlice } from './orchestratorTypes'
 
 export interface OrchestratorCloudModel {
   name: string
