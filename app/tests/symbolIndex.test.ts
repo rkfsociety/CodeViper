@@ -255,6 +255,9 @@ describe('symbolIndex', () => {
 
     const result = await buildDataflowDiagram(root)
     expect(result.edgeCount).toBeGreaterThanOrEqual(4)
+    expect(result.nodes.length).toBeGreaterThanOrEqual(4)
+    expect(result.edges.length).toBeGreaterThanOrEqual(4)
+    expect(result.nodes.some((node) => node.external && node.label === 'Filesystem')).toBe(true)
     expect(result.mermaid).toContain('flowchart LR')
     expect(result.mermaid).toContain('EXT_IPC')
     expect(result.mermaid).toContain('EXT_HTTP')

@@ -167,7 +167,7 @@ function ArchitectureDiagramWindow({
               <LayoutGraphView
                 nodes={result.nodes}
                 edges={result.edges}
-                layout={isDependencies ? 'dagre' : 'concentric'}
+                layout={isDependencies ? 'dagre' : 'dataflow'}
               />
               <div className={styles.hint}>
                 Просмотрено файлов: {result.filesScanned}
