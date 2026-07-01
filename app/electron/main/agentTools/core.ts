@@ -153,6 +153,23 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_rerender_candidates',
+      description:
+        'AST-анализ React .tsx на export-компоненты с props без memo/useMemo/useCallback. Возвращает кандидатов на мемоизацию с path:line:col.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Ограничить подпапкой или файлом (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_magic_numbers',
       description:
         'AST-анализ ts/js на магические числовые литералы вне shared/constants.ts и без именованной константы рядом. Возвращает path:line:col и значение.',

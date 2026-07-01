@@ -17,6 +17,7 @@ import { findMagicNumbers, formatMagicNumbersOutput } from './magicNumberIndex'
 import { findImportIssues, formatImportIssuesOutput } from './importIssueAnalysis'
 import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
+import { findRerenderCandidates, formatRerenderCandidatesOutput } from './rerenderCandidateAnalysis'
 import { findUnsafeRegex, formatUnsafeRegexOutput } from './unsafeRegexAnalysis'
 import { findTypeMismatches, formatTypeMismatchReport } from './typeMismatchIndex'
 import { findHotkeyConflicts, formatHotkeyConflictReport } from './hotkeyConflictIndex'
@@ -105,6 +106,21 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress('AST-анализ медленного кода', scanPercent(scanned))
         })
         return formatSlowCodeReport(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_rerender_candidates: async (args) => {
+      assertInsideProject(args.path, 'папка или файл для анализа', { allowEmpty: true })
+      try {
+        emitProgress('AST-анализ rerender candidates', 0)
+        const result = await findRerenderCandidates(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) =>
+            emitProgress('AST-анализ rerender candidates', scanPercent(scanned))
+        })
+        return formatRerenderCandidatesOutput(projectPath, result)
       } finally {
         clearProgress()
       }
