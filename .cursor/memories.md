@@ -25,6 +25,11 @@
 
 ## Trace-отчёты
 
+**2026-07-01 · trace 1782935231774 — Reviewer subagent JSON.parse("")**  
+- Задача: code review → автоделегирование Reviewer, literouter.  
+- Корень: `subagentRunner` вызывал `JSON.parse("")` на пустых native tool args от cloud-провайдера → `Unexpected end of JSON input`.  
+- Фикс: `parseToolArgs` вместо голого `JSON.parse`; try/catch при автоделегировании в `agent.ts`.
+
 **2026-07-01 · trace 1782934497352 — duplicate tool batch loop (find_commit_message_issues)**  
 - Задача: ROADMAP п.4 `find_commit_message_issues`, claude-haiku-4.5-cheap:free (literouter).  
 - Корень: модель 17 шагов повторяла один и тот же батч `project_stats` + 4× `find_files`; LoopGuard ловит только подряд один инструмент, не весь набор; затем `list_directory src` (ENOENT) без подсказки app/src.  

@@ -8,6 +8,7 @@
 import { ModelRuntime } from './modelRuntime'
 import { getAgentTools } from './agentTools'
 import { resolveAgentHandlerFactories } from './runtimeBootstrap'
+import { parseToolArgs } from './agentToolExecutor'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './ollamaMessage'
@@ -190,14 +191,15 @@ export async function runSubagent(
       !nativeToolCallName && embedded.toolCalls.length ? embedded.toolCalls[0] : null
 
     const toolName = nativeToolCallName ?? textToolCall?.name
-    const toolArgs =
-      nativeToolCallName && nativeToolCallArgs != null
-        ? typeof nativeToolCallArgs === 'string'
-          ? (JSON.parse(nativeToolCallArgs) as Record<string, string>)
-          : (nativeToolCallArgs as Record<string, string>)
-        : textToolCall
-          ? (textToolCall.arguments as Record<string, string>)
-          : undefined
+    let toolArgs: Record<string, string> | undefined
+    if (nativeToolCallName) {
+      toolArgs =
+        nativeToolCallArgs != null
+          ? parseToolArgs(nativeToolCallArgs)
+          : ({} as Record<string, string>)
+    } else if (textToolCall) {
+      toolArgs = textToolCall.arguments as Record<string, string>
+    }
 
     if (toolName && toolArgs !== undefined && allowedTools.includes(toolName)) {
       // Добавляем вызов в историю

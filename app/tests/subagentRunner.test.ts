@@ -18,7 +18,15 @@ import { join } from 'path'
 
 // ── hoisted state ────────────────────────────────────────────────────────────
 const chatState = vi.hoisted(() => ({
-  impl: null as null | (() => AsyncGenerator<{ content: string }>)
+  impl: null as
+    | null
+    | (() => AsyncGenerator<{
+        content?: string
+        tool_calls?: Array<{
+          id: string
+          function: { name: string; arguments: string | Record<string, string> }
+        }>
+      }>)
 }))
 
 const handlerState = vi.hoisted(() => ({
@@ -53,9 +61,10 @@ vi.mock('../electron/main/agentHandlersProject', () => ({
 // ── getAgentTools — возвращаем минимальный набор ──────────────────────────────
 vi.mock('../electron/main/agentTools', () => ({
   getAgentTools: () => [
-    { function: { name: 'read_file', description: 'read' } },
-    { function: { name: 'edit_file', description: 'edit' } },
-    { function: { name: 'list_directory', description: 'ls' } }
+    { name: 'read_file', description: 'read' },
+    { name: 'edit_file', description: 'edit' },
+    { name: 'list_directory', description: 'ls' },
+    { name: 'git_status', description: 'git status' }
   ]
 }))
 
@@ -94,6 +103,35 @@ function toolCallThenDone(
     if (call === 0) {
       call++
       yield { content: JSON.stringify({ name: toolName, arguments: args }) }
+    } else {
+      yield { content: finalText }
+    }
+  }
+}
+
+function nativeToolCallThenDone(
+  toolName: string,
+  args: string | Record<string, string>,
+  finalText: string
+): () => AsyncGenerator<{
+  content?: string
+  tool_calls?: Array<{
+    id: string
+    function: { name: string; arguments: string | Record<string, string> }
+  }>
+}> {
+  let call = 0
+  return async function* () {
+    if (call === 0) {
+      call++
+      yield {
+        tool_calls: [
+          {
+            id: 'call_native_1',
+            function: { name: toolName, arguments: args }
+          }
+        ]
+      }
     } else {
       yield { content: finalText }
     }
@@ -203,6 +241,21 @@ describe('SubagentRunner — прогон', () => {
 
     expect(result.toolsUsed).toContain('read_file')
     expect(result.output).toBe('Файл прочитан, вот результат')
+    expect(result.completed).toBe(true)
+  })
+
+  it('reviewer: native tool call с пустой строкой аргументов не падает', async () => {
+    handlerState.handlers['git_status'] = async () => 'working tree clean'
+    chatState.impl = nativeToolCallThenDone('git_status', '', 'Критичных замечаний нет')
+
+    const result = await runSubagent(makeSettings(), {
+      role: 'reviewer',
+      task: 'Сделай code review',
+      projectPath: projectDir
+    })
+
+    expect(result.toolsUsed).toContain('git_status')
+    expect(result.output).toBe('Критичных замечаний нет')
     expect(result.completed).toBe(true)
   })
 

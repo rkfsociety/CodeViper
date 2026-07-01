@@ -414,12 +414,30 @@ export class AgentRunner {
             : '🤝 Задача похожа на запуск/анализ тестов — делегирую её Tester-субагенту.'
       })
       const startedAt = Date.now()
-      const result = await runSubagent(this.settings, {
-        role: autoDelegateRole,
-        task: userMessage,
-        projectPath: this.projectPath,
-        signal: this.emitter.abortSignal
-      })
+      let result: Awaited<ReturnType<typeof runSubagent>>
+      try {
+        result = await runSubagent(this.settings, {
+          role: autoDelegateRole,
+          task: userMessage,
+          projectPath: this.projectPath,
+          signal: this.emitter.abortSignal
+        })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        this.emitter.trace('tool_result', `${traceLabel} — ошибка`, {
+          step: 0,
+          tool: `delegate_to_${autoDelegateRole}`,
+          auto: true,
+          role: autoDelegateRole,
+          ok: false,
+          durationMs: Date.now() - startedAt,
+          error: message
+        })
+        this.emitter.emit({ type: 'error', content: message })
+        traceRunEnd('error', { error: message, steps: 0, autoDelegatedTo: autoDelegateRole })
+        this.emitter.emit({ type: 'done' })
+        return
+      }
       this.emitter.trace('tool_result', `${traceLabel} завершено`, {
         step: 0,
         tool: `delegate_to_${autoDelegateRole}`,
