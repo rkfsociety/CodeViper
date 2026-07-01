@@ -1,3 +1,4 @@
+import type { AttachmentReadResult } from '../../lib/attachmentHelpers'
 import type { SlashCommand } from '../../../shared/slashCommands'
 import { SlashCommandMenu } from '../SlashCommandMenu'
 import { ChatInput as ChatInputField, type ChatInputHandle } from '../ChatInput'
@@ -8,6 +9,8 @@ export interface DroppedFile {
   name: string
   path: string
   size?: number
+  /** Содержимое, прочитанное в renderer, если путь на диск недоступен */
+  preloaded?: AttachmentReadResult
 }
 
 export interface ClipboardImage {

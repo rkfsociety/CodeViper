@@ -41,6 +41,7 @@ import { useChatBusy } from '../../contexts/QueueContext'
 import { useAppStateSync } from '../../hooks/useAppStateSync'
 import { CLOUD_KNOWN_MODELS, FILE_LIMIT, shouldShowAssistantMessage } from './helpers'
 import type { DroppedFile } from './ChatInput'
+import { readFileBlobInRenderer, type AttachmentReadResult } from '../../lib/attachmentHelpers'
 import { ChatPanelMessagesPane } from './ChatPanelMessagesPane'
 import { ChatStatusBar } from './ChatStatusBar'
 import {
@@ -115,9 +116,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
   const inputRef = useRef(input)
   inputRef.current = input
   const prevChatIdForDraftRef = useRef<string | null>(null)
-  const [droppedFiles, setDroppedFiles] = useState<{ name: string; path: string; size?: number }[]>(
-    []
-  )
+  const [droppedFiles, setDroppedFiles] = useState<DroppedFile[]>([])
   const [clipboardImages, setClipboardImages] = useState<{ name: string; dataUrl: string }[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const [prerequisiteBlock, setPrerequisiteBlock] = useState<PrerequisiteBlock | null>(null)
@@ -471,18 +470,31 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setIsDragOver(false)
     const files = Array.from(e.dataTransfer.files)
     if (!files.length) return
-    const entries = files.map((f) => ({
-      name: f.name,
-      path: (f as File & { path?: string }).path ?? f.name,
-      size: f.size
-    }))
-    setDroppedFiles((prev) => {
-      const existingPaths = new Set(prev.map((x) => x.path))
-      const fresh = entries.filter((x) => !existingPaths.has(x.path))
-      const slots = FILE_LIMIT - prev.length - clipboardImages.length
-      return [...prev, ...fresh.slice(0, Math.max(0, slots))]
-    })
-    chatInputRef.current?.focus()
+
+    void (async () => {
+      const entries: DroppedFile[] = []
+      for (const f of files) {
+        const diskPath = window.codeviper.getPathForFile(f)
+        if (diskPath) {
+          entries.push({ name: f.name, path: diskPath, size: f.size })
+        } else {
+          const preloaded = await readFileBlobInRenderer(f)
+          entries.push({
+            name: f.name,
+            path: `inline:${f.name}:${f.size}:${f.lastModified}`,
+            size: f.size,
+            preloaded
+          })
+        }
+      }
+      setDroppedFiles((prev) => {
+        const existingPaths = new Set(prev.map((x) => x.path))
+        const fresh = entries.filter((x) => !existingPaths.has(x.path))
+        const slots = FILE_LIMIT - prev.length - clipboardImages.length
+        return [...prev, ...fresh.slice(0, Math.max(0, slots))]
+      })
+      chatInputRef.current?.focus()
+    })()
   }
 
   function removeDroppedFile(path: string) {
@@ -839,7 +851,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     const images: { name: string; dataUrl: string }[] = []
 
     for (const f of droppedFiles) {
-      const result = await window.codeviper.readAttachment(f.path)
+      const result: AttachmentReadResult =
+        f.preloaded ?? (await window.codeviper.readAttachment(f.path))
       if (!result.ok) {
         textParts.push(`[${f.name}] ⚠️ ${result.error ?? 'Не удалось прочитать файл'}`)
       } else if (result.isImage && result.dataUrl) {

@@ -23,6 +23,19 @@ export const FILE_PREVIEW_THRESHOLD_BYTES = 20_000
 export const FILE_PREVIEW_HEAD_TAIL_LINES = 50
 /** Количество строк, возвращаемых read_file по умолчанию при частичном чтении */
 export const READ_DEFAULT_LINE_LIMIT = 300
+/** Лимит размера вложения в чат (байт) */
+export const ATTACHMENT_SIZE_LIMIT_BYTES = 200 * 1024
+/** Расширения изображений для вложений в чат */
+export const ATTACHMENT_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'])
+/** MIME-типы изображений для вложений в чат */
+export const ATTACHMENT_IMAGE_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml'
+}
 
 // ── Коллективная память ───────────────────────────────────────────────────────
 /** Минимальная длина записи коллективной памяти (символов) */

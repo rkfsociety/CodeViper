@@ -1,23 +1,17 @@
 import { dialog, ipcMain } from 'electron'
 import { unlink } from 'fs/promises'
+import { isAbsolute } from 'path'
+import {
+  ATTACHMENT_IMAGE_EXTENSIONS,
+  ATTACHMENT_IMAGE_MIME,
+  ATTACHMENT_SIZE_LIMIT_BYTES
+} from '../../../shared/constants'
 import { IPC, parseIpcArgs, Contracts } from '../../../shared/ipcContracts'
 import { safeReadFile, safeWriteFile, runCommand, buildFileTree } from '../services'
 import { readFileHistory } from '../fileHistory'
 import { loadSettings } from '../settings'
 import { exportAgentTrace } from '../traceStorage'
 import type { IpcContext } from './ipcContext'
-
-const ATTACHMENT_SIZE_LIMIT = 200 * 1024
-
-const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'])
-const IMAGE_MIME: Record<string, string> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  svg: 'image/svg+xml'
-}
 
 export function registerFileIpc(ctx: IpcContext): void {
   const { getWindow } = ctx
@@ -44,27 +38,39 @@ export function registerFileIpc(ctx: IpcContext): void {
   })
 
   ipcMain.handle('read-attachment', async (_e, filePath: string) => {
-    const { stat, readFile } = await import('fs/promises')
-    const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
-    const isImage = IMAGE_EXTENSIONS.has(ext)
-
-    const info = await stat(filePath)
-    if (info.size > ATTACHMENT_SIZE_LIMIT) {
+    if (!isAbsolute(filePath)) {
       return {
         ok: false,
-        error: `Файл слишком большой (${(info.size / 1024).toFixed(0)} КБ, лимит 200 КБ)`
+        error: 'Недопустимый путь к файлу. Перетащите файл заново или выберите через кнопку «+».'
       }
     }
 
-    if (isImage) {
-      const buf = await readFile(filePath)
-      const mime = IMAGE_MIME[ext] ?? 'image/png'
-      const dataUrl = `data:${mime};base64,${buf.toString('base64')}`
-      return { ok: true, isImage: true, dataUrl, mime }
-    }
+    try {
+      const { stat, readFile } = await import('fs/promises')
+      const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
+      const isImage = ATTACHMENT_IMAGE_EXTENSIONS.has(ext)
 
-    const content = await readFile(filePath, 'utf-8')
-    return { ok: true, isImage: false, content }
+      const info = await stat(filePath)
+      if (info.size > ATTACHMENT_SIZE_LIMIT_BYTES) {
+        return {
+          ok: false,
+          error: `Файл слишком большой (${(info.size / 1024).toFixed(0)} КБ, лимит ${(ATTACHMENT_SIZE_LIMIT_BYTES / 1024).toFixed(0)} КБ)`
+        }
+      }
+
+      if (isImage) {
+        const buf = await readFile(filePath)
+        const mime = ATTACHMENT_IMAGE_MIME[ext] ?? 'image/png'
+        const dataUrl = `data:${mime};base64,${buf.toString('base64')}`
+        return { ok: true, isImage: true, dataUrl, mime }
+      }
+
+      const content = await readFile(filePath, 'utf-8')
+      return { ok: true, isImage: false, content }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return { ok: false, error: `Не удалось прочитать файл: ${msg}` }
+    }
   })
 
   ipcMain.handle('read-file', async (_e, projectPath: string, filePath: string) =>

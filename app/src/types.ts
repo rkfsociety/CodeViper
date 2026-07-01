@@ -760,6 +760,8 @@ export interface CodeViperAPI {
   selectProjectFolder: () => Promise<string | null>
   selectFolder: () => Promise<string | null>
   selectFiles: () => Promise<{ path: string; size: number }[]>
+  /** Абсолютный путь к File из drag-and-drop (Electron 32+: вместо file.path) */
+  getPathForFile: (file: File) => string
   selectGgufFile: () => Promise<string | null>
   downloadGguf: () => Promise<string>
   cancelGgufDownload: () => void

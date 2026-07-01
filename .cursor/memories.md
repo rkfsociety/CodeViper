@@ -25,6 +25,11 @@
 
 ## Trace-отчёты
 
+**2026-07-01 · read-attachment ENOENT при drag-and-drop вложений**  
+- Симптом: `Error invoking remote method 'read-attachment': ENOENT …\Program Files\CodeViper\1782901466868.json`.  
+- Корень: Electron 32+ убрал `File.path`; fallback `f.name` давал относительный путь, `stat` искал файл рядом с `.exe`.  
+- Фикс: `webUtils.getPathForFile` в preload (`getPathForFile`); при пустом пути — чтение через `FileReader` в renderer; `read-attachment` — `isAbsolute` + try/catch вместо throw.
+
 **2026-07-01 · trace 1782901466868 — scope nudge: .ts → src/components/**  
 - Задача: ROADMAP `find_magic_numbers` (уровень 3). Агент 15+ шагов разведки, 0 правок, abort пользователем.  
 - Корень: `guessScopedCodeViperPath` отправлял bare `.ts` (`magicNumberAnalysis.ts`, `agentHandlers*.ts`) в `src/components/`; nudge вёл агента в несуществующие пути, модель крутила `read_skill` + `find_files` + `list_directory src` (ENOENT).  

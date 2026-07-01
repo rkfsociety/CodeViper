@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
   AgentConfirmRequest,
   AgentClarifyRequest,
@@ -42,6 +42,8 @@ const codeviper = {
 
   selectFiles: (): Promise<{ path: string; size: number }[]> =>
     withTimeout(ipcRenderer.invoke(IPC.SELECT_FILES), IPC_TIMEOUT_MS, 'selectFiles'),
+
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 
   selectGgufFile: (): Promise<string | null> =>
     withTimeout(ipcRenderer.invoke(IPC.SELECT_GGUF_FILE), IPC_TIMEOUT_MS, 'selectGgufFile'),
