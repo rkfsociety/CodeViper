@@ -1,6 +1,5 @@
 import styles from './SettingsModal.module.css'
 import type { AgentSettings } from '../../types'
-import { UI_FONT_SCALES, type UiFontScale } from '../../types'
 import {
   DEFAULT_COMMAND_TIMEOUT_SEC,
   COMMAND_TIMEOUT_SEC_MIN,
@@ -23,27 +22,10 @@ export function PerformanceTab({ isActive, isSearching, settings, onSettingsChan
       <SettingItem
         tab="performance"
         label="Режимы производительности"
-        desc="энергосбережение power save CPU GPU статы PR pull requests ручной manual refresh анимации"
+        desc="энергосбережение power save CPU GPU статы PR pull requests ручной manual refresh"
       >
         <div className={styles.section}>
-          <div className={styles.sectionLabel}>Режимы</div>
-
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={settings.powerSaveMode === true}
-              onChange={(e) => onSettingsChange({ powerSaveMode: e.target.checked })}
-            />
-            <span className={styles.track} aria-hidden="true">
-              <span className={styles.thumb} />
-            </span>
-            <span className={styles.toggleContent}>
-              <span className={styles.title}>Режим энергосбережения</span>
-              <span className={styles.desc}>
-                Батчинг обновлений UI (300 мс), все анимации и переходы отключены
-              </span>
-            </span>
-          </label>
+          <div className={styles.sectionLabel}>Мониторинг и опрос</div>
 
           <label className={styles.toggle}>
             <input
@@ -78,39 +60,6 @@ export function PerformanceTab({ isActive, isSearching, settings, onSettingsChan
               </span>
             </span>
           </label>
-        </div>
-      </SettingItem>
-
-      <SettingItem
-        tab="performance"
-        label="Масштаб шрифта"
-        desc="font size scale текст интерфейс крупный мелкий ui"
-      >
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>Интерфейс</div>
-
-          <div className={styles.row}>
-            <div className={styles.rowContent}>
-              <span className={styles.title}>Масштаб шрифта</span>
-              <span className={styles.desc}>
-                Размер текста во всём интерфейсе, включая чат (база 16 px)
-              </span>
-            </div>
-            <div className={styles.rowRight}>
-              <select
-                value={String(settings.uiFontScale ?? 1)}
-                onChange={(e) =>
-                  onSettingsChange({ uiFontScale: Number(e.target.value) as UiFontScale })
-                }
-              >
-                {UI_FONT_SCALES.map((scale) => (
-                  <option key={scale} value={scale}>
-                    {scale === 1 ? '100%' : `${Math.round(scale * 100)}%`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
         </div>
       </SettingItem>
 
@@ -178,66 +127,6 @@ export function PerformanceTab({ isActive, isSearching, settings, onSettingsChan
                 }
               />
               <span className={styles.unit}>сек</span>
-            </div>
-          </div>
-        </div>
-      </SettingItem>
-
-      <SettingItem
-        tab="performance"
-        label="Звуковые уведомления"
-        desc="sound notification звук сигнал завершение задача"
-      >
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>Уведомления</div>
-
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={settings.soundNotifications === true}
-              onChange={(e) => onSettingsChange({ soundNotifications: e.target.checked })}
-            />
-            <span className={styles.track} aria-hidden="true">
-              <span className={styles.thumb} />
-            </span>
-            <span className={styles.toggleContent}>
-              <span className={styles.title}>Уведомления при завершении</span>
-              <span className={styles.desc}>
-                Звук и системный toast, если чат в фоне или окно свёрнуто
-              </span>
-            </span>
-          </label>
-
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={settings.minimizeToTray !== false}
-              onChange={(e) => onSettingsChange({ minimizeToTray: e.target.checked })}
-            />
-            <span className={styles.track} aria-hidden="true">
-              <span className={styles.thumb} />
-            </span>
-            <span className={styles.toggleContent}>
-              <span className={styles.title}>Сворачивать в трей</span>
-              <span className={styles.desc}>
-                Крестик скрывает окно; иконка в трее — клик открывает снова
-              </span>
-            </span>
-          </label>
-
-          <div style={{ marginTop: '0.75rem' }}>
-            <div className={styles.sectionLabel}>Webhook «агент готов»</div>
-            <input
-              type="url"
-              className={styles.searchInput}
-              placeholder="https://hooks.slack.com/… или n8n"
-              value={settings.webhookUrl ?? ''}
-              onChange={(e) => onSettingsChange({ webhookUrl: e.target.value || undefined })}
-              spellCheck={false}
-            />
-            <div className={styles.hint}>
-              POST <code>{'{ chatId, projectPath, summary, durationMs }'}</code> при завершении
-              прогона
             </div>
           </div>
         </div>

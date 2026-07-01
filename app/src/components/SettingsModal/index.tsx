@@ -3,12 +3,19 @@ import styles from './SettingsModal.module.css'
 import type { AgentSettings, OllamaModel } from '../../types'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import type { useOllamaDownloadQueue } from '../../hooks/useOllamaDownloadQueue'
-import { SearchCtx, SETTINGS_TABS, type SettingsTab } from './shared'
+import { SearchCtx, SETTINGS_NAV_GROUPS, type SettingsTab } from './shared'
 import { ModelTab } from './ModelTab'
-import { BehaviorTab } from './BehaviorTab'
+import { AgentTab } from './AgentTab'
+import { SecurityTab } from './SecurityTab'
+import { AutomationTab } from './AutomationTab'
+import { ToolsTab } from './ToolsTab'
+import { AdvancedTab } from './AdvancedTab'
+import { AppearanceTab } from './AppearanceTab'
 import { PerformanceTab } from './PerformanceTab'
+import { NotificationsTab } from './NotificationsTab'
 import { MemoryTab } from './MemoryTab'
 import { IntegrationsTab } from './IntegrationsTab'
+import { McpTab } from './McpTab'
 import { PluginsTab } from './PluginsTab'
 import { UpdatesFooter } from './UpdatesFooter'
 
@@ -63,7 +70,7 @@ export function SettingsModal({
   if (!open) return null
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className={`modal-backdrop ${styles.settingsBackdrop}`} onClick={onClose}>
       <div
         ref={modalRef}
         className={`modal ${styles.settingsModal}`}
@@ -100,21 +107,29 @@ export function SettingsModal({
                 </button>
               )}
             </div>
-            {SETTINGS_TABS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={!isSearching && tab === item.id}
-                className={`${styles.navItem}${!isSearching && tab === item.id ? ' ' + styles.navItemActive : ''}`}
-                onClick={() => {
-                  setSearchQuery('')
-                  setTab(item.id)
-                }}
-              >
-                <span className={styles.navIcon} dangerouslySetInnerHTML={{ __html: item.icon }} />
-                {item.label}
-              </button>
+            {SETTINGS_NAV_GROUPS.map((group) => (
+              <div key={group.label} className={styles.navGroup}>
+                <div className={styles.navGroupLabel}>{group.label}</div>
+                {group.tabs.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={!isSearching && tab === item.id}
+                    className={`${styles.navItem}${!isSearching && tab === item.id ? ' ' + styles.navItemActive : ''}`}
+                    onClick={() => {
+                      setSearchQuery('')
+                      setTab(item.id)
+                    }}
+                  >
+                    <span
+                      className={styles.navIcon}
+                      dangerouslySetInnerHTML={{ __html: item.icon }}
+                    />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             ))}
           </nav>
 
@@ -131,15 +146,36 @@ export function SettingsModal({
                 onRefreshOllama={onRefreshOllama}
               />
 
-              <BehaviorTab
-                isActive={tab === 'behavior'}
+              <AgentTab
+                isActive={tab === 'agent'}
                 isSearching={isSearching}
                 settings={settings}
                 onSettingsChange={onSettingsChange}
               />
 
-              <PerformanceTab
-                isActive={tab === 'performance'}
+              <SecurityTab
+                isActive={tab === 'security'}
+                isSearching={isSearching}
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
+
+              <AppearanceTab
+                isActive={tab === 'appearance'}
+                isSearching={isSearching}
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
+
+              <ToolsTab
+                isActive={tab === 'tools'}
+                isSearching={isSearching}
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
+
+              <AutomationTab
+                isActive={tab === 'automation'}
                 isSearching={isSearching}
                 settings={settings}
                 onSettingsChange={onSettingsChange}
@@ -155,15 +191,43 @@ export function SettingsModal({
                 />
               )}
 
+              <AdvancedTab
+                isActive={tab === 'advanced'}
+                isSearching={isSearching}
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
+
+              <PerformanceTab
+                isActive={tab === 'performance'}
+                isSearching={isSearching}
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
+
+              <NotificationsTab
+                isActive={tab === 'notifications'}
+                isSearching={isSearching}
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
+
               <IntegrationsTab
                 isActive={tab === 'integrations'}
+                isSearching={isSearching}
+                settings={settings}
+                onSettingsChange={onSettingsChange}
+              />
+
+              <McpTab
+                isActive={tab === 'mcp'}
                 isSearching={isSearching}
                 settings={settings}
                 chatProjectPath={chatProjectPath}
                 onSettingsChange={onSettingsChange}
               />
 
-              {!isSearching && tab === 'plugins' && <PluginsTab />}
+              <PluginsTab isActive={tab === 'plugins'} isSearching={isSearching} />
             </div>
           </SearchCtx.Provider>
         </div>

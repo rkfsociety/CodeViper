@@ -1,7 +1,14 @@
 import styles from './SettingsModal.module.css'
 import { SettingItem } from './shared'
 
-export function PluginsTab() {
+interface Props {
+  isActive: boolean
+  isSearching: boolean
+}
+
+export function PluginsTab({ isActive, isSearching }: Props) {
+  if (!isActive && !isSearching) return null
+
   return (
     <SettingItem tab="plugins" label="Плагины" desc="Подключить дополнительные инструменты">
       <div className={styles.settingSection}>

@@ -1,5 +1,18 @@
+.settingsBackdrop {
+  padding: 0 !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  overflow: hidden !important;
+}
+
 .settingsModal {
-  width: min(720px, 100%) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .settingsModal :global(.settings) {
@@ -18,12 +31,38 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 8px;
-  width: 168px;
+  padding: 10px 8px 16px;
+  width: 220px;
   flex-shrink: 0;
   background: var(--bg-base);
   border-right: 1px solid var(--border);
   overflow-y: auto;
+}
+
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.navGroup:first-of-type {
+  margin-top: 4px;
+}
+
+.navGroupLabel {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.toolsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2px 16px;
 }
 
 .navItem {
@@ -75,6 +114,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding: 16px 24px 24px;
 }
 
 .about {

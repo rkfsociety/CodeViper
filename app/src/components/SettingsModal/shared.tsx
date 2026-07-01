@@ -3,44 +3,110 @@ import styles from './SettingsModal.module.css'
 
 export type SettingsTab =
   | 'model'
-  | 'behavior'
+  | 'agent'
+  | 'security'
+  | 'automation'
+  | 'tools'
+  | 'appearance'
   | 'performance'
+  | 'notifications'
   | 'memory'
   | 'integrations'
+  | 'mcp'
   | 'plugins'
+  | 'advanced'
 
-export const SETTINGS_TABS: { id: SettingsTab; label: string; icon: string }[] = [
+type TabDef = { id: SettingsTab; label: string; icon: string }
+
+export const SETTINGS_NAV_GROUPS: { label: string; tabs: TabDef[] }[] = [
   {
-    id: 'model',
-    label: 'Модель',
-    icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+    label: 'Основное',
+    tabs: [
+      {
+        id: 'model',
+        label: 'Модель',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+      },
+      {
+        id: 'agent',
+        label: 'Агент',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+      },
+      {
+        id: 'security',
+        label: 'Безопасность',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5L2.5 4v4.5c0 3.5 2.4 6.2 5.5 7 3.1-.8 5.5-3.5 5.5-7V4L8 1.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>'
+      },
+      {
+        id: 'appearance',
+        label: 'Внешний вид',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="1.5"/></svg>'
+      }
+    ]
   },
   {
-    id: 'behavior',
-    label: 'Поведение',
-    icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+    label: 'Агент',
+    tabs: [
+      {
+        id: 'tools',
+        label: 'Инструменты',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 13l9-9 3 3-9 9H2v-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>'
+      },
+      {
+        id: 'automation',
+        label: 'Автоматизация',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 2v3M12 2v3M2 7h12M3 5h10a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+      },
+      {
+        id: 'memory',
+        label: 'Память и навыки',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 3.5V2M11 3.5V2M1.5 7h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+      },
+      {
+        id: 'advanced',
+        label: 'Дополнительно',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>'
+      }
+    ]
   },
   {
-    id: 'performance',
-    label: 'Производительность',
-    icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12L5 7l3 3 3-4 3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    label: 'Система',
+    tabs: [
+      {
+        id: 'performance',
+        label: 'Производительность',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12L5 7l3 3 3-4 3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      },
+      {
+        id: 'notifications',
+        label: 'Уведомления',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6a4 4 0 018 0c0 4 2 5 2 5H2s2-1 2-5zM6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      }
+    ]
   },
   {
-    id: 'memory',
-    label: 'Память и навыки',
-    icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 3.5V2M11 3.5V2M1.5 7h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
-  },
-  {
-    id: 'integrations',
-    label: 'Интеграции',
-    icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="4" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="12" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h3l2.5-4M5 8h3l2.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-  },
-  {
-    id: 'plugins',
-    label: 'Плагины',
-    icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="2" width="10" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M6 6h4M6 9h4M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+    label: 'Подключения',
+    tabs: [
+      {
+        id: 'integrations',
+        label: 'Интеграции',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="4" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="12" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h3l2.5-4M5 8h3l2.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      },
+      {
+        id: 'mcp',
+        label: 'MCP',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+      },
+      {
+        id: 'plugins',
+        label: 'Плагины',
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="2" width="10" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M6 6h4M6 9h4M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+      }
+    ]
   }
 ]
+
+export const SETTINGS_TABS: TabDef[] = SETTINGS_NAV_GROUPS.flatMap((group) => group.tabs)
 
 export const TOOL_GROUPS: { id: string; label: string; desc: string; tools: string[] }[] = [
   {
