@@ -866,6 +866,23 @@ export const FILE_TOOLS = [
         }
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_p2p_credit_issues',
+      description:
+        'Отчёт о некорректных P2P-кредитах: отрицательный баланс, NaN, лимиты в server/p2p/credits.ts',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Путь к credits.ts или папке server/p2p/src (необязательно)'
+          }
+        }
+      }
+    }
   }
 ] as const
 

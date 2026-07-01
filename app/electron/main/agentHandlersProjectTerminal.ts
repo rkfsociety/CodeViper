@@ -28,6 +28,7 @@ import {
 } from './automationScheduler'
 import { findSettingsPathIssues, formatSettingsPathIssuesOutput } from './settingsPathAnalysis'
 import { findDockerEnvIssues, findDockerPortIssues } from './dockerComposeAnalysis'
+import { findP2pCreditIssues } from './p2pCreditAnalysis'
 import { loadSettings } from './settings'
 
 function formatEslintOutput(filePath: string, stdout: string): string {
@@ -502,6 +503,15 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
       try {
         emitProgress('Проверка docker-compose environment…', null)
         return await findDockerEnvIssues(projectPath, { path: args.path })
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_p2p_credit_issues: async (args: any) => {
+      try {
+        emitProgress('Проверка P2P credits…', null)
+        return await findP2pCreditIssues(projectPath, { path: args.path })
       } finally {
         clearProgress()
       }
