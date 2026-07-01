@@ -39,7 +39,7 @@ import { useAgentDispatch, useAgentState } from '../../contexts/AgentContext'
 import { useChatContext } from '../../contexts/ChatContext'
 import { useChatBusy } from '../../contexts/QueueContext'
 import { useAppStateSync } from '../../hooks/useAppStateSync'
-import { CLOUD_KNOWN_MODELS, FILE_LIMIT, shouldShowAssistantMessage } from './helpers'
+import { CLOUD_KNOWN_MODELS, FILE_LIMIT } from './helpers'
 import type { DroppedFile } from './ChatInput'
 import { readFileBlobInRenderer, type AttachmentReadResult } from '../../lib/attachmentHelpers'
 import { ChatPanelMessagesPane } from './ChatPanelMessagesPane'
@@ -191,7 +191,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
 
   // Координационные рефы между хуками — созданы здесь, переданы в оба.
   const dispatch = useAgentDispatch()
-  const { runModel, runStats, agentPhase, planAwaitingConfirm } = useAgentState()
+  const { runModel, runStats, agentPhase, planAwaitingConfirm, clarifyAwaitingAnswer } =
+    useAgentState()
 
   const processNextQueuedRunRef = useRef<() => Promise<void>>(async () => {})
   const runIdRef = useRef(0)
@@ -846,6 +847,24 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     const text = expandSlashCommand(raw, settings.promptTemplates)
     if (!text || !chatId || (!settings.chatMode && !projectPath)) return
 
+    if (clarifyAwaitingAnswer) {
+      const userMessage: ChatMessage = {
+        id: makeId(),
+        role: 'user',
+        content: text,
+        timestamp: Date.now()
+      }
+      appendMessage(userMessage)
+      setInput('')
+      if (chatId && !incognito) clearChatInputDraft(chatId)
+      setDroppedFiles([])
+      setClipboardImages([])
+      scrollToBottomRef.current?.(true)
+      window.codeviper.respondAgentClarify(clarifyAwaitingAnswer.id, text)
+      dispatch({ type: 'SET_CLARIFY_AWAITING_ANSWER', pending: null })
+      return
+    }
+
     // Читаем содержимое вложенных файлов
     const textParts: string[] = []
     const images: { name: string; dataUrl: string }[] = []
@@ -960,19 +979,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     setSlashMenuIndex(0)
   }, [slashMatches.length])
 
-  const lastVisibleMessage = useMemo(
-    () => [...messages].reverse().find(shouldShowAssistantMessage),
-    [messages]
-  )
-
-  const awaitingClarification =
-    !settings.chatMode &&
-    settings.clarifyMode &&
-    !busy &&
-    !!chatId &&
-    !!projectPath &&
-    lastVisibleMessage?.role === 'assistant' &&
-    /\?\s*$/.test(lastVisibleMessage.content.trimEnd())
+  const awaitingClarification = !!clarifyAwaitingAnswer
 
   const handlePlanConfirm = useCallback(
     (approved: boolean) => {
@@ -982,6 +989,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
     },
     [planAwaitingConfirm, dispatch]
   )
+
+  const handleClarifyDismiss = useCallback(() => {
+    if (!clarifyAwaitingAnswer) return
+    window.codeviper.respondAgentClarify(clarifyAwaitingAnswer.id, null)
+    dispatch({ type: 'SET_CLARIFY_AWAITING_ANSWER', pending: null })
+  }, [clarifyAwaitingAnswer, dispatch])
 
   const addDroppedFiles = useCallback(
     (entries: DroppedFile[]) => {
@@ -1103,7 +1116,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
       {awaitingClarification && (
         <div className={styles.clarifyBanner} role="status">
           <span className={styles.clarifyIcon}>💬</span>
-          <span>Агент ждёт ответа на уточнение</span>
+          <span>Ответьте на уточнение агента в поле ввода ниже</span>
+          <button type="button" className={styles.planConfirmCancel} onClick={handleClarifyDismiss}>
+            Пропустить
+          </button>
         </div>
       )}
 
@@ -1114,6 +1130,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, Props>(function ChatPanel(
         busy={busy}
         agentRunning={agentRunning}
         queueSize={queueSize}
+        clarifyAwaiting={awaitingClarification}
         queueItems={getQueueSnapshot()}
         onRemoveFromQueue={removeFromQueue}
         progress={progress}

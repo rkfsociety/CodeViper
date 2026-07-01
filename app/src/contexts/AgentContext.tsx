@@ -14,6 +14,7 @@ export interface AgentState {
   orchestrating: boolean
   orchestratingPlan: string | null
   planAwaitingConfirm: { id: string; plan: string } | null
+  clarifyAwaitingAnswer: { id: string; question: string } | null
   exploring: boolean
   editing: boolean
   retry429: { waitMs: number; attempt: number; untilMs: number } | null
@@ -35,6 +36,7 @@ export type AgentAction =
   | { type: 'SET_STATS'; stats: RunStats | null }
   | { type: 'SET_ORCHESTRATING'; active: boolean; plan?: string | null }
   | { type: 'SET_PLAN_AWAITING_CONFIRM'; pending: { id: string; plan: string } | null }
+  | { type: 'SET_CLARIFY_AWAITING_ANSWER'; pending: { id: string; question: string } | null }
   | { type: 'SET_EXPLORING'; active: boolean }
   | { type: 'SET_EDITING'; active: boolean }
   | { type: 'SET_RETRY_429'; value: { waitMs: number; attempt: number; untilMs: number } | null }
@@ -63,6 +65,7 @@ const initialState: AgentState = {
   orchestrating: false,
   orchestratingPlan: null,
   planAwaitingConfirm: null,
+  clarifyAwaitingAnswer: null,
   exploring: false,
   editing: false,
   retry429: null,
@@ -99,6 +102,8 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
       }
     case 'SET_PLAN_AWAITING_CONFIRM':
       return { ...state, planAwaitingConfirm: action.pending }
+    case 'SET_CLARIFY_AWAITING_ANSWER':
+      return { ...state, clarifyAwaitingAnswer: action.pending }
     case 'SET_EXPLORING':
       return { ...state, exploring: action.active }
     case 'SET_EDITING':

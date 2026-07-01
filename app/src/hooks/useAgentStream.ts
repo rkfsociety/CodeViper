@@ -367,6 +367,13 @@ export function useAgentStream({
         })
       }
 
+      if (event.type === 'clarify_awaiting_answer' && event.clarifyId && event.content) {
+        dispatchRef.current({
+          type: 'SET_CLARIFY_AWAITING_ANSWER',
+          pending: { id: event.clarifyId, question: event.content }
+        })
+      }
+
       if (event.type === 'exploring') {
         dispatchRef.current({ type: 'SET_EXPLORING', active: event.exploring !== false })
       }
@@ -486,6 +493,7 @@ export function useAgentStream({
         dispatchRef.current({ type: 'SET_SUMMARIZING', value: false })
         dispatchRef.current({ type: 'SET_ORCHESTRATING', active: false })
         dispatchRef.current({ type: 'SET_PLAN_AWAITING_CONFIRM', pending: null })
+        dispatchRef.current({ type: 'SET_CLARIFY_AWAITING_ANSWER', pending: null })
         dispatchRef.current({ type: 'SET_RETRY_429', value: null })
         dispatchRef.current({ type: 'SET_INDEX_PROGRESS', value: null })
         genStartRef.current = null

@@ -43,6 +43,7 @@ interface Props {
   chatInputRef: React.RefObject<ChatInputHandle | null>
   agentRunning: boolean
   queueSize: number
+  clarifyAwaiting?: boolean
   onStop: () => void
   onSend: () => void
   model: string
@@ -76,6 +77,7 @@ export function ChatInputSection({
   chatInputRef,
   agentRunning,
   queueSize,
+  clarifyAwaiting = false,
   onStop,
   onSend,
   model,
@@ -201,7 +203,13 @@ export function ChatInputSection({
               className={styles.sendBtn}
               onClick={onSend}
               disabled={!model || !chatId || (!isChatMode && !projectPath) || !input.trim()}
-              title={agentRunning ? 'В очередь' : 'Отправить (Enter)'}
+              title={
+                clarifyAwaiting
+                  ? 'Ответить на уточнение (Enter)'
+                  : agentRunning
+                    ? 'В очередь'
+                    : 'Отправить (Enter)'
+              }
             >
               ↑
             </button>

@@ -59,7 +59,10 @@ export function registerAgentIpc(ctx: IpcContext): void {
       })
   }
 
-  function makeClarifyFn(signal: AbortSignal): (question: string) => Promise<string | null> {
+  function makeClarifyFn(
+    signal: AbortSignal,
+    chatId: string
+  ): (question: string) => Promise<string | null> {
     return (question) =>
       new Promise<string | null>((resolve) => {
         const id = makeId()
@@ -69,7 +72,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
         }
         pendingClarifies.set(id, settle)
         signal.addEventListener('abort', () => settle(null), { once: true })
-        getWindow()?.webContents.send(IPC.AGENT_CLARIFY, { id, question })
+        stream(chatId, { type: 'clarify_awaiting_answer', clarifyId: id, content: question })
       })
   }
 
@@ -254,7 +257,7 @@ export function registerAgentIpc(ctx: IpcContext): void {
           emit: (event) => stream(chatId, event),
           signal: abortCtrl.signal,
           confirm: makeConfirmFn(abortCtrl.signal),
-          clarify: makeClarifyFn(abortCtrl.signal),
+          clarify: makeClarifyFn(abortCtrl.signal, chatId),
           confirmPlan: makePlanConfirmFn(abortCtrl.signal, chatId),
           previewFn: makePreviewFn(abortCtrl.signal),
           chatId,

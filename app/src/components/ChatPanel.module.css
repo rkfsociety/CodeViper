@@ -34,6 +34,11 @@
   animation: clarify-fadein 0.2s ease;
 }
 
+.clarifyBanner .planConfirmCancel {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 @keyframes clarify-fadein {
   from {
     opacity: 0;

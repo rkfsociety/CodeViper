@@ -4,7 +4,6 @@ import { initTraceBuffer } from './traceBuffer'
 import logoUrl from '../resources/icon.png'
 import type {
   AgentConfirmRequest,
-  AgentClarifyRequest,
   AgentSettings,
   AppState,
   ChatMessage,
@@ -16,7 +15,7 @@ import { ChatPanel, type ChatPanelHandle } from './components/ChatPanel'
 import type { TracePanelHandle } from './components/TracePanel'
 import { useMemo } from 'react'
 import type { SetStateAction } from 'react'
-import { AgentProvider } from './contexts/AgentContext'
+import { AgentProvider, useAgentState } from './contexts/AgentContext'
 import { ChatContext, type ChatContextValue } from './contexts/ChatContext'
 import { QueueProvider, useChatBusy } from './contexts/QueueContext'
 import { ChatHistoryPanel, type AgentMode } from './components/ChatHistoryPanel'
@@ -28,7 +27,6 @@ import { OllamaDownloadStatus } from './components/OllamaDownloadStatus'
 import { UpdateBanner, applyUpdateInfo } from './components/UpdateBanner'
 import type { PendingUpdates } from '../shared/updateBannerView'
 import { ConfirmDialog } from './components/ConfirmDialog'
-import { PromptDialog } from './components/PromptDialog'
 import { CrashRecoveryDialog } from './components/CrashRecoveryDialog'
 import { OnboardingWizard } from './components/OnboardingWizard'
 import { ToastProvider, useToast } from './components/Toast'
@@ -279,7 +277,7 @@ function AppContent() {
   const [settingsReady, setSettingsReady] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [confirmReq, setConfirmReq] = useState<AgentConfirmRequest | null>(null)
-  const [clarifyReq, setClarifyReq] = useState<AgentClarifyRequest | null>(null)
+  const { clarifyAwaitingAnswer } = useAgentState()
   const [dangerApprovalPending, setDangerApprovalPending] = useState(false)
   const { toast } = useToast()
 
@@ -288,7 +286,7 @@ function AppContent() {
     [messages]
   )
   const pendingApproval = Boolean(
-    confirmReq || clarifyReq || hasPendingPreview || dangerApprovalPending
+    confirmReq || clarifyAwaitingAnswer || hasPendingPreview || dangerApprovalPending
   )
   const notifyWaitingApproval = useCallback((message: string) => toast(message, 'info'), [toast])
   useAgentWaitingApprovalNotify(pendingApproval, notifyWaitingApproval)
@@ -602,10 +600,6 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
-    return window.codeviper.onAgentClarify((request) => setClarifyReq(request))
-  }, [])
-
-  useEffect(() => {
     return window.codeviper.onUpdateAvailable((info) =>
       setPendingUpdates((prev) => applyUpdateInfo(prev, info))
     )
@@ -640,15 +634,6 @@ function AppContent() {
       setConfirmReq(null)
     },
     [confirmReq]
-  )
-
-  const resolveClarify = useCallback(
-    (answer: string | null) => {
-      if (!clarifyReq) return
-      window.codeviper.respondAgentClarify(clarifyReq.id, answer)
-      setClarifyReq(null)
-    },
-    [clarifyReq]
   )
 
   useEffect(() => {
@@ -1515,15 +1500,6 @@ function AppContent() {
           confirmLabel="Выполнить"
           onConfirm={() => resolveConfirm(true)}
           onCancel={() => resolveConfirm(false)}
-        />
-
-        <PromptDialog
-          open={!!clarifyReq}
-          title="Агент уточняет"
-          label={clarifyReq?.question}
-          confirmLabel="Ответить"
-          onConfirm={(answer) => resolveClarify(answer)}
-          onCancel={() => resolveClarify(null)}
         />
 
         <ConfirmDialog

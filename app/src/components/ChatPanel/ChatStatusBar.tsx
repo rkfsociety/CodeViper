@@ -25,6 +25,7 @@ interface Props {
   busy: boolean
   agentRunning: boolean
   queueSize: number
+  clarifyAwaiting?: boolean
   queueItems: Array<{ id: string; text: string }>
   onRemoveFromQueue: (index: number) => void
   progress: ProgressInfo | null
@@ -93,6 +94,7 @@ export function ChatStatusBar({
   busy,
   agentRunning,
   queueSize,
+  clarifyAwaiting = false,
   queueItems,
   onRemoveFromQueue,
   progress,
@@ -215,6 +217,7 @@ export function ChatStatusBar({
         chatInputRef={chatInputRef}
         agentRunning={agentRunning}
         queueSize={queueSize}
+        clarifyAwaiting={clarifyAwaiting}
         onStop={onStop}
         onSend={onSend}
         model={settings.model}

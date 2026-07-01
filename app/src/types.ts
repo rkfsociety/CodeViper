@@ -553,6 +553,7 @@ export interface AgentStreamPayload {
     | 'trace'
     | 'orchestrating'
     | 'plan_awaiting_confirm'
+    | 'clarify_awaiting_answer'
     | 'exploring'
     | 'editing'
     | 'retry_429'
@@ -592,6 +593,8 @@ export interface AgentStreamPayload {
   orchestrating?: boolean
   /** Ожидание подтверждения плана (type === 'plan_awaiting_confirm') */
   planConfirmId?: string
+  /** Ожидание ответа на уточнение (type === 'clarify_awaiting_answer') */
+  clarifyId?: string
   /** Субагент-разведчик анализирует проект (type === 'exploring') */
   exploring?: boolean
   /** Сводка от explorer-субагента — добавляется в системный промпт */
