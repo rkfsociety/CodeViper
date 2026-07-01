@@ -1,6 +1,7 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
+import { getElectronMainDir } from './electronMainDir'
 
 /** Кандидаты путей к иконке: packaged (extraResources), asar, dev. */
 export function getAppIconCandidates(): string[] {
@@ -22,7 +23,7 @@ export function getAppIconCandidates(): string[] {
   }
 
   for (const name of names) {
-    candidates.push(join(__dirname, '../../resources', name))
+    candidates.push(join(getElectronMainDir(), '../../resources', name))
     candidates.push(join(process.cwd(), 'resources', name))
   }
 

@@ -55,6 +55,7 @@ import {
   refreshAppWindowTitle,
   registerMainWindowForTitle
 } from './appWindowTitle'
+import { getElectronMainDir } from './electronMainDir'
 
 if (process.env.CODEVIPER_E2E === '1') {
   const e2eUserData = join(tmpdir(), `codeviper-e2e-${process.pid}`)
@@ -429,7 +430,7 @@ app.whenReady().then(async () => {
   }
   initBundledShellPaths(settings.liveRuntimeFromGit !== false, {
     isPackaged: app.isPackaged,
-    mainDir: __dirname
+    mainDir: getElectronMainDir()
   })
 
   if (settings.gitSyncOnStartup && !process.env.CODEVIPER_E2E) {

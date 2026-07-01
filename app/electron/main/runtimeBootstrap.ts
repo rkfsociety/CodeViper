@@ -8,6 +8,7 @@ import {
   BUNDLED_SHELL_RENDERER_MIN_BYTES
 } from '../../shared/constants'
 import { getCodeViperSourceRoot, setSourceRootOverride } from './codeviperSource'
+import { getElectronMainDir } from './electronMainDir'
 import { getBundledSourceAppRoot } from './bundledSourcePaths'
 import type { AgentSettings } from '../../src/types'
 import type { ToolHandlers } from './agentTools'
@@ -159,7 +160,7 @@ export function resolveBundledShellPaths(options?: {
   mainDir?: string
 }): BundledShellPaths {
   const isPackaged = options?.isPackaged ?? app.isPackaged
-  const mainDir = options?.mainDir ?? __dirname
+  const mainDir = options?.mainDir ?? getElectronMainDir()
 
   if (!isPackaged) {
     return devShellPaths(mainDir)
@@ -221,7 +222,7 @@ export function getBundledShellPaths(): BundledShellPaths {
     cachedShellPaths = resolveBundledShellPaths({
       liveRuntimeFromGit: false,
       isPackaged: app.isPackaged,
-      mainDir: __dirname
+      mainDir: getElectronMainDir()
     })
   }
   return cachedShellPaths

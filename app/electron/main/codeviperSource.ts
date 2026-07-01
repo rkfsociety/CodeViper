@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
 import { basename, dirname, join, relative, resolve, sep } from 'path'
+import { getElectronMainDir } from './electronMainDir'
 import { findFilesInTree } from './fileSearch'
 import {
   isInsideProject,
@@ -48,18 +49,19 @@ export function getCodeViperSourceRoot(): string {
     /* тесты — app не инициализирован */
   }
 
+  const mainDir = getElectronMainDir()
   const candidates = [
     join(process.cwd(), 'app'),
     process.cwd(),
     ...(appPath ? [join(appPath)] : []),
-    join(__dirname, '../..')
+    join(mainDir, '../..')
   ]
 
   for (const root of candidates) {
     if (hasSourceMarkers(root)) return resolve(root)
   }
 
-  return resolve(join(__dirname, '../..'))
+  return resolve(join(mainDir, '../..'))
 }
 
 /** Убирает лишний префикс app/, если корень исходников уже .../app */
