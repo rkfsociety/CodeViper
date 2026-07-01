@@ -128,6 +128,7 @@ export interface ToolArgs {
   find_unsafe_regex: { path?: string }
   find_magic_numbers: { path?: string }
   find_dead_code: { path?: string }
+  find_settings_path_issues: Record<string, never>
   find_type_mismatches: { path?: string }
   find_hotkey_conflicts: { path?: string }
   generate_dependency_diagram: { path?: string; focus?: string }

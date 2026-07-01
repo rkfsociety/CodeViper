@@ -26,6 +26,7 @@ import {
   formatCronIssuesOutput,
   type AutomationRule
 } from './automationScheduler'
+import { findSettingsPathIssues, formatSettingsPathIssuesOutput } from './settingsPathAnalysis'
 import { loadSettings } from './settings'
 
 function formatEslintOutput(filePath: string, stdout: string): string {
@@ -472,6 +473,16 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
           return 'Правил автоматизации нет (automations пуст). Невалидных cron не найдено.'
         }
         return formatCronIssuesOutput(collectInvalidAutomationRules(rules))
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_settings_path_issues: async () => {
+      try {
+        emitProgress('Проверка путей в settings.json…', null)
+        const result = await findSettingsPathIssues()
+        return formatSettingsPathIssuesOutput(result)
       } finally {
         clearProgress()
       }

@@ -772,6 +772,15 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_settings_path_issues',
+      description:
+        'Проверить settings.json на битые пути в sourceRootOverride, gitRepoRoot, orchestratorModelPath и recentProjects. Возвращает отчёт в чат.',
+      parameters: { type: 'object', properties: {}, required: [] }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'run_tests',
       description:
         'Запустить тесты проекта и вернуть структурированный результат: сколько прошло/упало, имена упавших тестов, стек ошибок. Авто-определяет runner (vitest/jest/pytest/cargo/go) по файлам проекта. Используй после правок, чтобы убедиться, что тесты проходят. При падениях — исправь код и вызови снова.',
