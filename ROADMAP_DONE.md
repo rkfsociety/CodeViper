@@ -35,6 +35,7 @@
 - Документация live runtime: README, `docs/development.md`
 
 ### Архитектура и рефакторинг
+- `find_skill_file_issues`: отчёт о битых SKILL.md, пустых trigger и дубликатах trigger при cross-check с `list_skills`
 - Авто-обнаружение циклов импортов: `findImportCycles` в `symbolIndex.ts`, предупреждение в чате через `ArchitecturePanel`
 - IPC → 9 модулей `register*Ipc`; `agentTools` → core/integrations/mcp; `agentHandlersProject` → file/search/terminal
 - `SettingsModal` → 6 вкладок; `ChatPanel/` подкомпоненты; `commandRunner` выделен из `services.ts`
@@ -135,3 +136,5 @@
 - Tool `find_unsafe_regex`: report of regex with catastrophic backtracking (ReDoS) risk
 
 - Plugins: added a Settings UI path for plugin folders and a Superpowers-style skills import flow from repository roots
+
+

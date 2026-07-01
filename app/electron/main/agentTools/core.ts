@@ -870,6 +870,22 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_skill_file_issues',
+      description: 'Отчёт о битых SKILL.md: нет frontmatter, пустой trigger, дубликаты trigger',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Путь к skills папке или корню плагина (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_p2p_credit_issues',
       description:
         'Отчёт о некорректных P2P-кредитах: отрицательный баланс, NaN, лимиты в server/p2p/credits.ts',

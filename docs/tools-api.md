@@ -65,7 +65,7 @@
 
 ### `agentTools/integrations.ts` — память, навыки, todo, веб
 
-`remember`, `search_memory`, `forget`, `list_skills`, `read_skill`, `create_skill`, `update_skill`, `delete_skill`, `read_skill_data`, `write_skill_data`, `set_todo_list`, `complete_todo_item`, `clear_todo_list`, `check_cve`, `web_fetch`, `web_search`
+`remember`, `search_memory`, `forget`, `list_skills`, `read_skill`, `create_skill`, `update_skill`, `delete_skill`, `read_skill_data`, `write_skill_data`, `find_skill_file_issues`, `set_todo_list`, `complete_todo_item`, `clear_todo_list`, `check_cve`, `web_fetch`, `web_search
 
 ### `agentTools/mcp.ts` — CodeViper, ROADMAP, Ollama, индекс
 
@@ -818,3 +818,5 @@ const data = JSON.parse(raw)
 - [Обработчики памяти и навыков](../app/electron/main/agentHandlersMemory.ts)
 - [Обработчики саморедактирования](../app/electron/main/agentHandlersCodeViper.ts)
 - [Архитектура системы](architecture.md)
+
+

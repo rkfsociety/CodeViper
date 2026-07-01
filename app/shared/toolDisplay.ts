@@ -43,6 +43,7 @@ export const TOOL_LABELS: Record<string, string> = {
   delete_skill: 'Удаляю навык',
   read_skill_data: 'Читаю данные навыка',
   write_skill_data: 'Сохраняю данные навыка',
+  find_skill_file_issues: 'Проверяю SKILL.md',
   index_project: 'Индексирую проект'
 }
 

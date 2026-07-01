@@ -78,6 +78,7 @@ export const AGENT_TOOL_NAMES = [
   'delete_skill',
   'read_skill_data',
   'write_skill_data',
+  'find_skill_file_issues',
   // Todo
   'set_todo_list',
   'complete_todo_item',

@@ -1,6 +1,7 @@
 import type { AgentStreamPayload } from '../../src/types'
 import type { ToolHandlers } from './agentTools'
 import { isBuiltinSkill } from '../../shared/builtinSkills'
+import { findSkillFileIssues } from './skillFileAnalysis'
 import {
   createSkill,
   deleteSkill,
@@ -70,6 +71,10 @@ export function createSkillsToolHandlers(
     write_skill_data: async (args: any) => {
       const ok = await writeSkillData(projectPath, args.skill_id, args.content)
       return ok ? `Данные навыка записаны: ${args.skill_id}` : `Навык не найден: ${args.skill_id}`
+    },
+
+    find_skill_file_issues: async (args: any) => {
+      return findSkillFileIssues(projectPath, { path: args.path })
     }
   }
   return handlers
