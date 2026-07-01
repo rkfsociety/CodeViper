@@ -87,6 +87,13 @@ describe('orchestratorModel.analyze', () => {
     expect(buildOrchestratorPrompt('задача')).not.toMatch(/rephrased/i)
   })
 
+  it('buildOrchestratorPrompt требует нумерованные шаги, не пересказ задачи', () => {
+    const prompt = buildOrchestratorPrompt('найди magic numbers')
+    expect(prompt).toMatch(/numbered steps/i)
+    expect(prompt).toMatch(/NOT a restatement/i)
+    expect(prompt).toMatch(/1\./)
+  })
+
   it('fallback если не JSON', () => {
     const r = parseOrchestratorResult('Sorry, I cannot help.')
     expect(r.isComplex).toBe(false)

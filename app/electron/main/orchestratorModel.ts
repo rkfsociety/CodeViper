@@ -36,7 +36,13 @@ export interface OrchestratorAnalyzeOptions {
 export function buildOrchestratorPrompt(message: string): string {
   return (
     'You are a task planner. Respond with ONLY valid JSON, no markdown, no explanation.\n' +
-    'Fields (in Russian): "plan" = brief 2-4 step plan, "isComplex" = true if task needs 3+ files or multiple modules, false otherwise.\n\n' +
+    'Fields (in Russian):\n' +
+    '- "plan": numbered steps 1–4, each line = one concrete action (which tool/file/command), NOT a restatement of the task title\n' +
+    '- "isComplex": true if task needs 3+ files or multiple modules, false otherwise\n' +
+    'Example plan:\n' +
+    '1. grep по проекту …\n' +
+    '2. read файл …\n' +
+    '3. сформировать отчёт …\n\n' +
     `Task: ${message}\n\n` +
     'JSON:'
   )

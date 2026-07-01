@@ -292,7 +292,7 @@ export class AgentRunner {
           if (!approved) {
             this.emitter.emit({
               type: 'context',
-              content: '???? ?? ???????????, ?????????? ???????????.'
+              content: '⏹ Выполнение отменено — план не подтверждён.'
             })
             this.emitter.emit({ type: 'done' })
             return
@@ -332,7 +332,7 @@ export class AgentRunner {
               type: 'exploring',
               exploring: false,
               explorerSummary,
-              content: `?? Разведка завершена (${explorerResult.steps} шагов, инструменты: ${explorerResult.toolsUsed.join(', ') || 'нет'})`
+              content: `🔍 Разведка завершена (${explorerResult.steps} шагов, инструменты: ${explorerResult.toolsUsed.join(', ') || 'нет'})`
             })
           } else {
             this.emitter.emit({ type: 'exploring', exploring: false })
@@ -349,8 +349,8 @@ export class AgentRunner {
     if (autoDelegateRole && this.projectPath) {
       const traceLabel =
         autoDelegateRole === 'reviewer'
-          ? '?? Автоделегирование: Reviewer'
-          : '?? Автоделегирование: Tester'
+          ? '🤝 Автоделегирование: Reviewer'
+          : '🤝 Автоделегирование: Tester'
       this.emitter.trace('tool_call', traceLabel, {
         step: 0,
         tool: `delegate_to_${autoDelegateRole}`,
@@ -362,8 +362,8 @@ export class AgentRunner {
         type: 'context',
         content:
           autoDelegateRole === 'reviewer'
-            ? '?? Задача похожа на ревью — делегирую её Reviewer-субагенту.'
-            : '?? Задача похожа на запуск/анализ тестов — делегирую её Tester-субагенту.'
+            ? '🤝 Задача похожа на ревью — делегирую её Reviewer-субагенту.'
+            : '🤝 Задача похожа на запуск/анализ тестов — делегирую её Tester-субагенту.'
       })
       const startedAt = Date.now()
       const result = await runSubagent(this.settings, {
@@ -431,7 +431,7 @@ export class AgentRunner {
     if (prepared.preview.historySummarized) {
       this.emitter.emit({
         type: 'context',
-        content: `?? Контекст ~${prepared.preview.contextUsagePercent}% — предыдущая история суммаризирована`
+        content: `📋 Контекст ~${prepared.preview.contextUsagePercent}% — предыдущая история суммаризирована`
       })
     }
 
@@ -607,7 +607,7 @@ export class AgentRunner {
         if (isCostLimitExceeded(this.ctx.sessionCostUsd, costLimit)) {
           this.emitter.emit({
             type: 'error',
-            content: `?? Лимит стоимости прогона превышен: ~${formatCostUsd(this.ctx.sessionCostUsd)} из ${formatCostUsd(costLimit!)}. Прогон остановлен.`
+            content: `💰 Лимит стоимости прогона превышен: ~${formatCostUsd(this.ctx.sessionCostUsd)} из ${formatCostUsd(costLimit!)}. Прогон остановлен.`
           })
           this.emitter.emit({ type: 'done' })
           return
@@ -742,7 +742,7 @@ export class AgentRunner {
               this.emitter.emit({
                 type: 'context',
                 content:
-                  '?? Модель описала инструменты текстом без tool_calls — повтор с жёстким tool calling…'
+                  '⚠️ Модель описала инструменты текстом без tool_calls — повтор с жёстким tool calling…'
               })
             }
             if (planAction.emitAssistant)
@@ -760,7 +760,7 @@ export class AgentRunner {
             this.emitter.emit({ type: 'clear_draft' })
             this.emitter.emit({
               type: 'context',
-              content: `?? Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${planAction.toModel}**…`
+              content: `🔄 Модель **${this.settings.model}** отказалась от задачи — переключаюсь на **${planAction.toModel}**…`
             })
             this.settings = { ...this.settings, model: planAction.toModel }
             requireToolNext = true
@@ -774,8 +774,8 @@ export class AgentRunner {
             this.emitter.emit({
               type: 'error',
               content: afterExploration
-                ? '?? Пустой ответ после разведки — повторяю с требованием правок…'
-                : '?? Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
+                ? '⚠️ Пустой ответ после разведки — повторяю с требованием правок…'
+                : '⚠️ Модель ответила текстом без инструментов — повторяю с обязательным tool call…'
             })
             this.pushNudge(
               messages,
@@ -951,7 +951,7 @@ export class AgentRunner {
         try {
           await this.ctx.modelRuntime.unloadModel(this.settings.model)
         } catch {
-          /* ????????????? */
+          /* необязательно */
         }
       }
       void agentLogger.write({

@@ -48,3 +48,8 @@
 - Симптом: `telegramBotToken` / `telegramChatId` пустые после перезапуска или runtime-update.  
 - Корень: `AgentSettingsSchema` в `ipcContracts.ts` не содержал эти поля; Zod `.strip()` при `parseIpcArgs(SAVE_SETTINGS)` выбрасывал их перед `saveSettings`. Автосохранение в `App.tsx` (400 мс) перезаписывало `settings.json` без Telegram.  
 - Фикс: синхронизировать `AgentSettingsSchema` с `PersistedSettingsSchema`; тест `ipcContracts.test.ts`.
+
+**2026-07-01 · planBeforeExecute — кракозябры при отмене и «план» из одной строки**  
+- Симптом: после «Отмена» в чате `???? ?? ???????????…`; в баннере плана — пересказ задачи, а не шаги.  
+- Корень: (1) в `agent.ts` строки с emoji/кириллицей побились при рефакторинге (`????` вместо `⏹ Выполнение отменено…`); (2) промпт оркестратора допускал пересказ задачи в поле `plan`.  
+- Фикс: восстановить UTF-8 строки в `agent.ts`; ужесточить `buildOrchestratorPrompt` (нумерованные шаги, не restatement).
