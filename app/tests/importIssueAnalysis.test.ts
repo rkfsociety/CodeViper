@@ -64,4 +64,57 @@ describe('importIssueAnalysis', () => {
     expect(result.issues.some((issue) => issue.specifier === '@missing/pkg')).toBe(true)
     expect(formatImportIssuesOutput(root, result)).toContain('alias')
   })
+
+  it('не считает npm-пакеты неразрешёнными alias', async () => {
+    writeFileSync(
+      join(root, 'tsconfig.json'),
+      JSON.stringify(
+        {
+          compilerOptions: {
+            baseUrl: '.',
+            paths: {
+              '@app/*': ['src/*']
+            }
+          }
+        },
+        null,
+        2
+      )
+    )
+    writeFileSync(
+      join(root, 'package.json'),
+      JSON.stringify(
+        {
+          name: 'fixture',
+          type: 'module',
+          dependencies: {
+            react: '^19.1.0'
+          }
+        },
+        null,
+        2
+      )
+    )
+    mkdirSync(join(root, 'node_modules', 'react'), { recursive: true })
+    writeFileSync(
+      join(root, 'node_modules', 'react', 'package.json'),
+      '{"name":"react","main":"index.js"}'
+    )
+    writeFileSync(join(root, 'node_modules', 'react', 'index.js'), 'module.exports = {}')
+    writeFileSync(
+      join(root, 'src', 'packages.ts'),
+      [
+        "import React from 'react'",
+        "import { ok } from '@app/utils/ok'",
+        "import { bad } from '@broken/internal'",
+        'export { React, ok, bad }'
+      ].join('\n')
+    )
+    writeFileSync(join(root, 'src', 'utils', 'ok.ts'), 'export const ok = 1')
+
+    const result = await findImportIssues(root, { subpath: 'src/packages.ts' })
+    expect(result.issues.some((issue) => issue.specifier === 'react')).toBe(false)
+    expect(result.issues.some((issue) => issue.specifier === '@app/utils/ok')).toBe(false)
+    expect(result.issues.some((issue) => issue.specifier === '@broken/internal')).toBe(true)
+  })
 })

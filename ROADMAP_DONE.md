@@ -42,6 +42,7 @@
 - Разбиение ROADMAP на смысловые подфайлы с лимитом до 50 пунктов в каждом (`ROADMAP/11-*.md` … `ROADMAP/31-*.md`) и короткие индексные файлы по разделам
 
 ### Агент и инструменты
+- `find_import_issues`: AST-проверка import/require с различением `tsconfig paths` alias и реальных npm-пакетов, без ложных срабатываний на `node_modules`
 - Авто-обнаружение тяжёлых зависимостей в `node_modules`: список пакетов больше 1 MB в терминальном обработчике
 - Авто-обнаружение неправильных aria-атрибутов: tool `find_aria_issues` — AST-анализ JSX, по умолчанию `MessageBody.tsx` и `App.tsx`
 - Tool `find_integration_url_issues`: GitLab/Jira/webhook/P2P URL в settings → отчёт (`integrationUrlValidation.ts`)

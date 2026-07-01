@@ -144,6 +144,15 @@ function expandAliasTargets(alias: TsConfigPathAlias, specifier: string): string
   return alias.targets.map((target) => resolve(alias.baseUrl, target.replace('*', middle)))
 }
 
+function aliasMatchesSpecifier(alias: TsConfigPathAlias, specifier: string): boolean {
+  const star = alias.pattern.indexOf('*')
+  if (star < 0) return alias.pattern === specifier
+
+  const prefix = alias.pattern.slice(0, star)
+  const suffix = alias.pattern.slice(star + 1)
+  return specifier.startsWith(prefix) && specifier.endsWith(suffix)
+}
+
 function resolveAliasedImport(
   projectRoot: string,
   specifier: string,
@@ -164,6 +173,15 @@ function resolveAliasedImport(
     }
   }
   return null
+}
+
+function resolveNodeModuleImport(fromFile: string, specifier: string): string | null {
+  try {
+    const localRequire = createRequire(fromFile)
+    return localRequire.resolve(specifier)
+  } catch {
+    return null
+  }
 }
 
 function looksLikeAlias(specifier: string): boolean {
@@ -262,6 +280,12 @@ async function analyzeFile(
     }
 
     if (looksLikeAlias(specifier)) {
+      const matchesConfiguredAlias = aliases.some((alias) =>
+        aliasMatchesSpecifier(alias, specifier)
+      )
+      if (!matchesConfiguredAlias && resolveNodeModuleImport(filePath, specifier)) {
+        continue
+      }
       const resolved = resolveAliasedImport(projectRoot, specifier, aliases)
       if (!resolved) {
         const pos = positionOf(sourceFile, node)
@@ -270,10 +294,10 @@ async function analyzeFile(
           line: pos.line,
           column: pos.column,
           specifier,
-          kind: aliases.length ? 'missing_file' : 'missing_alias',
-          message: aliases.length
+          kind: matchesConfiguredAlias ? 'missing_file' : 'missing_alias',
+          message: matchesConfiguredAlias
             ? 'Aliased import не удалось разрешить через tsconfig paths'
-            : 'Неразрешённый import alias: tsconfig paths не настроены'
+            : 'Bare import не найден как пакет и не совпадает с tsconfig paths alias'
         })
       }
     }
