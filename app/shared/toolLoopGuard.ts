@@ -14,3 +14,8 @@ export function normalizeToolLoopSignature(
   }
   return `${name}:${JSON.stringify(args)}`
 }
+
+/** Стабильная подпись набора tool_calls шага (порядок вызовов не важен). */
+export function buildToolBatchSignature(signatures: string[]): string {
+  return [...signatures].sort().join('\n')
+}

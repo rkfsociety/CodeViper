@@ -9,6 +9,8 @@ export const EXPLORATION_STALL_MIN_STEPS = 8
 export const EXPLORATION_STALL_ABORT_STEPS = 20
 /** Повтор nudge «достаточно разведки» каждые N шагов после порога. */
 export const EXPLORATION_STALL_REPEAT_INTERVAL = 5
+/** Повторов одного набора tool_calls подряд — nudge «смени стратегию» (экономия токенов при застрявшей модели). */
+export const MAX_DUPLICATE_TOOL_BATCH = 1
 
 // ── Агент: контекст ───────────────────────────────────────────────────────────
 /** Порог заполнения контекста (0–1), при котором запускается суммаризация */

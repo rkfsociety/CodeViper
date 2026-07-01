@@ -7,7 +7,8 @@ import {
   looksLikeFakeToolOutput,
   pickFakeToolOutputNudge,
   EXPLORATION_STALL_NUDGE,
-  EXPLORATION_STALL_ABORT_MESSAGE
+  EXPLORATION_STALL_ABORT_MESSAGE,
+  DUPLICATE_TOOL_BATCH_NUDGE
 } from '../../shared/actionVerification'
 import { escalateModel } from '../../shared/modelRouter'
 import {
@@ -15,7 +16,8 @@ import {
   EXPLORATION_STALL_ABORT_STEPS,
   EXPLORATION_STALL_REPEAT_INTERVAL,
   MAX_CONSECUTIVE_SAME_TOOL,
-  MAX_SAME_TOOL_TOTAL
+  MAX_SAME_TOOL_TOTAL,
+  MAX_DUPLICATE_TOOL_BATCH
 } from '../../shared/constants'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './ollamaMessage'
@@ -36,6 +38,8 @@ export type VerificationAction =
 export class LoopGuard {
   private lastToolSignature: string | null = null
   private consecutiveSameToolCount = 0
+  private lastToolBatchSignature: string | null = null
+  private consecutiveDuplicateBatchCount = 0
   private readonly toolCallCounts = new Map<string, number>()
   private verificationRetries = 0
   private verificationNoticeSent = false
@@ -61,6 +65,26 @@ export class LoopGuard {
       this.consecutiveSameToolCount = 0
       this.lastToolSignature = null
       return `Ты вызываешь инструмент "${name}" с теми же аргументами несколько раз подряд и не продвигаешься вперёд. Попробуй другой подход: измени запрос, используй другой инструмент или обоснуй вывод на основе уже полученных данных.`
+    }
+    return null
+  }
+
+  /**
+   * Повтор того же набора tool_calls на соседних шагах (типично застрявшая cloud-модель).
+   * Возвращает nudge если лимит превышен.
+   */
+  checkDuplicateToolBatch(batchSignature: string): string | null {
+    if (!batchSignature) return null
+    if (batchSignature === this.lastToolBatchSignature) {
+      this.consecutiveDuplicateBatchCount++
+    } else {
+      this.consecutiveDuplicateBatchCount = 0
+      this.lastToolBatchSignature = batchSignature
+    }
+    if (this.consecutiveDuplicateBatchCount >= MAX_DUPLICATE_TOOL_BATCH) {
+      this.consecutiveDuplicateBatchCount = 0
+      this.lastToolBatchSignature = null
+      return DUPLICATE_TOOL_BATCH_NUDGE
     }
     return null
   }

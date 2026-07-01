@@ -9,7 +9,8 @@ import {
 } from '../shared/constants'
 import {
   EXPLORATION_STALL_NUDGE,
-  EXPLORATION_STALL_ABORT_MESSAGE
+  EXPLORATION_STALL_ABORT_MESSAGE,
+  DUPLICATE_TOOL_BATCH_NUDGE
 } from '../shared/actionVerification'
 import type { AgentSettings } from '../src/types'
 import type { ModelRuntime } from '../electron/main/modelRuntime'
@@ -71,6 +72,23 @@ describe('LoopGuard', () => {
 
     const result = loopGuard.checkTotal(toolName)
     expect(result).toContain(`Ты слишком часто используешь инструмент "${toolName}"`)
+  })
+
+  describe('checkDuplicateToolBatch', () => {
+    it('nudge при повторе того же набора tool_calls на соседних шагах', () => {
+      const batch = 'find_files:{"pattern":"a.ts"}\nproject_stats:{"_raw":""}'
+      expect(loopGuard.checkDuplicateToolBatch(batch)).toBeNull()
+      const nudge = loopGuard.checkDuplicateToolBatch(batch)
+      expect(nudge).toBe(DUPLICATE_TOOL_BATCH_NUDGE)
+    })
+
+    it('сбрасывает счётчик при смене набора', () => {
+      const batchA = 'find_files:{"pattern":"a.ts"}'
+      const batchB = 'find_files:{"pattern":"b.ts"}'
+      loopGuard.checkDuplicateToolBatch(batchA)
+      expect(loopGuard.checkDuplicateToolBatch(batchB)).toBeNull()
+      expect(loopGuard.checkDuplicateToolBatch(batchB)).toBe(DUPLICATE_TOOL_BATCH_NUDGE)
+    })
   })
 
   describe('checkExplorationStall', () => {

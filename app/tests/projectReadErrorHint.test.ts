@@ -55,3 +55,14 @@ describe('read_file ENOENT hints', () => {
     await expect(handlers.read_file!({ path: 'src' })).rejects.toThrow(/app\/src/)
   })
 })
+
+describe('list_directory ENOENT hints', () => {
+  it('возвращает подсказку app/src при list_directory src в monorepo', async () => {
+    const appSrc = join(projectDir, 'app', 'src')
+    mkdirSync(appSrc, { recursive: true })
+    writeFileSync(join(appSrc, 'main.ts'), 'export {}\n')
+
+    const { handlers } = createProjectToolHandlers(projectDir)
+    await expect(handlers.list_directory!({ path: 'src' })).rejects.toThrow(/app\/src/)
+  })
+})

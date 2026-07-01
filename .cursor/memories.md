@@ -25,6 +25,12 @@
 
 ## Trace-отчёты
 
+**2026-07-01 · trace 1782934497352 — duplicate tool batch loop (find_commit_message_issues)**  
+- Задача: ROADMAP п.4 `find_commit_message_issues`, claude-haiku-4.5-cheap:free (literouter).  
+- Корень: модель 17 шагов повторяла один и тот же батч `project_stats` + 4× `find_files`; LoopGuard ловит только подряд один инструмент, не весь набор; затем `list_directory src` (ENOENT) без подсказки app/src.  
+- Фикс: `checkDuplicateToolBatch` + nudge после 2-го одинакового батча; `formatProjectReadErrorHint` для `list_directory`.  
+- Тесты: `agentLoopGuard.test.ts`, `projectReadErrorHint.test.ts`, `readMultiplePaths.test.ts`.
+
 **2026-07-01 · trace 1782927821235 — read_file src ENOENT в monorepo**  
 - Задача: ROADMAP `find_commit_message_issues`, claude-haiku-4.5-cheap:free.  
 - Корень: модель 2× `read_file("src")` — в CodeViper нет корневого `src/`, только `app/src/`; LoopGuard не срабатывал (между вызовами были find_files).  

@@ -293,6 +293,10 @@ export function shouldRetryForMissingTools(
   )
 }
 
+export const DUPLICATE_TOOL_BATCH_NUDGE = `⚠️ Ты повторяешь тот же набор инструментов, что и на прошлом шаге — результаты уже в истории.
+Не вызывай снова project_stats / find_files / list_directory с теми же аргументами.
+Прочитай найденные файлы (read_file) и переходи к правкам (write_file / edit_file), либо смени стратегию.`
+
 export const EXPLORATION_STALL_NUDGE = `⚠️ Достаточно разведки — несколько шагов подряд только чтение/поиск без правок.
 Задача требует изменения кода: вызови edit_file / preview_patch / write_file.
 Не перечитывай те же файлы — правь файлы из задачи.`

@@ -52,9 +52,16 @@ export function createFileHandlers(ctx: ProjectHandlerContext): Partial<ToolHand
   return {
     list_directory: async (args) => {
       assertInsideProject(args.path, 'папка', { allowEmpty: true })
-      const target = args.path?.trim() ? resolve(projectPath, args.path.trim()) : projectPath
-      const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
-      return formatFileTree(tree) || '(пусто)'
+      const relPath = args.path?.trim() ?? ''
+      const target = relPath ? resolve(projectPath, relPath) : projectPath
+      try {
+        const tree = await buildFileTree(target, 0, parseTreeDepth(args.max_depth))
+        return formatFileTree(tree) || '(пусто)'
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        const enriched = await formatProjectReadErrorHint(projectPath, relPath || '.', message)
+        throw new Error(enriched)
+      }
     },
 
     read_file: async (args) => {

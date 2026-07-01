@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseReadMultiplePaths } from '../shared/readMultiplePaths'
-import { normalizeToolLoopSignature } from '../shared/toolLoopGuard'
+import { normalizeToolLoopSignature, buildToolBatchSignature } from '../shared/toolLoopGuard'
 
 describe('parseReadMultiplePaths', () => {
   it('принимает массив строк (Gemini / cloud)', () => {
@@ -64,5 +64,13 @@ describe('normalizeToolLoopSignature', () => {
     })
     expect(sig).toContain('edit_file:')
     expect(sig).toContain('old_string')
+  })
+})
+
+describe('buildToolBatchSignature', () => {
+  it('не зависит от порядка вызовов', () => {
+    const a = buildToolBatchSignature(['find_files:{"pattern":"a"}', 'project_stats:{"_raw":""}'])
+    const b = buildToolBatchSignature(['project_stats:{"_raw":""}', 'find_files:{"pattern":"a"}'])
+    expect(a).toBe(b)
   })
 })

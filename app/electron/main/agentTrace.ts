@@ -266,7 +266,12 @@ export function buildToolResultTraceData(
 }
 
 export type NudgeTraceSource =
-  'loop_guard' | 'task_planner' | 'scope' | 'exploration_stall' | 'require_tool'
+  | 'loop_guard'
+  | 'task_planner'
+  | 'scope'
+  | 'exploration_stall'
+  | 'require_tool'
+  | 'duplicate_tool_batch'
 
 export function buildNudgeTraceData(
   step: number,
