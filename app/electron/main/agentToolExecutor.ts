@@ -2,6 +2,7 @@ import type { AgentSettings, AgentStreamPayload } from '../../src/types'
 import { FILE_SIZE_LIMIT_BYTES } from '../../shared/constants'
 import type { ToolHandlers } from './agentTools'
 import { notifyMcpToolResult } from './mcpTools'
+import { parseToolArgs } from './parseToolArgs'
 import { runSubagent } from './subagentRunner'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { agentLogger, type AgentLogEntry } from './agentLogger'
@@ -119,16 +120,7 @@ export function buildToolResultLogEntry(
   return entry
 }
 
-export function parseToolArgs(args: Record<string, string> | string): Record<string, string> {
-  if (typeof args === 'string') {
-    try {
-      return JSON.parse(args) as Record<string, string>
-    } catch {
-      return { _raw: args }
-    }
-  }
-  return args
-}
+export { parseToolArgs } from './parseToolArgs'
 
 interface ToolCallInput {
   id?: string

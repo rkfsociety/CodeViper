@@ -52,7 +52,8 @@ import {
 import { getAgentTools } from './agentTools'
 import { LoopGuard } from './agentLoopGuard'
 import { ContextManager } from './agentContextManager'
-import { ToolExecutor, PARALLEL_SAFE_TOOLS, parseToolArgs } from './agentToolExecutor'
+import { ToolExecutor, PARALLEL_SAFE_TOOLS } from './agentToolExecutor'
+import { parseToolArgs } from './parseToolArgs'
 import { buildToolBatchSignature, normalizeToolLoopSignature } from '../../shared/toolLoopGuard'
 import { toolRequiresConfirm } from '../../shared/permissions'
 import { clearRunCheckpoint, ensureRunCheckpoint } from './runCheckpoint'
@@ -64,7 +65,7 @@ import {
   type P2pIncomingTask
 } from './p2pClient'
 
-export { parseToolArgs } from './agentToolExecutor'
+export { parseToolArgs } from './parseToolArgs'
 
 export interface AgentRunnerOptions {
   settings: AgentSettings

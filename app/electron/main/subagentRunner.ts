@@ -8,7 +8,7 @@
 import { ModelRuntime } from './modelRuntime'
 import { getAgentTools } from './agentTools'
 import { resolveAgentHandlerFactories } from './runtimeBootstrap'
-import { parseToolArgs } from './agentToolExecutor'
+import { parseToolArgs } from './parseToolArgs'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import type { AgentSettings } from '../../src/types'
 import type { OllamaMessage } from './ollamaMessage'
