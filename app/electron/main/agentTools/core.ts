@@ -119,6 +119,23 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_import_issues',
+      description:
+        'AST-анализ ts/js на import/require на несуществующие файлы и неразрешённые alias из tsconfig paths. Возвращает отчёт с path:line:col.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Ограничить подпапкой или файлом (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_unsafe_regex',
       description:
         'AST-анализ ts/js на regex с риском catastrophic backtracking: вложенные квантификаторы и неоднозначные alternation-паттерны под квантификаторами. Возвращает отчёт с path:line:col.',

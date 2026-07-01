@@ -14,6 +14,7 @@ import {
   formatDataflowDiagram
 } from './symbolIndex'
 import { findMagicNumbers, formatMagicNumbersOutput } from './magicNumberIndex'
+import { findImportIssues, formatImportIssuesOutput } from './importIssueAnalysis'
 import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
 import { findUnsafeRegex, formatUnsafeRegexOutput } from './unsafeRegexAnalysis'
@@ -135,6 +136,20 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress('AST-анализ unsafe regex', scanPercent(scanned))
         })
         return formatUnsafeRegexOutput(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_import_issues: async (args) => {
+      assertInsideProject(args.path, 'папка или файл для анализа', { allowEmpty: true })
+      try {
+        emitProgress('AST-анализ import issues', 0)
+        const result = await findImportIssues(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) => emitProgress('AST-анализ import issues', scanPercent(scanned))
+        })
+        return formatImportIssuesOutput(projectPath, result)
       } finally {
         clearProgress()
       }

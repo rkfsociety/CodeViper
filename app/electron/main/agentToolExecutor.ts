@@ -36,6 +36,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'find_symbol',
   'find_references',
   'find_slow_code',
+  'find_import_issues',
   'find_unsafe_regex',
   'find_magic_numbers',
   'find_dead_code',

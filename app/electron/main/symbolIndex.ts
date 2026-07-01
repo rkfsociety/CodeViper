@@ -1,4 +1,5 @@
 import { readFile, readdir, stat } from 'fs/promises'
+import { readFileSync, existsSync } from 'fs'
 import { dirname, extname, join, relative, resolve } from 'path'
 import { createRequire } from 'module'
 import type * as Ts from 'typescript'
@@ -43,6 +44,39 @@ export const MAX_DATAFLOW_EDGES = 120
 
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts']
 const INDEX_FILENAMES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx', 'index.mjs']
+
+export interface TsConfigPathAlias {
+  baseUrl: string
+  pattern: string
+  targets: string[]
+}
+
+export function readTsConfigPathAliases(projectPath: string): TsConfigPathAlias[] {
+  const candidates = ['tsconfig.json', 'app/tsconfig.json', 'electron/tsconfig.json']
+  const aliases: TsConfigPathAlias[] = []
+  const seen = new Set<string>()
+
+  for (const candidate of candidates) {
+    const configPath = resolve(projectPath, candidate)
+    if (!existsSync(configPath) || seen.has(configPath)) continue
+    seen.add(configPath)
+    try {
+      const raw = readFileSync(configPath, 'utf-8')
+      const json = JSON.parse(raw) as {
+        compilerOptions?: { baseUrl?: string; paths?: Record<string, string[]> }
+      }
+      const baseUrl = resolve(dirname(configPath), json.compilerOptions?.baseUrl ?? '.')
+      const paths = json.compilerOptions?.paths ?? {}
+      for (const [pattern, targets] of Object.entries(paths)) {
+        aliases.push({ baseUrl, pattern, targets })
+      }
+    } catch {
+      // ignore malformed tsconfig
+    }
+  }
+
+  return aliases
+}
 
 export type SymbolKind =
   'function' | 'class' | 'method' | 'variable' | 'interface' | 'type' | 'enum' | 'module'
