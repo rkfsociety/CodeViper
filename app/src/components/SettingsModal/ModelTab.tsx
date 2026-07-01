@@ -8,6 +8,8 @@ import {
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
   GEMINI_FREE_MODELS,
+  LITEROUTER_API_BASE_URL,
+  LITEROUTER_MODEL_DEFAULT,
   filterOpenRouterModelsByTier,
   ORCHESTRATOR_DEFAULT_OLLAMA_MODEL
 } from '../../../shared/constants'
@@ -94,6 +96,13 @@ export function ModelTab({
       let ok: boolean
       if (provider === 'ollama') {
         ok = await window.codeviper.checkOllama(settings.ollamaUrl)
+      } else if (provider === 'literouter') {
+        ok = await window.codeviper.pingProvider({
+          type: 'literouter',
+          baseUrl: settings.literouterBaseUrl || LITEROUTER_API_BASE_URL,
+          apiKey: settings.literouterApiKey,
+          model: settings.model
+        })
       } else if (provider === 'custom') {
         ok = await window.codeviper.pingProvider({
           type: 'custom',
@@ -150,6 +159,7 @@ export function ModelTab({
     newProvider:
       | 'ollama'
       | 'deepseek'
+      | 'literouter'
       | 'openai'
       | 'openrouter'
       | 'gemini'
@@ -167,6 +177,10 @@ export function ModelTab({
     }
     if (newProvider === 'gemini' && !/^gemini/i.test(settings.model || '')) {
       patch.model = GEMINI_MODEL_DEFAULT
+    }
+    if (newProvider === 'literouter') {
+      if (!settings.literouterBaseUrl?.trim()) patch.literouterBaseUrl = LITEROUTER_API_BASE_URL
+      if (!(settings.model || '').trim()) patch.model = LITEROUTER_MODEL_DEFAULT
     }
     if (newProvider === 'anthropic' && !/^claude/i.test(settings.model || '')) {
       patch.model = 'claude-3-5-sonnet-20241022'
@@ -186,7 +200,7 @@ export function ModelTab({
       <SettingItem
         tab="model"
         label="Провайдер моделей"
-        desc="ollama deepseek gemini anthropic openai openrouter groq together provider api"
+        desc="ollama deepseek literouter gemini anthropic openai openrouter groq together provider api"
       >
         <label>
           Провайдер моделей
@@ -197,6 +211,7 @@ export function ModelTab({
                 e.target.value as
                   | 'ollama'
                   | 'deepseek'
+                  | 'literouter'
                   | 'openai'
                   | 'openrouter'
                   | 'gemini'
@@ -210,6 +225,7 @@ export function ModelTab({
             <option value="ollama">Ollama (локально)</option>
             <option value="anthropic">Claude (Anthropic API)</option>
             <option value="deepseek">DeepSeek API</option>
+            <option value="literouter">LiteRouter</option>
             <option value="gemini">Gemini API</option>
             <option value="openai">OpenAI-совместимый API</option>
             <option value="custom">Custom endpoint (LM Studio, vLLM)</option>
@@ -264,6 +280,60 @@ export function ModelTab({
                   className="btn btn-sm"
                   onClick={() => void handlePing()}
                   disabled={pingState === 'checking' || !settings.deepseekApiKey}
+                  title="Проверить подключение"
+                >
+                  {pingIcon}
+                </button>
+              </div>
+            </label>
+          </>
+        </SettingItem>
+      )}
+
+      {provider === 'literouter' && (
+        <SettingItem
+          tab="model"
+          label="LiteRouter API ключ"
+          desc="literouter api key openai compatible proxy deepseek free mistral free llama free"
+        >
+          <>
+            <div className={styles.hint}>
+              <strong>LiteRouter</strong> использует OpenAI-совместимый proxy. Базовый URL:{' '}
+              <code>{LITEROUTER_API_BASE_URL}</code>, модель по умолчанию:{' '}
+              <code>{LITEROUTER_MODEL_DEFAULT}</code>.
+            </div>
+            <label>
+              API базовый URL
+              <input
+                placeholder={LITEROUTER_API_BASE_URL}
+                value={settings.literouterBaseUrl ?? ''}
+                onChange={(e) => onSettingsChange({ literouterBaseUrl: e.target.value })}
+                onBlur={() => void onRefreshOllama()}
+              />
+            </label>
+            <label>
+              LiteRouter API ключ
+              <div className="settings-api-key-row">
+                <input
+                  type={apiKeyVisible['literouter'] ? 'text' : 'password'}
+                  placeholder="sk-..."
+                  value={settings.literouterApiKey ?? ''}
+                  onChange={(e) => onSettingsChange({ literouterApiKey: e.target.value })}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => toggleKeyVisible('literouter')}
+                  title={apiKeyVisible['literouter'] ? 'Скрыть' : 'Показать'}
+                >
+                  {apiKeyVisible['literouter'] ? '🙈' : '👁'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => void handlePing()}
+                  disabled={pingState === 'checking' || !settings.literouterApiKey}
                   title="Проверить подключение"
                 >
                   {pingIcon}
@@ -910,10 +980,7 @@ export function ModelTab({
                   onChange={(e) =>
                     onSettingsChange({
                       cloudProvider: e.target.value as
-                        | 'deepseek'
-                        | 'openai'
-                        | 'openrouter'
-                        | 'gemini'
+                        'deepseek' | 'openai' | 'openrouter' | 'gemini'
                     })
                   }
                 >
@@ -1033,7 +1100,13 @@ export function ModelTab({
             <CloudModelSelector
               provider={provider}
               model={settings.model}
-              defaultModel={provider === 'deepseek' ? DEEPSEEK_MODEL_DEFAULT : ''}
+              defaultModel={
+                provider === 'deepseek'
+                  ? DEEPSEEK_MODEL_DEFAULT
+                  : provider === 'literouter'
+                    ? LITEROUTER_MODEL_DEFAULT
+                    : ''
+              }
               models={selectorModels}
               onChange={(model, contextLength) =>
                 onSettingsChange({

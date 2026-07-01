@@ -290,6 +290,30 @@ describe('OpenAIProvider', () => {
     expect(headers.Authorization).toBe('Bearer sk-test')
   })
 
+  it('ModelRuntime маршрутизирует literouter через OpenAI-compatible runtime', async () => {
+    const sse = sseLine({ content: 'ok' }, 'stop') + 'data: [DONE]\n\n'
+    fetchMock.mockResolvedValue(makeResponse(makeStream([sse])))
+
+    const runtime = new ModelRuntime({
+      type: 'literouter',
+      baseUrl: 'https://api.literouter.com/v1',
+      apiKey: 'lr-test',
+      model: 'deepseek:free'
+    })
+
+    const chunks = await collectChunks(
+      runtime.chat({
+        ...BASE_CHAT_OPTIONS,
+        model: 'deepseek:free'
+      })
+    )
+
+    expect(chunks.map((c) => c.content).join('')).toBe('ok')
+    expect(String(fetchMock.mock.calls[0][0])).toContain('https://api.literouter.com/v1')
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>
+    expect(headers.Authorization).toBe('Bearer lr-test')
+  })
+
   it('передаёт дополнительные заголовки (extraHeaders)', async () => {
     const custom = new OpenAIProvider('https://openrouter.ai/api/v1', 'sk-or-test', 'gpt-4o', {
       'HTTP-Referer': 'http://localhost'

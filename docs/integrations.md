@@ -4,6 +4,18 @@
 
 Кратко о возможностях, которые не помещаются в [README](../README.md). Назад в [README](../README.md).
 
+## LiteRouter
+
+Настройки → «Модель» → `LiteRouter`.
+
+Для текстовых моделей используется OpenAI-совместимый proxy:
+
+- Base URL: `https://api.literouter.com/v1`
+- API key: ключ LiteRouter
+- Стартовая модель: `deepseek:free`
+
+CodeViper сохраняет LiteRouter как отдельный облачный провайдер, а не через `custom`, поэтому у него свои поля API key / base URL и отдельный выбор в списке провайдеров.
+
 ## MCP
 
 Настройки → «Интеграции» → MCP.

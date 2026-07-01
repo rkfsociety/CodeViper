@@ -16,12 +16,14 @@ import { findModelPricing, estimateRequestCost } from '../../shared/constants'
 import { getModelContextLimitTokens } from '../../shared/contextLimits'
 import { extractEmbeddedToolCalls, sanitizeAssistantContent } from '../../shared/toolCalls'
 import {
+  CUSTOM_API_BASE_URL,
   DEEPSEEK_API_BASE_URL,
   DEEPSEEK_MODEL_DEFAULT,
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
-  OPENROUTER_API_BASE_URL,
-  CUSTOM_API_BASE_URL
+  LITEROUTER_API_BASE_URL,
+  LITEROUTER_MODEL_DEFAULT,
+  OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
 import type { ResponseEmitter } from './agentResponseEmitter'
 import { redactMessagesForModel } from '../../shared/secretRedaction'
@@ -147,17 +149,21 @@ export class ContextManager {
         ? (this.settings.customBaseUrl || CUSTOM_API_BASE_URL).replace(/\/$/, '')
         : type === 'deepseek'
           ? DEEPSEEK_API_BASE_URL
-          : type === 'gemini'
-            ? GEMINI_API_BASE_URL
-            : type === 'openrouter'
-              ? OPENROUTER_API_BASE_URL
-              : this.settings.ollamaUrl
+          : type === 'literouter'
+            ? (this.settings.literouterBaseUrl || LITEROUTER_API_BASE_URL).replace(/\/$/, '')
+            : type === 'gemini'
+              ? GEMINI_API_BASE_URL
+              : type === 'openrouter'
+                ? OPENROUTER_API_BASE_URL
+                : this.settings.ollamaUrl
     const model =
       type === 'deepseek' && !/^deepseek/i.test(this.settings.model || '')
         ? DEEPSEEK_MODEL_DEFAULT
-        : type === 'gemini' && !/^gemini/i.test(this.settings.model || '')
-          ? GEMINI_MODEL_DEFAULT
-          : this.settings.model
+        : type === 'literouter' && !(this.settings.model || '').trim()
+          ? LITEROUTER_MODEL_DEFAULT
+          : type === 'gemini' && !/^gemini/i.test(this.settings.model || '')
+            ? GEMINI_MODEL_DEFAULT
+            : this.settings.model
     const apiKey =
       type === 'deepseek'
         ? (this.settings.deepseekApiKey ?? this.settings.providerApiKey)
@@ -165,11 +171,13 @@ export class ContextManager {
           ? (this.settings.geminiApiKey ?? this.settings.providerApiKey)
           : type === 'openrouter'
             ? (this.settings.openrouterApiKey ?? this.settings.providerApiKey)
-            : type === 'openai'
-              ? (this.settings.openaiApiKey ?? this.settings.providerApiKey)
-              : type === 'custom'
-                ? (this.settings.customApiKey ?? this.settings.providerApiKey)
-                : undefined
+            : type === 'literouter'
+              ? (this.settings.literouterApiKey ?? this.settings.providerApiKey)
+              : type === 'openai'
+                ? (this.settings.openaiApiKey ?? this.settings.providerApiKey)
+                : type === 'custom'
+                  ? (this.settings.customApiKey ?? this.settings.providerApiKey)
+                  : undefined
     return {
       type,
       baseUrl,

@@ -17,6 +17,8 @@ import {
   DEEPSEEK_API_BASE_URL,
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
+  LITEROUTER_API_BASE_URL,
+  LITEROUTER_MODEL_DEFAULT,
   resolveGeminiModelId,
   OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
@@ -124,6 +126,13 @@ export class ModelRuntime {
       const apiKey = config.apiKey || ''
       const model = config.model || 'gpt-3.5-turbo'
       return new OpenAIProvider(baseUrl, apiKey, model)
+    }
+
+    if (config.type === 'literouter') {
+      const baseUrl = config.baseUrl || LITEROUTER_API_BASE_URL
+      const apiKey = config.apiKey || ''
+      const model = config.model || LITEROUTER_MODEL_DEFAULT
+      return createOpenAiCompatibleProvider(baseUrl, apiKey, model)
     }
 
     if (config.type === 'gemini') {

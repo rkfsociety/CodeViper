@@ -94,6 +94,10 @@ export const METRICS_PANEL_EVENT_DEBOUNCE_MS = 400
 export const DEEPSEEK_API_BASE_URL = 'https://api.deepseek.com/v1'
 /** Модель DeepSeek по умолчанию */
 export const DEEPSEEK_MODEL_DEFAULT = 'deepseek-chat'
+/** URL LiteRouter API (OpenAI-совместимый прокси) */
+export const LITEROUTER_API_BASE_URL = 'https://api.literouter.com/v1'
+/** Модель LiteRouter по умолчанию */
+export const LITEROUTER_MODEL_DEFAULT = 'deepseek:free'
 /** URL OpenRouter API (OpenAI-совместимый, агрегатор моделей) */
 /** URL Gemini API */
 export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'

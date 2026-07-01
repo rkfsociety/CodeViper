@@ -171,6 +171,7 @@ export interface AgentSettings {
   modelProvider?:
     | 'ollama'
     | 'deepseek'
+    | 'literouter'
     | 'openai'
     | 'openrouter'
     | 'gemini'
@@ -184,6 +185,10 @@ export interface AgentSettings {
   deepseekApiKey?: string
   /** API ключ OpenAI-совместимого провайдера */
   openaiApiKey?: string
+  /** API ключ LiteRouter */
+  literouterApiKey?: string
+  /** Базовый URL LiteRouter */
+  literouterBaseUrl?: string
   /** API ключ OpenRouter */
   openrouterApiKey?: string
   /** API ключ Gemini */

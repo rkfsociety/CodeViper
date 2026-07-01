@@ -19,3 +19,20 @@ declare module 'highlight.js/styles/*.css' {
   const href: string
   export default href
 }
+
+declare module 'mermaid' {
+  interface MermaidConfig {
+    startOnLoad?: boolean
+    theme?: string
+    securityLevel?: string
+    fontFamily?: string
+  }
+
+  interface MermaidApi {
+    initialize(config: MermaidConfig): void
+    render(id: string, text: string): Promise<{ svg: string }>
+  }
+
+  const mermaid: MermaidApi
+  export default mermaid
+}

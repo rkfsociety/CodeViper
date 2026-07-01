@@ -58,7 +58,8 @@ import { deriveChatTitle } from '../shared/chatTitle'
 import {
   CUSTOM_API_BASE_URL,
   DEEPSEEK_API_BASE_URL,
-  GEMINI_API_BASE_URL
+  GEMINI_API_BASE_URL,
+  LITEROUTER_API_BASE_URL
 } from '../shared/constants'
 import { makeId } from '../shared/makeId'
 import { tronStorage } from './lib/tron'
@@ -411,6 +412,27 @@ function AppContent() {
       return
     }
 
+    if (provider === 'literouter') {
+      try {
+        const list = await window.codeviper.listProviderModels({
+          type: 'literouter',
+          baseUrl: settings.literouterBaseUrl || LITEROUTER_API_BASE_URL,
+          apiKey: settings.literouterApiKey
+        })
+        setModels(
+          list.map((m) => ({
+            name: m.name,
+            size: m.size ?? 0,
+            modifiedAt: '',
+            contextLength: m.contextLength
+          }))
+        )
+      } catch {
+        setModels([])
+      }
+      return
+    }
+
     if (provider === 'custom') {
       try {
         const list = await window.codeviper.listProviderModels({
@@ -487,6 +509,8 @@ function AppContent() {
     settings.modelProvider,
     settings.deepseekApiKey,
     settings.openaiApiKey,
+    settings.literouterApiKey,
+    settings.literouterBaseUrl,
     settings.openrouterApiKey,
     settings.geminiApiKey,
     settings.customBaseUrl,

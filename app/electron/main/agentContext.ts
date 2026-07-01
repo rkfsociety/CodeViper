@@ -664,34 +664,42 @@ export async function summarizeChatHistory(
   const ollamaMessages = mapped.filter((x) => x.ollama !== null).map((x) => x.ollama!)
 
   const providerType = settings.modelProvider || 'ollama'
-  const { DEEPSEEK_API_BASE_URL, GEMINI_API_BASE_URL, OPENROUTER_API_BASE_URL } =
-    await import('../../shared/constants')
+  const {
+    DEEPSEEK_API_BASE_URL,
+    GEMINI_API_BASE_URL,
+    LITEROUTER_API_BASE_URL,
+    OPENROUTER_API_BASE_URL
+  } = await import('../../shared/constants')
 
   const providerBaseUrl: string | undefined =
     providerType === 'deepseek'
       ? DEEPSEEK_API_BASE_URL
-      : providerType === 'gemini'
-        ? GEMINI_API_BASE_URL
-        : providerType === 'openrouter'
-          ? OPENROUTER_API_BASE_URL
-          : settings.ollamaUrl
+      : providerType === 'literouter'
+        ? settings.literouterBaseUrl || LITEROUTER_API_BASE_URL
+        : providerType === 'gemini'
+          ? GEMINI_API_BASE_URL
+          : providerType === 'openrouter'
+            ? OPENROUTER_API_BASE_URL
+            : settings.ollamaUrl
 
   const providerApiKey =
     providerType === 'deepseek'
       ? (settings.deepseekApiKey ?? settings.providerApiKey)
-      : providerType === 'gemini'
-        ? (settings.geminiApiKey ?? settings.providerApiKey)
-        : providerType === 'openrouter'
-          ? (settings.openrouterApiKey ?? settings.providerApiKey)
-          : providerType === 'openai'
-            ? (settings.openaiApiKey ?? settings.providerApiKey)
-            : providerType === 'anthropic'
-              ? (settings.claudeApiKey ?? settings.providerApiKey)
-              : providerType === 'groq'
-                ? (settings.groqApiKey ?? settings.providerApiKey)
-                : providerType === 'together'
-                  ? (settings.togetherApiKey ?? settings.providerApiKey)
-                  : undefined
+      : providerType === 'literouter'
+        ? (settings.literouterApiKey ?? settings.providerApiKey)
+        : providerType === 'gemini'
+          ? (settings.geminiApiKey ?? settings.providerApiKey)
+          : providerType === 'openrouter'
+            ? (settings.openrouterApiKey ?? settings.providerApiKey)
+            : providerType === 'openai'
+              ? (settings.openaiApiKey ?? settings.providerApiKey)
+              : providerType === 'anthropic'
+                ? (settings.claudeApiKey ?? settings.providerApiKey)
+                : providerType === 'groq'
+                  ? (settings.groqApiKey ?? settings.providerApiKey)
+                  : providerType === 'together'
+                    ? (settings.togetherApiKey ?? settings.providerApiKey)
+                    : undefined
 
   const providerConfig: ProviderConfig = {
     type: providerType,

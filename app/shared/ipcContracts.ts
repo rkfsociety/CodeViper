@@ -28,6 +28,7 @@ export const GitSyncStrategySchema = z.enum(['stash', 'rebase', 'ff-only'])
 export const ModelProviderSchema = z.enum([
   'ollama',
   'deepseek',
+  'literouter',
   'openai',
   'openrouter',
   'gemini',
@@ -177,6 +178,8 @@ export const AgentSettingsSchema = z.object({
   providerApiKey: z.string().optional(),
   deepseekApiKey: z.string().optional(),
   openaiApiKey: z.string().optional(),
+  literouterApiKey: z.string().optional(),
+  literouterBaseUrl: z.string().optional(),
   openrouterApiKey: z.string().optional(),
   geminiApiKey: z.string().optional(),
   geminiRpm: z.number().optional(),

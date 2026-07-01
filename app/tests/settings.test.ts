@@ -61,6 +61,8 @@ function makeSettings(overrides: Partial<AgentSettings> = {}): AgentSettings {
     openaiApiKey: '',
     deepseekApiKey: '',
     openrouterApiKey: '',
+    literouterApiKey: '',
+    literouterBaseUrl: '',
     geminiApiKey: '',
     qdrantApiKey: '',
     milvusApiKey: '',
@@ -381,7 +383,30 @@ describe('liveRuntimeFromGit', () => {
 
   it('resolveFirstRunCompleted: cloud-провайдер без флага → true', () => {
     expect(resolveFirstRunCompleted(makeSettings({ modelProvider: 'deepseek' }))).toBe(true)
+    expect(resolveFirstRunCompleted(makeSettings({ modelProvider: 'literouter' }))).toBe(true)
     expect(resolveFirstRunCompleted(makeSettings({ modelProvider: 'ollama' }))).toBe(false)
+  })
+
+  it('сохраняет literouterApiKey и literouterBaseUrl', async () => {
+    const saved = await saveSettings(
+      makeSettings({
+        modelProvider: 'literouter',
+        model: 'deepseek:free',
+        literouterApiKey: 'lr-secret',
+        literouterBaseUrl: 'https://api.literouter.com/v1'
+      })
+    )
+
+    expect(saved.literouterApiKey).toBe('lr-secret')
+    expect(saved.literouterBaseUrl).toBe('https://api.literouter.com/v1')
+
+    const jsonCall = mockWriteFile.mock.calls.find((args: unknown[]) =>
+      String(args[1]).includes('literouterApiKey')
+    )
+    expect(jsonCall).toBeDefined()
+    const parsed = JSON.parse(String(jsonCall![1])) as Record<string, unknown>
+    expect(parsed.literouterApiKey).not.toBe('lr-secret')
+    expect(parsed.literouterBaseUrl).toBe('https://api.literouter.com/v1')
   })
 
   it('старый settings.json с deepseek без firstRunCompleted → true при загрузке', async () => {

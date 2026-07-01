@@ -14,6 +14,7 @@ const GitSyncStrategySchema = z.enum(['stash', 'rebase', 'ff-only'])
 const ModelProviderSchema = z.enum([
   'ollama',
   'deepseek',
+  'literouter',
   'openai',
   'openrouter',
   'gemini',
@@ -42,6 +43,8 @@ export const PersistedSettingsSchema = z.object({
   providerApiKey: z.string(),
   deepseekApiKey: z.string(),
   openaiApiKey: z.string(),
+  literouterApiKey: z.string(),
+  literouterBaseUrl: z.string(),
   openrouterApiKey: z.string(),
   geminiApiKey: z.string(),
   geminiRpm: z.number().int().min(1).max(2000).default(5),
@@ -188,6 +191,8 @@ const DEFAULT_SETTINGS: PersistedSettings = {
   providerApiKey: '',
   deepseekApiKey: '',
   openaiApiKey: '',
+  literouterApiKey: '',
+  literouterBaseUrl: '',
   openrouterApiKey: '',
   geminiApiKey: '',
   geminiRpm: 5,
@@ -240,6 +245,7 @@ export function resolveFirstRunCompleted(settings: LegacySettings): boolean {
   const apiKeys = [
     settings.deepseekApiKey,
     settings.openaiApiKey,
+    settings.literouterApiKey,
     settings.openrouterApiKey,
     settings.geminiApiKey,
     settings.claudeApiKey,
@@ -259,13 +265,22 @@ function normalize(settings: LegacySettings): PersistedSettings {
   migrateCloudApiKey(settings)
 
   const provider = (settings.modelProvider || DEFAULT_SETTINGS.modelProvider) as
-    'ollama' | 'deepseek' | 'openai' | 'openrouter' | 'gemini' | 'anthropic' | 'custom'
+    | 'ollama'
+    | 'deepseek'
+    | 'literouter'
+    | 'openai'
+    | 'openrouter'
+    | 'gemini'
+    | 'anthropic'
+    | 'custom'
 
   // Миграция: если есть старый providerApiKey, переносим в нужное поле
   const legacyKey = settings.providerApiKey?.trim() ?? ''
   const deepseekApiKey =
     settings.deepseekApiKey?.trim() ?? (provider === 'deepseek' ? legacyKey : '')
   const openaiApiKey = settings.openaiApiKey?.trim() ?? (provider === 'openai' ? legacyKey : '')
+  const literouterApiKey =
+    settings.literouterApiKey?.trim() ?? (provider === 'literouter' ? legacyKey : '')
   const openrouterApiKey =
     settings.openrouterApiKey?.trim() ?? (provider === 'openrouter' ? legacyKey : '')
   const geminiApiKey = settings.geminiApiKey?.trim() ?? (provider === 'gemini' ? legacyKey : '')
@@ -297,6 +312,8 @@ function normalize(settings: LegacySettings): PersistedSettings {
     providerApiKey: '',
     deepseekApiKey,
     openaiApiKey,
+    literouterApiKey,
+    literouterBaseUrl: settings.literouterBaseUrl?.trim() ?? '',
     openrouterApiKey,
     geminiApiKey,
     geminiRpm: settings.geminiRpm ?? 5,
@@ -461,6 +478,7 @@ export async function loadSettings(): Promise<PersistedSettings> {
       if (obj.providerApiKey) obj.providerApiKey = decryptApiKey(obj.providerApiKey as string)
       if (obj.deepseekApiKey) obj.deepseekApiKey = decryptApiKey(obj.deepseekApiKey as string)
       if (obj.openaiApiKey) obj.openaiApiKey = decryptApiKey(obj.openaiApiKey as string)
+      if (obj.literouterApiKey) obj.literouterApiKey = decryptApiKey(obj.literouterApiKey as string)
       if (obj.openrouterApiKey) obj.openrouterApiKey = decryptApiKey(obj.openrouterApiKey as string)
       if (obj.geminiApiKey) obj.geminiApiKey = decryptApiKey(obj.geminiApiKey as string)
       if (obj.qdrantApiKey) obj.qdrantApiKey = decryptApiKey(obj.qdrantApiKey as string)
@@ -504,6 +522,7 @@ export async function saveSettings(settings: AgentSettings): Promise<PersistedSe
     providerApiKey: '',
     deepseekApiKey: encryptApiKey(normalized.deepseekApiKey),
     openaiApiKey: encryptApiKey(normalized.openaiApiKey),
+    literouterApiKey: encryptApiKey(normalized.literouterApiKey),
     openrouterApiKey: encryptApiKey(normalized.openrouterApiKey),
     geminiApiKey: encryptApiKey(normalized.geminiApiKey),
     qdrantApiKey: encryptApiKey(normalized.qdrantApiKey ?? ''),

@@ -3,6 +3,7 @@ import type { OllamaModel } from '../types'
 
 const KNOWN_MODELS: Record<string, string[]> = {
   deepseek: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
+  literouter: ['deepseek:free', 'mistral:free', 'llama:free'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini', 'o3-mini'],
   gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite']
 }
@@ -39,7 +40,7 @@ export function CloudModelSelector({
     return models.filter((m) => m.name.toLowerCase().includes(q))
   }, [models, search])
 
-  if (provider === 'openrouter' || provider === 'gemini') {
+  if (provider === 'openrouter' || provider === 'gemini' || provider === 'literouter') {
     return (
       <div className="cloud-model-selector">
         <label>
@@ -91,7 +92,8 @@ export function CloudModelSelector({
   }
 
   const apiModels =
-    (provider === 'openai' || provider === 'gemini') && models.length > 0
+    (provider === 'openai' || provider === 'gemini' || provider === 'literouter') &&
+    models.length > 0
       ? models.map((m) => m.name)
       : knownModels
   const isCustom = effectiveModel && !apiModels.includes(effectiveModel)

@@ -6,7 +6,8 @@ import {
   CODEVIPER_GITHUB_CLONE_URL,
   DEEPSEEK_MODEL_DEFAULT,
   filterOpenRouterModelsByTier,
-  GEMINI_MODEL_DEFAULT
+  GEMINI_MODEL_DEFAULT,
+  LITEROUTER_MODEL_DEFAULT
 } from '../../shared/constants'
 import styles from './OnboardingWizard.module.css'
 
@@ -17,6 +18,7 @@ const PROVIDERS: { value: ModelProvider; label: string }[] = [
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'gemini', label: 'Gemini API' },
   { value: 'deepseek', label: 'DeepSeek API' },
+  { value: 'literouter', label: 'LiteRouter' },
   { value: 'anthropic', label: 'Claude (Anthropic)' },
   { value: 'openai', label: 'OpenAI-совместимый API' },
   { value: 'groq', label: 'Groq API' },
@@ -31,6 +33,8 @@ function defaultModelForProvider(provider: ModelProvider): string {
   switch (provider) {
     case 'deepseek':
       return DEEPSEEK_MODEL_DEFAULT
+    case 'literouter':
+      return LITEROUTER_MODEL_DEFAULT
     case 'gemini':
       return GEMINI_MODEL_DEFAULT
     case 'anthropic':
@@ -45,6 +49,9 @@ function applyProviderPatch(draft: AgentSettings, provider: ModelProvider): Part
   const model = draft.model ?? ''
   if (provider === 'deepseek' && !/^deepseek/i.test(model)) {
     patch.model = DEEPSEEK_MODEL_DEFAULT
+  }
+  if (provider === 'literouter' && !model.trim()) {
+    patch.model = LITEROUTER_MODEL_DEFAULT
   }
   if (provider === 'gemini' && !/^gemini/i.test(model)) {
     patch.model = GEMINI_MODEL_DEFAULT

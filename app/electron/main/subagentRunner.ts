@@ -18,6 +18,8 @@ import {
   DEEPSEEK_MODEL_DEFAULT,
   GEMINI_API_BASE_URL,
   GEMINI_MODEL_DEFAULT,
+  LITEROUTER_API_BASE_URL,
+  LITEROUTER_MODEL_DEFAULT,
   OPENROUTER_API_BASE_URL
 } from '../../shared/constants'
 import type { ProviderConfig } from '../../shared/modelProvider'
@@ -27,27 +29,33 @@ function buildProviderConfig(settings: AgentSettings): ProviderConfig {
   const baseUrl =
     type === 'deepseek'
       ? DEEPSEEK_API_BASE_URL
-      : type === 'gemini'
-        ? GEMINI_API_BASE_URL
-        : type === 'openrouter'
-          ? OPENROUTER_API_BASE_URL
-          : settings.ollamaUrl
+      : type === 'literouter'
+        ? settings.literouterBaseUrl || LITEROUTER_API_BASE_URL
+        : type === 'gemini'
+          ? GEMINI_API_BASE_URL
+          : type === 'openrouter'
+            ? OPENROUTER_API_BASE_URL
+            : settings.ollamaUrl
   const model =
     type === 'deepseek' && !/^deepseek/i.test(settings.model ?? '')
       ? DEEPSEEK_MODEL_DEFAULT
-      : type === 'gemini' && !/^gemini/i.test(settings.model ?? '')
-        ? GEMINI_MODEL_DEFAULT
-        : settings.model
+      : type === 'literouter' && !(settings.model ?? '').trim()
+        ? LITEROUTER_MODEL_DEFAULT
+        : type === 'gemini' && !/^gemini/i.test(settings.model ?? '')
+          ? GEMINI_MODEL_DEFAULT
+          : settings.model
   const apiKey =
     type === 'deepseek'
       ? (settings.deepseekApiKey ?? settings.providerApiKey)
-      : type === 'gemini'
-        ? (settings.geminiApiKey ?? settings.providerApiKey)
-        : type === 'openrouter'
-          ? (settings.openrouterApiKey ?? settings.providerApiKey)
-          : type === 'openai'
-            ? (settings.openaiApiKey ?? settings.providerApiKey)
-            : undefined
+      : type === 'literouter'
+        ? (settings.literouterApiKey ?? settings.providerApiKey)
+        : type === 'gemini'
+          ? (settings.geminiApiKey ?? settings.providerApiKey)
+          : type === 'openrouter'
+            ? (settings.openrouterApiKey ?? settings.providerApiKey)
+            : type === 'openai'
+              ? (settings.openaiApiKey ?? settings.providerApiKey)
+              : undefined
   return { type, baseUrl, apiKey, model }
 }
 
