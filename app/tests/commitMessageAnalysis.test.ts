@@ -3,6 +3,7 @@ import { execSync } from 'child_process'
 import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { analyzeCommitMessages } from '../electron/main/commitMessageAnalysis'
 import { findCommitMessageIssues } from '../electron/main/gitTools'
 
 function initTempRepo(): string {
@@ -14,6 +15,24 @@ function initTempRepo(): string {
 }
 
 describe('findCommitMessageIssues', () => {
+  it('accepts scoped, breaking, and common Conventional Commit subjects', () => {
+    const result = analyzeCommitMessages(
+      [
+        'feat(api): add endpoint',
+        'fix!: change config shape',
+        'docs(readme)!: update quick start',
+        'Update readme'
+      ],
+      50
+    )
+
+    expect(result).toMatch(/Conventional Commits: 3/)
+    expect(result).toMatch(/Не по conventional: 1/)
+    expect(result).toMatch(/Update readme/)
+    expect(result).not.toMatch(/feat\(api\): add endpoint/)
+    expect(result).not.toMatch(/fix!: change config shape/)
+  })
+
   it('reports commit subjects that do not follow Conventional Commits', async () => {
     const dir = initTempRepo()
     try {

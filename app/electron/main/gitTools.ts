@@ -2,14 +2,12 @@ import { spawn } from 'child_process'
 import { relative, resolve } from 'path'
 import { isInsideProject } from './services'
 import { cliSpawnBase } from './windowsGitEnv'
+import { analyzeCommitMessages, DEFAULT_COMMIT_MESSAGE_LOG_LIMIT } from './commitMessageAnalysis'
 
 const MAX_OUTPUT_CHARS = 20_000
 const DEFAULT_LOG_LIMIT = 20
 const MAX_LOG_LIMIT = 100
-const DEFAULT_COMMIT_MESSAGE_LOG_LIMIT = 50
 const COMMIT_MESSAGE_LOG_FORMAT = '--format=%s'
-const CONVENTIONAL_COMMIT_RE =
-  /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+/i
 
 interface GitResult {
   code: number
@@ -161,27 +159,7 @@ export async function findCommitMessageIssues(
     .map((line) => line.trim())
     .filter(Boolean)
 
-  if (!messages.length) {
-    return `Пустая история commit-сообщений за последние ${limit} коммитов.`
-  }
-
-  const issues = messages.flatMap((message, index) =>
-    CONVENTIONAL_COMMIT_RE.test(message) ? [] : [`[${index + 1}] ${message}`]
-  )
-
-  const badCount = issues.length
-  const goodCount = messages.length - badCount
-  const header = [
-    `Проверено commit-ов: ${messages.length}`,
-    `Conventional Commits: ${goodCount}`,
-    `Не по conventional: ${badCount}`
-  ]
-
-  if (!issues.length) {
-    return [...header, 'Проблем не найдено.'].join('\n')
-  }
-
-  return [...header, '', 'Нестандартные commit-сообщения:', ...issues].join('\n')
+  return analyzeCommitMessages(messages, limit)
 }
 
 const MAX_COMMIT_MESSAGE_LEN = 5000

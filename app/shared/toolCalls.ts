@@ -42,6 +42,7 @@ export const AGENT_TOOL_NAMES = [
   'git_status',
   'git_diff',
   'git_log',
+  'find_commit_message_issues',
   'git_commit',
   'git_push',
   'git_checkout',
