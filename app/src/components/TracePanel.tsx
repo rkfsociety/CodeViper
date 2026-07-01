@@ -297,11 +297,12 @@ export const TracePanel = forwardRef<TracePanelHandle, Props>(function TracePane
                   className={styles.dot}
                   style={{ background: isError ? '#f44747' : KIND_COLORS[ev.kind] }}
                 />
-                <span className={`${styles.label}${isError ? ` ${styles.labelError}` : ''}`}>
-                  {ev.label}
-                </span>
-                {hint && <span className={styles.hint}>{hint}</span>}
-                {hint && <span className={styles.hint}>{hint}</span>}
+                <div className={styles.eventBody}>
+                  <span className={`${styles.label}${isError ? ` ${styles.labelError}` : ''}`}>
+                    {ev.label}
+                  </span>
+                  {hint && <span className={styles.hint}>{hint}</span>}
+                </div>
                 {canReplay && (
                   <button
                     className={styles.replayBtn}
