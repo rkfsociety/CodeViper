@@ -22,6 +22,7 @@ import { findRerenderCandidates, formatRerenderCandidatesOutput } from './rerend
 import { findUnsafeRegex, formatUnsafeRegexOutput } from './unsafeRegexAnalysis'
 import { findTypeMismatches, formatTypeMismatchReport } from './typeMismatchIndex'
 import { findHotkeyConflicts, formatHotkeyConflictReport } from './hotkeyConflictIndex'
+import { findMergeConflicts, formatMergeConflictReport } from './mergeConflictScan'
 import { buildProjectMetrics, formatProjectMetrics } from './projectMetricsIndex'
 import { grepInTreeWorker, findFilesInTreeWorker } from './fileSearchInWorker'
 import { emitProgress, clearProgress } from './progress'
@@ -127,16 +128,30 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
       }
     },
 
+    find_merge_conflicts: async (args) => {
+      assertInsideProject(args.path, 'папка для поиска', { allowEmpty: true })
+      try {
+        emitProgress('Поиск маркеров merge-конфликта', 0)
+        const result = await findMergeConflicts(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) =>
+            emitProgress('Поиск маркеров merge-конфликта', scanPercent(scanned))
+        })
+        return formatMergeConflictReport(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
     find_magic_numbers: async (args) => {
-      assertInsideProject(args.path, '?????????? ?????? ???????? ?????? ??????????????', {
+      assertInsideProject(args.path, 'папка или файл для анализа', {
         allowEmpty: true
       })
       try {
-        emitProgress('AST-???????????? ???????????????????? ????????', 0)
+        emitProgress('AST-анализ магических чисел', 0)
         const result = await findMagicNumbers(projectPath, {
           subpath: args.path?.trim(),
-          onProgress: (scanned) =>
-            emitProgress('AST-???????????? ???????????????????? ????????', scanPercent(scanned))
+          onProgress: (scanned) => emitProgress('AST-анализ магических чисел', scanPercent(scanned))
         })
         return formatMagicNumbersOutput(projectPath, result)
       } finally {

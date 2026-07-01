@@ -187,6 +187,23 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_merge_conflicts',
+      description:
+        'Поиск маркеров незавершённого merge-конфликта (<<<<<<<, =======, >>>>>>>) по файлам проекта. Возвращает отчёт [n] path:line без правки кода.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Ограничить подпапкой (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_magic_numbers',
       description:
         'AST-анализ ts/js на магические числовые литералы вне shared/constants.ts и без именованной константы рядом. Возвращает path:line:col и значение.',

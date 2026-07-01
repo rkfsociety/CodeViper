@@ -41,6 +41,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'find_import_issues',
   'find_unsafe_regex',
   'find_magic_numbers',
+  'find_merge_conflicts',
   'find_dead_code',
   'find_type_mismatches',
   'generate_project_metrics',

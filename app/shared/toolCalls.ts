@@ -8,6 +8,7 @@ export const AGENT_TOOL_NAMES = [
   'find_references',
   'find_slow_code',
   'find_missing_tests',
+  'find_merge_conflicts',
   'find_aria_issues',
   'generate_dependency_diagram',
   'generate_class_diagram',
