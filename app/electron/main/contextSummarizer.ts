@@ -113,42 +113,46 @@ function truncateOldToolResults(messages: OllamaMessage[], keepLast: number): Ol
  * же инструмента есть хотя бы один более поздний успешный результат.
  * Сохраняет порядок и все успешные результаты.
  */
+function parseToolMessage(msg: OllamaMessage): { name: string; body: string } | null {
+  if (msg.role !== 'tool') return null
+  const nameMatch = msg.content.match(/^Инструмент ([^:]+):/)
+  if (!nameMatch) return null
+  return {
+    name: nameMatch[1],
+    body: msg.content.slice(nameMatch[0].length).trimStart()
+  }
+}
+
 function dropSupersededErrors(messages: OllamaMessage[]): OllamaMessage[] {
-  // Собираем имена инструментов, у которых есть успешный результат
-  const hasLaterSuccess = new Set<string>()
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i]
-    if (msg.role !== 'tool') continue
-    const nameMatch = msg.content.match(/^Инструмент ([^:]+):/)
-    if (!nameMatch) continue
-    const name = nameMatch[1]
-    const body = msg.content.slice(nameMatch[0].length).trimStart()
-    if (!body.startsWith('Ошибка:')) {
-      hasLaterSuccess.add(name)
+  const toDelete = new Set<number>()
+
+  // Удаляем ошибку только если для того же инструмента есть успех ПОЗЖЕ в истории
+  for (let i = 0; i < messages.length; i++) {
+    const parsed = parseToolMessage(messages[i])
+    if (!parsed?.body.startsWith('Ошибка:')) continue
+
+    let hasLaterSuccess = false
+    for (let j = i + 1; j < messages.length; j++) {
+      const later = parseToolMessage(messages[j])
+      if (!later || later.name !== parsed.name) continue
+      if (!later.body.startsWith('Ошибка:')) {
+        hasLaterSuccess = true
+        break
+      }
     }
+    if (hasLaterSuccess) toDelete.add(i)
   }
 
-  // Второй проход: удаляем ошибочные, у которых есть более поздний успешный
-  // ИЛИ если это более ранняя попытка того же инструмента (оставляем только последнюю)
-  const toDelete = new Set<number>()
+  // Оставляем только последний результат на инструмент (дедуп одинаковых вызовов)
   const seenTools = new Set<string>()
   for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i]
-    if (msg.role !== 'tool') continue
-    const nameMatch = msg.content.match(/^Инструмент ([^:]+):/)
-    if (!nameMatch) continue
-    const name = nameMatch[1]
-    const body = msg.content.slice(nameMatch[0].length).trimStart()
-
-    if (body.startsWith('Ошибка:') && hasLaterSuccess.has(name)) {
-      toDelete.add(i)
-      continue
-    }
-
-    if (seenTools.has(name)) {
+    if (toDelete.has(i)) continue
+    const parsed = parseToolMessage(messages[i])
+    if (!parsed) continue
+    if (seenTools.has(parsed.name)) {
       toDelete.add(i)
     } else {
-      seenTools.add(name)
+      seenTools.add(parsed.name)
     }
   }
 

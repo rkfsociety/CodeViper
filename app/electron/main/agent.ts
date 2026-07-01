@@ -14,6 +14,7 @@ import {
   TOOL_VERIFICATION_FAILED_MESSAGE,
   TOOL_VERIFICATION_NUDGE
 } from '../../shared/actionVerification'
+import { isSelfImprovementTask } from '../../shared/selfImprovement'
 import {
   prepareAgentRunContext,
   injectHardToolCallingSystemHint,
@@ -223,6 +224,7 @@ export class AgentRunner {
 
     const runStartMs = Date.now()
     const taskMode = TaskPlanner.detectMode(userMessage)
+    const selfImproveMode = isSelfImprovementTask(userMessage)
     void agentLogger.write({
       event: 'run_start',
       model: this.settings.model,
@@ -261,7 +263,7 @@ export class AgentRunner {
       return
     }
 
-    this.toolExecutor.beginRun(false)
+    this.toolExecutor.beginRun(selfImproveMode)
 
     let orchestratorPlanHint = ''
     let orchestratorIsComplex = false
@@ -409,7 +411,7 @@ export class AgentRunner {
       history,
       userMessage,
       this.settings.model,
-      false,
+      selfImproveMode,
       {
         ollamaUrl: this.settings.ollamaUrl,
         providerConfig: this.ctx.summarizeProviderConfig,

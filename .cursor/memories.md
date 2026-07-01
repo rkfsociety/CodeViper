@@ -25,6 +25,11 @@
 
 ## Trace-отчёты
 
+**2026-07-01 · trace 1782905400753 — selfImproveMode=false + ENOENT съедался контекстом**  
+- Задача: ROADMAP `find_magic_numbers` (уровень 3), gemini-2.5-flash:free.  
+- Корень: (1) `TaskPlanner.isSelfImprove` всегда `false` → `beginRun(false)` / `prepareAgentRunContext(false)` — `read_file` не ремапился в `read_codeviper_file`, нет self-improve промпта; (2) `dropSupersededErrors` удалял ENOENT, если раньше был успешный `read_file` (индекс ROADMAP), модель не видела ошибку и 6× повторяла тот же путь.  
+- Фикс: `isSelfImprovementTask` в TaskPlanner + agent.ts; переписан `dropSupersededErrors` — ошибка снимается только при успехе **позже** в истории.
+
 **2026-07-01 · read-attachment ENOENT при drag-and-drop вложений**  
 - Симптом: `Error invoking remote method 'read-attachment': ENOENT …\Program Files\CodeViper\1782901466868.json`.  
 - Корень: Electron 32+ убрал `File.path`; fallback `f.name` давал относительный путь, `stat` искал файл рядом с `.exe`.  

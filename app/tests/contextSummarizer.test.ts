@@ -162,4 +162,30 @@ describe('contextSummarizer', () => {
     const toolMsgs = result.messages.filter((m) => m.role === 'tool')
     expect(toolMsgs.length).toBeLessThanOrEqual(1)
   })
+
+  it('dropSupersededErrors сохраняет ENOENT после успешного read_file того же инструмента', async () => {
+    const messages: OllamaMessage[] = [
+      { role: 'system', content: 'sys' },
+      { role: 'user', content: 'task' },
+      { role: 'tool', content: 'Инструмент read_file:\n# ROADMAP index' },
+      {
+        role: 'tool',
+        content:
+          'Инструмент read_file:\nОшибка: ENOENT: no such file or directory\n\nФайл не существует.'
+      },
+      { role: 'user', content: 'продолжай' }
+    ]
+
+    const result = await compressContextMessages({
+      messages,
+      model: 'qwen2.5-coder:7b',
+      toolsJsonChars: 500,
+      preferTruncateOverLlmSummarize: true,
+      summarizeThresholdPercent: 50
+    })
+
+    const toolMsgs = result.messages.filter((m) => m.role === 'tool')
+    expect(toolMsgs).toHaveLength(1)
+    expect(toolMsgs[0].content).toMatch(/ENOENT/)
+  })
 })
