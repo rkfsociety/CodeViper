@@ -194,9 +194,20 @@ export const AgentSettingsSchema = z.object({
   fallbackModels: z.array(z.string()).optional(),
   commandTimeoutSec: z.number().optional(),
   commandBlocklist: z.array(z.string()).optional(),
+  commandAllowlist: z.array(z.string()).optional(),
+  autoVerifyAfterEdit: z.boolean().optional(),
+  debugAgent: z.boolean().optional(),
   readonlyMode: z.boolean().optional(),
   soundNotifications: z.boolean().optional(),
   minimizeToTray: z.boolean().optional(),
+  uiLightMode: z.boolean().optional(),
+  uiFontScale: z.union([z.literal(0.9), z.literal(1), z.literal(1.1), z.literal(1.25)]).optional(),
+  recentProjects: z.array(z.string()).optional(),
+  webhookUrl: z.string().optional(),
+  discordWebhookUrl: z.string().optional(),
+  telegramBotToken: z.string().optional(),
+  telegramChatId: z.string().optional(),
+  autoIndexOnOpen: z.boolean().optional(),
   gitSyncOnStartup: z.boolean().optional(),
   gitSyncStrategy: GitSyncStrategySchema.optional(),
   liveRuntimeFromGit: z.boolean().optional(),
@@ -206,6 +217,7 @@ export const AgentSettingsSchema = z.object({
   showLiveThinking: z.boolean().optional(),
   modelContextLength: z.number().optional(),
   contextSummarizeThreshold: z.number().optional(),
+  maxCostPerRunUsd: z.number().optional(),
   aggressiveCompression: z.boolean().optional(),
   powerSaveMode: z.boolean().optional(),
   disableSystemStats: z.boolean().optional(),
@@ -224,7 +236,12 @@ export const AgentSettingsSchema = z.object({
   customSystemPrompt: z.string().optional(),
   gitlabToken: z.string().optional(),
   gitlabUrl: z.string().optional(),
+  jiraUrl: z.string().optional(),
+  jiraToken: z.string().optional(),
+  linearApiKey: z.string().optional(),
   disabledTools: z.array(z.string()).optional(),
+  sourceRootOverride: z.string().optional(),
+  gitRepoRoot: z.string().optional(),
   mcpServers: z
     .array(
       z.object({
@@ -235,7 +252,8 @@ export const AgentSettingsSchema = z.object({
             description: z.string(),
             parameters: z.record(z.string(), z.unknown())
           })
-        )
+        ),
+        enabledTools: z.array(z.string()).optional()
       })
     )
     .optional(),
@@ -254,7 +272,40 @@ export const AgentSettingsSchema = z.object({
   orchestratorOllamaModel: z.string().optional(),
   orchestratorEnabled: z.boolean().optional(),
   orchestratorMinMessageLength: z.number().optional(),
-  autoCollectivePr: z.boolean().optional()
+  autoCollectivePr: z.boolean().optional(),
+  enabledPlugins: z.array(z.string()).optional(),
+  explorerEnabled: z.boolean().optional(),
+  updateChannel: z.enum(['stable', 'beta']).optional(),
+  scriptSandboxEnabled: z.boolean().optional(),
+  planBeforeExecute: z.boolean().optional(),
+  firstRunCompleted: z.boolean().optional(),
+  promptTemplates: z
+    .array(
+      z.object({
+        id: z.string(),
+        trigger: z.string(),
+        description: z.string(),
+        text: z.string()
+      })
+    )
+    .optional(),
+  automations: z
+    .array(
+      z.object({
+        id: z.string(),
+        cron: z.string(),
+        prompt: z.string(),
+        enabled: z.boolean().default(true)
+      })
+    )
+    .optional(),
+  shareCompute: z.boolean().optional(),
+  p2pConsentGiven: z.boolean().optional(),
+  p2pServerUrl: z.string().optional(),
+  p2pAuthToken: z.string().optional(),
+  p2pNodePrivateKey: z.string().optional(),
+  p2pNodePublicKey: z.string().optional(),
+  p2pNodeId: z.string().optional()
 })
 
 export const MemoryEntrySchema = z.object({

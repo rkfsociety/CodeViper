@@ -38,3 +38,8 @@
 - Задача: ROADMAP `find_magic_numbers` (уровень 3). Агент зациклился на `find_files` (~30+ вызовов), `list_directory` работал.  
 - Корень: `fileSearchInWorker.ts` — `join(__dirname, 'fileSearchWorker.js')` в ESM-бандле live runtime из git-клона.  
 - Фикс: `getElectronMainDir()` (`import.meta.url` fallback) в `electronMainDir.ts`; то же для `embeddingQueue` / `largeFileQueue`.
+
+**2026-07-01 · Telegram/webhook настройки слетают после обновления**  
+- Симптом: `telegramBotToken` / `telegramChatId` пустые после перезапуска или runtime-update.  
+- Корень: `AgentSettingsSchema` в `ipcContracts.ts` не содержал эти поля; Zod `.strip()` при `parseIpcArgs(SAVE_SETTINGS)` выбрасывал их перед `saveSettings`. Автосохранение в `App.tsx` (400 мс) перезаписывало `settings.json` без Telegram.  
+- Фикс: синхронизировать `AgentSettingsSchema` с `PersistedSettingsSchema`; тест `ipcContracts.test.ts`.
