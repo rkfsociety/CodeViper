@@ -9,6 +9,32 @@ export const INDEXING_TOOLS = [
         'Рекурсивно читает файлы проекта, разбивает на чанки по 500 строк, вычисляет эмбеддинги и загружает в Qdrant-коллекцию codeviper_project. Требует настройки Qdrant URL в настройках.',
       parameters: { type: 'object', properties: {} }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'suggest_new_roadmap_items',
+      description:
+        'Анализирует последние trace ошибок агента и добавляет новые атомарные S/M пункты в конец соответствующего уровня ROADMAP. Используй для самоулучшения после повторяющихся ошибок tools, LLM или run_end.',
+      parameters: {
+        type: 'object',
+        properties: {
+          level: {
+            type: 'string',
+            enum: ['S', 'M'],
+            description: 'Уровень сложности новых задач: S или M. По умолчанию S.'
+          },
+          limit: {
+            type: 'string',
+            description: 'Сколько задач добавить, 1–5. По умолчанию 3.'
+          },
+          days: {
+            type: 'string',
+            description: 'За сколько последних дней читать trace ошибок, 1–90. По умолчанию 7.'
+          }
+        }
+      }
+    }
   }
 ] as const
 

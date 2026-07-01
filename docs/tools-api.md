@@ -45,7 +45,7 @@
 
 ### `agentTools/core.ts` — GIT_TOOLS
 
-`git_status`, `git_diff`, `git_log`, `git_commit`, `git_push`, `git_checkout`, `git_stash`, `git_stash_pop`, `recent_changes`
+`git_status`, `git_diff`, `git_log`, `find_commit_message_issues`, `git_commit`, `git_push`, `git_checkout`, `git_stash`, `git_stash_pop`, `recent_changes`
 
 ### `agentTools/core.ts` — терминал и тесты
 
@@ -70,7 +70,7 @@
 
 ### `agentTools/mcp.ts` — CodeViper, ROADMAP, Ollama, индекс
 
-`list_codeviper_directory`, `grep_codeviper_files`, `find_codeviper_files`, `read_codeviper_file`, `write_codeviper_file`, `create_codeviper_file`, `edit_codeviper_file`, `append_codeviper_file`, `delete_codeviper_file`, `move_codeviper_file`, `run_codeviper_command`, `create_codeviper_branch`, `push_codeviper_branch`, `create_codeviper_pr`, `list_roadmap`, `read_roadmap_item`, `prioritize_roadmap_items`, `set_self_improvement_plan`, `complete_self_improvement_item`, `get_self_improvement_plan`, `preview_ollama_modelfile`, `create_ollama_model`, `index_project`, `delegate_to_editor`
+`list_codeviper_directory`, `grep_codeviper_files`, `find_codeviper_files`, `read_codeviper_file`, `write_codeviper_file`, `create_codeviper_file`, `edit_codeviper_file`, `append_codeviper_file`, `delete_codeviper_file`, `move_codeviper_file`, `run_codeviper_command`, `create_codeviper_branch`, `push_codeviper_branch`, `create_codeviper_pr`, `list_roadmap`, `read_roadmap_item`, `prioritize_roadmap_items`, `set_self_improvement_plan`, `complete_self_improvement_item`, `get_self_improvement_plan`, `preview_ollama_modelfile`, `create_ollama_model`, `index_project`, `suggest_new_roadmap_items`, `delegate_to_reviewer`, `delegate_to_editor`
 
 ---
 
@@ -348,6 +348,12 @@ DFD уровня модуля: IPC (`invoke`/`handle`), HTTP (`fetch`/`axios`), 
 | `limit` | string | нет | Число коммитов 1–100. По умолчанию `"20"` |
 | `path` | string | нет | Только коммиты, затронувшие путь |
 | `oneline` | string | нет | `"true"` — краткий формат (`--oneline`) |
+
+---
+
+### `find_commit_message_issues`
+
+Проверить последние commit-сообщения на соответствие Conventional Commits. Параметр: `limit` (необяз., по умолчанию 20).
 
 ---
 
@@ -710,6 +716,10 @@ DFD уровня модуля: IPC (`invoke`/`handle`), HTTP (`fetch`/`axios`), 
 
 Построить или обновить семантический индекс проекта (Qdrant). Параметры по схеме в `mcp.ts`.
 
+### `suggest_new_roadmap_items`
+
+Прочитать последние trace ошибок агента и дописать атомарные S/M задачи в конец выбранного уровня ROADMAP. Параметры: `level` (`S` | `M`, по умолчанию `S`), `limit` (1–5, по умолчанию 3), `days` (1–90, по умолчанию 7). Если ошибок нет, файлы не меняются.
+
 ### `check_cve`
 
 Проверка уязвимостей через публичные CVE API (NVD + OSV). Один режим за вызов:
@@ -729,6 +739,10 @@ DFD уровня модуля: IPC (`invoke`/`handle`), HTTP (`fetch`/`axios`), 
 ---
 
 ## Субагенты
+
+### `delegate_to_reviewer`
+
+Делегировать read-only обзор изменений субагенту-ревьюеру. Параметры: `task`, `context` — см. `mcp.ts`.
 
 ### `delegate_to_editor`
 

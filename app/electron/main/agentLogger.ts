@@ -33,6 +33,14 @@ export interface AgentMetrics {
   periodDays: number
 }
 
+export interface AgentTraceErrorSummary {
+  ts: number
+  kind: string
+  tool?: string
+  label: string
+  message: string
+}
+
 function dateStamp(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -41,6 +49,13 @@ function dateStampForDaysAgo(daysAgo: number): string {
   const d = new Date()
   d.setDate(d.getDate() - daysAgo)
   return d.toISOString().slice(0, 10)
+}
+
+function truncateSummary(value: unknown): string {
+  const text = String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text.length > 300 ? `${text.slice(0, 300)}…` : text
 }
 
 class AgentLogger {
@@ -80,6 +95,42 @@ class AgentLogger {
       this.readMetricsFromLogs(days)
     ])
     return mergeAgentMetrics(traceMetrics, logMetrics, days)
+  }
+
+  async readRecentErrorSummaries(days = 7, limit = 5): Promise<AgentTraceErrorSummary[]> {
+    const safeDays = Math.min(90, Math.max(1, Math.floor(days) || 7))
+    const safeLimit = Math.min(20, Math.max(1, Math.floor(limit) || 5))
+    const cutoffTs = Date.now() - safeDays * 86_400_000
+    const summaries: AgentTraceErrorSummary[] = []
+
+    const events = await loadAllChatTraceEventsFromDisk()
+    for (const ev of events) {
+      if (ev.ts < cutoffTs) continue
+      const data = ev.data ?? {}
+      const isFailedTool =
+        ev.kind === 'tool_result' && (data.ok === false || typeof data.error === 'string')
+      const isLlmError = ev.kind === 'llm_response' && typeof data.error === 'string'
+      const isRunError =
+        ev.kind === 'run_end' && (data.status === 'error' || data.status === 'aborted')
+      if (!isFailedTool && !isLlmError && !isRunError) continue
+
+      const rawMessage =
+        typeof data.error === 'string'
+          ? data.error
+          : typeof data.message === 'string'
+            ? data.message
+            : ev.label
+      summaries.push({
+        ts: ev.ts,
+        kind: ev.kind,
+        tool: typeof data.tool === 'string' ? data.tool : undefined,
+        label: ev.label,
+        message: truncateSummary(redactSecretsDeep(rawMessage))
+      })
+    }
+
+    summaries.sort((a, b) => b.ts - a.ts)
+    return summaries.slice(0, safeLimit)
   }
 
   private async readMetricsFromTraces(days: number): Promise<AgentMetrics> {

@@ -236,6 +236,7 @@ export interface ToolArgs {
   read_skill_data: { skill_id: string }
   write_skill_data: { skill_id: string; content: string }
   index_project: Record<string, never>
+  suggest_new_roadmap_items: { level?: string; limit?: string; days?: string }
   web_fetch: {
     url: string
     max_chars?: number

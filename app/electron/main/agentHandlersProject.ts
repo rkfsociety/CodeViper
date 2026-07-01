@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { readFile, readdir } from 'fs/promises'
+import { readFile, readdir, writeFile } from 'fs/promises'
 import { extname, join, relative, resolve } from 'path'
 import { QdrantClient } from '@qdrant/js-client-rest'
 import { computeEmbedding } from './embeddings'
@@ -23,10 +23,70 @@ import type { ProjectToolOptions } from './agentHandlersProjectContext'
 import { createFileHandlers } from './agentHandlersProjectFile'
 import { createSearchHandlers } from './agentHandlersProjectSearch'
 import { createTerminalHandlers } from './agentHandlersProjectTerminal'
+import { agentLogger, type AgentTraceErrorSummary } from './agentLogger'
 
 export type { ProjectToolOptions }
 
 const READONLY_ERROR = 'Режим только чтение: операции записи заблокированы'
+const ROADMAP_LEVEL_TARGETS = {
+  S: join('ROADMAP', '13-s-generation-and-docs.md'),
+  M: join('ROADMAP', '29-m-guides-and-architecture-docs.md')
+} as const
+
+type RoadmapLevel = keyof typeof ROADMAP_LEVEL_TARGETS
+
+function parsePositiveInt(value: string | undefined, fallback: number, max: number): number {
+  const parsed = Number.parseInt(value ?? '', 10)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(max, Math.max(1, parsed))
+}
+
+function normalizeRoadmapLevel(value: string | undefined): RoadmapLevel {
+  return value?.trim().toUpperCase() === 'M' ? 'M' : 'S'
+}
+
+function nextRoadmapNumber(content: string): number {
+  const matches = [...content.matchAll(/^\*\*(\d+)\s*·\s*[SMLXL]\s*·/gm)]
+  const last = matches.at(-1)?.[1]
+  return (last ? Number.parseInt(last, 10) : 0) + 1
+}
+
+function appendRoadmapItemsAtLevelEnd(content: string, items: string[]): string {
+  const block = `${items.join('\n\n\n')}\n`
+  const nextLevelIndex = content.search(/\n###\s+[^\n]+\n\n>/)
+  if (nextLevelIndex === -1) {
+    const separator = content.endsWith('\n') ? '\n' : '\n\n'
+    return `${content}${separator}${block}`
+  }
+  const before = content.slice(0, nextLevelIndex).replace(/\s+$/, '')
+  const after = content.slice(nextLevelIndex).replace(/^\n*/, '')
+  return `${before}\n\n\n${block}\n${after}`
+}
+
+function buildRoadmapTitle(summary: AgentTraceErrorSummary): string {
+  const source = summary.tool ? `tool ${summary.tool}` : summary.kind
+  const cleanMessage = summary.message
+    .replace(/[`*_#[\]()]/g, '')
+    .replace(/\b[A-Za-z]:\\[^\s]+/g, 'path')
+    .slice(0, 80)
+    .trim()
+  return `Диагностика ошибки ${source}${cleanMessage ? `: ${cleanMessage}` : ''}`
+}
+
+function buildRoadmapItem(
+  number: number,
+  level: RoadmapLevel,
+  summary: AgentTraceErrorSummary
+): string {
+  const source = summary.tool ? `tool \`${summary.tool}\`` : `trace \`${summary.kind}\``
+  return [
+    `**${number} · ${level} · ${buildRoadmapTitle(summary)}** — уровень 2`,
+    `- **Цель:** устранить повторяющуюся ошибку из trace для ${source}`,
+    '- **Файлы:** `agentLogger.ts`, `agentTools/mcp.ts`',
+    '- **Действие:** добавить проверку/подсказку по сигнатуре ошибки и покрыть fixture',
+    '- **Проверка:** ошибка из trace воспроизводится fixture и больше не появляется в отчёте'
+  ].join('\n')
+}
 
 export function createProjectToolHandlers(
   projectPath: string,
@@ -283,6 +343,42 @@ export function createProjectToolHandlers(
         path: args.path,
         oneline: 'true'
       }),
+
+    suggest_new_roadmap_items: async (args) => {
+      if (options?.readonlyMode) throw new AgentError(READONLY_ERROR, 'readonly')
+      const level = normalizeRoadmapLevel(args.level)
+      const limit = parsePositiveInt(args.limit, 3, 5)
+      const days = parsePositiveInt(args.days, 7, 90)
+      const summaries = await agentLogger.readRecentErrorSummaries(days, limit)
+      if (!summaries.length) {
+        return `Новых пунктов не добавлено: за последние ${days} дн. trace ошибок не найден.`
+      }
+
+      const relPath = ROADMAP_LEVEL_TARGETS[level]
+      const absPath = join(projectPath, relPath)
+      assertInsideProject(relPath, 'ROADMAP')
+
+      let content = ''
+      try {
+        content = await readFile(absPath, 'utf-8')
+      } catch (error) {
+        return `Ошибка: не удалось прочитать ${relPath}: ${error instanceof Error ? error.message : String(error)}`
+      }
+
+      const startNumber = nextRoadmapNumber(content)
+      const items = summaries.map((summary, index) =>
+        buildRoadmapItem(startNumber + index, level, summary)
+      )
+      const nextContent = appendRoadmapItemsAtLevelEnd(content, items)
+      await writeFile(absPath, nextContent, 'utf-8')
+
+      return [
+        `Добавлено пунктов: ${items.length}`,
+        `Уровень: ${level}`,
+        `Файл: ${relPath}`,
+        `Номера: ${startNumber}–${startNumber + items.length - 1}`
+      ].join('\n')
+    },
 
     index_project: async (_args) => {
       const { qdrantUrl, qdrantApiKey, ollamaUrl } = options ?? {}
