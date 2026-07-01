@@ -119,6 +119,23 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_missing_tests',
+      description:
+        'Поиск исходников .ts/.tsx без пары *.test.ts/*.spec.ts рядом или в зеркальной папке tests/. Исключает *.d.ts, конфиги и out/. Возвращает список path.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Ограничить подпапкой или файлом (необязательно)'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_import_issues',
       description:
         'AST-анализ ts/js на import/require на несуществующие файлы и неразрешённые alias из tsconfig paths. Возвращает отчёт с path:line:col.',

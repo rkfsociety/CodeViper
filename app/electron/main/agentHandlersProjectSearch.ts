@@ -15,6 +15,7 @@ import {
 } from './symbolIndex'
 import { findMagicNumbers, formatMagicNumbersOutput } from './magicNumberIndex'
 import { findImportIssues, formatImportIssuesOutput } from './importIssueAnalysis'
+import { findMissingTests, formatMissingTestsOutput } from './missingTestAnalysis'
 import { findDeadCode, formatDeadCodeReport } from './deadCodeIndex'
 import { findSlowCode, formatSlowCodeReport } from './slowCodeIndex'
 import { findRerenderCandidates, formatRerenderCandidatesOutput } from './rerenderCandidateAnalysis'
@@ -166,6 +167,20 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress('AST-анализ import issues', scanPercent(scanned))
         })
         return formatImportIssuesOutput(projectPath, result)
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_missing_tests: async (args) => {
+      assertInsideProject(args.path, 'папка или файл для анализа', { allowEmpty: true })
+      try {
+        emitProgress('Поиск исходников без тестов', 0)
+        const result = await findMissingTests(projectPath, {
+          subpath: args.path?.trim(),
+          onProgress: (scanned) => emitProgress('Поиск исходников без тестов', scanPercent(scanned))
+        })
+        return formatMissingTestsOutput(projectPath, result)
       } finally {
         clearProgress()
       }
