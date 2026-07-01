@@ -116,6 +116,7 @@
 - Шаблоны MCP stdio: кнопки + filesystem / + fetch в IntegrationsTab → `mcpStdioServers` в settings.json
 
 ### Качество, CI, установщик
+- Dependabot для npm: weekly PR для `app/` и root с label `dependencies`.
 - E2E windows/ubuntu/macos; coverage thresholds; `npm audit` в CI; TypeDoc + GitHub Pages
 - NSIS + POSIX `CodeViper.sh`; CONTRIBUTING, issue/PR templates; `.codeviperignore`
 - `debugAgent`; удалён deprecated `cloudApiKey`; `list_directory` резолвит path от корня проекта

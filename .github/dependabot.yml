@@ -8,31 +8,12 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
-    groups:
-      electron:
-        patterns:
-          - electron*
-          - vite*
-          - electron-vite*
-          - electron-builder*
-      react:
-        patterns:
-          - react*
-          - "@types/react*"
 
   - package-ecosystem: npm
-    directory: /server/p2p
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    labels:
-      - dependencies
-
-  - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 5
     labels:
       - dependencies
