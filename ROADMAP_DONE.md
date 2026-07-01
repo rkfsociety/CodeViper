@@ -128,3 +128,5 @@
 - Tool `find_magic_numbers`: отчёт о «магических» числовых литералах вне `shared/constants.ts` и без именованной константы рядом
 
 - Tool `find_unsafe_regex`: report of regex with catastrophic backtracking (ReDoS) risk
+
+- Tool `find_missing_tests`: ?????? ?????????? ??? ???? `*.test.ts` / `*.spec.ts` ????? ??? ? `tests/`
