@@ -74,7 +74,7 @@ export function PanZoomViewport({ children, className }: Props) {
     const viewport = viewportRef.current
     if (!viewport) return
 
-    const onWheel = (event: {
+    const handleWheel = (event: {
       preventDefault: () => void
       deltaY: number
       clientX: number
@@ -87,8 +87,17 @@ export function PanZoomViewport({ children, className }: Props) {
       )
     }
 
-    viewport.addEventListener('wheel', onWheel as (event: never) => void, { passive: false })
-    return () => viewport.removeEventListener('wheel', onWheel)
+    const onNativeWheel = (event: {
+      preventDefault: () => void
+      deltaY: number
+      clientX: number
+      clientY: number
+    }) => {
+      handleWheel(event)
+    }
+
+    viewport.addEventListener('wheel', onNativeWheel, { passive: false })
+    return () => viewport.removeEventListener('wheel', onNativeWheel)
   }, [])
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {

@@ -5,8 +5,7 @@ import type {
   DependencyDiagramResult,
   ImportCycleResult
 } from '../types'
-import { MermaidDiagram } from './MermaidDiagram'
-import { PanZoomViewport } from './PanZoomViewport'
+import { LayoutGraphView } from './LayoutGraphView'
 import styles from './ArchitecturePanel.module.css'
 
 interface Props {
@@ -165,9 +164,11 @@ function ArchitectureDiagramWindow({
           {error && <div className={styles.error}>{error}</div>}
           {!loading && result && hasContent && (
             <>
-              <PanZoomViewport>
-                <MermaidDiagram chart={result.mermaid} interactive />
-              </PanZoomViewport>
+              <LayoutGraphView
+                nodes={result.nodes}
+                edges={result.edges}
+                layout={isDependencies ? 'dagre' : 'concentric'}
+              />
               <div className={styles.hint}>
                 Просмотрено файлов: {result.filesScanned}
                 {result.truncated ? truncatedText : ''}

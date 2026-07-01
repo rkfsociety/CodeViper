@@ -754,6 +754,20 @@ export const Contracts = {
     args: z.tuple([z.string(), z.string().optional(), z.string().optional()]),
     result: z.object({
       mermaid: z.string(),
+      nodes: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          external: z.boolean().optional()
+        })
+      ),
+      edges: z.array(
+        z.object({
+          source: z.string(),
+          target: z.string(),
+          label: z.string().optional()
+        })
+      ),
       nodeCount: z.number().int(),
       edgeCount: z.number().int(),
       truncated: z.boolean(),
@@ -764,6 +778,20 @@ export const Contracts = {
     args: z.tuple([z.string(), z.string().optional(), z.string().optional()]),
     result: z.object({
       mermaid: z.string(),
+      nodes: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          external: z.boolean().optional()
+        })
+      ),
+      edges: z.array(
+        z.object({
+          source: z.string(),
+          target: z.string(),
+          label: z.string().optional()
+        })
+      ),
       nodeCount: z.number().int(),
       edgeCount: z.number().int(),
       truncated: z.boolean(),

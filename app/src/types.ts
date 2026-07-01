@@ -681,8 +681,22 @@ export interface ImportCycleResult {
   filesScanned: number
 }
 
+export interface DiagramNode {
+  id: string
+  label: string
+  external?: boolean
+}
+
+export interface DiagramEdge {
+  source: string
+  target: string
+  label?: string
+}
+
 export interface DependencyDiagramResult {
   mermaid: string
+  nodes: DiagramNode[]
+  edges: DiagramEdge[]
   nodeCount: number
   edgeCount: number
   truncated: boolean

@@ -655,11 +655,28 @@ export async function buildImportGraph(
   return { graph, filesScanned }
 }
 
-export interface DependencyDiagramResult {
-  mermaid: string
+export interface DiagramNode {
+  id: string
+  label: string
+  external?: boolean
+}
+
+export interface DiagramEdge {
+  source: string
+  target: string
+  label?: string
+}
+
+export interface DiagramElements {
+  nodes: DiagramNode[]
+  edges: DiagramEdge[]
   nodeCount: number
   edgeCount: number
   truncated: boolean
+}
+
+export interface DependencyDiagramResult extends DiagramElements {
+  mermaid: string
   filesScanned: number
 }
 
@@ -694,63 +711,89 @@ function filterGraphByFocus(
   return filtered
 }
 
-export function graphToMermaid(
+export function collectDependencyElements(
   projectPath: string,
   graph: Map<string, string[]>,
   limits?: { maxNodes?: number; maxEdges?: number }
-): Pick<DependencyDiagramResult, 'mermaid' | 'nodeCount' | 'edgeCount' | 'truncated'> {
+): DiagramElements {
   const maxNodes = limits?.maxNodes ?? MAX_DEPENDENCY_NODES
   const maxEdges = limits?.maxEdges ?? MAX_DEPENDENCY_EDGES
-  const nodeIndex = new Map<string, number>()
-  const edges: Array<[string, string]> = []
+  const nodePaths = new Set<string>()
+  const edges: DiagramEdge[] = []
   let truncated = false
 
   const sortedSources = [...graph.keys()].sort()
-  for (const from of sortedSources) {
-    const targets = [...(graph.get(from) ?? [])].sort()
-    for (const to of targets) {
+  for (const fromAbs of sortedSources) {
+    const targets = [...(graph.get(fromAbs) ?? [])].sort()
+    for (const toAbs of targets) {
       if (edges.length >= maxEdges) {
         truncated = true
         break
       }
-      if (!nodeIndex.has(from)) {
-        if (nodeIndex.size >= maxNodes) {
+      const fromId = relModulePath(projectPath, fromAbs)
+      const toId = relModulePath(projectPath, toAbs)
+      if (!nodePaths.has(fromId)) {
+        if (nodePaths.size >= maxNodes) {
           truncated = true
           continue
         }
-        nodeIndex.set(from, nodeIndex.size)
+        nodePaths.add(fromId)
       }
-      if (!nodeIndex.has(to)) {
-        if (nodeIndex.size >= maxNodes) {
+      if (!nodePaths.has(toId)) {
+        if (nodePaths.size >= maxNodes) {
           truncated = true
           continue
         }
-        nodeIndex.set(to, nodeIndex.size)
+        nodePaths.add(toId)
       }
-      edges.push([from, to])
+      edges.push({ source: fromId, target: toId })
     }
     if (truncated) break
   }
 
-  const lines = ['graph LR']
-  const sortedNodes = [...nodeIndex.entries()].sort((a, b) => a[1] - b[1])
-  for (const [path, idx] of sortedNodes) {
-    lines.push(
-      `  ${toMermaidNodeId(idx)}["${sanitizeMermaidLabel(relModulePath(projectPath, path))}"]`
-    )
+  const nodes = [...nodePaths].sort().map((id) => ({ id, label: id }))
+
+  return {
+    nodes,
+    edges,
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    truncated
   }
-  for (const [from, to] of edges) {
-    const fromId = nodeIndex.get(from)
-    const toId = nodeIndex.get(to)
+}
+
+function dependencyElementsToMermaid(elements: DiagramElements): string {
+  const nodeIndex = new Map<string, number>()
+  for (const [idx, node] of elements.nodes.entries()) {
+    nodeIndex.set(node.id, idx)
+  }
+
+  const lines = ['graph LR']
+  for (const [id, idx] of [...nodeIndex.entries()].sort((a, b) => a[1] - b[1])) {
+    lines.push(`  ${toMermaidNodeId(idx)}["${sanitizeMermaidLabel(id)}"]`)
+  }
+  for (const edge of elements.edges) {
+    const fromId = nodeIndex.get(edge.source)
+    const toId = nodeIndex.get(edge.target)
     if (fromId == null || toId == null) continue
     lines.push(`  ${toMermaidNodeId(fromId)} --> ${toMermaidNodeId(toId)}`)
   }
 
+  return lines.join('\n')
+}
+
+export function graphToMermaid(
+  projectPath: string,
+  graph: Map<string, string[]>,
+  limits?: { maxNodes?: number; maxEdges?: number }
+): Pick<
+  DependencyDiagramResult,
+  'mermaid' | 'nodes' | 'edges' | 'nodeCount' | 'edgeCount' | 'truncated'
+> {
+  const elements = collectDependencyElements(projectPath, graph, limits)
   return {
-    mermaid: lines.join('\n'),
-    nodeCount: nodeIndex.size,
-    edgeCount: edges.length,
-    truncated
+    ...elements,
+    mermaid: dependencyElementsToMermaid(elements)
   }
 }
 
@@ -1285,13 +1328,7 @@ export function formatClassDiagram(result: ClassDiagramResult): string {
 
 export type DataflowKind = 'ipc_out' | 'ipc_in' | 'http' | 'fs_read' | 'fs_write'
 
-export interface DataflowDiagramResult {
-  mermaid: string
-  nodeCount: number
-  edgeCount: number
-  truncated: boolean
-  filesScanned: number
-}
+export type DataflowDiagramResult = DependencyDiagramResult
 
 const DATAFLOW_EXTERNAL = {
   fs: 'EXT_FS',
@@ -1397,21 +1434,27 @@ async function collectFileDataflows(
   return detectModuleDataflows(content)
 }
 
-export function dataflowToMermaid(
+const DATAFLOW_EXTERNAL_LABELS: Record<string, string> = {
+  [DATAFLOW_EXTERNAL.fs]: 'Filesystem',
+  [DATAFLOW_EXTERNAL.http]: 'HTTP',
+  [DATAFLOW_EXTERNAL.ipc]: 'IPC'
+}
+
+export function collectDataflowElements(
   projectPath: string,
   moduleFlows: Map<string, Array<{ kind: DataflowKind; detail?: string }>>,
   limits?: { maxNodes?: number; maxEdges?: number }
-): Pick<DataflowDiagramResult, 'mermaid' | 'nodeCount' | 'edgeCount' | 'truncated'> {
+): DiagramElements {
   const maxNodes = limits?.maxNodes ?? MAX_DATAFLOW_NODES
   const maxEdges = limits?.maxEdges ?? MAX_DATAFLOW_EDGES
-  const moduleIds = new Map<string, number>()
+  const modulePaths = new Set<string>()
   const extUsed = new Set<string>()
-  const edges: Array<{ from: string; to: string; label: string }> = []
+  const edges: DiagramEdge[] = []
   let truncated = false
 
   const sortedModules = [...moduleFlows.keys()].sort()
-  for (const mod of sortedModules) {
-    const flows = moduleFlows.get(mod) ?? []
+  for (const modAbs of sortedModules) {
+    const flows = moduleFlows.get(modAbs) ?? []
     for (const flow of flows) {
       if (edges.length >= maxEdges) {
         truncated = true
@@ -1419,58 +1462,95 @@ export function dataflowToMermaid(
       }
       const ext = externalTarget(flow.kind)
       extUsed.add(ext)
-      if (!moduleIds.has(mod)) {
-        if (moduleIds.size >= maxNodes) {
+      const modId = relModulePath(projectPath, modAbs)
+      if (!modulePaths.has(modId)) {
+        if (modulePaths.size >= maxNodes) {
           truncated = true
           continue
         }
-        moduleIds.set(mod, moduleIds.size)
+        modulePaths.add(modId)
       }
-      const label = sanitizeMermaidLabel(dataflowEdgeLabel(flow.kind, flow.detail))
+      const label = dataflowEdgeLabel(flow.kind, flow.detail)
       if (isDataflowInbound(flow.kind)) {
-        edges.push({ from: ext, to: mod, label })
+        edges.push({ source: ext, target: modId, label })
       } else {
-        edges.push({ from: mod, to: ext, label })
+        edges.push({ source: modId, target: ext, label })
       }
     }
     if (truncated) break
   }
 
-  const lines = ['flowchart LR']
-  if (extUsed.has(DATAFLOW_EXTERNAL.fs)) {
-    lines.push(`  ${DATAFLOW_EXTERNAL.fs}[("Filesystem")]`)
+  const nodes: DiagramNode[] = [
+    ...[...extUsed].sort().map((id) => ({
+      id,
+      label: DATAFLOW_EXTERNAL_LABELS[id] ?? id,
+      external: true as const
+    })),
+    ...[...modulePaths].sort().map((id) => ({ id, label: id }))
+  ]
+
+  return {
+    nodes,
+    edges,
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    truncated
   }
-  if (extUsed.has(DATAFLOW_EXTERNAL.http)) {
-    lines.push(`  ${DATAFLOW_EXTERNAL.http}[("HTTP")]`)
-  }
-  if (extUsed.has(DATAFLOW_EXTERNAL.ipc)) {
-    lines.push(`  ${DATAFLOW_EXTERNAL.ipc}[["IPC"]]`)
+}
+
+function dataflowElementsToMermaid(elements: DiagramElements): string {
+  const moduleNodes = elements.nodes.filter((node) => !node.external)
+  const moduleIndex = new Map<string, number>()
+  for (const [idx, node] of moduleNodes.entries()) {
+    moduleIndex.set(node.id, idx)
   }
 
-  const sortedNodes = [...moduleIds.entries()].sort((a, b) => a[1] - b[1])
-  for (const [path, idx] of sortedNodes) {
+  const lines = ['flowchart LR']
+  for (const node of elements.nodes) {
+    if (!node.external) continue
+    if (node.id === DATAFLOW_EXTERNAL.fs) {
+      lines.push(`  ${node.id}[("${sanitizeMermaidLabel(node.label)}")]`)
+    } else if (node.id === DATAFLOW_EXTERNAL.ipc) {
+      lines.push(`  ${node.id}[["${sanitizeMermaidLabel(node.label)}"]]`)
+    } else {
+      lines.push(`  ${node.id}[("${sanitizeMermaidLabel(node.label)}")]`)
+    }
+  }
+  for (const [id, idx] of [...moduleIndex.entries()].sort((a, b) => a[1] - b[1])) {
+    lines.push(`  ${toMermaidNodeId(idx)}["${sanitizeMermaidLabel(id)}"]`)
+  }
+
+  for (const edge of elements.edges) {
+    if (edge.source.startsWith('EXT_')) {
+      const modIdx = moduleIndex.get(edge.target)
+      if (modIdx == null) continue
+      lines.push(
+        `  ${edge.source} -->|"${sanitizeMermaidLabel(edge.label ?? '')}"| ${toMermaidNodeId(modIdx)}`
+      )
+      continue
+    }
+    const modIdx = moduleIndex.get(edge.source)
+    if (modIdx == null) continue
     lines.push(
-      `  ${toMermaidNodeId(idx)}["${sanitizeMermaidLabel(relModulePath(projectPath, path))}"]`
+      `  ${toMermaidNodeId(modIdx)} -->|"${sanitizeMermaidLabel(edge.label ?? '')}"| ${edge.target}`
     )
   }
 
-  for (const edge of edges) {
-    const mod = edge.from.startsWith('EXT_') ? edge.to : edge.from
-    const modIdx = moduleIds.get(mod)
-    if (modIdx == null) continue
-    const modNode = toMermaidNodeId(modIdx)
-    if (edge.from.startsWith('EXT_')) {
-      lines.push(`  ${edge.from} -->|"${edge.label}"| ${modNode}`)
-    } else {
-      lines.push(`  ${modNode} -->|"${edge.label}"| ${edge.to}`)
-    }
-  }
+  return lines.join('\n')
+}
 
+export function dataflowToMermaid(
+  projectPath: string,
+  moduleFlows: Map<string, Array<{ kind: DataflowKind; detail?: string }>>,
+  limits?: { maxNodes?: number; maxEdges?: number }
+): Pick<
+  DataflowDiagramResult,
+  'mermaid' | 'nodes' | 'edges' | 'nodeCount' | 'edgeCount' | 'truncated'
+> {
+  const elements = collectDataflowElements(projectPath, moduleFlows, limits)
   return {
-    mermaid: lines.join('\n'),
-    nodeCount: moduleIds.size + extUsed.size,
-    edgeCount: edges.length,
-    truncated
+    ...elements,
+    mermaid: dataflowElementsToMermaid(elements)
   }
 }
 

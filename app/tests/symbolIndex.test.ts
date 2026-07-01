@@ -123,6 +123,8 @@ describe('symbolIndex', () => {
     const result = await buildDependencyDiagram(root)
     expect(result.nodeCount).toBeGreaterThanOrEqual(2)
     expect(result.edgeCount).toBeGreaterThanOrEqual(1)
+    expect(result.nodes.length).toBeGreaterThanOrEqual(2)
+    expect(result.edges.length).toBeGreaterThanOrEqual(1)
     expect(result.mermaid).toContain('graph LR')
     expect(result.mermaid).toContain('main.ts')
     expect(result.mermaid).toContain('util.ts')
