@@ -45,6 +45,7 @@
 ### Агент и инструменты
 - `find_import_issues`: AST-проверка import/require с различением `tsconfig paths` alias и реальных npm-пакетов, без ложных срабатываний на `node_modules`
 - `find_merge_conflicts`: поиск маркеров merge-конфликта (`<<<<<<<`, `=======`, `>>>>>>>`) по проекту, отчёт `[n] path:line`
+- `find_commit_message_issues`: отчёт по commit-сообщениям в последних N коммитах с фильтром Conventional Commits
 - `find_missing_tests`: поиск `*.ts` / `*.tsx` без парных `*.test.ts` / `*.spec.ts` рядом с исходником или в зеркальной папке `tests/`
 - `find_rerender_candidates`: эвристика по React `.tsx` для экспортируемых компонентов с props, исключая случаи, где уже есть `memo`, `useMemo` или `useCallback`
 - Авто-обнаружение тяжёлых зависимостей в `node_modules`: список пакетов больше 1 MB в терминальном обработчике

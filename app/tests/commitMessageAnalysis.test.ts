@@ -26,7 +26,33 @@ describe('findCommitMessageIssues', () => {
       execSync('git commit -m "Update readme"', { cwd: dir, stdio: 'ignore' })
 
       const result = await findCommitMessageIssues(dir, { limit: '10' })
+      expect(result).toMatch(/Проверено commit-ов: 2/)
       expect(result).toMatch(/Conventional Commits: 1/)
+      expect(result).toMatch(/Не по conventional: 1/)
+      expect(result).toMatch(/Update readme/)
+      expect(result).not.toMatch(/feat: add api/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('honors the requested commit limit', async () => {
+    const dir = initTempRepo()
+    try {
+      writeFileSync(join(dir, 'a.txt'), 'v1', 'utf8')
+      execSync('git add a.txt', { cwd: dir, stdio: 'ignore' })
+      execSync('git commit -m "feat: add api"', { cwd: dir, stdio: 'ignore' })
+
+      writeFileSync(join(dir, 'b.txt'), 'v2', 'utf8')
+      execSync('git add b.txt', { cwd: dir, stdio: 'ignore' })
+      execSync('git commit -m "Update readme"', { cwd: dir, stdio: 'ignore' })
+
+      writeFileSync(join(dir, 'c.txt'), 'v3', 'utf8')
+      execSync('git add c.txt', { cwd: dir, stdio: 'ignore' })
+      execSync('git commit -m "docs: update guide"', { cwd: dir, stdio: 'ignore' })
+
+      const result = await findCommitMessageIssues(dir, { limit: '2' })
+      expect(result).toMatch(/Проверено commit-ов: 2/)
       expect(result).toMatch(/Update readme/)
       expect(result).not.toMatch(/feat: add api/)
     } finally {

@@ -7,6 +7,7 @@ const MAX_OUTPUT_CHARS = 20_000
 const DEFAULT_LOG_LIMIT = 20
 const MAX_LOG_LIMIT = 100
 const DEFAULT_COMMIT_MESSAGE_LOG_LIMIT = 50
+const COMMIT_MESSAGE_LOG_FORMAT = '--format=%s'
 const CONVENTIONAL_COMMIT_RE =
   /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+/i
 
@@ -152,7 +153,7 @@ export async function findCommitMessageIssues(
   if (repoError) return repoError
 
   const limit = parseLogLimit(options.limit ?? String(DEFAULT_COMMIT_MESSAGE_LOG_LIMIT))
-  const result = await runGit(projectPath, ['log', '-n', String(limit), '--format=%s'])
+  const result = await runGit(projectPath, ['log', '-n', String(limit), COMMIT_MESSAGE_LOG_FORMAT])
   if (result.code !== 0) return formatGitResult(result)
 
   const messages = result.stdout
@@ -161,31 +162,26 @@ export async function findCommitMessageIssues(
     .filter(Boolean)
 
   if (!messages.length) {
-    return `РџСѓСЃС‚Р°СЏ РёСЃС‚РѕСЂРёСЏ commit-СЃРѕРѕР±С‰РµРЅРёР№ Р·Р° РїРѕСЃР»РµРґРЅРёРµ ${limit} РєРѕРјРјРёС‚РѕРІ.`
+    return `Пустая история commit-сообщений за последние ${limit} коммитов.`
   }
 
-  const issues = messages
-    .map((message, index) => {
-      if (CONVENTIONAL_COMMIT_RE.test(message)) return null
-      return `[${index + 1}] ${message}`
-    })
-    .filter((line): line is string => Boolean(line))
+  const issues = messages.flatMap((message, index) =>
+    CONVENTIONAL_COMMIT_RE.test(message) ? [] : [`[${index + 1}] ${message}`]
+  )
 
   const badCount = issues.length
   const goodCount = messages.length - badCount
   const header = [
-    `РџСЂРѕРІРµСЂРµРЅРѕ commit-РѕРІ: ${messages.length}`,
+    `Проверено commit-ов: ${messages.length}`,
     `Conventional Commits: ${goodCount}`,
-    `РќРµРїРѕРІРѕР·РєРµ РЅР° conventional: ${badCount}`
+    `Не по conventional: ${badCount}`
   ]
 
   if (!issues.length) {
-    return [...header, 'РџСЂРѕР±Р»РµРј РЅРµ РЅР°Р№РґРµРЅРѕ.'].join('\n')
+    return [...header, 'Проблем не найдено.'].join('\n')
   }
 
-  return [...header, '', 'РРµСЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёРµ commit-сообщения:', ...issues].join(
-    '\n'
-  )
+  return [...header, '', 'Нестандартные commit-сообщения:', ...issues].join('\n')
 }
 
 const MAX_COMMIT_MESSAGE_LEN = 5000
