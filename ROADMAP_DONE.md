@@ -43,6 +43,7 @@
 - Разбиение ROADMAP на смысловые подфайлы с лимитом до 50 пунктов в каждом (`ROADMAP/11-*.md` … `ROADMAP/31-*.md`) и короткие индексные файлы по разделам
 
 ### Агент и инструменты
+- Tool `find_docker_port_issues`: reports duplicate Docker Compose host ports and published ports without host bind.
 - `suggest_new_roadmap_items`: генерация S/M пунктов ROADMAP из trace ошибок агента с добавлением в конец выбранного уровня
 - `find_import_issues`: AST-проверка import/require с различением `tsconfig paths` alias и реальных npm-пакетов, без ложных срабатываний на `node_modules`
 - `find_merge_conflicts`: поиск маркеров merge-конфликта (`<<<<<<<`, `=======`, `>>>>>>>`) по проекту, отчёт `[n] path:line`

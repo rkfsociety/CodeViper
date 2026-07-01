@@ -37,6 +37,43 @@ describe('findDockerPortIssues', () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+
+  it('reports duplicate host ports from long syntax and host ip mappings', async () => {
+    const dir = initTempProject()
+    try {
+      writeFileSync(
+        join(dir, 'docker-compose.yml'),
+        `services:
+  web:
+    image: nginx
+    ports:
+      - target: 80
+        published: 8080
+      - "127.0.0.1:9000:90"
+  api:
+    image: node
+    ports:
+      - target: 3000
+        published: "8080"
+  worker:
+    image: alpine
+    ports:
+      - "9000:9000"
+`,
+        'utf8'
+      )
+
+      const result = await findDockerPortIssues(dir)
+      expect(result).toMatch(/host=8080/)
+      expect(result).toMatch(/web: 8080:80/)
+      expect(result).toMatch(/api: 8080:3000/)
+      expect(result).toMatch(/host=9000/)
+      expect(result).toMatch(/web: 127\.0\.0\.1:9000:90/)
+      expect(result).toMatch(/worker: 9000:9000/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('findDockerEnvIssues', () => {

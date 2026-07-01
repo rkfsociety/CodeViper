@@ -30,8 +30,24 @@ function toStringValue(value: unknown): string {
   return ''
 }
 
+function parsePortNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isInteger(value)) return value
+  if (typeof value !== 'string') return undefined
+  const port = Number(value.trim())
+  return Number.isInteger(port) ? port : undefined
+}
+
 function parsePortMapping(raw: unknown): { hostPort?: number; containerPort?: string } | null {
   if (typeof raw === 'number') return { containerPort: String(raw) }
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const record = raw as Record<string, unknown>
+    const hostPort = parsePortNumber(record.published)
+    const target = record.target
+    const containerPort =
+      typeof target === 'number' || typeof target === 'string' ? String(target).trim() : undefined
+    if (!containerPort) return null
+    return hostPort == null ? { containerPort } : { hostPort, containerPort }
+  }
   if (typeof raw !== 'string') return null
   const trimmed = raw.trim()
   if (!trimmed) return null
@@ -43,11 +59,23 @@ function parsePortMapping(raw: unknown): { hostPort?: number; containerPort?: st
     return { containerPort: parts[0] }
   }
 
-  const host = parts[0]?.trim()
+  const host = parts.length > 2 ? parts[parts.length - 2]?.trim() : parts[0]?.trim()
   const container = parts[parts.length - 1]?.trim()
   if (!host || !container) return null
-  const hostPort = Number(host)
-  return Number.isInteger(hostPort) ? { hostPort, containerPort: container } : null
+  const hostPort = parsePortNumber(host)
+  return hostPort == null ? null : { hostPort, containerPort: container }
+}
+
+function formatPortMapping(
+  raw: unknown,
+  mapping: { hostPort?: number; containerPort?: string }
+): string {
+  const text = toStringValue(raw)
+  if (text) return text
+  if (mapping.hostPort != null && mapping.containerPort) {
+    return `${mapping.hostPort}:${mapping.containerPort}`
+  }
+  return mapping.containerPort ?? ''
 }
 
 function collectServicePorts(
@@ -74,7 +102,7 @@ function collectServicePorts(
       continue
     }
 
-    const mappingText = toStringValue(entry)
+    const mappingText = formatPortMapping(entry, mapping)
     const existing = hostPorts.get(mapping.hostPort) ?? []
     existing.push({ service: serviceName, file: composeFile, mapping: mappingText })
     hostPorts.set(mapping.hostPort, existing)
