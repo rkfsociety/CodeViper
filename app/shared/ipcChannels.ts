@@ -101,6 +101,12 @@ export const IPC = {
   FLUSH_COLLECTIVE_MEMORY: 'flush-collective-memory',
   FORCE_SYNC_BUNDLED_RUNTIME: 'force-sync-bundled-runtime',
   CHECK_FOR_UPDATES: 'check-for-updates',
+  LIST_PLUGIN_CATALOG: 'list-plugin-catalog',
+  INSTALL_PLUGIN_CATALOG: 'install-plugin-catalog',
+  UPDATE_PLUGIN_CATALOG: 'update-plugin-catalog',
+  UNINSTALL_PLUGIN_CATALOG: 'uninstall-plugin-catalog',
+  OPEN_PLUGINS_FOLDER: 'open-plugins-folder',
+  IMPORT_PLUGIN_SKILLS: 'import-plugin-skills',
 
   // ── Broadcast (main → renderer) ───────────────────────────────────────
   AGENT_STREAM: 'agent-stream',

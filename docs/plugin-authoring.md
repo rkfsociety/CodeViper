@@ -137,6 +137,10 @@ module.exports = {
 
 - [API инструментов агента](tools-api.md) — встроенные tools и соглашения по `parameters`
 - [Интеграции (MCP)](integrations.md) — внешние tools с полноценным runtime
-- Исходники: [`pluginLoader.ts`](../app/electron/main/pluginLoader.ts), [`agentTools/index.ts`](../app/electron/main/agentTools/index.ts)
+- Исходники: [`pluginLoader.ts`](../app/electron/main/pluginLoader.ts), [`agentTools/index.ts`](../app/electron/main/agentTools/index.ts), [`pluginCatalog.ts`](../app/shared/pluginCatalog.ts)
 
-## Import skills from a repository`r`n`r`nIf a plugin repo ships `skills/*/SKILL.md` files, CodeViper can import them into `ViperSkills.md` from Settings > Plugins > "Import skills from repo". This is the recommended path for Superpowers-style repositories such as [`obra/superpowers`](https://github.com/obra/superpowers).`r`n
+## Каталог плагинов
+
+Записи в [`app/shared/pluginCatalog.ts`](../app/shared/pluginCatalog.ts) отображаются в **Настройки → Плагины → Каталог**. Установка клонирует репозиторий в `%APPDATA%/CodeViper/plugin-catalog/` и импортирует `skills/*/SKILL.md` в `ViperSkills.md`.
+
+Ручной импорт (без каталога): **Настройки → Плагины → Импортировать skills из папки**.

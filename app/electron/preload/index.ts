@@ -299,10 +299,37 @@ const codeviper = {
     withTimeout(ipcRenderer.invoke(IPC.LIST_SKILLS, projectPath), IPC_TIMEOUT_MS, 'listSkills'),
   importSkillsFromDirectory: (projectPath: string, pluginRoot: string) =>
     withTimeout(
-      ipcRenderer.invoke('import-plugin-skills', projectPath, pluginRoot),
+      ipcRenderer.invoke(IPC.IMPORT_PLUGIN_SKILLS, projectPath, pluginRoot),
       IPC_TIMEOUT_MS,
       'importSkillsFromDirectory'
     ),
+
+  listPluginCatalog: () =>
+    withTimeout(ipcRenderer.invoke(IPC.LIST_PLUGIN_CATALOG), IPC_TIMEOUT_MS, 'listPluginCatalog'),
+
+  installPluginCatalog: (catalogId: string, projectPath?: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.INSTALL_PLUGIN_CATALOG, catalogId, projectPath ?? ''),
+      IPC_TIMEOUT_MS * 4,
+      'installPluginCatalog'
+    ),
+
+  updatePluginCatalog: (catalogId: string, projectPath?: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.UPDATE_PLUGIN_CATALOG, catalogId, projectPath ?? ''),
+      IPC_TIMEOUT_MS * 4,
+      'updatePluginCatalog'
+    ),
+
+  uninstallPluginCatalog: (catalogId: string, projectPath?: string) =>
+    withTimeout(
+      ipcRenderer.invoke(IPC.UNINSTALL_PLUGIN_CATALOG, catalogId, projectPath ?? ''),
+      IPC_TIMEOUT_MS,
+      'uninstallPluginCatalog'
+    ),
+
+  openPluginsFolder: () =>
+    withTimeout(ipcRenderer.invoke(IPC.OPEN_PLUGINS_FOLDER), IPC_TIMEOUT_MS, 'openPluginsFolder'),
 
   createSkill: (
     projectPath: string,

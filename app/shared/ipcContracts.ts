@@ -332,6 +332,41 @@ export const AgentSkillSchema = z.object({
   useCount: z.number()
 })
 
+export const PluginCatalogEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  repoUrl: z.string(),
+  branch: z.string().optional(),
+  kind: z.enum(['skills-repo']),
+  author: z.string().optional(),
+  homepage: z.string().optional()
+})
+
+export const PluginCatalogItemViewSchema = z.object({
+  entry: PluginCatalogEntrySchema,
+  installed: z.boolean(),
+  installedAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  skillsImported: z.number().optional(),
+  skillCount: z.number().optional()
+})
+
+export const PluginCatalogActionResultSchema = z.object({
+  ok: z.boolean(),
+  message: z.string(),
+  imported: z.number().optional(),
+  skipped: z.number().optional(),
+  warnings: z.array(z.string()).optional()
+})
+
+export const ImportedSkillsResultSchema = z.object({
+  imported: z.number(),
+  skipped: z.number(),
+  warnings: z.array(z.string()),
+  skillIds: z.array(z.string())
+})
+
 export const AppStateSchema = z.object({
   activeChatId: z.string(),
   projectPath: z.string(),
@@ -935,6 +970,30 @@ export const Contracts = {
   [IPC.CHECK_FOR_UPDATES]: {
     args: z.tuple([]),
     result: CheckForUpdatesResultSchema
+  },
+  [IPC.LIST_PLUGIN_CATALOG]: {
+    args: z.tuple([]),
+    result: z.array(PluginCatalogItemViewSchema)
+  },
+  [IPC.INSTALL_PLUGIN_CATALOG]: {
+    args: z.tuple([z.string(), z.string().optional()]),
+    result: PluginCatalogActionResultSchema
+  },
+  [IPC.UPDATE_PLUGIN_CATALOG]: {
+    args: z.tuple([z.string(), z.string().optional()]),
+    result: PluginCatalogActionResultSchema
+  },
+  [IPC.UNINSTALL_PLUGIN_CATALOG]: {
+    args: z.tuple([z.string(), z.string().optional()]),
+    result: PluginCatalogActionResultSchema
+  },
+  [IPC.OPEN_PLUGINS_FOLDER]: {
+    args: z.tuple([]),
+    result: z.string()
+  },
+  [IPC.IMPORT_PLUGIN_SKILLS]: {
+    args: z.tuple([z.string(), z.string()]),
+    result: ImportedSkillsResultSchema
   },
   [IPC.REGISTER_P2P_NODE]: {
     args: z.tuple([AgentSettingsSchema]),

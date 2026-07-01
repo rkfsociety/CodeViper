@@ -457,10 +457,16 @@ export async function touchSkill(projectPath: string, id: string): Promise<void>
   await saveStore(path, store)
 }
 
+export interface ImportSkillsOptions {
+  /** Префикс id навыка: `${prefix}${имя-папки}` */
+  skillIdPrefix?: string
+}
+
 export interface ImportedSkillsResult {
   imported: number
   skipped: number
   warnings: string[]
+  skillIds: string[]
 }
 
 function parseSkillMarkdownFrontmatter(raw: string): {
@@ -510,9 +516,10 @@ function parseSkillMarkdownFrontmatter(raw: string): {
 
 export async function importSkillsFromDirectory(
   projectPath: string,
-  pluginRoot: string
+  pluginRoot: string,
+  options?: ImportSkillsOptions
 ): Promise<ImportedSkillsResult> {
-  const result: ImportedSkillsResult = { imported: 0, skipped: 0, warnings: [] }
+  const result: ImportedSkillsResult = { imported: 0, skipped: 0, warnings: [], skillIds: [] }
   const skillsDir = join(pluginRoot, 'skills')
   if (!existsSync(skillsDir)) {
     result.warnings.push('Не найдена папка skills')
@@ -537,12 +544,14 @@ export async function importSkillsFromDirectory(
         continue
       }
 
-      await createSkill(projectPath, {
+      const skill = await createSkill(projectPath, {
+        id: options?.skillIdPrefix ? `${options.skillIdPrefix}${entry.name}` : undefined,
         name: parsed.name,
         description: parsed.description,
         instructions: parsed.instructions,
         triggers: parsed.triggers
       })
+      result.skillIds.push(skill.id)
       result.imported += 1
     } catch (error) {
       result.skipped += 1

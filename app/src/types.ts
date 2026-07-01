@@ -436,6 +436,32 @@ export interface AgentSkill {
   source?: string
 }
 
+export interface PluginCatalogItemView {
+  entry: {
+    id: string
+    name: string
+    description: string
+    repoUrl: string
+    branch?: string
+    kind: 'skills-repo'
+    author?: string
+    homepage?: string
+  }
+  installed: boolean
+  installedAt?: string
+  updatedAt?: string
+  skillsImported?: number
+  skillCount?: number
+}
+
+export interface PluginCatalogActionResult {
+  ok: boolean
+  message: string
+  imported?: number
+  skipped?: number
+  warnings?: string[]
+}
+
 export interface SkillsStore {
   version: 1
   skills: AgentSkill[]
@@ -858,7 +884,22 @@ export interface CodeViperAPI {
     imported: number
     skipped: number
     warnings: string[]
+    skillIds: string[]
   }>
+  listPluginCatalog: () => Promise<PluginCatalogItemView[]>
+  installPluginCatalog: (
+    catalogId: string,
+    projectPath?: string
+  ) => Promise<PluginCatalogActionResult>
+  updatePluginCatalog: (
+    catalogId: string,
+    projectPath?: string
+  ) => Promise<PluginCatalogActionResult>
+  uninstallPluginCatalog: (
+    catalogId: string,
+    projectPath?: string
+  ) => Promise<PluginCatalogActionResult>
+  openPluginsFolder: () => Promise<string>
   createSkill: (
     projectPath: string,
     input: { name: string; description: string; instructions: string; triggers?: string[] }

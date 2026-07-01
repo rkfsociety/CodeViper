@@ -11,6 +11,12 @@ import {
 import { dismissRuntimeUpdate } from '../runtimeUpdate'
 import { forceSyncBundledSource } from '../bundledSourceSync'
 import { getPluginsDirectory } from '../pluginLoader'
+import {
+  installPluginCatalogEntry,
+  listPluginCatalog,
+  uninstallPluginCatalogEntry,
+  updatePluginCatalogEntry
+} from '../pluginCatalogService'
 import { loadUiLayout, saveUiLayout } from '../uiLayout'
 import { importSkillsFromDirectory } from '../skills'
 import type { AppState } from '../../../src/types'
@@ -121,13 +127,31 @@ export function registerAppIpc(ctx: IpcContext): void {
     }
   })
 
-  ipcMain.handle('open-plugins-folder', async () => {
+  ipcMain.handle(IPC.OPEN_PLUGINS_FOLDER, async () => {
     const dir = getPluginsDirectory()
     await shell.openPath(dir)
     return dir
   })
 
-  ipcMain.handle('import-plugin-skills', async (_e, projectPath: string, pluginRoot: string) => {
+  ipcMain.handle(IPC.LIST_PLUGIN_CATALOG, async () => listPluginCatalog())
+
+  ipcMain.handle(IPC.INSTALL_PLUGIN_CATALOG, async (_e, ...a) => {
+    const [catalogId, projectPath] = parseIpcArgs(Contracts[IPC.INSTALL_PLUGIN_CATALOG].args, a)
+    return installPluginCatalogEntry(catalogId, projectPath ?? '')
+  })
+
+  ipcMain.handle(IPC.UPDATE_PLUGIN_CATALOG, async (_e, ...a) => {
+    const [catalogId, projectPath] = parseIpcArgs(Contracts[IPC.UPDATE_PLUGIN_CATALOG].args, a)
+    return updatePluginCatalogEntry(catalogId, projectPath ?? '')
+  })
+
+  ipcMain.handle(IPC.UNINSTALL_PLUGIN_CATALOG, async (_e, ...a) => {
+    const [catalogId, projectPath] = parseIpcArgs(Contracts[IPC.UNINSTALL_PLUGIN_CATALOG].args, a)
+    return uninstallPluginCatalogEntry(catalogId, projectPath ?? '')
+  })
+
+  ipcMain.handle(IPC.IMPORT_PLUGIN_SKILLS, async (_e, ...a) => {
+    const [projectPath, pluginRoot] = parseIpcArgs(Contracts[IPC.IMPORT_PLUGIN_SKILLS].args, a)
     return importSkillsFromDirectory(projectPath, pluginRoot)
   })
 }

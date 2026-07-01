@@ -150,6 +150,7 @@ Do the thing.
     const result = await importSkillsFromDirectory('', repoRoot)
     expect(result.imported).toBe(1)
     expect(result.skipped).toBe(0)
+    expect(result.skillIds).toHaveLength(1)
 
     const skills = await listSkills('')
     expect(skills[0]?.name).toBe('Test Skill')
