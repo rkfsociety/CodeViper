@@ -257,6 +257,31 @@ export class ToolExecutor {
   private createSubagentToolHandlers(): Partial<ToolHandlers> {
     const recentTasks = new Set<string>()
     return {
+      delegate_to_reviewer: async ({ task, context }) => {
+        if (!this.projectPath) return 'Ошибка: путь к проекту не задан'
+        const taskKey = `reviewer:${task.slice(0, 200)}`
+        if (recentTasks.has(taskKey)) {
+          return '[delegate_to_reviewer] Задача уже была делегирована и выполнена. Используй результат из предыдущего вызова.'
+        }
+        try {
+          const fullTask = context ? `${task}\n\nКонтекст: ${context}` : task
+          const result = await runSubagent(this.settings, {
+            role: 'reviewer',
+            task: fullTask,
+            projectPath: this.projectPath,
+            signal: this.signal
+          })
+          recentTasks.add(taskKey)
+          if (recentTasks.size > 20) {
+            const first = recentTasks.values().next().value
+            if (first !== undefined) recentTasks.delete(first)
+          }
+          const status = result.completed ? 'завершена' : 'прервана по лимиту шагов'
+          return `[Reviewer: ${status}, шагов: ${result.steps}, инструменты: ${result.toolsUsed.join(', ') || 'нет'}]\n\n${result.output}`
+        } finally {
+          /* delegate_to_reviewer отображается как обычный tool chip через tool_start/tool_end */
+        }
+      },
       delegate_to_editor: async ({ task, context }) => {
         if (!this.projectPath) return 'Ошибка: путь к проекту не задан'
         const taskKey = task.slice(0, 200)

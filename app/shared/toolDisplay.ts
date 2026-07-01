@@ -46,6 +46,7 @@ export const TOOL_LABELS: Record<string, string> = {
   find_skill_file_issues: 'Проверяю SKILL.md',
   find_index_param_issues: 'Проверяю параметры индексации',
   find_p2p_connection_issues: 'Checking P2P connection',
+  delegate_to_reviewer: 'Ревью…',
   index_project: 'Индексирую проект'
 }
 

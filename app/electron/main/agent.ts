@@ -419,6 +419,11 @@ export class AgentRunner {
             ? '🤝 Задача похожа на ревью — делегирую её Reviewer-субагенту.'
             : '🤝 Задача похожа на запуск/анализ тестов — делегирую её Tester-субагенту.'
       })
+      this.emitter.emit({
+        type: 'tool_start',
+        toolName: `delegate_to_${autoDelegateRole}`,
+        toolInput: JSON.stringify({ task: userMessage }, null, 2)
+      })
       const startedAt = Date.now()
       let result: Awaited<ReturnType<typeof runSubagent>>
       try {
@@ -439,6 +444,11 @@ export class AgentRunner {
           durationMs: Date.now() - startedAt,
           error: message
         })
+        this.emitter.emit({
+          type: 'tool_end',
+          toolName: `delegate_to_${autoDelegateRole}`,
+          toolOutput: `Ошибка: ${message}`
+        })
         this.emitter.emit({ type: 'error', content: message })
         traceRunEnd('error', { error: message, steps: 0, autoDelegatedTo: autoDelegateRole })
         this.emitter.emit({ type: 'done' })
@@ -454,6 +464,11 @@ export class AgentRunner {
         steps: result.steps,
         toolsUsed: result.toolsUsed,
         output: result.output
+      })
+      this.emitter.emit({
+        type: 'tool_end',
+        toolName: `delegate_to_${autoDelegateRole}`,
+        toolOutput: result.output
       })
       this.emitter.emit({ type: 'assistant', content: result.output })
       traceRunEnd(result.completed ? 'ok' : 'error', {

@@ -57,6 +57,8 @@ vi.mock('../electron/main/subagentRunner', () => ({
 }))
 
 import { ToolExecutor } from '../electron/main/agentToolExecutor'
+import { runSubagent } from '../electron/main/subagentRunner'
+import { toolLabel } from '../shared/toolDisplay'
 
 function delayHandler(ms: number, output: string) {
   return async () => {
@@ -144,5 +146,60 @@ describe('ToolExecutor.executeParallel', () => {
       2
     )
     expect(second.output).toMatch(/уже пробовал read_file/)
+  })
+
+  it('delegate_to_reviewer запускает read-only reviewer-субагента', async () => {
+    vi.mocked(runSubagent).mockResolvedValue({
+      output: 'No critical findings.',
+      steps: 2,
+      completed: true,
+      toolsUsed: ['git_status', 'git_diff']
+    })
+    const executor = new ToolExecutor('/tmp/project', minimalSettings(), () => {})
+
+    const output = await executor.executeTool('delegate_to_reviewer', {
+      task: 'Review current diff',
+      context: 'Focus on regressions.'
+    })
+
+    expect(runSubagent).toHaveBeenCalledWith(
+      minimalSettings(),
+      expect.objectContaining({
+        role: 'reviewer',
+        projectPath: '/tmp/project',
+        task: expect.stringContaining('Focus on regressions.')
+      })
+    )
+    expect(output).toContain('Reviewer')
+    expect(output).toContain('No critical findings.')
+  })
+
+  it('delegate_to_reviewer отображается как tool chip during execution', async () => {
+    vi.mocked(runSubagent).mockResolvedValue({
+      output: 'No findings.',
+      steps: 1,
+      completed: true,
+      toolsUsed: ['git_diff']
+    })
+    const executor = new ToolExecutor('/tmp/project', minimalSettings(), (event) => {
+      emitted.push(event)
+    })
+
+    await executor.executeParallel(
+      [
+        {
+          id: 'call-reviewer',
+          function: { name: 'delegate_to_reviewer', arguments: { task: 'Review diff' } }
+        }
+      ],
+      1
+    )
+
+    expect(emitted).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'tool_start', toolName: 'delegate_to_reviewer' })
+      ])
+    )
+    expect(toolLabel('delegate_to_reviewer')).toBe('Ревью…')
   })
 })

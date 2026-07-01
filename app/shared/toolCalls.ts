@@ -86,11 +86,13 @@ export const AGENT_TOOL_NAMES = [
   'clear_todo_list',
   // Индексация
   'index_project',
+  'suggest_new_roadmap_items',
   // Веб
   'web_fetch',
   'web_search',
   'check_cve',
-  // Субагент-редактор
+  // Субагенты
+  'delegate_to_reviewer',
   'delegate_to_editor',
   // Тесты
   'find_integration_url_issues',

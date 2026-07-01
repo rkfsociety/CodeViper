@@ -9,4 +9,15 @@ describe('extractEmbeddedToolCalls with MCP tools', () => {
     const { toolCalls } = extractEmbeddedToolCalls(raw, [toolName])
     expect(toolCalls).toEqual([{ name: toolName, arguments: { query: 'test' } }])
   })
+
+  it('распознаёт delegate_to_reviewer как встроенный инструмент', () => {
+    const raw = JSON.stringify({
+      name: 'delegate_to_reviewer',
+      arguments: { task: 'Review current diff' }
+    })
+    const { toolCalls } = extractEmbeddedToolCalls(raw)
+    expect(toolCalls).toEqual([
+      { name: 'delegate_to_reviewer', arguments: { task: 'Review current diff' } }
+    ])
+  })
 })

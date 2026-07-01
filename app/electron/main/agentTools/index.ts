@@ -256,6 +256,10 @@ export interface ToolArgs {
     task: string
     context?: string
   }
+  delegate_to_reviewer: {
+    task: string
+    context?: string
+  }
   run_tests: {
     command?: string
     path?: string

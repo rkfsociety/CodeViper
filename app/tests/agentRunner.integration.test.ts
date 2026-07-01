@@ -383,6 +383,16 @@ describe('AgentRunner — интеграционный прогон', () => {
           event.data.ok === true
       )
     ).toBe(true)
+    expect(
+      emitted.some(
+        (event) => event.type === 'tool_start' && event.toolName === 'delegate_to_reviewer'
+      )
+    ).toBe(true)
+    expect(
+      emitted.some(
+        (event) => event.type === 'tool_end' && event.toolName === 'delegate_to_reviewer'
+      )
+    ).toBe(true)
 
     const assistant = emitted.find((e) => e.type === 'assistant') as
       { type: 'assistant'; content: string } | undefined
