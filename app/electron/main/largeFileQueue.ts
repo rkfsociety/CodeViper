@@ -2,6 +2,10 @@ import { Worker } from 'worker_threads'
 import { join } from 'path'
 import { getElectronMainDir } from './electronMainDir'
 
+function toError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err))
+}
+
 interface PendingRequest {
   resolve: (content: string) => void
   reject: (err: Error) => void
@@ -35,7 +39,8 @@ function getWorker(): Worker {
   )
 
   worker.on('error', (err) => {
-    for (const req of pending.values()) req.reject(err)
+    const e = toError(err)
+    for (const req of pending.values()) req.reject(e)
     pending.clear()
     worker = null
   })

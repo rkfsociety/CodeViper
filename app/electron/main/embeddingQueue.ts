@@ -8,6 +8,10 @@ import { EMBED_MODEL, cosineSimilarity } from './embeddingShared'
 const EMBED_CACHE_MAX = 500
 const embedCache = new Map<string, number[]>()
 
+function toError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err))
+}
+
 function embedCacheGet(text: string): number[] | undefined {
   const vec = embedCache.get(text)
   if (vec !== undefined) {
@@ -138,11 +142,12 @@ function getWorker(): Worker {
   )
 
   worker.on('error', (err) => {
-    for (const req of pending.values()) req.reject(err)
+    const e = toError(err)
+    for (const req of pending.values()) req.reject(e)
     pending.clear()
     // Отклоняем запросы, ещё не отправленные в воркер
     const stuck = waitQueue.splice(0)
-    for (const item of stuck) item.reject(err)
+    for (const item of stuck) item.reject(e)
     draining = false
     worker = null
     ready = false
