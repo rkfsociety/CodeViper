@@ -2,10 +2,6 @@ import { Worker } from 'worker_threads'
 import { join } from 'path'
 import { getElectronMainDir } from './electronMainDir'
 
-function toError(err: unknown): Error {
-  return err instanceof Error ? err : new Error(String(err))
-}
-
 interface PendingRequest {
   resolve: (content: string) => void
   reject: (err: Error) => void
@@ -14,6 +10,16 @@ interface PendingRequest {
 let worker: Worker | null = null
 let nextId = 0
 const pending = new Map<number, PendingRequest>()
+
+function toError(err: unknown): Error {
+  if (err instanceof Error) return err
+  if (typeof err === 'string') return new Error(err)
+  try {
+    return new Error(JSON.stringify(err))
+  } catch {
+    return new Error(String(err))
+  }
+}
 
 function getWorker(): Worker {
   if (worker) return worker
@@ -38,7 +44,7 @@ function getWorker(): Worker {
     }
   )
 
-  worker.on('error', (err) => {
+  worker.on('error', (err: unknown) => {
     const e = toError(err)
     for (const req of pending.values()) req.reject(e)
     pending.clear()

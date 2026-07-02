@@ -9,7 +9,13 @@ const EMBED_CACHE_MAX = 500
 const embedCache = new Map<string, number[]>()
 
 function toError(err: unknown): Error {
-  return err instanceof Error ? err : new Error(String(err))
+  if (err instanceof Error) return err
+  if (typeof err === 'string') return new Error(err)
+  try {
+    return new Error(JSON.stringify(err))
+  } catch {
+    return new Error(String(err))
+  }
 }
 
 function embedCacheGet(text: string): number[] | undefined {
@@ -141,7 +147,7 @@ function getWorker(): Worker {
     }
   )
 
-  worker.on('error', (err) => {
+  worker.on('error', (err: unknown) => {
     const e = toError(err)
     for (const req of pending.values()) req.reject(e)
     pending.clear()
