@@ -5,6 +5,7 @@ export const AGENT_TOOL_NAMES = [
   'grep_files',
   'find_files',
   'find_symbol',
+  'find_symbol_index_issues',
   'find_references',
   'find_slow_code',
   'find_missing_tests',

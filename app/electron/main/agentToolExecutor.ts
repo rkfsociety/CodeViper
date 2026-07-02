@@ -39,6 +39,7 @@ export const PARALLEL_SAFE_TOOLS = new Set([
   'grep_files',
   'find_files',
   'find_symbol',
+  'find_symbol_index_issues',
   'find_references',
   'find_slow_code',
   'find_missing_tests',

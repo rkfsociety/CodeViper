@@ -91,3 +91,9 @@
 2026-07-01 В· memory entry format:
 - Симптом, причина, фикс и способ не повторять писать в коротком стандартизированном виде.
 - В память попадают только решения, подтверждённые тестом, сборкой, коммитом или явной проверкой.
+
+2026-07-02 · wiki over README
+- Symptom: project notes and internal work summaries started drifting into README.
+- Cause: there was no explicit rule for where long-lived project notes belong.
+- Fix: store project notes, internal summaries, and long feature descriptions in the repo wiki. Keep README as the public showcase only.
+- Do not repeat: before writing project-level notes, choose the wiki. Touch README only for short user-facing quick start, links, and showcase-level mentions.

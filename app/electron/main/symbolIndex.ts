@@ -238,6 +238,87 @@ function collectPyDeclarations(
   }
 }
 
+function collectPySymbolLocations(content: string, filePath: string, out: SymbolLocation[]): void {
+  const lines = content.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const defMatch = line.match(PY_DEF)
+    if (defMatch?.[1]) {
+      const col = line.indexOf(defMatch[1]) + 1
+      out.push({ path: filePath, line: i + 1, column: col, kind: 'function', name: defMatch[1] })
+      continue
+    }
+    const classMatch = line.match(PY_CLASS)
+    if (classMatch?.[1]) {
+      const col = line.indexOf(classMatch[1]) + 1
+      out.push({ path: filePath, line: i + 1, column: col, kind: 'class', name: classMatch[1] })
+    }
+  }
+}
+
+export function collectIndexableSymbolLocations(
+  filePath: string,
+  content: string
+): SymbolLocation[] {
+  const ext = extname(filePath).toLowerCase()
+  const out: SymbolLocation[] = []
+
+  if (TS_JS_EXTENSIONS.has(ext)) {
+    const ts = getTs()
+    const sourceFile = ts.createSourceFile(
+      filePath,
+      content,
+      ts.ScriptTarget.Latest,
+      true,
+      scriptKindForExt(ext)
+    )
+
+    function visit(node: Ts.Node): void {
+      if (ts.isFunctionDeclaration(node) && node.name) {
+        pushDeclaration(out, filePath, node.name, sourceFile, 'function', node.name.text)
+      } else if (ts.isClassDeclaration(node) && node.name) {
+        pushDeclaration(out, filePath, node.name, sourceFile, 'class', node.name.text)
+      } else if (ts.isInterfaceDeclaration(node) && node.name) {
+        pushDeclaration(out, filePath, node.name, sourceFile, 'interface', node.name.text)
+      } else if (ts.isTypeAliasDeclaration(node) && node.name) {
+        pushDeclaration(out, filePath, node.name, sourceFile, 'type', node.name.text)
+      } else if (ts.isEnumDeclaration(node) && node.name) {
+        pushDeclaration(out, filePath, node.name, sourceFile, 'enum', node.name.text)
+      } else if (ts.isMethodDeclaration(node) && ts.isIdentifier(node.name)) {
+        pushDeclaration(out, filePath, node.name, sourceFile, 'method', node.name.text)
+      } else if (ts.isVariableStatement(node)) {
+        for (const decl of node.declarationList.declarations) {
+          if (!ts.isIdentifier(decl.name)) continue
+          const isFn =
+            decl.initializer != null &&
+            (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer))
+          pushDeclaration(
+            out,
+            filePath,
+            decl.name,
+            sourceFile,
+            isFn ? 'function' : 'variable',
+            decl.name.text
+          )
+        }
+      } else if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) {
+        pushDeclaration(out, filePath, node.name, sourceFile, 'module', node.name.text)
+      }
+      ts.forEachChild(node, visit)
+    }
+
+    visit(sourceFile)
+    return out
+  }
+
+  if (PY_EXTENSIONS.has(ext)) {
+    collectPySymbolLocations(content, filePath, out)
+    return out
+  }
+
+  return out
+}
+
 function collectPyReferences(
   content: string,
   symbolName: string,
@@ -262,7 +343,7 @@ function collectPyReferences(
   }
 }
 
-function isIndexableFile(filePath: string): boolean {
+export function isIndexableFile(filePath: string): boolean {
   const ext = extname(filePath).toLowerCase()
   return TS_JS_EXTENSIONS.has(ext) || PY_EXTENSIONS.has(ext)
 }

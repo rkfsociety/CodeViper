@@ -41,7 +41,7 @@
 
 ### `agentTools/core.ts` — FILE_TOOLS
 
-`search_knowledge_base`, `list_directory`, `grep_files`, `find_files`, `find_symbol`, `find_references`, `find_slow_code`, `find_missing_tests`, `find_merge_conflicts`, `find_aria_issues`, `find_index_param_issues`, `find_integration_url_issues`, `find_cron_issues`, `generate_dependency_diagram`, `generate_class_diagram`, `generate_dataflow_diagram`, `generate_project_metrics`, `search_in_project`, `read_file`, `read_multiple_files`, `file_info`, `project_stats`, `search_in_file`, `file_search_summary`, `show_file_history`, `copy_file`, `rename_folder`, `copy_folder`, `preview_edit`, `preview_patch`, `write_file`, `create_file`, `edit_file`, `undo_edit`, `append_file`, `delete_file`, `move_file`
+`search_knowledge_base`, `list_directory`, `grep_files`, `find_files`, `find_symbol`, `find_symbol_index_issues`, `find_references`, `find_slow_code`, `find_missing_tests`, `find_merge_conflicts`, `find_aria_issues`, `find_index_param_issues`, `find_integration_url_issues`, `find_cron_issues`, `generate_dependency_diagram`, `generate_class_diagram`, `generate_dataflow_diagram`, `generate_project_metrics`, `search_in_project`, `read_file`, `read_multiple_files`, `file_info`, `project_stats`, `search_in_file`, `file_search_summary`, `show_file_history`, `copy_file`, `rename_folder`, `copy_folder`, `preview_edit`, `preview_patch`, `write_file`, `create_file`, `edit_file`, `undo_edit`, `append_file`, `delete_file`, `move_file`
 
 ### `agentTools/core.ts` — GIT_TOOLS
 
@@ -83,6 +83,10 @@
 ### `find_symbol` / `find_references`
 
 Поиск объявления символа или всех ссылок по AST (ts/js/py). Параметры: `name` (обяз.), `path`.
+
+### `find_symbol_index_issues`
+
+Проверка рассинхрона символьного индекса для ts/js/py: stale runtime entries, файлы без индекса и smoke-вызов `find_symbol`. Параметр: `path` (необяз., папка или файл для ограничения области проверки).
 
 ### `find_slow_code`
 

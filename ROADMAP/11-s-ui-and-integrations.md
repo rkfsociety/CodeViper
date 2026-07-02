@@ -1,103 +1,98 @@
-# S: UI, интеграции и уведомления
+﻿# S: UI, РёРЅС‚РµРіСЂР°С†РёРё Рё СѓРІРµРґРѕРјР»РµРЅРёСЏ
 
-Пункты 1–14: интерфейс, webhooks, P2P, метрики и интеграции.
+Пункты 1–13: интерфейс, webhooks, P2P, метрики и интеграции.
 
-Всего пунктов: 14.
-
-
-**1 · S · Tool `find_p2p_credit_issues`**
-- **Цель:** отчет о некорректных P2P-кредитах: отрицательный баланс, NaN, лимиты в `server/p2p/credits.ts`
-- **Файлы:** `p2pCreditAnalysis.ts`, `agentTools/core.ts`, handler P2P/terminal
-- **Действие:** статический разбор + runtime read credits store при наличии
-- **Проверка:** `npm test -- p2pCreditAnalysis.test.ts`; `find_p2p_credit_issues()` -> отчет
+Р’СЃРµРіРѕ РїСѓРЅРєС‚РѕРІ: 13.
 
 
-**2 · S · Tool `find_symbol_index_issues`**
-- **Цель:** отчет о рассинхроне символьного индекса (ts/js/py): stale entries, файлы без индекса
-- **Файлы:** `symbolIndexHealth.ts`, `symbolIndex.ts`, `agentTools/core.ts`
-- **Действие:** сравнить mtime файлов vs index; smoke `find_symbol`
-- **Проверка:** `npm test -- symbolIndexHealth.test.ts`; `find_symbol_index_issues()` -> отчет
+**1 В· S В· Tool `find_p2p_credit_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ РЅРµРєРѕСЂСЂРµРєС‚РЅС‹С… P2P-РєСЂРµРґРёС‚Р°С…: РѕС‚СЂРёС†Р°С‚РµР»СЊРЅС‹Р№ Р±Р°Р»Р°РЅСЃ, NaN, Р»РёРјРёС‚С‹ РІ `server/p2p/credits.ts`
+- **Р¤Р°Р№Р»С‹:** `p2pCreditAnalysis.ts`, `agentTools/core.ts`, handler P2P/terminal
+- **Р”РµР№СЃС‚РІРёРµ:** СЃС‚Р°С‚РёС‡РµСЃРєРёР№ СЂР°Р·Р±РѕСЂ + runtime read credits store РїСЂРё РЅР°Р»РёС‡РёРё
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- p2pCreditAnalysis.test.ts`; `find_p2p_credit_issues()` -> РѕС‚С‡РµС‚
 
 
-**3 · S · Tool `find_prompt_template_issues`**
-- **Цель:** отчет о битых шаблонах в `docs/example-prompts.md` и BehaviorTab slash-templates: пустой trigger, дубликаты
-- **Файлы:** `promptTemplateAnalysis.ts`, `agentTools/core.ts`
-- **Действие:** parse markdown-секций + settings templates; validate `/trigger` uniqueness
-- **Проверка:** `npm test -- promptTemplateAnalysis.test.ts`; `find_prompt_template_issues()` -> отчет
+
+**2 В· S В· Tool `find_prompt_template_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ Р±РёС‚С‹С… С€Р°Р±Р»РѕРЅР°С… РІ `docs/example-prompts.md` Рё BehaviorTab slash-templates: РїСѓСЃС‚РѕР№ trigger, РґСѓР±Р»РёРєР°С‚С‹
+- **Р¤Р°Р№Р»С‹:** `promptTemplateAnalysis.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** parse markdown-СЃРµРєС†РёР№ + settings templates; validate `/trigger` uniqueness
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- promptTemplateAnalysis.test.ts`; `find_prompt_template_issues()` -> РѕС‚С‡РµС‚
 
 
-**4 · S · Tool `find_toast_a11y_issues`**
-- **Цель:** отчет о toast без `role="status"` / `aria-live` в `Toast.tsx`, `App.tsx`, `McpHealthToastListener`
-- **Файлы:** `toastA11yAnalysis.ts` (переиспользовать паттерн `ariaJsxAnalysis.ts`), `agentTools/core.ts`
-- **Действие:** AST JSX по списку файлов; правила live-region
-- **Проверка:** `npm test -- toastA11yAnalysis.test.ts`; `find_toast_a11y_issues()` -> отчет
+**3 В· S В· Tool `find_toast_a11y_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ toast Р±РµР· `role="status"` / `aria-live` РІ `Toast.tsx`, `App.tsx`, `McpHealthToastListener`
+- **Р¤Р°Р№Р»С‹:** `toastA11yAnalysis.ts` (РїРµСЂРµРёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РїР°С‚С‚РµСЂРЅ `ariaJsxAnalysis.ts`), `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** AST JSX РїРѕ СЃРїРёСЃРєСѓ С„Р°Р№Р»РѕРІ; РїСЂР°РІРёР»Р° live-region
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- toastA11yAnalysis.test.ts`; `find_toast_a11y_issues()` -> РѕС‚С‡РµС‚
 
 
-**5 · S · Tool `find_env_issues`**
-- **Цель:** отчет о ключах `.env`, не описанных в Zod/settings, и наоборот - required без значения
-- **Файлы:** `envIssueAnalysis.ts`, `settings.ts`, `agentTools/core.ts`
-- **Действие:** parse dotenv; diff с `PersistedSettingsSchema` и documented keys
-- **Проверка:** `npm test -- envIssueAnalysis.test.ts`; `find_env_issues()` -> отчет
+**4 В· S В· Tool `find_env_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ РєР»СЋС‡Р°С… `.env`, РЅРµ РѕРїРёСЃР°РЅРЅС‹С… РІ Zod/settings, Рё РЅР°РѕР±РѕСЂРѕС‚ - required Р±РµР· Р·РЅР°С‡РµРЅРёСЏ
+- **Р¤Р°Р№Р»С‹:** `envIssueAnalysis.ts`, `settings.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** parse dotenv; diff СЃ `PersistedSettingsSchema` Рё documented keys
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- envIssueAnalysis.test.ts`; `find_env_issues()` -> РѕС‚С‡РµС‚
 
 
-**6 · S · Tool `find_rag_model_issues`**
-- **Цель:** отчет о недоступных embedding-моделях (Ollama/OpenAI) из settings vs `rag.ts`
-- **Файлы:** `ragModelHealth.ts`, `rag.ts`, `agentTools/core.ts`
-- **Действие:** read settings embedding model id; ping provider / list models; mismatch dimension
-- **Проверка:** `npm test -- ragModelHealth.test.ts`; `find_rag_model_issues()` -> отчет
+**5 В· S В· Tool `find_rag_model_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ РЅРµРґРѕСЃС‚СѓРїРЅС‹С… embedding-РјРѕРґРµР»СЏС… (Ollama/OpenAI) РёР· settings vs `rag.ts`
+- **Р¤Р°Р№Р»С‹:** `ragModelHealth.ts`, `rag.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** read settings embedding model id; ping provider / list models; mismatch dimension
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- ragModelHealth.test.ts`; `find_rag_model_issues()` -> РѕС‚С‡РµС‚
 
 
-**7 · S · Tool `find_index_param_issues`**
-- **Цель:** отчет о некорректных параметрах индексации (chunk size, overlap, batch) в settings и `rag.ts`
-- **Файлы:** `indexParamAnalysis.ts`, `rag.ts`, `agentTools/core.ts`
-- **Действие:** validate ranges (chunk 256-8192, overlap < chunk); Zod bounds
-- **Проверка:** `npm test -- indexParamAnalysis.test.ts`; `find_index_param_issues()` -> отчет
+**6 В· S В· Tool `find_index_param_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ РЅРµРєРѕСЂСЂРµРєС‚РЅС‹С… РїР°СЂР°РјРµС‚СЂР°С… РёРЅРґРµРєСЃР°С†РёРё (chunk size, overlap, batch) РІ settings Рё `rag.ts`
+- **Р¤Р°Р№Р»С‹:** `indexParamAnalysis.ts`, `rag.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** validate ranges (chunk 256-8192, overlap < chunk); Zod bounds
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- indexParamAnalysis.test.ts`; `find_index_param_issues()` -> РѕС‚С‡РµС‚
 
 
-**8 · S · Tool `find_orchestrator_issues`**
-- **Цель:** отчет о несовместимой orchestrator-модели: не в listModels, слишком мала для planner
-- **Файлы:** `orchestratorHealth.ts`, `orchestratorModel.ts`, `ModelTab.tsx`, `agentTools/core.ts`
-- **Действие:** read `orchestratorModel` setting; verify against provider list + min context
-- **Проверка:** `npm test -- orchestratorHealth.test.ts`; `find_orchestrator_issues()` -> отчет
+**7 В· S В· Tool `find_orchestrator_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ РЅРµСЃРѕРІРјРµСЃС‚РёРјРѕР№ orchestrator-РјРѕРґРµР»Рё: РЅРµ РІ listModels, СЃР»РёС€РєРѕРј РјР°Р»Р° РґР»СЏ planner
+- **Р¤Р°Р№Р»С‹:** `orchestratorHealth.ts`, `orchestratorModel.ts`, `ModelTab.tsx`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** read `orchestratorModel` setting; verify against provider list + min context
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- orchestratorHealth.test.ts`; `find_orchestrator_issues()` -> РѕС‚С‡РµС‚
 
 
-**9 · S · Tool `find_vision_model_issues`**
-- **Цель:** отчет о vision-модели в settings без поддержки image input
-- **Файлы:** `visionModelHealth.ts`, `settings.ts`, `MessageBody.tsx`, `agentTools/core.ts`
-- **Действие:** cross-check model id с known vision-capable list / provider metadata
-- **Проверка:** `npm test -- visionModelHealth.test.ts`; `find_vision_model_issues()` -> отчет
+**8 В· S В· Tool `find_vision_model_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ vision-РјРѕРґРµР»Рё РІ settings Р±РµР· РїРѕРґРґРµСЂР¶РєРё image input
+- **Р¤Р°Р№Р»С‹:** `visionModelHealth.ts`, `settings.ts`, `MessageBody.tsx`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** cross-check model id СЃ known vision-capable list / provider metadata
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- visionModelHealth.test.ts`; `find_vision_model_issues()` -> РѕС‚С‡РµС‚
 
 
-**10 · S · Tool `find_explorer_subagent_issues`**
-- **Цель:** отчет о некорректных настройках Explorer-субагента (model, tools, timeout) в `subagentRunner.ts`
-- **Файлы:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
-- **Действие:** validate role `explorer` block: model set, enabled tools non-empty, timeout > 0
-- **Проверка:** `npm test -- subagentConfigAnalysis.test.ts`; `find_explorer_subagent_issues()` -> отчет
+**9 В· S В· Tool `find_explorer_subagent_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ РЅРµРєРѕСЂСЂРµРєС‚РЅС‹С… РЅР°СЃС‚СЂРѕР№РєР°С… Explorer-СЃСѓР±Р°РіРµРЅС‚Р° (model, tools, timeout) РІ `subagentRunner.ts`
+- **Р¤Р°Р№Р»С‹:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** validate role `explorer` block: model set, enabled tools non-empty, timeout > 0
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- subagentConfigAnalysis.test.ts`; `find_explorer_subagent_issues()` -> РѕС‚С‡РµС‚
 
 
-**11 · S · Tool `find_reviewer_subagent_issues`**
-- **Цель:** то же для Reviewer-субагента
-- **Файлы:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
-- **Действие:** validate role `reviewer` block в settings/subagentRunner
-- **Проверка:** `npm test -- subagentConfigAnalysis.test.ts`; `find_reviewer_subagent_issues()` -> отчет
+**10 В· S В· Tool `find_reviewer_subagent_issues`**
+- **Р¦РµР»СЊ:** С‚Рѕ Р¶Рµ РґР»СЏ Reviewer-СЃСѓР±Р°РіРµРЅС‚Р°
+- **Р¤Р°Р№Р»С‹:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** validate role `reviewer` block РІ settings/subagentRunner
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- subagentConfigAnalysis.test.ts`; `find_reviewer_subagent_issues()` -> РѕС‚С‡РµС‚
 
 
-**12 · S · Tool `find_architect_subagent_issues`**
-- **Цель:** то же для Architect-субагента
-- **Файлы:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
-- **Действие:** validate role `architect` block
-- **Проверка:** `npm test -- subagentConfigAnalysis.test.ts`; `find_architect_subagent_issues()` -> отчет
+**11 В· S В· Tool `find_architect_subagent_issues`**
+- **Р¦РµР»СЊ:** С‚Рѕ Р¶Рµ РґР»СЏ Architect-СЃСѓР±Р°РіРµРЅС‚Р°
+- **Р¤Р°Р№Р»С‹:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** validate role `architect` block
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- subagentConfigAnalysis.test.ts`; `find_architect_subagent_issues()` -> РѕС‚С‡РµС‚
 
 
-**13 · S · Tool `find_performance_subagent_issues`**
-- **Цель:** то же для Performance-субагента
-- **Файлы:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
-- **Действие:** validate role `performance` block
-- **Проверка:** `npm test -- subagentConfigAnalysis.test.ts`; `find_performance_subagent_issues()` -> отчет
+**12 В· S В· Tool `find_performance_subagent_issues`**
+- **Р¦РµР»СЊ:** С‚Рѕ Р¶Рµ РґР»СЏ Performance-СЃСѓР±Р°РіРµРЅС‚Р°
+- **Р¤Р°Р№Р»С‹:** `subagentConfigAnalysis.ts`, `subagentRunner.ts`, `agentTools/core.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** validate role `performance` block
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- subagentConfigAnalysis.test.ts`; `find_performance_subagent_issues()` -> РѕС‚С‡РµС‚
 
 
-**14 · S · Tool `find_settings_path_issues`**
-- **Цель:** отчет о битых путях в `settings.json` (`sourceRootOverride`, `gitRepoRoot`, `orchestratorModelPath`, `recentProjects`)
-- **Файлы:** `settingsPathAnalysis.ts`, `settings.ts`, `agentTools/core.ts`, `agentHandlersProjectTerminal.ts`
-- **Действие:** `loadSettings()` + проверка полей-путей через `access()`; список битых путей
-- **Проверка:** `npm test -- settingsPathAnalysis.test.ts`; `find_settings_path_issues()` -> отчет
+**13 В· S В· Tool `find_settings_path_issues`**
+- **Р¦РµР»СЊ:** РѕС‚С‡РµС‚ Рѕ Р±РёС‚С‹С… РїСѓС‚СЏС… РІ `settings.json` (`sourceRootOverride`, `gitRepoRoot`, `orchestratorModelPath`, `recentProjects`)
+- **Р¤Р°Р№Р»С‹:** `settingsPathAnalysis.ts`, `settings.ts`, `agentTools/core.ts`, `agentHandlersProjectTerminal.ts`
+- **Р”РµР№СЃС‚РІРёРµ:** `loadSettings()` + РїСЂРѕРІРµСЂРєР° РїРѕР»РµР№-РїСѓС‚РµР№ С‡РµСЂРµР· `access()`; СЃРїРёСЃРѕРє Р±РёС‚С‹С… РїСѓС‚РµР№
+- **РџСЂРѕРІРµСЂРєР°:** `npm test -- settingsPathAnalysis.test.ts`; `find_settings_path_issues()` -> РѕС‚С‡РµС‚
+

@@ -89,6 +89,23 @@ export const FILE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'find_symbol_index_issues',
+      description:
+        'Checks symbol index drift for ts/js/py: stale entries, files without index, and a smoke find_symbol run.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Optional folder or file to scope the check'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'find_references',
       description:
         'Найти все вхождения символа по AST/лексеру в ts/js/py. Возвращает path:line:col для каждой ссылки.',

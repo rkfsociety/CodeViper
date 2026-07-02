@@ -121,6 +121,7 @@ export interface ToolArgs {
   grep_files: { query: string; path?: string }
   find_files: { pattern: string; path?: string }
   find_symbol: { name: string; path?: string }
+  find_symbol_index_issues: { path?: string }
   find_references: { name: string; path?: string }
   find_slow_code: { path?: string }
   find_missing_tests: { path?: string }

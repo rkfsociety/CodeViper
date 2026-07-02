@@ -13,6 +13,7 @@ import {
   buildDataflowDiagram,
   formatDataflowDiagram
 } from './symbolIndex'
+import { findSymbolIndexIssues } from './symbolIndexHealth'
 import { findMagicNumbers, formatMagicNumbersOutput } from './magicNumberIndex'
 import { findImportIssues, formatImportIssuesOutput } from './importIssueAnalysis'
 import { findMissingTests, formatMissingTestsOutput } from './missingTestAnalysis'
@@ -80,6 +81,16 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
           onProgress: (scanned) => emitProgress(`Поиск символа: ${args.name}`, scanPercent(scanned))
         })
         return formatSymbolResults(projectPath, args.name, result, 'declaration')
+      } finally {
+        clearProgress()
+      }
+    },
+
+    find_symbol_index_issues: async (args) => {
+      assertInsideProject(args.path, 'path for symbol index check', { allowEmpty: true })
+      try {
+        emitProgress('Checking symbol index...', 0)
+        return await findSymbolIndexIssues(projectPath, { path: args.path?.trim() })
       } finally {
         clearProgress()
       }

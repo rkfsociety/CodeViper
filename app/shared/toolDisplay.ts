@@ -45,6 +45,7 @@ export const TOOL_LABELS: Record<string, string> = {
   write_skill_data: 'Сохраняю данные навыка',
   find_skill_file_issues: 'Проверяю SKILL.md',
   find_index_param_issues: 'Проверяю параметры индексации',
+  find_symbol_index_issues: 'Проверяю индекс символов',
   find_p2p_credit_issues: 'Проверяю P2P credits',
   find_p2p_connection_issues: 'Checking P2P connection',
   delegate_to_reviewer: 'Ревью…',

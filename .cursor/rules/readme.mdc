@@ -36,3 +36,8 @@ alwaysApply: true
 ## Порядок перед коммитом
 
 После правок в `app/` или фич, затрагивающих UX: `typecheck` → `build` → **README + ROADMAP** → **`commit` (обязательно)**. `push` — только по запросу пользователя.
+
+## Project Notes
+
+- Put project notes, work summaries, internal notes, and long-lived feature descriptions in the repo wiki.
+- Keep README limited to short user-facing content: quick start, links, and showcase-level mentions.
