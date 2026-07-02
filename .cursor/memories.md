@@ -2,6 +2,13 @@
 
 Краткие уроки из инцидентов. Полный журнал — также в [`.cursor/README.md`](README.md) (раздел «Память»).
 
+## Архитектура main
+
+**2026-07-02 · циклические импорты bundled source/runtime**  
+- Симптом: 10 циклов через `bundledSourceBuild → runtimeBootstrap → runtimeHandlers → agentHandlers* → githubAuth → bundledSourceSync → build`.  
+- Фикс: `bundledSourceTypes.ts` (типы), `bundledSourceClone.ts` (`ensureBundledSourceClone` без sync/build); `githubAuth` → clone; `bundledSourceSync`/`bundledSourceBuild` — dynamic import вместо статики на соседей в цепочке.  
+- Проверка: `findImportCycles(app/)` — 0 циклов.
+
 ## Git и доставка runtime
 
 **2026-06-29 · коммит всегда, push по запросу (roman)**  
