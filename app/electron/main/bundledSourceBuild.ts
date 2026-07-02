@@ -12,23 +12,9 @@ import { runCommandInAppRoot } from './codeviperSource'
 import { getBundledSourceRoot } from './bundledSourcePaths'
 import { runBundledGit } from './bundledGit'
 import { loadSettings } from './settings'
-import { initBundledRuntimeFromSettings, initBundledShellPaths } from './runtimeBootstrap'
-import { reloadAllWindowsRendererFromClone } from './liveShellBootstrap'
+import type { BundledSourceBuildResult, BundledSourceSyncResult } from './bundledSourceTypes'
 
-export interface BundledSourceSyncResult {
-  updated: boolean
-  localHead?: string
-  error?: string
-  appDirChanged?: boolean
-  cloneCreated?: boolean
-}
-
-export interface BundledSourceBuildResult {
-  built: boolean
-  skipped?: boolean
-  reason?: string
-  error?: string
-}
+export type { BundledSourceBuildResult, BundledSourceSyncResult } from './bundledSourceTypes'
 
 const RUNTIME_MAIN_REL = join('out', 'main', 'index.js')
 const SOURCE_SCAN_DIRS = ['electron', 'src', 'shared'] as const
@@ -218,6 +204,9 @@ export function shouldBuildBundledSourceAfterSync(
 async function tryApplyRuntimeWithoutRelaunch(): Promise<void> {
   try {
     const settings = await loadSettings()
+    const { initBundledRuntimeFromSettings, initBundledShellPaths } =
+      await import('./runtimeBootstrap')
+    const { reloadAllWindowsRendererFromClone } = await import('./liveShellBootstrap')
     await initBundledRuntimeFromSettings(settings)
     initBundledShellPaths(settings.liveRuntimeFromGit !== false)
     await reloadAllWindowsRendererFromClone()

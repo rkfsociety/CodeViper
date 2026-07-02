@@ -36,7 +36,7 @@ import {
   syncBundledSourceIfEnabled,
   type GitRunResult
 } from '../electron/main/bundledSourceSync'
-import { getBundledSourceAppRoot } from '../electron/main/bundledSourceBuild'
+import { getBundledSourceAppRoot } from '../electron/main/bundledSourcePaths'
 
 describe('bundledSourceSync', () => {
   beforeEach(() => {

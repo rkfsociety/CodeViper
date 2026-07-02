@@ -13,9 +13,12 @@ vi.mock('../electron/main/codeviperSource', () => ({
   getCodeViperSourceRoot: () => 'C:/mock/app'
 }))
 
-vi.mock('../electron/main/bundledSourceSync', () => ({
-  getBundledSourceRoot: () => 'C:/mock/AppData/CodeViper/source',
+vi.mock('../electron/main/bundledSourceClone', () => ({
   ensureBundledSourceClone: vi.fn().mockResolvedValue(null)
+}))
+
+vi.mock('../electron/main/bundledSourcePaths', () => ({
+  getBundledSourceRoot: () => 'C:/mock/AppData/CodeViper/source'
 }))
 
 import { loadSettings } from '../electron/main/settings'

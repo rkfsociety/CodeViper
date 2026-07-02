@@ -6,7 +6,7 @@ import { registerLiveRuntimeTraceIpc } from './ipc/registerLiveRuntimeTraceIpc'
 import { registerLiveRuntimeGithubTraceIpc } from './ipc/registerLiveRuntimeGithubTraceIpc'
 import { registerLiveRuntimeUiLayoutIpc } from './ipc/registerLiveRuntimeUiLayoutIpc'
 import { installLiveShellRendererReload } from './liveShellBootstrap'
-import type { BundledSourceBuildResult, BundledSourceSyncResult } from './bundledSourceBuild'
+import type { BundledSourceBuildResult, BundledSourceSyncResult } from './bundledSourceTypes'
 
 let liveShellExtrasInstalled = false
 
