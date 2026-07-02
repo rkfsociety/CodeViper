@@ -1,5 +1,5 @@
 import { existsSync } from 'fs'
-import { mkdir, readFile, readdir, unlink, writeFile } from 'fs/promises'
+import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
 import type { AgentTraceEvent } from '../../src/types'
@@ -28,8 +28,16 @@ function chatTracesDir(): string {
   return join(getAgentTracesDir(), 'chats')
 }
 
+function archivedChatTracesDir(): string {
+  return join(getAgentTracesDir(), 'archived-chats')
+}
+
 function chatTracePath(chatId: string): string {
   return join(chatTracesDir(), `${chatId}.json`)
+}
+
+function archivedChatTracePath(chatId: string): string {
+  return join(archivedChatTracesDir(), `${chatId}.json`)
 }
 
 async function loadChatTraceFromDisk(chatId: string): Promise<AgentTraceEvent[]> {
@@ -93,9 +101,7 @@ async function flushChatTrace(chatId: string): Promise<void> {
   await writeJsonAtomic(chatTracePath(chatId), payload)
 }
 
-/** Все события трейса всех чатов с диска (без кэша — для агрегации метрик). */
-export async function loadAllChatTraceEventsFromDisk(): Promise<AgentTraceEvent[]> {
-  const dir = chatTracesDir()
+async function loadTraceEventsFromDir(dir: string): Promise<AgentTraceEvent[]> {
   let files: string[] = []
   try {
     files = await readdir(dir)
@@ -106,11 +112,29 @@ export async function loadAllChatTraceEventsFromDisk(): Promise<AgentTraceEvent[
   const all: AgentTraceEvent[] = []
   for (const file of files) {
     if (!file.endsWith('.json')) continue
-    const chatId = file.slice(0, -'.json'.length)
-    const events = await loadChatTraceFromDisk(chatId)
-    all.push(...events)
+    const path = join(dir, file)
+    if (!existsSync(path)) continue
+
+    try {
+      const raw = await readFile(path, 'utf-8')
+      const parsed = JSON.parse(raw) as ChatTraceFile
+      if (!Array.isArray(parsed.events)) throw new Error('bad trace shape')
+      all.push(...parsed.events.slice(-MAX_EVENTS))
+    } catch {
+      // Архив/трейсы могут быть повреждены — пропускаем, не ломаем метрики.
+      await backupCorruptFile(path)
+    }
   }
   return all
+}
+
+/** Все события трейса всех чатов с диска (без кэша — для агрегации метрик). */
+export async function loadAllChatTraceEventsFromDisk(): Promise<AgentTraceEvent[]> {
+  const [active, archived] = await Promise.all([
+    loadTraceEventsFromDir(chatTracesDir()),
+    loadTraceEventsFromDir(archivedChatTracesDir())
+  ])
+  return [...active, ...archived]
 }
 
 export async function loadChatTrace(chatId: string): Promise<AgentTraceEvent[]> {
@@ -142,6 +166,38 @@ export async function clearChatTrace(chatId: string): Promise<void> {
   traceCaches.set(chatId, [])
   loadPromises.delete(chatId)
   await unlink(chatTracePath(chatId)).catch(() => {})
+}
+
+/**
+ * Архивирует трейс удалённого чата, чтобы метрики не зависели от наличия чатов.
+ * (Метрики агрегируются по trace-событиям.)
+ */
+export async function archiveChatTrace(chatId: string): Promise<void> {
+  if (!chatId.trim()) return
+
+  const timer = saveTimers.get(chatId)
+  if (timer) {
+    clearTimeout(timer)
+    saveTimers.delete(chatId)
+  }
+
+  // Если есть несохранённые события — сначала сбрасываем в файл, чтобы не потерять статистику.
+  await flushChatTrace(chatId).catch(() => {})
+
+  traceCaches.set(chatId, [])
+  loadPromises.delete(chatId)
+
+  const src = chatTracePath(chatId)
+  if (!existsSync(src)) return
+
+  const dstDir = archivedChatTracesDir()
+  await mkdir(dstDir, { recursive: true })
+  const dst = archivedChatTracePath(chatId)
+
+  // Если в архиве уже есть файл (редко, но возможно) — не затираем, оставляем текущий как есть.
+  if (existsSync(dst)) return
+
+  await rename(src, dst).catch(() => {})
 }
 
 export async function flushPendingChatTraceWrites(): Promise<void> {

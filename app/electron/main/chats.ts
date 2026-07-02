@@ -6,7 +6,7 @@ import { makeId } from '../../shared/makeId'
 import { backupCorruptFile, writeJsonAtomic } from './fsUtil'
 import { clearChatFromRAG, addMessageToRAG } from './contextRAG'
 import { buildChatExportPayload, type ChatExportPayload } from '../../shared/chatExport'
-import { clearChatTrace, loadChatTrace } from './traceStorage'
+import { archiveChatTrace, loadChatTrace } from './traceStorage'
 import type { VectorStoreConfig } from './vectorStore'
 import type {
   ChatFolder,
@@ -331,7 +331,7 @@ export async function deleteChat(
   }
   await saveIndex(index)
   await unlink(chatDataPath(id)).catch(() => {})
-  await clearChatTrace(id)
+  await archiveChatTrace(id)
 
   // Очищаем RAG индекс для удалённого чата
   clearChatFromRAG(id, storeConfig ?? { provider: 'local', projectPath }).catch(() => {
