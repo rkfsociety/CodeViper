@@ -1,60 +1,119 @@
 import { readFile } from 'fs/promises'
 import { resolve } from 'path'
+import { fetchP2pCreditsBalance } from './p2pClient'
 import { loadSettings } from './settings'
 
 export type P2pCreditIssue = {
   scope: 'static' | 'runtime'
   type: 'negative-balance' | 'nan' | 'limit'
   message: string
+  line?: number
 }
 
-function parseNumberLiteral(raw: string): number | null {
+const DEFAULT_CREDITS_PATH = '../../server/p2p/src/credits.ts'
+
+function countLine(source: string, index: number): number {
+  return source.slice(0, index).split('\n').length
+}
+
+function strictInteger(raw: string): number | null {
   const trimmed = raw.trim()
-  if (!trimmed) return null
-  const value = Number(trimmed)
-  return Number.isFinite(value) ? value : Number.NaN
+  if (!trimmed || !/^[+-]?\d+$/.test(trimmed)) return Number.NaN
+  return Number(trimmed)
+}
+
+function pushIssue(
+  issues: P2pCreditIssue[],
+  scope: P2pCreditIssue['scope'],
+  type: P2pCreditIssue['type'],
+  message: string,
+  line?: number
+): void {
+  issues.push({ scope, type, message, ...(line ? { line } : {}) })
 }
 
 function collectStaticIssues(source: string): P2pCreditIssue[] {
   const issues: P2pCreditIssue[] = []
-  const limitMatches = [
-    ...source.matchAll(
-      /P2P_(?:INITIAL|TASK)_CREDIT_(?:COST|REWARD)\s*=\s*parseInt\([^)]*['"]([^'"]+)['"]/g
-    )
-  ]
-  for (const match of limitMatches) {
-    const value = parseNumberLiteral(match[1] ?? '')
-    if (value == null || Number.isNaN(value)) {
-      issues.push({
-        scope: 'static',
-        type: 'nan',
-        message: `некорректный числовой лимит: ${match[0]}`
-      })
+
+  const creditConstPatterns = [
+    {
+      name: 'P2P_INITIAL_CREDITS',
+      regex:
+        /export const P2P_INITIAL_CREDITS\s*=\s*parseInt\(\s*process\.env\.P2P_INITIAL_CREDITS\s*\?\?\s*(['"])(.*?)\1\s*,\s*10\s*\)/
+    },
+    {
+      name: 'P2P_TASK_CREDIT_COST',
+      regex:
+        /export const P2P_TASK_CREDIT_COST\s*=\s*parseInt\(\s*process\.env\.P2P_TASK_CREDIT_COST\s*\?\?\s*(['"])(.*?)\1\s*,\s*10\s*\)/
+    },
+    {
+      name: 'P2P_TASK_CREDIT_REWARD',
+      regex:
+        /export const P2P_TASK_CREDIT_REWARD\s*=\s*parseInt\(\s*process\.env\.P2P_TASK_CREDIT_REWARD\s*\?\?\s*(['"])(.*?)\1\s*,\s*10\s*\)/
+    }
+  ] as const
+
+  for (const { name, regex } of creditConstPatterns) {
+    const match = source.match(regex)
+    if (!match) continue
+    const rawDefault = match[2] ?? ''
+    const line = match.index != null ? countLine(source, match.index) : undefined
+    const parsed = strictInteger(rawDefault)
+
+    if (parsed == null || Number.isNaN(parsed)) {
+      pushIssue(
+        issues,
+        'static',
+        'nan',
+        `${name} использует некорректный дефолт "${rawDefault}"`,
+        line
+      )
       continue
     }
-    if (value < 0) {
-      issues.push({
-        scope: 'static',
-        type: 'negative-balance',
-        message: `отрицательный лимит кредов: ${value}`
-      })
+
+    if (parsed < 0) {
+      pushIssue(
+        issues,
+        'static',
+        'negative-balance',
+        `${name} содержит отрицательный лимит ${parsed}`,
+        line
+      )
     }
   }
 
-  if (/Math\.max\(0,\s*balance\)/.test(source) === false) {
-    issues.push({
-      scope: 'static',
-      type: 'limit',
-      message: 'отсутствует ограничение Math.max(0, balance) при записи баланса'
-    })
+  const readRawPattern = /parseInt\(\s*raw\s*,\s*10\s*\)/
+  if (
+    readRawPattern.test(source) &&
+    !/Number\.is(?:Finite|NaN)\(\s*(?:raw|Number\(raw\))\s*\)/.test(source)
+  ) {
+    const match = source.match(readRawPattern)
+    const line = match?.index != null ? countLine(source, match.index) : undefined
+    pushIssue(
+      issues,
+      'static',
+      'nan',
+      'readRaw() возвращает parseInt(raw, 10) без проверки NaN',
+      line
+    )
   }
 
-  if (/InsufficientCreditsError/.test(source) && !/senderBalance < cost/.test(source)) {
-    issues.push({
-      scope: 'static',
-      type: 'limit',
-      message: 'не найдена защита от отрицательного баланса senderBalance < cost'
-    })
+  if (!/Math\.max\(0,\s*balance\)/.test(source)) {
+    pushIssue(
+      issues,
+      'static',
+      'limit',
+      'writeRaw() не ограничивает записываемый баланс через Math.max(0, balance)'
+    )
+  }
+
+  if (!/senderBalance\s*<\s*(?:cost|P2P_TASK_CREDIT_COST)/.test(source)) {
+    pushIssue(
+      issues,
+      'static',
+      'limit',
+      'settleTask() не проверяет senderBalance < cost перед списанием'
+    )
   }
 
   return issues
@@ -64,33 +123,33 @@ async function readRuntimeBalance(): Promise<
   { ok: true; balance: number } | { ok: false; message: string }
 > {
   const settings = await loadSettings()
-  const url = settings.p2pServerUrl?.trim()
-  const token = settings.p2pAuthToken?.trim()
-  if (!url || !token)
-    return { ok: false, message: 'P2P runtime недоступен: не заданы p2pServerUrl/p2pAuthToken' }
-
-  try {
-    const res = await fetch(`${url.replace(/\/$/, '')}/credits/balance`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(10_000)
-    })
-    if (!res.ok) return { ok: false, message: `runtime balance ${res.status}` }
-    const data = (await res.json()) as { ok?: boolean; balance?: unknown }
-    const balance = Number(data.balance)
-    if (!Number.isFinite(balance)) {
-      return { ok: false, message: 'runtime balance NaN' }
+  const hasRuntime =
+    Boolean(settings.p2pServerUrl?.trim()) && Boolean(settings.p2pAuthToken?.trim())
+  if (!hasRuntime) {
+    return {
+      ok: false,
+      message: 'P2P runtime недоступен: не заданы p2pServerUrl/p2pAuthToken'
     }
-    return { ok: true, balance }
-  } catch (e) {
-    return { ok: false, message: (e as Error).message }
   }
+
+  const result = await fetchP2pCreditsBalance(settings)
+  if (!result.ok) {
+    return { ok: false, message: result.message ?? 'runtime credits unavailable' }
+  }
+
+  if (!Number.isFinite(result.balance)) {
+    return { ok: false, message: 'runtime balance NaN' }
+  }
+
+  return { ok: true, balance: result.balance }
 }
 
 export async function findP2pCreditIssues(
   projectPath: string,
   options: { path?: string } = {}
 ): Promise<string> {
-  const target = resolve(projectPath, options.path?.trim() || '../../server/p2p/src/credits.ts')
+  const target = resolve(projectPath, options.path?.trim() || DEFAULT_CREDITS_PATH)
+
   let source = ''
   try {
     source = await readFile(target, 'utf8')
@@ -100,6 +159,7 @@ export async function findP2pCreditIssues(
 
   const issues: P2pCreditIssue[] = collectStaticIssues(source)
   const runtime = await readRuntimeBalance()
+
   if (runtime.ok) {
     if (runtime.balance < 0) {
       issues.push({
@@ -113,10 +173,13 @@ export async function findP2pCreditIssues(
     }
   }
 
-  if (!issues.length) return 'Некорректных P2P-кредитов не найдено.'
+  if (!issues.length) return 'Некорректных P2P credits не найдено.'
 
   return [
     `Найдено ${issues.length} проблем P2P credits:`,
-    ...issues.map((issue, index) => `[${index + 1}] [${issue.scope}] ${issue.message}`)
+    ...issues.map((issue, index) => {
+      const line = issue.line ? `:L${issue.line}` : ''
+      return `[${index + 1}] [${issue.scope}${line}] ${issue.message}`
+    })
   ].join('\n')
 }
