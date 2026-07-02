@@ -122,7 +122,7 @@
     }
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.105.0",
+    "@anthropic-ai/sdk": "^0.109.1",
     "@qdrant/js-client-rest": "^1.18.0",
     "@tanstack/react-virtual": "^3.14.3",
     "async-mutex": "^0.5.0",
