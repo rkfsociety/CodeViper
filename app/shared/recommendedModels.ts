@@ -32,6 +32,20 @@ export const RECOMMENDED_MODELS: RecommendedModel[] = [
     url: 'https://ollama.com/library/qwen2.5-coder'
   },
   {
+    name: 'hf.co/Tesslate/OmniCoder-9B-GGUF:Q4_K_M',
+    description: 'OmniCoder 9B (Q4_K_M) — “agentic” кодер, хорош для tool-use',
+    ramHint: '16 GB',
+    ramTier: '16',
+    url: 'https://ollama.com/carstenuhlig/omnicoder-9b'
+  },
+  {
+    name: 'hf.co/Tesslate/OmniCoder-9B-GGUF:Q8_0',
+    description: 'OmniCoder 9B (Q8_0) — максимум качества, тяжелее по памяти',
+    ramHint: '24 GB',
+    ramTier: '24',
+    url: 'https://ollama.com/carstenuhlig/omnicoder-9b'
+  },
+  {
     name: 'qwen2.5:7b',
     description: 'Универсальная Qwen2.5, tool calling',
     ramHint: '8 GB',
