@@ -319,19 +319,18 @@ export function ModelTab({
                     className={`btn${(settings.literouterTier ?? 'free') === 'free' ? ' active' : ''}`}
                     onClick={() => pickLiteRouterTier('free')}
                   >
-                    Р‘РµСЃРїР»Р°С‚РЅС‹Р№
+                    Бесплатный
                   </button>
                   <button
                     type="button"
                     className={`btn${(settings.literouterTier ?? 'free') === 'paid' ? ' active' : ''}`}
                     onClick={() => pickLiteRouterTier('paid')}
                   >
-                    РџР»Р°С‚РЅС‹Р№
+                    Платный
                   </button>
                 </div>
                 <div className={styles.hint}>
-                  Р‘РµСЃРїР»Р°С‚РЅС‹Р№ СЂРµР¶РёРј РїРѕРєР°Р·С‹РІР°РµС‚ С‚РѕР»СЊРєРѕ РјРѕРґРµР»Рё СЃ
-                  СЃСѓС„С„РёРєСЃРѕРј <code>:free</code>.
+                  Бесплатный режим показывает только модели с суффиксом <code>:free</code>.
                 </div>
               </>
             )}

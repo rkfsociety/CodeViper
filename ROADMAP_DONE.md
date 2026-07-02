@@ -144,8 +144,8 @@
 - Plugins: added a Settings UI path for plugin folders and a Superpowers-style skills import flow from repository roots
 
 
-### P2P ? ??????????
-- `find_p2p_connection_issues`: ????? ? ?????????? WSS URL, reconnect backoff, timeout ? health-check ??? p2pClient.ts
+### P2P и подключения
+- `find_p2p_connection_issues`: отчёт о проблемах WSS URL, reconnect backoff, timeout и health-check для p2pClient.ts
 
 ### Символьный индекс
 - `find_symbol_index_issues`: отчёт о stale runtime entries, файлах без индекса и smoke `find_symbol`

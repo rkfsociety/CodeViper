@@ -227,11 +227,11 @@ export function createSearchHandlers(ctx: ProjectHandlerContext): Partial<ToolHa
     },
 
     find_type_mismatches: async (args) => {
-      assertInsideProject(args.path, 'РїР°РїРєР° РёР»Рё С„Р°Р№Р» РґР»СЏ Р°РЅР°Р»РёР·Р°', {
+      assertInsideProject(args.path, 'папка или файл для анализа', {
         allowEmpty: true
       })
       try {
-        emitProgress('TS-typecheck Р°РЅР°Р»РёР· РЅРµСЃРѕРѕС‚РІРµС‚СЃС‚РІРёР№', 0)
+        emitProgress('TS-typecheck анализ несоответствий', 0)
         const result = await findTypeMismatches(projectPath, {
           subpath: args.path?.trim()
         })

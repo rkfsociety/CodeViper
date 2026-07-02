@@ -38,7 +38,7 @@ describe('literouterTier', () => {
     mockWriteFile.mockResolvedValue(undefined)
   })
 
-  it('СЃРѕС…СЂР°РЅСЏРµС‚ Рё Р·Р°РіСЂСѓР¶Р°РµС‚ literouterTier', async () => {
+  it('сохраняет и загружает literouterTier', async () => {
     const saved = await saveSettings(
       makeSettings({
         modelProvider: 'literouter',

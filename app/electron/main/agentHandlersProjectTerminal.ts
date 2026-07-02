@@ -503,7 +503,7 @@ export function createTerminalHandlers(ctx: ProjectHandlerContext): Partial<Tool
 
     find_docker_port_issues: async (args: any) => {
       try {
-        emitProgress('РџСЂРѕРІРµСЂРєР° docker-compose портоввЂ¦', null)
+        emitProgress('Проверка docker-compose портов...', null)
         return await findDockerPortIssues(projectPath, { path: args.path })
       } finally {
         clearProgress()

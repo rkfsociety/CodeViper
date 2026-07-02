@@ -807,14 +807,13 @@ export const FILE_TOOLS = [
     function: {
       name: 'find_index_param_issues',
       description:
-        'РћС‚С‡С‘С‚ Рѕ РЅРµРєРѕСЂСЂРµРєС‚РЅС‹С… РїР°СЂР°РјРµС‚СЂР°С… РёРЅРґРµРєСЃР°С†РёРё (chunk size, overlap, batch) РІ settings Рё rag.ts',
+        'Отчёт о некорректных параметрах индексации (chunk size, overlap, batch) в settings и rag.ts',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description:
-              'РџСѓС‚СЊ Рє project root, settings.ts РёР»Рё rag.ts (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)'
+            description: 'Путь к project root, settings.ts или rag.ts (необязательно)'
           }
         }
       }

@@ -71,16 +71,16 @@
 - Фикс: синхронизировать `AgentSettingsSchema` с `PersistedSettingsSchema`; тест `ipcContracts.test.ts`.
 
 **2026-07-01 · planBeforeExecute — кракозябры при отмене и «план» из одной строки**  
-- Симптом: после «Отмена» в чате `???? ?? ???????????…`; в баннере плана — пересказ задачи, а не шаги; оркестратор выключен, но план шёл через qwen2.5:3b.  
+- Симптом: после «Отмена» в чате `План не сформирован…`; в баннере плана — пересказ задачи, а не шаги; оркестратор выключен, но план шёл через qwen2.5:3b.
 - Корень: (1) UTF-8 в `agent.ts`; (2) `planBeforeExecute` вызывал `analyze()` оркестратора даже при `orchestratorEnabled=false`; (3) слабый промпт планировщика.  
 - Фикс: UTF-8 строки; при `planBeforeExecute` без оркестратора — `generateExecutionPlan()` основной моделью; оркестратор только при `orchestratorEnabled`.
 
 **2026-07-01 · облачный оркестратор (LiteRouter free tier)**  
 - Запрос: выбор облачной модели оркестратора в рамках провайдера и tier (LiteRouter free → только `:free`).  
 - Фикс: `orchestratorBackend: cloud`, `orchestratorCloudModel`, UI в ModelTab, `analyzeCloud()` через тот же API-ключ провайдера агента.
-2026-07-01 ?? trace 1782919052296 ? added find_magic_numbers AST tool for numeric-literal noise, with tests and handler wiring.
+2026-07-01 · trace 1782919052296 — added find_magic_numbers AST tool for numeric-literal noise, with tests and handler wiring.
 
-2026-07-01 В· anti-repeat rule for CodeViper:
+2026-07-01 · anti-repeat rule for CodeViper:
 - Не использовать `&&` в однострочных PowerShell-командах; разбивать на отдельные вызовы.
 - После изменений в `app/` всегда выполнять `npm run typecheck` → `npm run build` перед коммитом.
 - Не трогать `app/test-userdata-plugin-catalog/`, это пользовательские данные.
@@ -88,7 +88,7 @@
 - Перед началом работы читать `.cursor/README.md` и релевантные `.cursor/rules/*.mdc`.
 - Правильные, проверенные решения записывать в `.cursor/memories.md`, чтобы переиспользовать их без догадок.
 
-2026-07-01 В· memory entry format:
+2026-07-01 · memory entry format:
 - Симптом, причина, фикс и способ не повторять писать в коротком стандартизированном виде.
 - В память попадают только решения, подтверждённые тестом, сборкой, коммитом или явной проверкой.
 

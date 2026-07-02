@@ -296,8 +296,8 @@ export function formatUnsafeRegexOutput(
 ): string {
   if (!result.issues.length) {
     return [
-      'РџРѕРІРµРґРµРЅРёРµ regex СЃ РІРµСЂРѕСЏС‚РЅС‹Рј catastrophic backtracking не обнаружено (AST-анализ ts/js).',
-      `РџСЂРѕС‚СЂРѕРЅСѓС‚Рѕ С„Р°Р№Р»РѕРІ: ${result.filesScanned}.`,
+      'Поведение regex с вероятным catastrophic backtracking не обнаружено (AST-анализ ts/js).',
+      `Протронуто файлов: ${result.filesScanned}.`,
       '',
       'Проверялись: вложенные квантификаторы и неоднозначные alternation-паттерны под квантификаторами.'
     ].join('\n')
