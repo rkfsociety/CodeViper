@@ -3,7 +3,7 @@ import { join, resolve } from 'path'
 import { appendFileHistory, readFileHistory } from './fileHistory'
 import { createUnifiedDiff } from './diffUtil'
 import type { ToolHandlers } from './agentTools'
-import { formatFileTree } from './agentContext'
+import { formatFileTree } from './fileTreeFormat'
 import {
   formatProjectReadErrorHint,
   safeReadFilePartial,

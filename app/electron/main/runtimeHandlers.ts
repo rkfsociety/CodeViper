@@ -6,7 +6,7 @@ import { registerLiveRuntimeTraceIpc } from './ipc/registerLiveRuntimeTraceIpc'
 import { registerLiveRuntimeGithubTraceIpc } from './ipc/registerLiveRuntimeGithubTraceIpc'
 import { registerLiveRuntimeUiLayoutIpc } from './ipc/registerLiveRuntimeUiLayoutIpc'
 import { installLiveShellRendererReload } from './liveShellBootstrap'
-import { getRuntimeBuildHead } from './bundledSourceBuild'
+import type { BundledSourceBuildResult, BundledSourceSyncResult } from './bundledSourceBuild'
 
 let liveShellExtrasInstalled = false
 
@@ -19,6 +19,7 @@ export function ensureLiveRuntimeExtras(): void {
   registerLiveRuntimeUiLayoutIpc()
   installLiveShellRendererReload()
   void (async () => {
+    const { getRuntimeBuildHead } = await import('./bundledSourceBuild')
     const head = getRuntimeBuildHead()
     if (!head) return
     const { recordRuntimeAppliedHead } = await import('./runtimeUpdateState')
@@ -26,7 +27,15 @@ export function ensureLiveRuntimeExtras(): void {
   })()
 }
 
-export { maybeBuildBundledSourceAfterSync, getRuntimeBuildHead } from './bundledSourceBuild'
+/** Публичный экспорт для live runtime (clone out/main/runtimeHandlers.js). */
+export async function maybeBuildBundledSourceAfterSync(
+  syncResult: BundledSourceSyncResult,
+  options?: { force?: boolean }
+): Promise<BundledSourceBuildResult | null> {
+  const mod = await import('./bundledSourceBuild')
+  return mod.maybeBuildBundledSourceAfterSync(syncResult, options)
+}
+
 export { createProjectToolHandlers, type ProjectToolOptions } from './agentHandlersProject'
 export { createGitHubToolHandlers } from './agentHandlersGitHub'
 export { createGitLabToolHandlers } from './agentHandlersGitLab'

@@ -5,13 +5,13 @@ import type {
   AgentRole,
   AgentSettings,
   ChatMessage,
-  FileNode,
   McpServerConfig
 } from '../../src/types'
 import { looksLikeEmbeddedToolCall, sanitizeAssistantContent } from '../../shared/toolCalls'
 import { buildMemoryContext } from './memory'
 import { buildSkillsContext } from './skills'
 import { buildFileTree } from './services'
+import { formatFileTree } from './fileTreeFormat'
 import { getAgentTools, formatAgentToolsSummary } from './agentTools'
 import {
   DEEP_REASONING_PROMPT,
@@ -126,23 +126,6 @@ const CLARIFY_PROMPT = `## Уточнение
 Если задача действительно неоднозначна, задай 1–3 коротких вопроса и остановись. Не переспрашивай по очевидным вещам.`
 
 export const MAX_PROJECT_TREE_CHARS = 6000
-
-export function formatFileTree(nodes: FileNode[], prefix = ''): string {
-  const lines: string[] = []
-
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]
-    const last = i === nodes.length - 1
-    const branch = last ? '└── ' : '├── '
-    lines.push(`${prefix}${branch}${node.name}${node.isDirectory ? '/' : ''}`)
-
-    if (node.children?.length) {
-      lines.push(formatFileTree(node.children, `${prefix}${last ? '    ' : '│   '}`))
-    }
-  }
-
-  return lines.join('\n')
-}
 
 function buildProjectContext(projectPath: string, treeText: string): string {
   return `# Открытый проект
